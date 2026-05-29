@@ -21,16 +21,61 @@
     import SupportKnowledgeDrawer from './SupportKnowledgeDrawer.svelte';
     import KnowledgeGraphVisualizer from './KnowledgeGraphVisualizer.svelte';
 
-    const categories = ["all", "GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO"];
+    const categories = ["all", "GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO", "AUTO_LEARNED"];
     let search = $state("");
     let category = $state("all");
+
+    // Sandbox & Inline Edit states (Elite V3.5 thưa sếp)
+    let loadingSandbox = $state(false);
+    let sandboxItems = $state<any[]>([]);
+    let editingItem = $state<any>(null);
+    const editCategories = ["GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO", "INFO_INGREDIENTS", "INFO_ADDRESS", "INFO_HOTLINE", "PRICE_QUERY", "INFO_SHIPPING"];
 
     onMount(async () => {
         await kb.fetchItems();
     });
 
     async function handleSearch() {
-        await kb.fetchItems(category === "all" ? undefined : category, search);
+        if (category === "AUTO_LEARNED") {
+            loadingSandbox = true;
+            try {
+                const res = await fetch('/api/v1/admin/support/knowledge/sandbox');
+                if (res.ok) {
+                    const data = await res.json();
+                    sandboxItems = data.data || [];
+                }
+            } catch (e) {
+                console.error("Failed to fetch sandbox:", e);
+            } finally {
+                loadingSandbox = false;
+            }
+        } else {
+            await kb.fetchItems(category === "all" ? undefined : category, search);
+        }
+    }
+
+    async function saveInlineEdit() {
+        if (!editingItem) return;
+        try {
+            const res = await fetch(`/api/v1/admin/support/knowledge/${editingItem.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: editingItem.question,
+                    answer: editingItem.answer,
+                    category: editingItem.category
+                })
+            });
+            if (res.ok) {
+                nanobot.showToast("Đã lưu chỉnh sửa tri thức sandbox!", "success");
+                editingItem = null;
+                await handleSearch();
+            } else {
+                nanobot.showToast("Lưu chỉnh sửa thất bại.", "error");
+            }
+        } catch (e) {
+            nanobot.showToast("Lỗi hệ thống khi chỉnh sửa.", "error");
+        }
     }
 
     function formatDate(dateStr: string) {
@@ -187,20 +232,99 @@
 
     <!-- Main Content: Data Modules -->
     <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
-        {#if kb.loading && kb.items.length === 0}
-            <div class="h-full flex flex-col items-center justify-center opacity-50">
-                <XohiLogo variant="simple" size={60} />
-                <p class="mt-4 text-[10px] font-black tracking-[0.3em] animate-pulse">Syncing Helen Brain...</p>
-            </div>
-        {:else if kb.items.length === 0}
-            <div class="h-full flex flex-col items-center justify-center text-cyan-500/20">
-                <div class="p-8 rounded-full bg-cyan-500/[0.02] border border-cyan-500/10 mb-6 group-hover:scale-110 transition-transform">
-                    <HelpCircle size={64} strokeWidth={1} />
+        {#if category === "AUTO_LEARNED"}
+            {#if loadingSandbox}
+                <div class="h-full flex flex-col items-center justify-center opacity-50">
+                    <XohiLogo variant="simple" size={60} />
+                    <p class="mt-4 text-[10px] font-black tracking-[0.3em] animate-pulse">Syncing Learning Sandbox...</p>
                 </div>
-                <p class="text-sm font-mono font-bold tracking-tight text-cyan-500/40 ">Neural_Void: No knowledge sequences detected</p>
-            </div>
-                {:else}
-            {#if kb.viewMode === 'grid'}
+            {:else if sandboxItems.length === 0}
+                <div class="h-full flex flex-col items-center justify-center text-cyan-500/20">
+                    <div class="p-8 rounded-full bg-cyan-500/[0.02] border border-cyan-500/10 mb-6">
+                        <HelpCircle size={64} strokeWidth={1} />
+                    </div>
+                    <p class="text-sm font-mono font-bold tracking-tight text-cyan-500/40 ">Neural_Void: No sandboxed suggestions detected</p>
+                </div>
+            {:else}
+                <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {#each sandboxItems as item (item.id)}
+                        <div class="kb-card group relative bg-[#0a0a0a] border border-indigo-500/20 rounded-3xl p-6 hover:bg-indigo-500/[0.03] hover:border-indigo-500/40 transition-all duration-300">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[8px] font-mono font-black tracking-widest text-indigo-400 border border-indigo-500/20">
+                                    {item.category}
+                                </span>
+                                <span class="text-[8px] font-mono text-gray-500">AUTO_LEARNED</span>
+                            </div>
+
+                            <h3 class="text-sm font-bold text-gray-200 mb-3 leading-snug line-clamp-2">
+                                {item.question}
+                            </h3>
+                            
+                            <p class="text-gray-500 text-[11px] leading-relaxed mb-6 line-clamp-3 italic">
+                                "{item.answer}"
+                            </p>
+
+                            <div class="flex justify-between items-center mt-auto pt-4 border-t border-white/5">
+                                <div class="flex gap-2">
+                                    <button 
+                                        onclick={() => editingItem = { ...item }}
+                                        class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black text-gray-400 hover:text-white"
+                                    >
+                                        EDIT
+                                    </button>
+                                    <button 
+                                        onclick={async () => {
+                                            try {
+                                                const res = await fetch(`/api/v1/admin/support/knowledge/sandbox/${item.id}/reject`, { method: 'POST' });
+                                                if (res.ok) {
+                                                    nanobot.showToast("Đã từ chối gợi ý tự học.", "success");
+                                                    await handleSearch();
+                                                }
+                                            } catch (e) {
+                                                nanobot.showToast("Từ chối thất bại.", "error");
+                                            }
+                                        }}
+                                        class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-500 hover:bg-red-500/20"
+                                    >
+                                        DECLINE
+                                    </button>
+                                    <button 
+                                        onclick={async () => {
+                                            try {
+                                                const res = await fetch(`/api/v1/admin/support/knowledge/sandbox/${item.id}/approve`, { method: 'POST' });
+                                                if (res.ok) {
+                                                    nanobot.showToast("Đã duyệt tri thức và sinh vector thành công!", "success");
+                                                    await handleSearch();
+                                                }
+                                            } catch (e) {
+                                                nanobot.showToast("Duyệt thất bại.", "error");
+                                            }
+                                        }}
+                                        class="px-4 py-1.5 rounded-lg bg-cyan-500 text-black text-[9px] font-black hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                                    >
+                                        APPROVE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        {:else}
+            {#if kb.loading && kb.items.length === 0}
+                <div class="h-full flex flex-col items-center justify-center opacity-50">
+                    <XohiLogo variant="simple" size={60} />
+                    <p class="mt-4 text-[10px] font-black tracking-[0.3em] animate-pulse">Syncing Helen Brain...</p>
+                </div>
+            {:else if kb.items.length === 0}
+                <div class="h-full flex flex-col items-center justify-center text-cyan-500/20">
+                    <div class="p-8 rounded-full bg-cyan-500/[0.02] border border-cyan-500/10 mb-6 group-hover:scale-110 transition-transform">
+                        <HelpCircle size={64} strokeWidth={1} />
+                    </div>
+                    <p class="text-sm font-mono font-bold tracking-tight text-cyan-500/40 ">Neural_Void: No knowledge sequences detected</p>
+                </div>
+            {:else}
+                {#if kb.viewMode === 'grid'}
                 <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {#each kb.items as item (item.id)}
                         <div 
@@ -258,7 +382,7 @@
                         </div>
                     {/each}
                 </div>
-            {:else}
+            {:else if kb.viewMode === 'list'}
                 <!-- List View: Neural Table -->
                 <div class="w-full bg-[#0a0a0a] border border-cyan-500/10 rounded-3xl overflow-hidden" in:fade>
                     <table class="w-full text-left border-collapse">
@@ -333,6 +457,7 @@
                 </div>
             {/if}
         {/if}
+    {/if}
     </div>
 
     <!-- Bulk Actions Component -->
@@ -343,6 +468,69 @@
         bind:isOpen={kb.showModal} 
         onClose={() => kb.showModal = false} 
     />
+
+    <!-- Inline Edit Modal (Elite V3.5 thừa sếp!) -->
+    {#if editingItem}
+        <div class="absolute inset-0 z-[100] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8" in:fade>
+            <div class="max-w-2xl w-full bg-gray-900/40 border border-indigo-500/30 rounded-[3rem] overflow-hidden flex flex-col h-[65vh] shadow-[0_0_50px_rgba(99,102,241,0.2)]" in:scale={{ start: 0.95 }}>
+                <header class="p-8 border-b border-white/5 flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-black italic tracking-tighter text-white">EDIT SANDBOX tri thức</h2>
+                        <p class="text-[10px] font-mono text-indigo-400 tracking-[0.3em] mt-1">Chỉnh sửa Q&A trước khi duyệt chính thức</p>
+                    </div>
+                    <button 
+                        onclick={() => editingItem = null}
+                        class="p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-90"
+                    >
+                        <RefreshCw size={20} class="rotate-45" />
+                    </button>
+                </header>
+
+                <div class="flex-1 p-8 flex flex-col space-y-6 overflow-y-auto custom-scrollbar">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">CATEGORY</label>
+                        <select 
+                            bind:value={editingItem.category}
+                            class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-xs text-white"
+                        >
+                            {#each editCategories as cat}
+                                <option value={cat}>{cat}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">QUESTION</label>
+                        <textarea
+                            bind:value={editingItem.question}
+                            class="bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-indigo-500 text-xs text-white resize-none h-20"
+                        ></textarea>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">ANSWER</label>
+                        <textarea
+                            bind:value={editingItem.answer}
+                            class="bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-indigo-500 text-xs text-white resize-none h-32"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <footer class="p-8 border-t border-white/5 flex justify-end gap-4 bg-black/20">
+                    <button 
+                        onclick={() => editingItem = null}
+                        class="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-xs font-black tracking-widest text-gray-400 hover:text-white transition-all active:scale-95"
+                    >
+                        CANCEL
+                    </button>
+                    <button 
+                        onclick={saveInlineEdit}
+                        class="px-10 py-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+                    >
+                        SAVE_CHANGES
+                    </button>
+                </footer>
+            </div>
+        </div>
+    {/if}
 </div>
 
 <style>

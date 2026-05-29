@@ -268,5 +268,72 @@ class AdminSupportController(Controller):
             logger.error(f"[AdminSupportController] Duplicate check failed: {e}")
             return CheckDuplicateResponse(ok=False, error=f"Lỗi hệ thống khi kiểm tra trùng lặp: {str(e)}")
 
+    @get("/sandbox")
+    async def list_sandbox_knowledge(
+        self,
+        db_session: AsyncSession,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> SupportKnowledgeListResponse:
+        """Elite V3.5: List all sandboxed auto-learned items waiting for admin review."""
+        from sqlalchemy import select, func, and_
+        from backend.database.models.system import SupportKnowledge
+        
+        conditions = [
+            SupportKnowledge.deleted_at == None,
+            SupportKnowledge.source_type == "AUTO_LEARNED",
+            SupportKnowledge.is_active == False
+        ]
+        
+        stmt = select(SupportKnowledge).where(and_(*conditions)).limit(limit).offset(offset).order_by(SupportKnowledge.created_at.desc())
+        items = (await db_session.execute(stmt)).scalars().all()
+        
+        count_stmt = select(func.count(SupportKnowledge.id)).where(and_(*conditions))
+        total = await db_session.scalar(count_stmt) or 0
+        
+        data = [
+            SupportKnowledgeResponse(
+                id=m.id,
+                category=m.category,
+                question=m.question,
+                answer=m.answer,
+                is_active=m.is_active,
+                priority=m.priority,
+                tags=m.tags,
+                product_id=m.product_id,
+                source_type=m.source_type,
+                source_url=m.source_url,
+                created_at=m.created_at.isoformat()
+            ) for m in items
+        ]
+        
+        return SupportKnowledgeListResponse(data=data, total=total)
+
+    @post("/sandbox/{item_id:str}/approve")
+    async def approve_sandbox(
+        self,
+        db_session: AsyncSession,
+        item_id: str
+    ) -> SuccessResponse:
+        """Elite V3.5: Approve and vector-index a sandbox item thưa sếp."""
+        from backend.services.commerce.self_learning import helen_self_learning
+        ok = await helen_self_learning.approve_sandbox_item(db_session, item_id)
+        if not ok:
+            return SuccessResponse(ok=False)
+        return SuccessResponse(ok=True, id=item_id)
+
+    @post("/sandbox/{item_id:str}/reject")
+    async def reject_sandbox(
+        self,
+        db_session: AsyncSession,
+        item_id: str
+    ) -> SuccessResponse:
+        """Elite V3.5: Reject and soft-delete a sandbox item thưa sếp."""
+        from backend.services.commerce.self_learning import helen_self_learning
+        ok = await helen_self_learning.reject_sandbox_item(db_session, item_id)
+        if not ok:
+            return SuccessResponse(ok=False)
+        return SuccessResponse(ok=True, id=item_id)
+
 
 

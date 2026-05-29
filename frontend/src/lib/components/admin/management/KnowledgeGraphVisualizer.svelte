@@ -11,6 +11,7 @@
     // Props
     export let data: any = { nodes: [], edges: [] };
     export let height: string = "600px";
+    export let onNodeSelect: (id: string) => void = () => {};
 
     onMount(() => {
         // Dynamically load vis-network script
@@ -90,7 +91,9 @@
         
         // Add some interaction events
         network.on("selectNode", function (params: any) {
-            console.log('Node selected:', params.nodes[0]);
+            if (params.nodes && params.nodes.length > 0) {
+                onNodeSelect(params.nodes[0]);
+            }
         });
     }
 

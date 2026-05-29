@@ -140,6 +140,29 @@ class AIManagementController(Controller):
         """Elite V2.2: Fetch real Brain Matrix Graph Topology (Products & Articles)."""
         return await brain_manager.get_graph_nodes(db_session)
 
+    @get("/brain/learning-templates")
+    async def get_learning_templates(self, db_session: "AsyncSession") -> Dict:
+        """Elite V3.5: Fetch Admin Golden Seed templates/guidelines for auto-learning."""
+        from backend.database.models.system import SystemSetting
+        stmt = select(SystemSetting).where(SystemSetting.key == "helen_learning_seed_templates")
+        row = (await db_session.execute(stmt)).scalar_one_or_none()
+        return {"templates": row.value if row else ""}
+
+    @post("/brain/learning-templates")
+    async def update_learning_templates(self, db_session: "AsyncSession", data: Dict) -> SuccessResponse:
+        """Elite V3.5: Save Admin Golden Seed templates/guidelines."""
+        from backend.database.models.system import SystemSetting
+        templates_val = data.get("templates", "")
+        stmt = select(SystemSetting).where(SystemSetting.key == "helen_learning_seed_templates")
+        row = (await db_session.execute(stmt)).scalar_one_or_none()
+        if not row:
+            row = SystemSetting(key="helen_learning_seed_templates", value=templates_val)
+            db_session.add(row)
+        else:
+            row.value = templates_val
+        await db_session.commit()
+        return SuccessResponse(ok=True)
+
     @get("/orchestration")
     async def get_orchestration_config(self) -> Dict:
         """Elite V2.2: Fetch global orchestration rules (Blacklist, Patterns)."""

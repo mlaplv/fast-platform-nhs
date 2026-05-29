@@ -31,6 +31,132 @@
     let message = $state("");
     let manualPage = $state(0);
 
+    // Sandbox & Seed Templates states (Elite V3.5 thưa sếp)
+    let activeTab = $state('graph');
+    let sandboxItems = $state<any[]>([]);
+    let loadingSandbox = $state(false);
+    let editingItem = $state<any>(null);
+    let showTemplatesModal = $state(false);
+    let templatesText = $state("");
+    let savingTemplates = $state(false);
+    let loadingTemplates = $state(false);
+
+    const categories = ["GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO", "INFO_INGREDIENTS", "INFO_ADDRESS", "INFO_HOTLINE", "PRICE_QUERY", "INFO_SHIPPING"];
+
+    async function handleNodeSelect(nodeId: string) {
+        if (nodeId === 'node_seed_templates') {
+            await openTemplatesModal();
+        }
+    }
+
+    async function openTemplatesModal() {
+        showTemplatesModal = true;
+        loadingTemplates = true;
+        try {
+            const res = await fetch('/api/v1/admin/ai/brain/learning-templates');
+            if (res.ok) {
+                const data = await res.json();
+                templatesText = data.templates || "";
+            }
+        } catch (e) {
+            console.error("Failed to load learning templates:", e);
+            nanobot.showToast("Không thể tải chỉ thị dạy học.", "error");
+        } finally {
+            loadingTemplates = false;
+        }
+    }
+
+    async function saveTemplates() {
+        savingTemplates = true;
+        try {
+            const res = await fetch('/api/v1/admin/ai/brain/learning-templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ templates: templatesText })
+            });
+            if (res.ok) {
+                nanobot.showToast("Đã lưu chỉ thị dạy học thành công thưa sếp!", "success");
+                showTemplatesModal = false;
+            } else {
+                nanobot.showToast("Lưu chỉ thị thất bại.", "error");
+            }
+        } catch (e) {
+            console.error("Failed to save templates:", e);
+            nanobot.showToast("Lỗi hệ thống khi lưu chỉ thị.", "error");
+        } finally {
+            savingTemplates = false;
+        }
+    }
+
+    async function fetchSandboxItems() {
+        loadingSandbox = true;
+        try {
+            const res = await fetch('/api/v1/admin/support/knowledge/sandbox');
+            if (res.ok) {
+                const data = await res.json();
+                sandboxItems = data.data || [];
+            }
+        } catch (e) {
+            console.error("Failed to fetch sandbox:", e);
+        } finally {
+            loadingSandbox = false;
+        }
+    }
+
+    async function approveSandboxItem(id: string) {
+        try {
+            const res = await fetch(`/api/v1/admin/support/knowledge/sandbox/${id}/approve`, { method: 'POST' });
+            if (res.ok) {
+                nanobot.showToast("Đã duyệt tri thức và đồng bộ pgvector thành công!", "success");
+                await fetchSandboxItems();
+                await loadBrainStatus();
+            } else {
+                nanobot.showToast("Duyệt thất bại.", "error");
+            }
+        } catch (e) {
+            nanobot.showToast("Lỗi hệ thống khi duyệt.", "error");
+        }
+    }
+
+    async function rejectSandboxItem(id: string) {
+        try {
+            const res = await fetch(`/api/v1/admin/support/knowledge/sandbox/${id}/reject`, { method: 'POST' });
+            if (res.ok) {
+                nanobot.showToast("Đã từ chối tri thức gợi ý.", "success");
+                await fetchSandboxItems();
+                await loadBrainStatus();
+            } else {
+                nanobot.showToast("Từ chối thất bại.", "error");
+            }
+        } catch (e) {
+            nanobot.showToast("Lỗi hệ thống khi từ chối.", "error");
+        }
+    }
+
+    async function saveInlineEdit() {
+        if (!editingItem) return;
+        try {
+            const res = await fetch(`/api/v1/admin/support/knowledge/${editingItem.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: editingItem.question,
+                    answer: editingItem.answer,
+                    category: editingItem.category
+                })
+            });
+            if (res.ok) {
+                nanobot.showToast("Đã lưu chỉnh sửa tri thức sandbox!", "success");
+                editingItem = null;
+                await fetchSandboxItems();
+            } else {
+                nanobot.showToast("Lưu chỉnh sửa thất bại.", "error");
+            }
+        } catch (e) {
+            nanobot.showToast("Lỗi hệ thống khi chỉnh sửa.", "error");
+        }
+    }
+
     // CNS V2.2: Reactive Link to Modal Header Controls
     $effect(() => {
         nanobot.isBrainSyncing = syncing;
@@ -49,8 +175,10 @@
     let rawGraphNodes = $state<any[]>([]);
 
     onMount(async () => {
-        await loadBrainStatus();
-        const poll = setInterval(loadBrainStatus, 30000); // Polling telemetry every 30s
+        await Promise.all([loadBrainStatus(), fetchSandboxItems()]);
+        const poll = setInterval(async () => {
+            await Promise.all([loadBrainStatus(), fetchSandboxItems()]);
+        }, 30000); // Polling telemetry & sandbox every 30s
         return () => clearInterval(poll);
     });
 
@@ -295,8 +423,8 @@
                         <div class="w-1 h-4 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]"></div>
                         <h3 class="text-[11px] font-black text-white tracking-[0.4em]">Audit Protocol — Active Matrix</h3>
                         <div class="flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/5 rounded-full">
-                            <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                            <span class="text-[9px] font-mono text-white/50 tracking-widest leading-none">Threshold: >92%</span>
+                            <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                            <span class="text-[9px] font-mono text-white/50 tracking-widest leading-none">Status: Connected</span>
                         </div>
                     </div>
                     
@@ -308,60 +436,165 @@
                     {/if}
                 </div>
 
+                <!-- Tab Selector: Elite UI (V3.5 thưa sếp) -->
+                <div class="px-8 py-2 border-b border-white/5 bg-black/10 flex gap-4">
+                    <button 
+                        onclick={() => activeTab = 'graph'}
+                        class="px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all {activeTab === 'graph' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'text-gray-500 hover:text-gray-300'}"
+                    >
+                        ACTIVE MATRIX GRAPH
+                    </button>
+                    <button 
+                        onclick={() => activeTab = 'audit'}
+                        class="px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all relative {activeTab === 'audit' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'text-gray-500 hover:text-gray-300'}"
+                    >
+                        AUDIT PROTOCOL
+                        {#if (brainStatus.duplicates || []).length > 0}
+                            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                        {/if}
+                    </button>
+                    <button 
+                        onclick={() => { activeTab = 'sandbox'; fetchSandboxItems(); }}
+                        class="px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all relative {activeTab === 'sandbox' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'text-gray-500 hover:text-gray-300'}"
+                    >
+                        LEARNING SANDBOX
+                        {#if sandboxItems.length > 0}
+                            <span class="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-indigo-500 text-[8px] text-white font-mono scale-90">{sandboxItems.length}</span>
+                        {/if}
+                    </button>
+                </div>
+
                 <!-- Table/Status Area -->
                 <div class="flex-1 overflow-auto p-8 scrollbar-tactical">
-                    {#if brainStatus.duplicates.length > 0}
-                        <div class="audit-elite-table rounded-[2.5rem] bg-gray-900/10 border border-white/5 overflow-hidden">
-                            <table class="w-full text-left border-separate border-spacing-0">
-                                <thead>
-                                    <tr class="bg-white/[0.02]">
-                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Classification</th>
-                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Subject Context</th>
-                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Stability Metric</th>
-                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest text-right">Intervention</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {#each brainStatus.duplicates as d, i}
-                                        <tr 
-                                            class="hover:bg-white/[0.03] transition-all group"
-                                            in:fly={{ y: 20, delay: i * 50 }}
-                                        >
-                                            <td class="p-6 border-t border-white/5">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="p-2 rounded bg-indigo-500/10 text-indigo-400">
-                                                        <Activity size={14} />
-                                                    </div>
-                                                    <span class="text-[10px] font-mono font-bold text-white tracking-widest">{d.type}</span>
-                                                </div>
-                                            </td>
-                                            <td class="p-6 border-t border-white/5">
-                                                <div class="text-sm font-bold text-gray-100 group-hover:text-indigo-300 transition-colors tracking-tight italic">{d.name}</div>
-                                                <div class="text-[9px] text-gray-600 mt-1 font-mono tracking-[0.2em]">PATH://ROOT/NODE_{d.duplicate_id?.slice(0, 8)}</div>
-                                            </td>
-                                            <td class="p-6 border-t border-white/5">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="w-px h-6 bg-amber-500/20"></div>
-                                                    <div>
-                                                        <span class="text-[10px] font-bold text-amber-500 tracking-widest">Collision Detected</span>
-                                                        <p class="text-[9px] text-gray-500 font-mono italic">{d.reason}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="p-6 border-t border-white/5 text-right">
-                                                <button class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest text-gray-500 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all active:scale-95">Resolve Hub</button>
-                                            </td>
-                                        </tr>
-                                    {/each}
-                                </tbody>
-                            </table>
-                        </div>
-                    {:else}
-                        <!-- Empty State: Pure Matrix Graph View -->
+                    {#if activeTab === 'graph'}
+                        <!-- Pure Matrix Graph View -->
                         <div class="h-full flex flex-col" in:fade>
                             <div class="w-full flex-1 rounded-[2.5rem] overflow-hidden border border-emerald-500/10 shadow-[0_0_50px_rgba(16,185,129,0.05)]">
-                                <KnowledgeGraphVisualizer data={graphData} height="100%" />
+                                <KnowledgeGraphVisualizer data={graphData} height="100%" onNodeSelect={handleNodeSelect} />
                             </div>
+                        </div>
+                    {:else if activeTab === 'audit'}
+                        {#if brainStatus.duplicates.length > 0}
+                            <div class="audit-elite-table rounded-[2.5rem] bg-gray-900/10 border border-white/5 overflow-hidden" in:fade>
+                                <table class="w-full text-left border-separate border-spacing-0">
+                                    <thead>
+                                        <tr class="bg-white/[0.02]">
+                                            <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Classification</th>
+                                            <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Subject Context</th>
+                                            <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Stability Metric</th>
+                                            <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest text-right">Intervention</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each brainStatus.duplicates as d, i}
+                                            <tr 
+                                                class="hover:bg-white/[0.03] transition-all group"
+                                                in:fly={{ y: 20, delay: i * 50 }}
+                                            >
+                                                <td class="p-6 border-t border-white/5">
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="p-2 rounded bg-indigo-500/10 text-indigo-400">
+                                                            <Activity size={14} />
+                                                        </div>
+                                                        <span class="text-[10px] font-mono font-bold text-white tracking-widest">{d.type}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="p-6 border-t border-white/5">
+                                                    <div class="text-sm font-bold text-gray-100 group-hover:text-indigo-300 transition-colors tracking-tight italic">{d.name}</div>
+                                                    <div class="text-[9px] text-gray-600 mt-1 font-mono tracking-[0.2em]">PATH://ROOT/NODE_{d.duplicate_id?.slice(0, 8)}</div>
+                                                </td>
+                                                <td class="p-6 border-t border-white/5">
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="w-px h-6 bg-amber-500/20"></div>
+                                                        <div>
+                                                            <span class="text-[10px] font-bold text-amber-500 tracking-widest">Collision Detected</span>
+                                                            <p class="text-[9px] text-gray-500 font-mono italic">{d.reason}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="p-6 border-t border-white/5 text-right">
+                                                    <button class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest text-gray-500 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all active:scale-95">Resolve Hub</button>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {:else}
+                            <div class="h-64 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-[2.5rem] bg-white/[0.01]" in:fade>
+                                <CheckCircle2 size={40} class="text-emerald-500/50 mb-3 animate-pulse" />
+                                <p class="text-xs font-mono text-gray-500 tracking-widest">NO DUPLICATE COLLISIONS DETECTED. SYSTEM STABLE.</p>
+                            </div>
+                        {/if}
+                    {:else if activeTab === 'sandbox'}
+                        <div class="space-y-6" in:fade>
+                            {#if loadingSandbox}
+                                <div class="h-64 flex flex-col items-center justify-center">
+                                    <RefreshCw size={24} class="text-indigo-400 animate-spin" />
+                                    <p class="mt-4 text-xs font-mono text-gray-500 tracking-widest animate-pulse">EXTRACTING SANDBOX CHANNELS...</p>
+                                </div>
+                            {:else if sandboxItems.length === 0}
+                                <div class="h-64 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-[2.5rem] bg-white/[0.01]">
+                                    <CheckCircle2 size={40} class="text-emerald-500/50 mb-3 animate-pulse" />
+                                    <p class="text-xs font-mono text-gray-500 tracking-widest">NO SUGGESTIONS PENDING. HELEN BRAIN IS PURE.</p>
+                                </div>
+                            {:else}
+                                <div class="audit-elite-table rounded-[2.5rem] bg-gray-900/10 border border-white/5 overflow-hidden">
+                                    <table class="w-full text-left border-separate border-spacing-0">
+                                        <thead>
+                                            <tr class="bg-white/[0.02]">
+                                                <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Confidence/Info</th>
+                                                <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Question (Synthesized)</th>
+                                                <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Answer (Structured)</th>
+                                                <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest text-right">Intervention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {#each sandboxItems as item, i}
+                                                <tr class="hover:bg-white/[0.03] transition-all group">
+                                                    <td class="p-6 border-t border-white/5">
+                                                        <span class="px-2 py-0.5 rounded-full bg-indigo-500/10 text-[8px] font-mono font-black tracking-widest text-indigo-400 border border-indigo-500/20 block text-center mb-2">
+                                                            {item.category}
+                                                        </span>
+                                                        <span class="text-[7px] font-mono text-gray-600 block text-center truncate max-w-[100px]" title={item.tags?.reasoning || ''}>
+                                                            {item.tags?.reasoning ? 'AI Reasoning: ' + item.tags.reasoning.substring(0, 15) + '...' : 'AUTO_LEARNED'}
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-6 border-t border-white/5">
+                                                        <div class="text-xs font-bold text-gray-200 tracking-tight leading-snug max-w-xs">{item.question}</div>
+                                                        <span class="text-[8px] font-mono text-gray-600 mt-1 block">SOURCE: {item.source_url}</span>
+                                                    </td>
+                                                    <td class="p-6 border-t border-white/5">
+                                                        <div class="text-[11px] text-gray-400 leading-relaxed italic max-w-sm">"{item.answer}"</div>
+                                                    </td>
+                                                    <td class="p-6 border-t border-white/5 text-right">
+                                                        <div class="flex justify-end gap-2">
+                                                            <button 
+                                                                onclick={() => editingItem = { ...item }}
+                                                                class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest text-gray-400 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all"
+                                                            >
+                                                                EDIT
+                                                            </button>
+                                                            <button 
+                                                                onclick={() => rejectSandboxItem(item.id)}
+                                                                class="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-[9px] font-black tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
+                                                            >
+                                                                DECLINE
+                                                            </button>
+                                                            <button 
+                                                                onclick={() => approveSandboxItem(item.id)}
+                                                                class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-black tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                                                            >
+                                                                APPROVE
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {/each}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {/if}
                         </div>
                     {/if}
                 </div>
@@ -422,6 +655,127 @@
                         class="px-12 py-4 rounded-full bg-white text-black text-xs font-black tracking-[0.4em] hover:scale-105 active:scale-95 transition-all"
                     >
                         Acknowledged
+                    </button>
+                </footer>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Seed Templates Modal (Elite V3.5 thưa sếp!) -->
+    {#if showTemplatesModal}
+        <div class="absolute inset-0 z-[var(--z-modal-overlay)] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8" in:fade>
+            <div class="max-w-3xl w-full bg-gray-900/40 border border-indigo-500/30 rounded-[3rem] overflow-hidden flex flex-col h-[70vh] shadow-[0_0_50px_rgba(99,102,241,0.2)]" in:scale={{ start: 0.95 }}>
+                <header class="p-8 border-b border-white/5 flex justify-between items-start">
+                    <div>
+                        <h2 class="text-3xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-white/40">NEURAL SEED TEMPLATES</h2>
+                        <p class="text-[10px] font-mono text-indigo-400 tracking-[0.3em] mt-1">Chỉ thị & Quy tắc dạy học tối cao cho Helen AI</p>
+                    </div>
+                    <button 
+                        onclick={() => showTemplatesModal = false}
+                        class="p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-90"
+                    >
+                        <RefreshCw size={20} class="rotate-45" />
+                    </button>
+                </header>
+
+                <div class="flex-1 p-8 flex flex-col space-y-6 overflow-hidden">
+                    {#if loadingTemplates}
+                        <div class="flex-1 flex flex-col items-center justify-center">
+                            <RefreshCw size={32} class="text-indigo-400 animate-spin" />
+                            <p class="mt-4 text-xs font-mono text-gray-500 tracking-widest animate-pulse">CONNECTING COGNITIVE FLOW...</p>
+                        </div>
+                    {:else}
+                        <div class="flex-1 flex flex-col">
+                            <span class="text-[10px] font-mono text-indigo-400 tracking-widest font-black mb-3 block">ADMIN_INSTRUCTIONS_FLOW</span>
+                            <textarea
+                                bind:value={templatesText}
+                                placeholder="Hãy nhập quy tắc, chỉ thị hoặc câu hỏi/trả lời mẫu để Helen học theo (ví dụ: luôn xưng hô thân mật, ưu tiên khuyên dùng White Label, giải thích ngắn gọn sản phẩm)..."
+                                class="flex-1 bg-white/[0.02] border border-indigo-500/20 focus:border-indigo-400 rounded-3xl p-6 outline-none text-sm text-gray-300 font-medium leading-relaxed resize-none transition-all placeholder:text-gray-700"
+                            ></textarea>
+                        </div>
+                    {/if}
+                </div>
+
+                <footer class="p-8 border-t border-white/5 flex justify-end gap-4 bg-black/20">
+                    <button 
+                        onclick={() => showTemplatesModal = false}
+                        class="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-xs font-black tracking-widest text-gray-400 hover:text-white transition-all active:scale-95"
+                    >
+                        DISMISS
+                    </button>
+                    <button 
+                        onclick={saveTemplates}
+                        disabled={savingTemplates}
+                        class="px-10 py-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] {savingTemplates ? 'opacity-50 cursor-wait' : ''}"
+                    >
+                        {#if savingTemplates}
+                            SAVING...
+                        {:else}
+                            APPLY INSTRUCTIONS
+                        {/if}
+                    </button>
+                </footer>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Inline Edit Modal (Elite V3.5 thưa sếp!) -->
+    {#if editingItem}
+        <div class="absolute inset-0 z-[var(--z-modal-overlay)] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8" in:fade>
+            <div class="max-w-2xl w-full bg-gray-900/40 border border-indigo-500/30 rounded-[3rem] overflow-hidden flex flex-col h-[65vh] shadow-[0_0_50px_rgba(99,102,241,0.2)]" in:scale={{ start: 0.95 }}>
+                <header class="p-8 border-b border-white/5 flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-black italic tracking-tighter text-white">EDIT SANDBOX tri thức</h2>
+                        <p class="text-[10px] font-mono text-indigo-400 tracking-[0.3em] mt-1">Chỉnh sửa Q&A trước khi duyệt chính thức</p>
+                    </div>
+                    <button 
+                        onclick={() => editingItem = null}
+                        class="p-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-90"
+                    >
+                        <RefreshCw size={20} class="rotate-45" />
+                    </button>
+                </header>
+
+                <div class="flex-1 p-8 flex flex-col space-y-6 overflow-y-auto scrollbar-tactical">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">CATEGORY</label>
+                        <select 
+                            bind:value={editingItem.category}
+                            class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 text-xs text-white"
+                        >
+                            {#each categories as cat}
+                                <option value={cat}>{cat}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">QUESTION</label>
+                        <textarea
+                            bind:value={editingItem.question}
+                            class="bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-indigo-500 text-xs text-white resize-none h-20"
+                        ></textarea>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] font-mono text-indigo-400 tracking-widest font-black">ANSWER</label>
+                        <textarea
+                            bind:value={editingItem.answer}
+                            class="bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-indigo-500 text-xs text-white resize-none h-32"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <footer class="p-8 border-t border-white/5 flex justify-end gap-4 bg-black/20">
+                    <button 
+                        onclick={() => editingItem = null}
+                        class="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-xs font-black tracking-widest text-gray-400 hover:text-white transition-all active:scale-95"
+                    >
+                        CANCEL
+                    </button>
+                    <button 
+                        onclick={saveInlineEdit}
+                        class="px-10 py-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+                    >
+                        SAVE_CHANGES
                     </button>
                 </footer>
             </div>

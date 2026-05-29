@@ -84,3 +84,19 @@ async def helen_follow_up_job(ctx: Dict[str, object], session_id: str) -> None:
         except Exception as e:
             logger.error(f"🌸 [Helen Follow-up] CRITICAL FAILURE: {e}")
             await db.rollback()
+
+async def helen_self_learning_job(ctx: Dict[str, object]) -> None:
+    """
+    Elite V3.5: Arq-based batch processor for automated chat transcript distillation.
+    Extracts Q&A candidate structures from recent conversations.
+    """
+    logger.info("🧠 [Self-Learning Job] Commencing chat transcript distillation sequence...")
+    session_maker = alchemy_config.create_session_maker()
+    async with session_maker() as db:
+        try:
+            from backend.services.commerce.self_learning import helen_self_learning
+            stats = await helen_self_learning.run_auto_learning(db, limit_sessions=50)
+            logger.info(f"🧠 [Self-Learning Job] Finished thưa sếp: Scanned={stats.get('scanned')}, Synthesized={stats.get('synthesized')}, Persisted={stats.get('persisted_to_sandbox')}")
+        except Exception as e:
+            logger.error(f"🧠 [Self-Learning Job] Distillation process failed: {e}")
+            await db.rollback()

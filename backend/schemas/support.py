@@ -169,7 +169,7 @@ class SupportKnowledgeBase(BaseModel):
     answer: str = Field(default="[Đang phân tích dữ liệu...]")
     is_active: bool = True
     priority: int = 0
-    tags: Optional[list[str]] = None
+    tags: Optional[Union[List[str], Dict[str, JSONValue]]] = None
     product_id: Optional[str] = None
     source_type: str = Field(default="TEXT")
     source_url: Optional[str] = None
@@ -183,7 +183,7 @@ class UpdateSupportKnowledgeRequest(BaseModel):
     answer: Optional[str] = None
     is_active: Optional[bool] = None
     priority: Optional[int] = None
-    tags: Optional[list[str]] = None
+    tags: Optional[Union[List[str], Dict[str, JSONValue]]] = None
     product_id: Optional[str] = None
     source_type: Optional[str] = None
     source_url: Optional[str] = None

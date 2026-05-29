@@ -172,6 +172,14 @@ class BrainManager:
         # Core
         nodes.append({"id": "core", "label": "CORTEX CORE", "type": "core"})
         
+        # Helen Learning Seed Templates (Elite V3.5)
+        nodes.append({
+            "id": "node_seed_templates",
+            "label": "SEED TEMPLATES",
+            "type": "template",
+            "parent": "core"
+        })
+        
         # Product Hub
         nodes.append({"id": "hub_product", "label": "PRODUCTS", "type": "hub"})
         # Article Hub
