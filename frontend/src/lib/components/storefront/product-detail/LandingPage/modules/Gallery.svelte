@@ -3,6 +3,7 @@
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import ViralShareBarDesktop from '../../shared/ViralShareBarDesktop.svelte';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     product: Product;
@@ -116,7 +117,7 @@
         {/if}
       </button>
     {:else}
-      <img src={currentImage} alt={product.name} class="media-content image-zoom" />
+      <img src={resolveOptimizedImageUrl(currentImage, 600)} alt={product.name} class="media-content image-zoom" />
     {/if}
     
     {#if isFlashSaleActive}
@@ -145,7 +146,7 @@
             <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </div>
         {:else}
-          <img src={img} alt="{product.name} - Hình ảnh {i + 1}" class="thumb-img" />
+          <img src={resolveOptimizedImageUrl(img, 120)} alt="{product.name} - Hình ảnh {i + 1}" class="thumb-img" />
         {/if}
       </button>
     {/each}

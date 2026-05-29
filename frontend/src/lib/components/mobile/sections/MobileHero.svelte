@@ -9,7 +9,7 @@
   import StarHalf from "@lucide/svelte/icons/star-half";
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileHero.css';
-  import { resolveMediaUrl } from '$lib/state/utils';
+  import { resolveMediaUrl, resolveOptimizedImageUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { Product, ProductVariant } from '$lib/types';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
@@ -170,7 +170,7 @@
            class="w-full h-full"
          >
            <img
-             src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
+             src={resolveOptimizedImageUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''), 600)}
              alt="{product?.name || "Sản phẩm"} - {opt}"
              width="390"
              height="844"
@@ -280,7 +280,7 @@
                         <div class="flex items-center gap-3 relative z-10">
                            <div class="w-11 h-11 rounded-lg overflow-hidden bg-white/10 border border-white/10 shrink-0 shadow-inner">
                               <img 
-                                 src={resolveMediaUrl((v.attributes.gifts[0] as GiftItem).image || product?.mobileImages?.[0] || product?.images?.[0])} 
+                                 src={resolveOptimizedImageUrl((v.attributes.gifts[0] as GiftItem).image || product?.mobileImages?.[0] || product?.images?.[0], 120)} 
                                  alt="Quà tặng đặc quyền - {product?.name || "Miccosmo"} " 
                                  loading="lazy"
                                  decoding="async"

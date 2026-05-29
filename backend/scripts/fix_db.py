@@ -62,6 +62,11 @@ async def fix_db():
                 }
             })
             
+            # Dynamic images fallback for tier variations
+            images = def_data.get("images", [])
+            mobile_images = def_data.get("mobile_images", images)
+            first_image = images[0] if images else None
+            
             pb = ProductBase(
                 id=def_data["id"],
                 name=def_data["name"],
@@ -75,9 +80,14 @@ async def fix_db():
                 tenant_id=TENANT_ID,
                 short_description=def_data.get("short_description", ""),
                 description=def_data.get("description", ""),
-                images=def_data.get("images", []),
+                images=images,
+                mobile_images=mobile_images,
                 product_metadata=metadata,
-                tier_variations=[{**tv, "image": None, "mobile_images": [None] * len(tv["options"])} for tv in def_data.get("tier_variations", [])]
+                tier_variations=[{
+                    **tv,
+                    "image": first_image,
+                    "mobile_images": [first_image] * len(tv["options"]) if first_image else [None] * len(tv["options"])
+                } for tv in def_data.get("tier_variations", [])]
             )
             session.add(pb)
             
@@ -96,7 +106,25 @@ async def fix_db():
                 session.add(variant)
             print("✅ Restored original Virgin White Serum with Viral features")
         else:
-            # If it already existed somehow, just update it
+            # Heal missing images from seed definition only if completely empty in real DB
+            if not old_virgin_white.images:
+                old_virgin_white.images = def_data.get("images", [])
+            if not old_virgin_white.mobile_images:
+                old_virgin_white.mobile_images = old_virgin_white.images
+            
+            # Dynamically heal empty tier variation image keys using actual product images
+            if old_virgin_white.images:
+                first_img = old_virgin_white.images[0]
+                tvs = []
+                for tv in (old_virgin_white.tier_variations or []):
+                    tv_copy = dict(tv)
+                    if not tv_copy.get("image"):
+                        tv_copy["image"] = first_img
+                    if not tv_copy.get("mobile_images") or all(x is None for x in tv_copy.get("mobile_images", [])):
+                        tv_copy["mobile_images"] = [first_img] * len(tv.get("options", ["1", "2", "3"]))
+                    tvs.append(tv_copy)
+                old_virgin_white.tier_variations = tvs
+
             metadata = dict(old_virgin_white.product_metadata) if old_virgin_white.product_metadata else {}
             metadata.update({
                 "likes": 4820,
@@ -113,8 +141,8 @@ async def fix_db():
             })
             old_virgin_white.product_metadata = metadata
             print("✅ Updated Virgin White Serum with Viral features")
-
-        # 3. Update existing Hurry Harry Neck Cream
+ 
+         # 3. Update existing Hurry Harry Neck Cream
         neck_cream = (await session.execute(select(ProductBase).where(ProductBase.id == "prod_hurry_harry_neck_cream"))).scalar_one_or_none()
         if neck_cream:
             metadata = dict(neck_cream.product_metadata) if neck_cream.product_metadata else {}
@@ -131,9 +159,26 @@ async def fix_db():
                     "share_text": "Xóa mờ nếp nhăn vùng cổ với Hurry Harry Premium! Giảm 50K khi chia sẻ."
                 }
             })
-            # Also ensure images are correctly displayed (it might not have one in images array)
+            
+            # Heal missing images from legacy seed or pos URL if completely empty in real DB
             if not neck_cream.images:
                 neck_cream.images = ["https://pos.nvncdn.com/3a1578-211785/ps/20250716_t2xmZQtxvN.jpeg?v=1752656410"]
+            if not neck_cream.mobile_images:
+                neck_cream.mobile_images = neck_cream.images
+                
+            # Dynamically heal empty tier variation image keys using actual product images
+            if neck_cream.images:
+                first_img = neck_cream.images[0]
+                tvs = []
+                for tv in (neck_cream.tier_variations or []):
+                    tv_copy = dict(tv)
+                    if not tv_copy.get("image"):
+                        tv_copy["image"] = first_img
+                    if not tv_copy.get("mobile_images") or all(x is None for x in tv_copy.get("mobile_images", [])):
+                        tv_copy["mobile_images"] = [first_img] * len(tv.get("options", ["1", "2", "3"]))
+                    tvs.append(tv_copy)
+                neck_cream.tier_variations = tvs
+
             neck_cream.product_metadata = metadata
             print("✅ Updated Hurry Harry Neck Cream with Viral features")
         else:

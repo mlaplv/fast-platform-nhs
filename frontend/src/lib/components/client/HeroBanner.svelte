@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { resolveMediaUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
   import { browser } from "$app/environment";
   import "./HeroBanner.css";
   import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
@@ -140,7 +140,7 @@
   });
 
   const mainImage = $derived(
-    images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : "",
+    images.length > 0 ? resolveOptimizedImageUrl(images[currentImageIndex], 800) : "",
   );
 
   const stripTags = (h: string) =>
@@ -358,29 +358,31 @@
     class="absolute inset-0 overflow-hidden pointer-events-none"
     style="z-index: var(--z-base);"
   >
-    <div style:display={isEditing ? "none" : "block"} class="absolute inset-0">
-      {#if videoMode === "local"}
-        <video
-          bind:this={videoEl}
-          ontimeupdate={handleTimeUpdate}
-          onended={handleVideoEnded}
-          autoplay
-          muted
-          preload="metadata"
-          playsinline
-          loop={videoEndTime === null}
-          class="elite-video-bg fade-in"
-          src={videoUrl}
-        ></video>
-      {:else if videoMode === "youtube" || videoMode === "tiktok"}
-        <iframe
-          class="elite-video-bg pointer-events-none fade-in"
-          src={iframeEmbedUrl}
-          title="Hero Video"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowfullscreen
-          frameborder="0"
-        ></iframe>
+    <div style:display={isEditing || clientUi?.isMobile ? "none" : "block"} class="absolute inset-0">
+      {#if !clientUi?.isMobile}
+        {#if videoMode === "local"}
+          <video
+            bind:this={videoEl}
+            ontimeupdate={handleTimeUpdate}
+            onended={handleVideoEnded}
+            autoplay
+            muted
+            preload="metadata"
+            playsinline
+            loop={videoEndTime === null}
+            class="elite-video-bg fade-in"
+            src={videoUrl}
+          ></video>
+        {:else if videoMode === "youtube" || videoMode === "tiktok"}
+          <iframe
+            class="elite-video-bg pointer-events-none fade-in"
+            src={iframeEmbedUrl}
+            title="Hero Video"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+            frameborder="0"
+          ></iframe>
+        {/if}
       {/if}
     </div>
     {#if isEditing}

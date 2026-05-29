@@ -16,6 +16,7 @@
   import SimpleTiptap from '../../ui/SimpleTiptap.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import type { Product, Review, ReviewStats } from '$lib/types';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
   
   const ui = getClientUi();
   import { fade, fly, scale } from 'svelte/transition';
@@ -470,7 +471,7 @@
           <!-- Avatar -->
           <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 border border-gray-50">
             {#if review.avatar}
-              <img src={review.avatar} alt={review.name} class="w-full h-full object-cover" />
+              <img src={resolveOptimizedImageUrl(review.avatar, 80)} alt={review.name} class="w-full h-full object-cover" />
             {:else}
               <span class="text-[14px] font-bold text-gray-400">{review.initial}</span>
             {/if}
@@ -521,7 +522,7 @@
                         <Play class="w-4 h-4 text-white fill-current opacity-90" />
                       </div>
                     {:else}
-                      <img src={media.url} alt="Hình ảnh đánh giá thực tế {product.name}" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                      <img src={resolveOptimizedImageUrl(media.url, 150)} alt="Hình ảnh đánh giá thực tế {product.name}" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
                     {/if}
                   </div>
                 {/each}

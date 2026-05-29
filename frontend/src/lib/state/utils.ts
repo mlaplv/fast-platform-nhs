@@ -78,6 +78,23 @@ export function resolveMediaUrl(url: string | null | undefined): string {
 }
 
 /**
+ * Elite V2.6: Dynamic WebP Resizer Resolver.
+ * Extracts UUID from path to leverage public dynamic resizing API when width is specified.
+ */
+export function resolveOptimizedImageUrl(url: string | null | undefined, width?: number): string {
+    if (!url) return '';
+    const base = resolveMediaUrl(url);
+    if (!width) return base;
+
+    const id = extractIdFromUrl(url);
+    if (id) {
+        return `/api/v1/media/${id}/thumb?w=${width}`;
+    }
+    return base;
+}
+
+
+/**
  * CNS V110: Standardized Unit Formatting.
  */
 export function formatBytes(bytes: number = 0): string {

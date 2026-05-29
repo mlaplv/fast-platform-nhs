@@ -80,12 +80,13 @@ class MediaController(Controller):
         ok = await media_service.bulk_update(media_repo, data, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.updates)} metadata updates")
 
-    @get("/{asset_id:str}/thumb")
+    @get("/{asset_id:str}/thumb", guards=[])
     async def get_media_thumbnail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, w: int = 300, q: int = 75) -> Redirect:
         asset = await media_repo.get(str(asset_id))
         if not asset: return Redirect(path="/v65_assets/placeholder.webp")
         path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
         return Redirect(path=path or "/v65_assets/placeholder.webp")
+
 
     @post("/{asset_id:str}/edit", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def quick_edit_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, data: QuickEditRequest) -> QuickEditResponse:

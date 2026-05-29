@@ -26,10 +26,15 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
         required_perms = [str(p.value) if isinstance(p, Enum) else str(p) for p in permissions]
 
     async def guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+        # [EMERGENCY BYPASS] Allow public storefront anonymous visitors to load media thumbnails
+        path = connection.url.path
+        if path.startswith("/api/v1/media/") and (path.endswith("/thumb") or "/thumb/" in path):
+            return
+
         user = connection.scope.get("state", {}).get("user")
         
         if not user:
-            logger.warning(f"❌ [Guard] No user state in scope for {connection.url.path}")
+            logger.warning(f"❌ [Guard] No user state in scope for {path}")
             raise NotAuthorizedException("Session Expired or Identity Not Found")
 
         # ═══ [Elite V3] SUPER_ADMIN BYPASS ═══

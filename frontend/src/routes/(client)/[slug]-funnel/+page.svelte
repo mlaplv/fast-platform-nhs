@@ -74,7 +74,7 @@
   // Elite Smart-Adaptive: Reactive Layout Switching
   const clientUi = getClientUi();
   const useMobileLayout = $derived(
-    clientUi?.isHydrated ? clientUi.isMobile : isMobile,
+    !isMounted ? isMobile : clientUi.isMobile
   );
 
   // 🚀 QUANTUM SYNC (Elite V2.2 Protocol)
@@ -157,6 +157,27 @@
     };
     mq.addEventListener("change", h);
 
+    // Elite V2.2: Instant UI Recovery Protocol
+    if (clientUi) {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
+    }
+
+    const cleanupObservers = clientUi.initObservers();
+
+    return () => {
+      clearTimeout(timer);
+      shopStore.dispose();
+      mq.removeEventListener("change", h);
+      if (cleanupObservers) cleanupObservers();
+    };
+  });
+
+  // JIT & Session Observer Reactive Setup (Elite V2.2 Protocol)
+  $effect(() => {
+    if (!browser) return;
+    if (useMobileLayout) return; // Only bind desktop observers when desktop layout is active
+
     // JIT ASSET LOADER (Elite V2.2 Protocol) - FIRE EARLY
     const jitObserver = new IntersectionObserver(
       (entries) => {
@@ -186,30 +207,23 @@
       },
     );
 
-    // Register Assets
-    const trigger = document.getElementById("jit-trigger");
-    if (trigger) jitObserver.observe(trigger);
+    // Wait one microtask to ensure DOM has fully painted the desktop layout
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      const trigger = document.getElementById("jit-trigger");
+      if (trigger) jitObserver.observe(trigger);
 
-    sectionIds.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) sessionObserver.observe(el);
+      sectionIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) sessionObserver.observe(el);
+      });
     });
 
-    // Elite V2.2: Instant UI Recovery Protocol
-    if (clientUi) {
-      clientUi.isHeaderHidden = false;
-      clientUi.isFooterHidden = false;
-    }
-
-    const cleanupObservers = clientUi.initObservers();
-
     return () => {
-      clearTimeout(timer);
-      shopStore.dispose();
-      mq.removeEventListener("change", h);
+      active = false;
       jitObserver.disconnect();
       sessionObserver.disconnect();
-      if (cleanupObservers) cleanupObservers();
     };
   });
 

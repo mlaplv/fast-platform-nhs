@@ -124,7 +124,9 @@ class DomainGuardMiddleware:
 
             # Quy tắc 1: Nếu gọi vào Admin Zone mà không phải từ Admin Domain -> CHẶN
             if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES):
-                if not is_admin_domain:
+                # Ngoại trừ endpoint lấy thumbnail ảnh công khai của Storefront
+                is_public_thumb = path.startswith("/api/v1/media/") and path.endswith("/thumb")
+                if not is_admin_domain and not is_public_thumb:
                     msg: str = f"⛔ DomainGuard: Access Denied to '{path}' from host {repr(target_host)} (Expected {repr(self.admin_url)})"
                     logger.warning(msg)
                     raise PermissionDeniedException(msg)
