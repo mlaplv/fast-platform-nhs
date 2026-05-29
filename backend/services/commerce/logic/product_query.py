@@ -148,17 +148,23 @@ async def list_products_logic(
         rc_res = await db_session.execute(rc_stmt)
         review_counts = {r[0]: r[1] for r in rc_res.all()}
 
+    # Elite V2.2: Fast bulk fetch for variants to eliminate N+1 query overhead
+    variants_by_product = {}
+    if rows:
+        v_stmt = select(ProductVariant).where(
+            ProductVariant.product_base_id.in_([r["id"] for r in rows]),
+            ProductVariant.deleted_at == None
+        )
+        v_res = await db_session.execute(v_stmt)
+        all_variants = v_res.scalars().all()
+        for variant in all_variants:
+            variants_by_product.setdefault(variant.product_base_id, []).append(variant)
+
     data = []
     for row in rows:
         row_dict = dict(row)
         row_dict["review_count"] = review_counts.get(row_dict["id"], 0)
-        # Fetch variants separately to avoid complex joins
-        v_stmt = select(ProductVariant).where(
-            ProductVariant.product_base_id == row_dict["id"],
-            ProductVariant.deleted_at == None
-        )
-        variants = (await db_session.execute(v_stmt)).scalars().all()
-        row_dict["variants"] = list(variants)
+        row_dict["variants"] = list(variants_by_product.get(row_dict["id"], []))
         data.append(ProductResponse.model_validate(row_dict))
 
     next_cursor = None

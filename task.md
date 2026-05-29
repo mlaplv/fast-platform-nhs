@@ -593,6 +593,9 @@
 - [x] Khai thông Content Security Policy (CSP) trong Caddyfile để hỗ trợ đầy đủ các kết nối, tập lệnh và pixel từ Google Ads, Tag Manager và Doubleclick. (Done)
 - [x] Mở rộng CSP hỗ trợ các tên miền Google khu vực Việt Nam (`*.google.com.vn`, `*.google.vn`) để xử lý triệt để lỗi chặn redirect/telemetry. (Done)
 - [x] Làm sạch code dư thừa, loại bỏ debug `console.log` có overhead `$state.snapshot` cao tại `Sections.svelte` để nâng cao hiệu năng runtime. (Done)
+- [x] Triệt tiêu N+1 queries khi nạp danh sách sản phẩm bằng cách gộp truy vấn `ProductVariant` hàng loạt (Bulk Fetch) thay vì lặp từng dòng. (Done)
+- [x] Tích hợp TTL Cache (5s) ngầm bảo vệ `Voucher` trong quá trình `hydrate_viral_config_logic` để giảm tải 10 lần các truy vấn tĩnh lặp lại. (Done)
+
 
 
 

@@ -1579,3 +1579,20 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
    - Cleaned up the Svelte storefront by removing the redundant, high-overhead debug `console.log` in `Sections.svelte`.
    - Directly deployed the optimized Svelte storefront component to the VPS to maximize rendering performance.
 
+## 53. Eliminating N+1 Slow Queries & Database Preloading Optimization (Elite V2.2)
+
+### Diagnostics & Execution
+- **Issue (Database N+1 Connection/Query Slowdown)**: Re-analyzing the server startup logs revealed two prominent slow queries taking **1.2334s** and **1.1749s** during initial storefront page renders:
+  1. `SELECT product_variants.id, product_variants.product_base_id...` was executing in a loop inside `list_products_logic` for every single product (classic N+1 query).
+  2. `SELECT vouchers.id, vouchers.type, vouchers.title...` was executing inside `hydrate_viral_config_logic` for every single product iteration in the list to hydrate the active viral campaign voucher.
+- Even though the tables have negligible row counts (25 variants, 7 vouchers), executing these queries 20+ times serially on cold connections added high latency overhead.
+
+### Resolutions Applied
+1. **Bulk Variant Fetching (Preloading)**:
+   - Refactored `list_products_logic` in `product_query.py` to extract all product IDs and query their active `ProductVariant` records collectively in **one single `IN (...)` bulk fetch**.
+   - Mapped variants into a dictionary keyed by `product_base_id` and assigned them instantly without sequential database calls, bringing variant querying complexity from $O(N)$ down to $O(1)$ roundtrips.
+2. **Viral Voucher TTL Caching**:
+   - Implemented a lightweight, memory-safe `CachedVoucher` object and a 5-second TTL cache in `viral_hydration.py` to cache the global master viral voucher.
+   - Caching the master voucher (and caching its absence when disabled) completely eliminates the serial database queries, making list hydrations run instantaneously without database impact.
+3. **Operational Restart**:
+   - Pushed structural updates to the VPS `/opt/fast-platform/` and successfully performed a soft-restart of the `api` and `worker_high` containers to apply the database latency improvements immediately.

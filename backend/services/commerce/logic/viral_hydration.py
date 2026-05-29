@@ -1,11 +1,33 @@
 import logging
-from typing import Dict
+import time
+from typing import Dict, Optional, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import current_tenant_id
 from backend.database.models.promotion import Voucher
 
 logger = logging.getLogger("api-gateway")
+
+class CachedVoucher:
+    def __init__(self, id: str, title: Optional[str], metadata_json: Optional[dict]):
+        self.id = id
+        self.title = title
+        self.metadata_json = metadata_json
+
+# TTL Cache: {tenant_id: (CachedVoucher, timestamp)}
+_viral_voucher_cache: Dict[str, Tuple[Optional[CachedVoucher], float]] = {}
+CACHE_TTL = 5.0 # 5 seconds to eliminate N+1 database roundtrips while maintaining rapid configuration syncs
+
+def _get_cached_voucher(tenant: str) -> Tuple[bool, Optional[CachedVoucher]]:
+    now = time.time()
+    if tenant in _viral_voucher_cache:
+        val, expiry = _viral_voucher_cache[tenant]
+        if now - expiry < CACHE_TTL:
+            return True, val
+    return False, None
+
+def _set_cached_voucher(tenant: str, voucher: Optional[CachedVoucher]) -> None:
+    _viral_voucher_cache[tenant] = (voucher, time.time())
 
 async def hydrate_viral_config_logic(db_session: AsyncSession, row_dict: Dict) -> None:
     """
@@ -21,19 +43,35 @@ async def hydrate_viral_config_logic(db_session: AsyncSession, row_dict: Dict) -
     if not tenant:
         tenant = str(row_dict.get("tenant_id", "osmo.vn"))
         
-    # 1. Truy vấn Voucher Viral hoạt động duy nhất
-    stmt = select(Voucher).where(
-        Voucher.is_viral == True,
-        Voucher.is_active == True,
-        Voucher.tenant_id == tenant
-    ).limit(1)
-    res = await db_session.execute(stmt)
-    voucher = res.scalar_one_or_none()
-    
-    if not voucher:
-        stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
+    # 1. Check cache first to prevent N+1 query loops
+    has_cache, cached_val = _get_cached_voucher(tenant)
+    if has_cache:
+        voucher = cached_val
+    else:
+        # Query DB
+        stmt = select(Voucher).where(
+            Voucher.is_viral == True,
+            Voucher.is_active == True,
+            Voucher.tenant_id == tenant
+        ).limit(1)
         res = await db_session.execute(stmt)
-        voucher = res.scalar_one_or_none()
+        db_voucher = res.scalar_one_or_none()
+        
+        if not db_voucher:
+            stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
+            res = await db_session.execute(stmt)
+            db_voucher = res.scalar_one_or_none()
+            
+        if db_voucher:
+            voucher = CachedVoucher(
+                id=db_voucher.id,
+                title=db_voucher.title,
+                metadata_json=db_voucher.metadata_json
+            )
+        else:
+            voucher = None
+            
+        _set_cached_voucher(tenant, voucher)
 
     if not voucher:
         logger.debug(f"🧬 [ViralHydration] No active master viral voucher found for tenant {tenant} (Normal if campaign is disabled)")
