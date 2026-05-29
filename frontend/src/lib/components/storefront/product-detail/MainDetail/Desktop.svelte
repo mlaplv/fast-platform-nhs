@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
 
   // Types
@@ -103,6 +104,22 @@
     }
   });
   let quantity = $state(1);
+  let loadBelowFold = $state(false);
+
+  onMount(() => {
+    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          loadBelowFold = true;
+        });
+      } else {
+        setTimeout(() => {
+          loadBelowFold = true;
+        }, 200);
+      }
+    }
+  });
 
   const pVariants = $derived(
     (product.variants || []).filter((v) => v.is_active !== false),
@@ -654,36 +671,44 @@
   </svelte:element>
 
   <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) -->
-  <ProductDetailSections
-    {product}
-    {productInfo}
-    visibleAttributes={product.attributes
-      ? (Object.entries(product.attributes).filter(([key, value]) => {
-          const k = key.toLowerCase().replace(/_/g, " ").trim();
-          const brand = productInfo.brand;
-          const origin = productInfo.origin;
-          const weight = productInfo.weight;
-          return !(
-            ((k === "xuất xứ" || k === "origin") && origin) ||
-            ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
-              weight) ||
-            ((k === "mã vạch" || k === "barcode") &&
-              productInfo.barcode &&
-              productInfo.barcode !== "N/A") ||
-            k === "thương hiệu" ||
-            k === "brand"
-          );
-        }) as [string, string | number | Record<string, unknown>][])
-      : []}
-  />
+  {#if loadBelowFold}
+    <ProductDetailSections
+      {product}
+      {productInfo}
+      visibleAttributes={product.attributes
+        ? (Object.entries(product.attributes).filter(([key, value]) => {
+            const k = key.toLowerCase().replace(/_/g, " ").trim();
+            const brand = productInfo.brand;
+            const origin = productInfo.origin;
+            const weight = productInfo.weight;
+            return !(
+              ((k === "xuất xứ" || k === "origin") && origin) ||
+              ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
+                weight) ||
+              ((k === "mã vạch" || k === "barcode") &&
+                productInfo.barcode &&
+                productInfo.barcode !== "N/A") ||
+              k === "thương hiệu" ||
+              k === "brand"
+            );
+          }) as [string, string | number | Record<string, unknown>][])
+        : []}
+    />
 
-  <!-- REVIEWS SECTION -->
-  <ProductReviews {product} />
+    <!-- REVIEWS SECTION -->
+    <ProductReviews {product} />
 
-  <!-- RELATED PRODUCTS -->
-  <div class="max-w-[1200px] mx-auto mt-0 mb-12">
-    <RelatedProducts {product} initialProducts={relatedProducts} />
-  </div>
+    <!-- RELATED PRODUCTS -->
+    <div class="max-w-[1200px] mx-auto mt-0 mb-12">
+      <RelatedProducts {product} initialProducts={relatedProducts} />
+    </div>
+  {:else}
+    <!-- Empty placeholders to eliminate CLS and maintain vertical layout rhythm during load -->
+    <div class="max-w-[1200px] mx-auto mt-8 h-[400px] bg-white border border-gray-100 flex flex-col items-center justify-center text-gray-300 gap-2">
+      <div class="w-10 h-10 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+      <span class="text-[11px] font-black tracking-widest uppercase">Đang tải nội dung chi tiết...</span>
+    </div>
+  {/if}
 </svelte:element>
 
 <style>

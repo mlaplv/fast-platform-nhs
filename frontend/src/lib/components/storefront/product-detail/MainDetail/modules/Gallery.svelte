@@ -3,6 +3,7 @@
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import ViralShareBarDesktop from '../../shared/ViralShareBarDesktop.svelte';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     product: Product;
@@ -134,7 +135,14 @@
         {/if}
       </button>
     {:else}
-      <img src={currentImage} alt={product.name} class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-150 bg-white" />
+      <img 
+        src={resolveOptimizedImageUrl(currentImage, 800)} 
+        alt={product.name} 
+        class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-150 bg-white" 
+        loading="eager"
+        fetchpriority="high"
+        decoding="sync"
+      />
     {/if}
     
     {#if isFlashSaleActive}
@@ -142,7 +150,7 @@
         Flash Sale
       </div>
     {/if}
-
+ 
     {#if !isVideoUrl(currentImage) && productInfo.salePrice < productInfo.originalPrice}
       <div class="absolute {isFlashSaleActive ? 'top-8' : 'top-0'} left-0 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#ee4d2d] shadow-sm z-10">
         -{Math.round((1 - productInfo.salePrice / productInfo.originalPrice) * 100)}%
@@ -178,7 +186,13 @@
             Viral
           </div>
         {:else}
-          <img src={img} alt="{product.name} - Hình ảnh {i + 1}" class="w-full h-full object-cover" />
+          <img 
+            src={resolveOptimizedImageUrl(img, 120)} 
+            alt="{product.name} - Hình ảnh {i + 1}" 
+            class="w-full h-full object-cover" 
+            loading="lazy"
+            decoding="async"
+          />
         {/if}
       </button>
     {/each}
