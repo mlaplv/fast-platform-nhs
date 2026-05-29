@@ -88,8 +88,8 @@
   );
   let selectedIndices = $state<number[]>([]);
 
-  // Synchronize indices whenever product.id or variations change
-  $effect(() => {
+  // Synchronize indices synchronously before paint to prevent layout shifts
+  $effect.pre(() => {
     const _id = product.id; // track product transitions
     if (variations.length > 0) {
       const defaultVariant = pVariants.find((v) => v.is_default);

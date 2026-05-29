@@ -1,6 +1,5 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
-  import type { Product, Category, ReviewStats, Article } from '$lib/types';
+  import type { Product, Category, ReviewStats } from '$lib/types';
 
   import FunnelPage from '../../[slug]-funnel/+page.svelte';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
@@ -13,17 +12,18 @@
 
   import type { PageData as FunnelPageData } from '../../[slug]-funnel/$types';
 
+  // ⚡️ Elite 2026: Static imports of primary above-the-fold views to guarantee complete SSR coverage and 0ms layout flash
+  import ProductDetailDesktop from '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte';
+  import ProductDetailMobile from '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte';
+  import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
+  import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
+  import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
+  import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
+
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
   const siteUrl = $derived($page.url.origin);
   const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || "SmartShop");
-
-  // Elite V2.2: Dynamic components to prevent overlapping loading
-  let activeDetailComponent = $state<Component<{
-    product: Product;
-    relatedProducts?: Product[];
-    reviewStats?: ReviewStats | null;
-  }> | null>(null);
 
   interface NewsItem {
     id: string;
@@ -34,47 +34,6 @@
     category?: string;
     createdAt?: string;
   }
-
-  let activeListComponent = $state<Component<{
-    products: Product[];
-    categoryName: string;
-    categorySlug: string;
-    serverTotal: number;
-    facets?: Record<string, unknown> | null;
-    category: Category | null;
-  }> | null>(null);
-
-  let activeNewsComponent = $state<Component<{
-    newsList: NewsItem[];
-    categoryName?: string;
-  }> | null>(null);
-
-  // Elite V2.2: Parallel JIT dynamic imports on mount
-  onMount(async () => {
-    try {
-      if (data.isMobile) {
-        const [detailMod, listMod, newsMod] = await Promise.all([
-          import('$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'),
-          import('$lib/components/storefront/product/ProductListMobile.svelte'),
-          import('$lib/components/storefront/news/NewsListMobile.svelte')
-        ]);
-        activeDetailComponent = detailMod.default;
-        activeListComponent = listMod.default;
-        activeNewsComponent = newsMod.default;
-      } else {
-        const [detailMod, listMod, newsMod] = await Promise.all([
-          import('$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'),
-          import('$lib/components/storefront/product/ProductListDesktop.svelte'),
-          import('$lib/components/storefront/news/NewsListDesktop.svelte')
-        ]);
-        activeDetailComponent = detailMod.default;
-        activeListComponent = listMod.default;
-        activeNewsComponent = newsMod.default;
-      }
-    } catch (e) {
-      console.error("[SYSTEM FAULT] Dynamic storefront page components failed to load:", e);
-    }
-  });
 
   // Elite V2.2: Route Navigation Scroll Restoration Shield
   afterNavigate(() => {
@@ -229,14 +188,23 @@
 {#if data.type === 'category' || data.type === 'news'}
   <!-- CATEGORY/NEWS VIEW -->
   {#if data.type === 'news' && newsData}
-    {#if activeNewsComponent}
-      {@const NewsComponent = activeNewsComponent}
-      <NewsComponent newsList={newsData.items} categoryName={newsData.categoryName} />
+    {#if data.isMobile}
+      <NewsListMobile newsList={newsData.items} categoryName={newsData.categoryName} />
+    {:else}
+      <NewsListDesktop newsList={newsData.items} categoryName={newsData.categoryName} />
     {/if}
   {:else if categoryData}
-    {#if activeListComponent}
-      {@const ListComponent = activeListComponent}
-      <ListComponent 
+    {#if data.isMobile}
+      <ProductListMobile 
+        products={categoryData.items} 
+        categoryName={categoryData.categoryName} 
+        categorySlug={categoryData.categorySlug} 
+        serverTotal={categoryData.serverTotal} 
+        facets={categoryData.facets} 
+        category={categoryData.category} 
+      />
+    {:else}
+      <ProductListDesktop 
         products={categoryData.items} 
         categoryName={categoryData.categoryName} 
         categorySlug={categoryData.categorySlug} 
@@ -252,9 +220,14 @@
   {#if isFunnel && funnelPageData}
     <FunnelPage data={funnelPageData} />
   {:else}
-    {#if activeDetailComponent}
-      {@const DetailComponent = activeDetailComponent}
-      <DetailComponent 
+    {#if data.isMobile}
+      <ProductDetailMobile 
+        product={productData.product} 
+        relatedProducts={productData.relatedProducts as Product[] | undefined} 
+        reviewStats={productData.reviewStats} 
+      />
+    {:else}
+      <ProductDetailDesktop 
         product={productData.product} 
         relatedProducts={productData.relatedProducts as Product[] | undefined} 
         reviewStats={productData.reviewStats} 

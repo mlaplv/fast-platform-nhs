@@ -145,9 +145,11 @@
       images: (v.images || []).filter((img): img is string => img !== null)
     }))
   );
+  const pVariants = $derived(product.variants || []);
   let selectedIndices = $state<number[]>([]);
 
-  $effect(() => {
+  // Synchronously pre-calculate selectedIndices before first paint to prevent dynamic layout shift
+  $effect.pre(() => {
     if (selectedIndices.length === 0 && variations.length > 0) {
       const defaultVariant = pVariants.find((v) => v.is_default);
       const dIndices = defaultVariant?.tierIndex || defaultVariant?.tier_index;
@@ -159,8 +161,6 @@
     }
   });
   let quantity = $state(1);
-
-  const pVariants = $derived(product.variants || []);
   let currentVariant = $derived<ProductVariant | undefined>(
     pVariants.find((v) => {
       const vIndices = v.tierIndex || v.tier_index;

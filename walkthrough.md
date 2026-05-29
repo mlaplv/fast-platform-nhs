@@ -1599,3 +1599,18 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
 3. **Operational Restart**:
    - Pushed structural updates to the VPS `/opt/fast-platform/` and successfully performed a soft-restart of the `api` and `worker_high` containers to apply the database latency improvements immediately.
 
+## 54. Eliminating Storefront Loading Lag & Black Screen Flash (Elite V2.2)
+
+### Diagnostics & Root Cause Analysis
+- **Root Cause 1 (Blank SSR Paint & Contrast Flash)**: The storefront dynamic page router (`[slug]/+page.svelte`) was utilizing lazy dynamic JIT dynamic imports (`import(...)` inside `onMount`) for all primary templates (Desktop/Mobile product details, lists, and news). Because `onMount` runs strictly client-side, the server generated **blank HTML** during initial SSR. The browser painted this blank body styled with the dark theme's `#010101` color. Hydration then completed 100-200ms later, painting the white gradient, causing a massive, visually disruptive **black screen flash ("chớp đen")**.
+- **Root Cause 2 (Hydration State Drift & Layout Thrashing)**: Inside `Desktop.svelte`, `selectedIndices` was initialized as an empty array `[]` at script startup. Derived states (`currentVariant`, `displayPrice`) evaluated to unselected default states, causing the layout to paint fallbacks. Once mounted, the `$effect` fired, mutationally updating the state to default indices, forcing a full layout recalculation (thrashing) and a visible UI jump (lag).
+
+### Resolutions Applied
+1. **Static Import of Primary Views**:
+   - Refactored `[slug]/+page.svelte` to statically import all 6 core layout templates (`ProductDetailDesktop`, `ProductDetailMobile`, etc.) at the script header.
+   - Restructured template selectors to directly render statically-bound templates based on server-side `data.isMobile` and `data.type`, enabling complete SSR compilation and rendering, resolving the black flash.
+2. **Synchronous Hydration via `$effect.pre`**:
+   - Upgraded both `LandingPage/Desktop.svelte` and `MainDetail/Desktop.svelte` to run `selectedIndices` synchronization within Svelte 5's `$effect.pre` block instead of the post-paint `$effect` block.
+   - Synchronized parameters immediately prior to initial DOM paint, guaranteeing zero-state layout jumps, solidifying cumulative layout shift metrics, and eliminating hydration lag.
+
+

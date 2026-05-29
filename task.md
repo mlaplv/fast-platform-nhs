@@ -595,6 +595,9 @@
 - [x] Làm sạch code dư thừa, loại bỏ debug `console.log` có overhead `$state.snapshot` cao tại `Sections.svelte` để nâng cao hiệu năng runtime. (Done)
 - [x] Triệt tiêu N+1 queries khi nạp danh sách sản phẩm bằng cách gộp truy vấn `ProductVariant` hàng loạt (Bulk Fetch) thay vì lặp từng dòng. (Done)
 - [x] Tích hợp cơ chế Double-Layer Caching (L1 Request-scoped ContextVar + L2 Distributed Redis Cache) bảo vệ `Voucher` trong `hydrate_viral_config_logic` để đạt hiệu năng 2026. (Done)
+- [x] Giải quyết triệt để lỗi chớp màn hình đen bằng cách chuyển đổi JIT Dynamic Import sang Static Import trên tuyến `[slug]/+page.svelte`. (Done)
+- [x] Loại bỏ lag giật/layout thrashing bằng cách sử dụng `$effect.pre` để đồng bộ chỉ mục phân loại trước khung hình hiển thị (first paint) trong `Desktop.svelte`. (Done)
+
 
 
 
