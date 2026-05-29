@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Banner } from '$lib/types';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     banners: Banner[];
@@ -63,11 +64,11 @@
         {#each mainBanners as banner, i}
           {#if banner.link_url && banner.link_url !== '#'}
             <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
-              <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+              <img src={resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
             </a>
           {:else}
             <div class="w-full h-full shrink-0 block">
-              <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+              <img src={resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
             </div>
           {/if}
         {/each}
@@ -110,11 +111,11 @@
     {#each sideBanners as banner}
       {#if banner.link_url && banner.link_url !== '#'}
         <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
-          <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
+          <img src={resolveOptimizedImageUrl(banner.image_url, 400)} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" loading="lazy" decoding="async" />
         </a>
       {:else}
         <div class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
-          <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
+          <img src={resolveOptimizedImageUrl(banner.image_url, 400)} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" loading="lazy" decoding="async" />
         </div>
       {/if}
     {/each}

@@ -3,6 +3,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Banner {
     id: string;
@@ -66,7 +67,7 @@
       {#if banner.link_url && banner.link_url !== '#'}
         <a href={getProductLink(banner.link_url)} class="banner-slide">
           <img
-            src={banner.mobile_image_url || banner.image_url}
+            src={resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
             alt={banner.title || "Banner"}
             class="w-full h-full object-cover select-none"
             loading={i === 0 ? "eager" : "lazy"}
@@ -76,7 +77,7 @@
       {:else}
         <div class="banner-slide">
           <img
-            src={banner.mobile_image_url || banner.image_url}
+            src={resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
             alt={banner.title || "Banner"}
             class="w-full h-full object-cover select-none"
             loading={i === 0 ? "eager" : "lazy"}
