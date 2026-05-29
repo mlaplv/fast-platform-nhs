@@ -670,31 +670,32 @@
     </div>
   </svelte:element>
 
-  <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) -->
-  {#if loadBelowFold}
-    <ProductDetailSections
-      {product}
-      {productInfo}
-      visibleAttributes={product.attributes
-        ? (Object.entries(product.attributes).filter(([key, value]) => {
-            const k = key.toLowerCase().replace(/_/g, " ").trim();
-            const brand = productInfo.brand;
-            const origin = productInfo.origin;
-            const weight = productInfo.weight;
-            return !(
-              ((k === "xuất xứ" || k === "origin") && origin) ||
-              ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
-                weight) ||
-              ((k === "mã vạch" || k === "barcode") &&
-                productInfo.barcode &&
-                productInfo.barcode !== "N/A") ||
-              k === "thương hiệu" ||
-              k === "brand"
-            );
-          }) as [string, string | number | Record<string, unknown>][])
-        : []}
-    />
+  <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) - Pre-rendered for maximum SEO & instantaneous Above-the-fold paint -->
+  <ProductDetailSections
+    {product}
+    {productInfo}
+    visibleAttributes={product.attributes
+      ? (Object.entries(product.attributes).filter(([key, value]) => {
+          const k = key.toLowerCase().replace(/_/g, " ").trim();
+          const brand = productInfo.brand;
+          const origin = productInfo.origin;
+          const weight = productInfo.weight;
+          return !(
+            ((k === "xuất xứ" || k === "origin") && origin) ||
+            ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
+              weight) ||
+            ((k === "mã vạch" || k === "barcode") &&
+              productInfo.barcode &&
+              productInfo.barcode !== "N/A") ||
+            k === "thương hiệu" ||
+            k === "brand"
+          );
+        }) as [string, string | number | Record<string, unknown>][])
+      : []}
+  />
 
+  <!-- BELOW THE FOLD DYNAMIC SECTIONS -->
+  {#if loadBelowFold}
     <!-- REVIEWS SECTION -->
     <ProductReviews {product} />
 
@@ -704,9 +705,9 @@
     </div>
   {:else}
     <!-- Empty placeholders to eliminate CLS and maintain vertical layout rhythm during load -->
-    <div class="max-w-[1200px] mx-auto mt-8 h-[400px] bg-white border border-gray-100 flex flex-col items-center justify-center text-gray-300 gap-2">
+    <div class="max-w-[1200px] mx-auto mt-8 h-[200px] bg-white border border-gray-100 flex flex-col items-center justify-center text-gray-300 gap-2">
       <div class="w-10 h-10 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-      <span class="text-[11px] font-black tracking-widest uppercase">Đang tải nội dung chi tiết...</span>
+      <span class="text-[11px] font-black tracking-widest uppercase">Đang tải đánh giá và gợi ý...</span>
     </div>
   {/if}
 </svelte:element>

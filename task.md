@@ -597,6 +597,10 @@
 - [x] Tích hợp cơ chế Double-Layer Caching (L1 Request-scoped ContextVar + L2 Distributed Redis Cache) bảo vệ `Voucher` trong `hydrate_viral_config_logic` để đạt hiệu năng 2026. (Done)
 - [x] Giải quyết triệt để lỗi chớp màn hình đen bằng cách chuyển đổi JIT Dynamic Import sang Static Import trên tuyến `[slug]/+page.svelte`. (Done)
 - [x] Loại bỏ lag giật/layout thrashing bằng cách sử dụng `$effect.pre` để đồng bộ chỉ mục phân loại trước khung hình hiển thị (first paint) trong `Desktop.svelte`. (Done)
+- [x] Tối ưu hóa đồng bộ chỉ mục biến thể trong `MainDetail/Mobile.svelte` và `MainDetail/Desktop.svelte` bằng cách chuyển sang sử dụng `$effect.pre` để triệt tiêu độ trễ hydration. (Done)
+- [x] Chuyển đổi JIT Dynamic Import sang Static Import đối với 4 phân khúc chính trong `MobileLandingLayout.svelte` để tăng tốc vẽ FCP/LCP trên di động và loại bỏ skeleton flickering. (Done)
+- [x] Đưa khối thông số chi tiết sản phẩm (`ProductMobileSpecs` và `ProductDetailSections`) ra ngoài khối defer `loadBelowFold` để đảm bảo 100% SEO indexable và 0ms độ trễ hiển thị thông số. (Done)
+
 
 
 

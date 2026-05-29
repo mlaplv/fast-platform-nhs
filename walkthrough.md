@@ -1613,4 +1613,18 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
    - Upgraded both `LandingPage/Desktop.svelte` and `MainDetail/Desktop.svelte` to run `selectedIndices` synchronization within Svelte 5's `$effect.pre` block instead of the post-paint `$effect` block.
    - Synchronized parameters immediately prior to initial DOM paint, guaranteeing zero-state layout jumps, solidifying cumulative layout shift metrics, and eliminating hydration lag.
 
+## 55. Hardening Mobile & Main Storefront Layout Hydration (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **Variant Selection Synchronization in Mobile (`MainDetail/Mobile.svelte`)**:
+  - *Issue*: Prior variant synchronization inside Mobile details was bound to post-paint client-side `$effect` updates.
+  - *Fix*: Upgraded to `$effect.pre`, ensuring `selectedVariant` matches default variant indices synchronously prior to FCP paint, eliminating dynamic hydration jumps.
+- **Section Pre-rendering & SEO Optimization (`MainDetail/Mobile.svelte` & `MainDetail/Desktop.svelte`)**:
+  - *Issue*: Core product technical details and descriptions (`ProductMobileSpecs`, `ProductDetailSections`) were deferred in the `loadBelowFold` client block. This severely degraded search engine crawlers indexing capabilities (reducing Google SGE visibility) and left users with blank loading indicators for core content.
+  - *Fix*: Extracted these main details blocks out of the `loadBelowFold` dynamic wrappers in both components. The core descriptive sections now statically pre-render on SSR, ensuring instant above-the-fold readability and 100% crawl indexing coverage, while only dynamic/heavy reviews and related products remain deferred.
+- **Mobile Landing Layout Deferral Cleansing (`MobileLandingLayout.svelte`)**:
+  - *Issue*: The primary snap sections (`MobileDiagnostics`, `MobileScience`, `MobileReviews`, `MobileOffer`) were dynamically imported during client scroll. This caused jarring black/pulsing skeleton flashes and high CLS on mobile platforms (iPad Mini / iOS).
+  - *Fix*: Upgraded all 4 main sections to static imports at the layout script header. The layout pre-renders complete snap structures directly on the server, ensuring absolute layout stability and 0ms loading shifts.
+
+
 

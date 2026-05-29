@@ -155,8 +155,8 @@
     showVerification = true;
   }
 
-  // Elite V2.2: Neural Variant Initialization (Sync with Desktop)
-  $effect(() => {
+  // Elite V2.2: Neural Variant Initialization (Sync with Desktop) - pre-paint synchronization
+  $effect.pre(() => {
     const _id = product.id; // track product transitions
     if (variations.length > 0) {
       const pVariants = (product.variants || []).filter((v) => v.is_active !== false);
@@ -361,14 +361,7 @@
     </section>
 
     <section id="description">
-      {#if loadBelowFold}
-        <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
-      {:else}
-        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-b border-gray-100">
-          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải thông số...</span>
-        </div>
-      {/if}
+      <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
     </section>
 
     <section id="reviews">
