@@ -37,6 +37,7 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
     @dynamic_assets path /uploads/* /v65_assets/* /avatars/*
     handle @dynamic_assets {
         root * /app/frontend/static
+        header Cache-Control "public, max-age=31536000"
         file_server
     }
 
@@ -71,6 +72,18 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
     @frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
     handle @frontend_host {
         root * /app/frontend/dist
+        
+        # Match immutable assets compiled by SvelteKit
+        @immutable path /_app/immutable/*
+        header @immutable Cache-Control "public, max-age=31536000, immutable"
+        
+        # Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
+        @cacheable {
+            path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json
+            not path /index.html
+        }
+        header @cacheable Cache-Control "public, max-age=31536000"
+
         file_server {
             precompressed br gzip
         }

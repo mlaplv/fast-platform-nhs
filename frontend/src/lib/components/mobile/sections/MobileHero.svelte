@@ -177,6 +177,7 @@
              class="w-full h-full object-cover select-none"
              loading={i === 0 ? "eager" : "lazy"}
              fetchpriority={i === 0 ? "high" : "low"}
+             decoding={i === 0 ? "sync" : "async"}
            />
          </EditableWrapper>
 

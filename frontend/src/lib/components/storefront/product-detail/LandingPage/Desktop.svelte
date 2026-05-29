@@ -35,14 +35,32 @@
 
   let ProductReviewsComponent = $state<Component<Record<string, unknown>> | null>(null);
   let RelatedProductsComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let loadBelowFold = $state(false);
+
+  onMount(() => {
+    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          loadBelowFold = true;
+        });
+      } else {
+        setTimeout(() => {
+          loadBelowFold = true;
+        }, 200);
+      }
+    }
+  });
 
   $effect(() => {
-    import("../../shared/ProductReviews.svelte").then((mod) => {
-      ProductReviewsComponent = mod.default as Component<Record<string, unknown>>;
-    });
-    import("../shared/RelatedProducts.svelte").then((mod) => {
-      RelatedProductsComponent = mod.default as Component<Record<string, unknown>>;
-    });
+    if (loadBelowFold) {
+      import("../../shared/ProductReviews.svelte").then((mod) => {
+        ProductReviewsComponent = mod.default as Component<Record<string, unknown>>;
+      });
+      import("../shared/RelatedProducts.svelte").then((mod) => {
+        RelatedProductsComponent = mod.default as Component<Record<string, unknown>>;
+      });
+    }
   });
   import X from "@lucide/svelte/icons/x";
   import { portal } from "$lib/core/actions/portal";
@@ -627,14 +645,24 @@
     <ProductDescription {product} />
 
     <div id="product-reviews" class="max-w-[1200px] mx-auto mt-6">
-      {#if ProductReviewsComponent}
+      {#if loadBelowFold && ProductReviewsComponent}
         <ProductReviewsComponent {product} />
+      {:else}
+        <div class="h-[250px] bg-white rounded-lg flex flex-col items-center justify-center text-gray-300 gap-2 border border-gray-100 animate-pulse">
+          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải đánh giá chuyên sâu...</span>
+        </div>
       {/if}
     </div>
 
     <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-      {#if RelatedProductsComponent}
+      {#if loadBelowFold && RelatedProductsComponent}
         <RelatedProductsComponent {product} initialProducts={relatedProducts} />
+      {:else}
+        <div class="h-[300px] bg-white rounded-lg flex flex-col items-center justify-center text-gray-300 gap-2 border border-gray-100 animate-pulse">
+          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+          <span class="text-[10px] font-black tracking-widest uppercase">Đang gợi ý sản phẩm liên quan...</span>
+        </div>
       {/if}
     </div>
   </main>
