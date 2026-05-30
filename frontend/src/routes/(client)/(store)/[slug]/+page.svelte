@@ -133,6 +133,13 @@
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
 </script>
 
+<!-- Elite LCP Optimization: Preload hero product image as early as possible for Chrome/Safari -->
+<svelte:head>
+  {#if productData?.product?.images?.[0]}
+    <link rel="preload" as="image" href={productData.product.images[0]} fetchpriority="high" />
+  {/if}
+</svelte:head>
+
 <!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
 {#if data.type === 'category' || data.type === 'news'}
   <SeoHead

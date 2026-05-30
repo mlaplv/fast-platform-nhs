@@ -100,11 +100,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       name: typeof prodData.name === 'string' ? prodData.name.replace(/40gr/g, '40g') : prodData.name
     };
 
-    const isMobile =
-      typeof window !== 'undefined'
-        ? window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
-        : false;
-
+    // Fetch related products & review stats in parallel (does NOT block product render)
     const [relRes, statsRes] = await Promise.all([
       fetch(`/api/v1/client/products/?limit=9`, { signal: AbortSignal.timeout(2000) })
         .catch(e => { console.error('[RELATED PRODUCTS FETCH FAILED]', e); return null; }),
@@ -126,12 +122,14 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       reviewStats = await statsRes.json() as ReviewStats;
     }
 
+    // NOTE: isMobile intentionally NOT set here.
+    // It is resolved server-side in hooks.server.ts (User-Agent) and passed through layout data.
+    // Setting it here via window.innerWidth would cause SSR/Hydration mismatch.
     return {
       type: 'product' as const,
       product,
       reviewStats,
-      relatedProducts,
-      isMobile
+      relatedProducts
     };
   }
 

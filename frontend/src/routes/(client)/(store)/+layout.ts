@@ -18,30 +18,9 @@ export const load: LayoutLoad = async ({ fetch }) => {
         const shopInfo = await shopResp.json();
         const vouchersData = voucherResp.ok ? await voucherResp.json() : { data: [] };
 
-        // Parse unlocked vouchers from cookies on the client side
-        let unlockedVoucherIds: string[] = [];
-        if (typeof document !== 'undefined') {
-            unlockedVoucherIds = document.cookie.split(';')
-                .map(c => c.trim())
-                .filter(c => c.startsWith('elite_viral_') && c.includes('='))
-                .filter(c => {
-                    const parts = c.split('=');
-                    return parts[1] === '1';
-                })
-                .map(c => c.split('=')[0].replace('elite_viral_', ''));
-        }
-
-        // Detect device on the client side
-        let isMobile = false;
-        if (typeof window !== 'undefined') {
-            isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        }
-
         return {
             shopInfo,
-            vouchers: vouchersData.data || [],
-            unlockedVoucherIds,
-            isMobile
+            vouchers: vouchersData.data || []
         };
     } catch (e: unknown) {
         const err = e as { status?: number };
