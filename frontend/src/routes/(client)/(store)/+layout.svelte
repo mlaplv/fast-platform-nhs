@@ -7,8 +7,7 @@
   import { getSearchStore } from "$lib/state/commerce/search.svelte";
   import SmartSearch from "$lib/components/storefront/product/SmartSearch.svelte";
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
-  import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
-  import { onMount, type Snippet } from "svelte";
+  import { onMount, type Snippet, type Component } from "svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import type { LayoutData } from './$types';
 
@@ -19,6 +18,8 @@
   const ui = getClientUi();
   const cart = getCartStore();
   const searchStore = getSearchStore();
+
+  let NeuralBarComponent = $state<Component<any> | null>(null);
 
   // Elite V2.2: Zero-Latency State Sync (Sync before mount to prevent CLS)
   if (data.isMobile !== undefined) {
@@ -59,9 +60,16 @@
     
     // Fomo State Machine (Elite V2.6)
     const fomoEnabled = !isAdmin && ui.settings?.conversions?.fomo_enabled;
-    if (fomoEnabled && !fomoStore.isInitialized) {
-        fomoStore.init('smartshop-elite');
-    } else if (!fomoEnabled && fomoStore.isInitialized) {
+    if (fomoEnabled) {
+        if (!fomoStore.isInitialized) {
+            fomoStore.init('smartshop-elite');
+        }
+        if (!NeuralBarComponent) {
+            import('$lib/components/client/common/NeuralActivityBar.svelte').then(m => {
+                NeuralBarComponent = m.default;
+            });
+        }
+    } else if (fomoStore.isInitialized) {
         fomoStore.dispose();
     }
   });
@@ -126,8 +134,9 @@
     {/if}
   {/if}
 
-  {#if !isAdmin && ui.settings?.conversions?.fomo_enabled}
-    <NeuralActivityBar />
+  {#if !isAdmin && ui.settings?.conversions?.fomo_enabled && NeuralBarComponent}
+    {@const DynamicBar = NeuralBarComponent}
+    <DynamicBar />
   {/if}
 
   {#if searchStore.isOverlayOpen}
