@@ -362,7 +362,10 @@
     </div>
 {/if}
 
-<div class="min-h-screen bg-[#020202] text-gray-100 selection:bg-[#00FFFF]/20" style={zIndexStyles}>
+<div 
+  class="min-h-screen transition-colors duration-200 {isAdmin ? 'bg-[#020202] text-gray-100 selection:bg-[#00FFFF]/20' : 'bg-[#fafafa] text-gray-900 selection:bg-luxury-copper/20'}" 
+  style="{zIndexStyles} --bg-canvas: {isAdmin ? '#010101' : '#fafafa'}; --text-base: {isAdmin ? '#ffffff' : '#111827'};"
+>
   <main class="relative z-10">
     {@render children()}
   </main>

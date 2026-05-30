@@ -33,9 +33,8 @@ body {
 */
 
 :root {
-  --bg-canvas: #010101;
-  /* Vantablack */
-  --text-base: #ffffff;
+  --bg-canvas: #fafafa;
+  --text-base: #111827;
   --fs-body: 14px;
   --fs-ui: 12px;
 
