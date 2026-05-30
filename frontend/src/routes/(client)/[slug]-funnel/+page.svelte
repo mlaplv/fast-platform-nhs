@@ -33,6 +33,7 @@
   let { data }: { data: PageData } = $props();
   let themeMode = $state<"system" | "light" | "dark">("system");
   let isMounted = $state(false);
+  let loadJIT = $state(false);
 
   // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
   const shopStore = setShopStore();

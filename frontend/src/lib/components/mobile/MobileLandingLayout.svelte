@@ -12,6 +12,7 @@
   import type { Component } from 'svelte';
   let ScannerHUDComponent = $state<Component<Record<string, unknown>> | null>(null);
   let MobileVerificationCenterComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let loadJIT = $state(false);
   async function loadScannerHUD() {
     if (!ScannerHUDComponent) {
       const mod = await import('../storefront/product-detail/shared/ScannerHUD.svelte');

@@ -786,6 +786,14 @@
 - [x] **[G-7] Voucher Fraud Guard**: Validate toàn bộ voucher_ids từ DB trước khi tạo đơn: tồn tại, chưa bị xoá, đang hoạt động (`is_active`), chưa hết hạn (`start_date`/`end_date`), chưa đạt giới hạn lượt dùng (`used_count < usage_limit`), đủ điều kiện chi tiêu tối thiểu (`min_spend`). Chặn payload bombing (tối đa 5 mã/đơn). (Done)
 - [x] **[G-8] Stock Overflow Guard**: Batch-load tồn kho (`ProductBase.stock`, `ProductVariant.stock`) — O(2) queries, ưu tiên variant stock. Chặn đặt hàng vượt số lượng tồn kho và sản phẩm hết hàng trước khi bất kỳ giao dịch DB nào được tạo. (Done)
 
+# Task Checklist - Fixing Mobile Diagnostics Option Icons Visibility & JIT Reference Error (Elite V2.2)
+
+- [x] Cấu hình lớp màu chữ mặc định `text-[#FFB7C5]/70` cho khung tròn chứa icon lựa chọn trong `MobileDiagnostics.svelte`. (Done)
+- [x] Đồng bộ hóa hiệu ứng bóng đổ từ màu xanh lam lạc tông sang sắc hồng pha lê `rgba(255, 183, 197, 0.5)` và `rgba(255, 183, 197, 0.3)` tương thích với chủ đề di động. (Done)
+- [x] Khắc phục triệt để lỗi ReferenceError do biến `loadJIT` chưa được khai báo tại `+page.svelte` và `MobileLandingLayout.svelte`. (Done)
+- [x] Tiến hành biên dịch tĩnh dự án storefront thành công 100% không sinh lỗi hay cảnh báo. (Done)
+
+
 
 
 

@@ -1064,18 +1064,18 @@
                           class="absolute inset-0 bg-[#FFB7C5]/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
                         ></div>
                         <div
-                          class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden"
+                          class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black text-[#FFB7C5]/70 group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden"
                         >
                           {#if opt.icon && iconMap[opt.icon]}
                             {@const IconComp = iconMap[opt.icon]}
                             <IconComp
                               size={18}
                               strokeWidth={2}
-                              class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                              class="drop-shadow-[0_0_8px_rgba(255,183,197,0.5)]"
                             />
                           {:else if opt.icon && opt.icon.length <= 2}
                             <span
-                              class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+                              class="drop-shadow-[0_0_8px_rgba(255,183,197,0.3)]"
                               >{opt.icon}</span
                             >
                           {:else}

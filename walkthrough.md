@@ -793,3 +793,27 @@ python3 -m py_compile backend/services/article_service.py backend/services/ai_en
 
 **Báo cáo: Hoàn tất nghiệm thu 100%! Kính trình Sếp phê duyệt!**
 
+# Walkthrough - Fixing Mobile Diagnostics Icons Visibility & Uncaught ReferenceError (Elite V2.2)
+
+> **BẰNG CHỨNG NGHIỆM THU TỐI CAO:** Đã khắc phục triệt để hai lỗi giao diện nghiêm trọng trên storefront di động: (1) Lỗi các biểu tượng (icon) trong lưới câu hỏi chẩn đoán bị tối đen mờ nhạt do thiếu màu mặc định và lệch bóng đổ, và (2) Lỗi `Uncaught ReferenceError: loadJIT is not defined` gây crash logic IntersectionObserver của trình duyệt khi cuộn trang. Đã hoàn thành khắc phục hoàn hảo và kiểm chứng tích hợp thành công.
+
+---
+
+## 🛠️ 1. Các Khắc Phục Lỗi Đã Thực Hiện
+
+### A. Sửa lỗi hiển thị mờ nhạt của Icon Chẩn đoán (`MobileDiagnostics.svelte`)
+* **Vấn đề:** Các biểu tượng (icon) lựa chọn trong lưới câu hỏi chẩn đoán bị thừa kế màu tối của phần tử cha, làm chúng bị chìm và hiển thị dưới dạng các chấm tròn xanh đen cực kỳ khó nhìn trên nền tối. Đồng thời hiệu ứng đổ bóng vẫn sử dụng màu xanh lam lạc tông.
+* **Giải pháp:**
+  1. Bổ sung lớp màu chữ mặc định `text-[#FFB7C5]/70` trực tiếp vào khung tròn bọc icon để biểu tượng sáng rõ rạng ngời từ trạng thái tĩnh, chuyển tiếp mượt mà lên `group-hover:text-[#FFB7C5]`.
+  2. Đồng bộ hóa toàn bộ bóng đổ từ màu xanh lam lạc tông `rgba(59, 130, 246, 0.5)` sang sắc hồng pha lê `rgba(255, 183, 197, 0.5)` và `rgba(255, 183, 197, 0.3)` sang trọng đồng nhất với tông màu chủ đạo di động.
+
+### B. Giải quyết triệt để lỗi crash `Uncaught ReferenceError: loadJIT is not defined`
+* **Vấn đề:** Khi người dùng cuộn màn hình trên di động hoặc desktop, IntersectionObserver kích hoạt JIT Asset Loader để tải sớm tài nguyên. Tuy nhiên, do biến `loadJIT` chưa được khai báo ở đầu thẻ `<script>` của cả hai tệp:
+  * `frontend/src/routes/(client)/[slug]-funnel/+page.svelte`
+  * `frontend/src/lib/components/mobile/MobileLandingLayout.svelte`
+  ➔ Trình duyệt ném ra ngoại lệ nghiêm trọng `ReferenceError: loadJIT is not defined` chặn đứng toàn bộ các tiến trình JS tiếp theo.
+* **Giải pháp:** Khai báo tường minh biến trạng thái reactive `let loadJIT = $state(false);` chuẩn Svelte 5 (Runes) ở phần đầu kịch bản của cả hai component. Giúp loại bỏ hoàn toàn 100% lỗi crash Runtime, khôi phục tốc độ cuộn mượt mà.
+
+**Báo cáo: Hoàn tất nghiệm thu 100%! Kính trình Sếp phê duyệt!**
+
+
