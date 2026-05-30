@@ -340,7 +340,14 @@ class CheckoutService:
             l_res = await db_session.execute(loyalty_query)
             loyalty = l_res.scalar_one_or_none()
             if loyalty:
-                available_points = loyalty.available_points
+                # [SECURITY R00] Verify loyalty integrity BEFORE checkout pricing calculation!
+                is_intact = await LoyaltyService.verify_loyalty_integrity(db_session, user_id)
+                if not is_intact:
+                    logger.error(f"[SECURITY-FATAL] Loyalty balance tampering detected for user {user_id} during checkout. Blocking point redemption.")
+                    available_points = 0
+                    payload.points_redeemed = 0
+                else:
+                    available_points = loyalty.available_points
 
         # 3. UNIFIED PRICING CALCULATION (Elite V2.2)
         

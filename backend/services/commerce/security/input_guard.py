@@ -41,7 +41,7 @@ _INJECTION_PATTERNS: Final[list[re.Pattern[str]]] = [
     re.compile(r"\b(địt|đụ|lồn|cặc|vcl|vkl|đm|dmm|đcm|cc|cl|đéo|mẹ\s*mày|chó\s*đẻ|ngu\s*lồn)\b", re.IGNORECASE),
 ]
 
-_MAX_INPUT_LENGTH: Final[int] = 2000  # Hard cap — prevents token overflow attacks
+_MAX_INPUT_LENGTH: Final[int] = 400  # Hard cap — prevents token overflow attacks
 
 
 class InputGuard:
@@ -60,12 +60,27 @@ class InputGuard:
         if not message or not message.strip():
             return False, "empty_input"
 
-        if len(message) > _MAX_INPUT_LENGTH:
+        # 0. Strip invisible characters / zero-width spaces (Military-Grade Evasion protection)
+        invisible_chars = ["\u200b", "\u200c", "\u200d", "\u200e", "\u200f", "\ufeff", "\u202a", "\u202b", "\u202c", "\u202d", "\u202e"]
+        clean_msg = message
+        for char in invisible_chars:
+            clean_msg = clean_msg.replace(char, "")
+
+        # Map common Cyrillic homoglyphs to Latin to prevent keyword evasion
+        homoglyph_map = {
+            'а': 'a', 'с': 'c', 'е': 'e', 'о': 'o', 'р': 'p', 'х': 'x', 'у': 'y',
+            'А': 'A', 'С': 'C', 'Е': 'E', 'О': 'O', 'Р': 'P', 'Х': 'X', 'У': 'Y',
+            'і': 'i', 'І': 'I', 'ѕ': 's', 'Ѕ': 'S', 'ԁ': 'd'
+        }
+        for k, v in homoglyph_map.items():
+            clean_msg = clean_msg.replace(k, v)
+
+        if len(clean_msg) > _MAX_INPUT_LENGTH:
             return False, "input_too_long"
 
         # 1. Base64 Obfuscation Scan (Chống lách luật bằng mã hóa Base64)
         import base64
-        b64_matches = re.findall(r"\b[A-Za-z0-9+/]{16,}={0,2}\b", message)
+        b64_matches = re.findall(r"\b[A-Za-z0-9+/]{16,}={0,2}\b", clean_msg)
         for potential_b64 in b64_matches:
             try:
                 padded = potential_b64 + "=" * ((4 - len(potential_b64) % 4) % 4)
@@ -83,8 +98,8 @@ class InputGuard:
 
         # 2. Unicode Normalization Bypass Scan (Chống lách luật bằng ký tự dị dạng/toán học)
         import unicodedata
-        normalized = unicodedata.normalize("NFKC", message)
-        if normalized != message:
+        normalized = unicodedata.normalize("NFKC", clean_msg)
+        if normalized != clean_msg:
             for pattern in _INJECTION_PATTERNS:
                 if pattern.search(normalized):
                     logger.warning(
@@ -95,11 +110,11 @@ class InputGuard:
 
         # 3. Standard Pattern Matching
         for pattern in _INJECTION_PATTERNS:
-            if pattern.search(message):
+            if pattern.search(clean_msg):
                 logger.warning(
                     "[InputGuard] Injection attempt detected. Pattern: %.40s | Input (truncated): %.80s",
                     str(pattern.pattern),
-                    message,
+                    clean_msg,
                 )
                 return False, "injection_detected"
 
@@ -173,6 +188,47 @@ class InputGuard:
             logger.warning(f"[DualLLMGuardrail] Scanning failed (falling back to regex safety): {e}")
 
         return True, None
+
+    @staticmethod
+    async def record_security_infraction(ip: str) -> None:
+        """Military-Grade Infraction system. Increments security penalty count."""
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            redis = xohi_memory.client
+            if not redis:
+                return
+            infraction_key = f"support:security_infractions:{ip}"
+            count = await redis.incr(infraction_key)
+            if count == 1:
+                await redis.expire(infraction_key, 300)  # 5 minutes rolling window
+            if count >= 3:
+                blacklist_key = f"support:blacklist:{ip}"
+                await redis.set(blacklist_key, "1", ex=86400)  # 24 hours lock
+                logger.error("🛡️ [MILITARY-SECURITY] IP %s blacklisted for 24 hours due to repeated infractions.", ip)
+        except Exception as e:
+            logger.warning("[InputGuard] Failed to record security infraction: %s", e)
+
+    @staticmethod
+    async def check_military_blacklist(request: object) -> None:
+        """Military-Grade Blacklist gatekeeper. Fast path execution."""
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            redis = xohi_memory.client
+            if not redis:
+                return
+            ip = (
+                request.headers.get("x-real-ip")
+                or (request.client.host if request.client else None)
+                or "unknown"
+            )
+            blacklist_key = f"support:blacklist:{ip}"
+            if await redis.get(blacklist_key):
+                from litestar.exceptions import HTTPException
+                raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do vi phạm quy tắc an toàn.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning("[InputGuard] Blacklist check bypass gracefully: %s", e)
 
 
 # Module-level singleton — stateless, safe to share

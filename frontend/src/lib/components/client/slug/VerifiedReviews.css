@@ -463,3 +463,48 @@
     transform: translateY(18px) scaleX(1.05);
   }
 }
+
+/* ─── BRAND IDENTITY UTILITY CLASSES (Tailwind v4 Safekeeping) ─── */
+.text-luxury-gold {
+  color: #E8D5B0 !important;
+}
+
+.text-luxury-sakura {
+  color: #C18F7E !important;
+}
+
+.text-luxury-sakura\/50 {
+  color: rgba(193, 143, 126, 0.5) !important;
+}
+
+.bg-luxury-sakura\/5 {
+  background-color: rgba(193, 143, 126, 0.05) !important;
+}
+
+.bg-luxury-sakura\/10 {
+  background-color: rgba(193, 143, 126, 0.1) !important;
+}
+
+.border-luxury-sakura\/20 {
+  border-color: rgba(193, 143, 126, 0.2) !important;
+}
+
+.border-luxury-sakura\/30 {
+  border-color: rgba(193, 143, 126, 0.3) !important;
+}
+
+.hover\:bg-luxury-sakura\/20:hover {
+  background-color: rgba(193, 143, 126, 0.2) !important;
+}
+
+.hover\:border-luxury-sakura\/50:hover {
+  border-color: rgba(193, 143, 126, 0.5) !important;
+}
+
+.bg-luxury-sakura {
+  background-color: #C18F7E !important;
+}
+
+.bg-luxury-sakura\/5 {
+  background-color: rgba(193, 143, 126, 0.05) !important;
+}

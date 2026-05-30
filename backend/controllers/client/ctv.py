@@ -13,7 +13,7 @@ from litestar.exceptions import NotAuthorizedException
 from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from backend.services.ctv_service import ctv_service
 from backend.database.models.auth import User
 
@@ -42,9 +42,57 @@ class BankInfoSchema(BaseModel):
     account_no: str = Field(..., min_length=5, max_length=30)
     account_name: str = Field(..., min_length=3, max_length=100)
 
+    @field_validator("account_no", mode="before")
+    @classmethod
+    def clean_account_no(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Số tài khoản/thẻ phải là định dạng chuỗi")
+        # Remove spaces, hyphens, and force uppercase
+        cleaned = "".join(c for c in v if c.isalnum()).upper()
+        if len(cleaned) < 5 or len(cleaned) > 30:
+            raise ValueError("Số tài khoản/thẻ phải có độ dài từ 5 đến 30 ký tự")
+
+        # PCI-DSS International Card Luhn Validation (Visa, Mastercard, JCB, Amex)
+        if len(cleaned) in [13, 15, 16, 19] and cleaned.isdigit():
+            is_intl_card = False
+            # Visa
+            if cleaned.startswith("4"):
+                is_intl_card = True
+            # Mastercard
+            elif cleaned.startswith(("51", "52", "53", "54", "55")) or (cleaned.startswith("2") and 2221 <= int(cleaned[:4]) <= 2720):
+                is_intl_card = True
+            # JCB
+            elif cleaned.startswith("35"):
+                is_intl_card = True
+            # Amex
+            elif cleaned.startswith(("34", "37")):
+                is_intl_card = True
+
+            if is_intl_card:
+                # Luhn Algorithm check
+                digits = [int(c) for c in cleaned[::-1]]
+                luhn_sum = sum(digits[0::2] + [sum(divmod(d * 2, 10)) for d in digits[1::2]])
+                if luhn_sum % 10 != 0:
+                    raise ValueError("Số thẻ tín dụng/ghi nợ quốc tế (Visa/Mastercard/JCB/Amex) không hợp lệ theo chuẩn Luhn PCI-DSS")
+
+        return cleaned
+
+    @field_validator("account_name", mode="before")
+    @classmethod
+    def clean_account_name(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Tên tài khoản phải là định dạng chuỗi")
+        import re
+        # Strip leading/trailing space, convert to uppercase, normalize spaces
+        cleaned = re.sub(r"\s+", " ", v.strip().upper())
+        # Ensure only uppercase letters and spaces (Vietnamese characters supported)
+        if not re.match(r"^[A-Z\sÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂỬỰỲỴÝ]+$", cleaned):
+            raise ValueError("Tên chủ tài khoản chỉ được chứa chữ cái và khoảng trắng, không chứa số hoặc ký tự đặc biệt")
+        return cleaned
+
 
 class WithdrawSchema(BaseModel):
-    amount: int = Field(..., ge=200_000)
+    amount: int = Field(..., ge=200_000, le=50_000_000)
 
 
 class ClientCtvController(Controller):
@@ -220,6 +268,26 @@ class ClientCtvController(Controller):
     ) -> dict:
         """Yêu cầu rút tiền hoa hồng. Admin sẽ duyệt thủ công."""
         user_state = _require_user(request)
+
+        # SECURITY R00: Daily withdrawal request limit (max 3 requests per 24 hours per user)
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            redis = xohi_memory.client
+            if redis:
+                from datetime import datetime, timezone
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                limit_key = f"ctv:withdraw_count:{user_state['id']}:{today_str}"
+                count = await redis.incr(limit_key)
+                if count == 1:
+                    await redis.expire(limit_key, 86400)
+                if count > 3:
+                    from litestar.exceptions import ValidationException
+                    raise ValidationException("Bạn đã vượt quá giới hạn 3 yêu cầu rút tiền trong ngày. Vui lòng quay lại vào ngày mai.")
+        except ValidationException:
+            raise
+        except Exception as e:
+            logger.warning("[WithdrawController] Redis limit check failed (skipping): %s", e)
+
         client_ip = request.client.host if request.client else "127.0.0.1"
         user_agent = request.headers.get("user-agent", "")
         wr = await ctv_service.request_withdrawal(

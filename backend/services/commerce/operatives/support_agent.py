@@ -417,7 +417,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 SupportChatHistory.content
             ).where(SupportChatHistory.session_id == session_id).order_by(
                 desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)
-            ).limit(10)
+            ).limit(4)
             result = await db.execute(stmt)
             history_rows = result.all()
             if not history_rows: return ""
@@ -766,7 +766,7 @@ class SupportAgentOperative(BaseAgentOperative):
     @staticmethod
     def _trim_context_to_budget(
         cart_text: str, ctx_text: str, hist_text: str, kb_index: str,
-        budget: int = 16000,
+        budget: int = 4000,
     ) -> tuple[str, str, str, str]:
         """KT6: Token Budget Guard — priority trim to keep prompt under budget.
         Trim order: hist_text → kb_index → ctx_text. cart_text is never trimmed (ground truth).
@@ -775,9 +775,9 @@ class SupportAgentOperative(BaseAgentOperative):
         if total <= budget:
             return cart_text, ctx_text, hist_text, kb_index
 
-        # Step 1: Trim hist to last 1500 chars
-        if len(hist_text) > 1500:
-            hist_text = hist_text[-1500:]
+        # Step 1: Trim hist to last 800 chars
+        if len(hist_text) > 800:
+            hist_text = hist_text[-800:]
 
         # Step 2: Trim kb_index if still over budget
         remaining = budget - len(cart_text) - len(ctx_text) - len(hist_text)

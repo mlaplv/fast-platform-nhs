@@ -796,7 +796,7 @@
           </div>
 
           <!-- Sticky Action Footer (Naked Style) -->
-          <div class="flex-none space-y-4 pb-4 mt-auto relative z-modal">
+          <div class="flex-none space-y-2.5 pb-4 mt-auto relative z-modal">
             <button
               onclick={() => {
                 const recommendedQty =
@@ -811,7 +811,7 @@
                   .getElementById("offers")
                   ?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
+              class="w-full py-3 bg-[#FFB7C5]/90 rounded-xl font-bold text-slate-950 text-[13px] tracking-[0.1em] flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               <span>Xem liệu trình</span>
               <ArrowRight class="w-4 h-4" />
@@ -819,7 +819,7 @@
 
             <!-- Security & Privacy Disclaimer integrated inside clinical results card for mobile -->
             <p
-              class="text-[8px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1"
+              class="text-[8px] font-medium text-white/30 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-0.5"
             >
               AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác
               sĩ.
@@ -827,7 +827,7 @@
 
             <button
               onclick={restart}
-              class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 tracking-[0.3em] hover:text-[#FFB7C5] transition-colors"
+              class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/20 tracking-[0.15em] hover:text-[#FFB7C5] transition-colors"
             >
               <RefreshCw class="w-2.5 h-2.5" />
               <EditableWrapper

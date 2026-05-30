@@ -82,6 +82,12 @@ class LoyaltyService:
         """Called during checkout to show points 'waiting' to the user."""
         if amount <= 0: return False
         
+        # SECURITY R00: Verify integrity before updating points balance
+        is_intact = await LoyaltyService.verify_loyalty_integrity(db_session, user_id)
+        if not is_intact:
+            logger.error(f"[SECURITY-FATAL] Loyalty balance tampering detected for user {user_id} before registering pending points. Aborting transaction.")
+            return False
+
         stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
         res = await db_session.execute(stmt)
         loyalty = res.scalar_one_or_none()
@@ -112,6 +118,12 @@ class LoyaltyService:
             return False
 
         if order.points_earned > 0: # already earned
+            return False
+
+        # SECURITY R00: Verify integrity before updating points balance
+        is_intact = await LoyaltyService.verify_loyalty_integrity(db_session, order.user_id)
+        if not is_intact:
+            logger.error(f"[SECURITY-FATAL] Loyalty balance tampering detected for user {order.user_id} before earning points. Aborting.")
             return False
 
         # Formula: Use centralized earning rate [ELITE V2.2]

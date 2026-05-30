@@ -3,6 +3,7 @@ import logging
 import asyncio
 import os
 import re
+import sqlalchemy as sa
 from typing import Optional, Union, cast, TYPE_CHECKING
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
@@ -125,63 +126,39 @@ class TrinityBridge:
 
     async def get_tenant_profile(self) -> tuple[Optional[str], list[str]]:
         """
-        Elite V2.2: Fetch VoiceProfile dynamically for the active tenant to ensure total multi-tenant isolation.
-        Prevents cross-tenant state leaks and IDOR vulnerabilities.
+        Elite V2.2: Fetch VoiceProfile dynamically for the active tenant.
+        Single-query JOIN — tránh N+1 gây CONNECTION_LEAK_WARNING.
         """
         from backend.database import current_tenant_id
         active_tenant = current_tenant_id.get()
-        
+
         if not active_tenant:
-            # Fallback to global Admin/Super Admin settings loaded during boot
             return self.db_primary_model, self.db_waterfall
-            
+
         try:
             from backend.database.alchemy_config import alchemy_config
             from backend.database.models import VoiceProfile, User, Role
-            from backend.constants.tenants import APP_DOMAIN
             from sqlalchemy import select
-            
-            super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@micsmo.com")
+
             maker = alchemy_config.create_session_maker()
             async with maker() as s:
-                # Query all profiles under the active tenant, ordered by the latest updated configuration
+                # Single JOIN query: ưu tiên SUPER_ADMIN, fallback profile đầu tiên
+                # Sắp xếp: SUPER_ADMIN role lên trước, sau đó theo updated_at DESC
                 stmt = (
                     select(VoiceProfile)
                     .join(User, User.id == VoiceProfile.user_id)
+                    .outerjoin(User.roles)
                     .where(User.tenant_id == active_tenant)
-                    .order_by(VoiceProfile.updated_at.desc())
-                )
-                profiles = (await s.execute(stmt)).scalars().all()
-                
-                if not profiles:
-                    return self.db_primary_model, self.db_waterfall
-                
-                # Prioritize: SUPER_ADMIN role or matching config email under this tenant (naturally selects the latest)
-                p = None
-                for candidate in profiles:
-                    u_stmt = (
-                        select(User)
-                        .join(User.roles)
-                        .where(User.id == candidate.user_id, Role.code == "SUPER_ADMIN")
+                    .order_by(
+                        sa.case((Role.code == "SUPER_ADMIN", 0), else_=1),
+                        VoiceProfile.updated_at.desc()
                     )
-                    u = (await s.execute(u_stmt)).scalar_one_or_none()
-                    if u:
-                        p = candidate
-                        break
-                
-                if not p:
-                    for candidate in profiles:
-                        u_stmt = select(User).where(User.id == candidate.user_id)
-                        u = (await s.execute(u_stmt)).scalar_one_or_none()
-                        if u and (u.email == super_admin_email or "admin" in u.email.lower() or u.email.endswith(f"@{APP_DOMAIN}")):
-                            p = candidate
-                            break
-                
-                if not p:
-                    # Fallback to the first available profile of the active tenant
-                    p = profiles[0]
-                    
-                return p.primary_model, p.ai_models or []
+                    .limit(1)
+                )
+                p = (await s.execute(stmt)).scalar_one_or_none()
+                if p:
+                    return p.primary_model, p.ai_models or []
+                return self.db_primary_model, self.db_waterfall
         except Exception as e:
             logger.warning(f"⚠️ [TrinityBridge] Failed to load tenant VoiceProfile for {active_tenant}: {e}")
             return self.db_primary_model, self.db_waterfall
@@ -413,8 +390,7 @@ class TrinityBridge:
 
         max_k, last_err = max(1, self.rotator.get_count()), None
 
-        # Elite V2.2: Xeon Per-Core Thread Locking
-        if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
+        if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(8)
 
         # Extract shared parameters once (R110)
         system_prompt = kwargs.pop("system_prompt", None)

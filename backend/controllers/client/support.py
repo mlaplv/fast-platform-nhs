@@ -15,7 +15,7 @@ import logging
 import time
 
 from litestar import Controller, get, post, Request, Response
-from litestar.exceptions import TooManyRequestsException, NotFoundException
+from litestar.exceptions import TooManyRequestsException, NotFoundException, HTTPException
 import sqlalchemy as sa
 from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -207,6 +207,32 @@ class SupportController(Controller):
         - Synchronous Tier-1 Butler (Greetings/FAQ)
         - Asynchronous Tier-2/3 Brain (LLM/RAG via arq)
         """
+        # A. Kiểm tra Military-Grade Blacklist trước tiên
+        from backend.services.commerce.security.input_guard import input_guard
+        await input_guard.check_military_blacklist(request)
+
+        # Trích xuất IP tin cậy
+        ip = (
+            request.headers.get("x-real-ip")
+            or (request.client.host if request.client else None)
+            or "unknown"
+        )
+
+        # 1. Giới hạn, cấm dùng công cụ hay tool (cấm bot / API clients)
+        user_agent = request.headers.get("user-agent", "").strip().lower()
+        if not user_agent:
+            await input_guard.record_security_infraction(ip)
+            raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do thiếu định dạng User-Agent hợp lệ.")
+        
+        bot_keywords = [
+            "headless", "selenium", "puppeteer", "playwright", "python-requests", 
+            "curl", "wget", "httpclient", "postman", "scrapy", "urllib", 
+            "axios", "got", "node-fetch", "pycurl", "perl", "java", "go-http"
+        ]
+        if any(bot in user_agent for bot in bot_keywords):
+            await input_guard.record_security_infraction(ip)
+            raise HTTPException(status_code=403, detail="Truy cập tự động thông qua công cụ API bị nghiêm cấm.")
+
         session_id = request.cookies.get("helen_session_id")
         if not session_id:
              # Fallback if somehow /init failed
@@ -265,6 +291,8 @@ class SupportController(Controller):
 
             await self._check_rate_limit(request, session_id)
             response = await support_agent.chat(request=data, db=db_session)
+            if response.status == "REJECTED":
+                await input_guard.record_security_infraction(ip)
             await db_session.commit()
             status_code = 202 if response.status == "PROCESSING" else 200
             return Response(content=response, status_code=status_code)

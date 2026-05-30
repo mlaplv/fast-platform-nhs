@@ -798,7 +798,7 @@
         </div>
 
         <div
-          class="flex flex-col gap-4 max-w-sm mx-auto mt-8 md:mt-10 lg:mt-12"
+          class="flex flex-col gap-2.5 max-w-xs mx-auto mt-6 md:mt-8"
         >
           <button
             onclick={() => {
@@ -813,7 +813,7 @@
                 .getElementById("offers")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            class="group relative w-full py-5 md:py-6 bg-luxury-copper text-white rounded-[2rem] font-semibold text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(193,143,126,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
+            class="group relative w-full py-3 md:py-3.5 bg-luxury-copper text-white rounded-xl font-bold text-sm md:text-base overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90"
           >
             <span class="relative z-surface">Xem liệu trình</span>
             <div
@@ -823,7 +823,7 @@
 
           <!-- Security & Privacy Disclaimer integrated inside clinical results card -->
           <p
-            class="text-[9px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-2 animate-fade-in"
+            class="text-[9px] font-medium text-white/30 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1 animate-fade-in"
           >
             AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác
             sĩ.
@@ -831,7 +831,7 @@
 
           <button
             onclick={restart}
-            class="text-[10px] font-semibold text-white/10 hover:text-luxury-copper/50 transition-colors tracking-[0.4em] py-2"
+            class="text-[10px] font-semibold text-white/15 hover:text-luxury-copper/50 transition-colors tracking-[0.2em] py-1"
           >
             Làm lại chẩn đoán
           </button>
