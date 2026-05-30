@@ -967,6 +967,11 @@ function upgrade_python_packages() {
 }
 
 function total_garbage_clean() {
+    local NO_WAIT=false
+    if [[ "$1" == "--no-wait" ]]; then
+        NO_WAIT=true
+    fi
+
     echo -e "${CYAN}[CLEAN] Đang tiến hành dọn rác toàn diện (Cache, Logs & Old Packages)...${NC}"
 
     # 1. Truncate Docker logs
@@ -1003,14 +1008,17 @@ function total_garbage_clean() {
     
     echo -e "${GREEN}[SUCCESS] Đã hoàn tất dọn dẹp hệ thống siêu sạch!${NC}"
     df -h /
-    read -p "Nhấn Enter để quay lại menu..."
+    
+    if [ "$NO_WAIT" = false ]; then
+        read -p "Nhấn Enter để quay lại menu..."
+    fi
 }
 
 # Handle direct command-line arguments (e.g. ./xohi.sh dondep)
 if [[ -n "$1" ]]; then
     case "$1" in
         dondep|dọn_dẹp|dondep_docker|dondep-docker)
-            prune_docker_garbage
+            total_garbage_clean --no-wait
             exit 0
             ;;
     esac
