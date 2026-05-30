@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Product, Category, ReviewStats } from '$lib/types';
+  import type { Component } from 'svelte';
 
-  import FunnelPage from '../../[slug]-funnel/+page.svelte';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount, untrack } from 'svelte';
@@ -9,21 +9,19 @@
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import type { PageData } from './$types';
-
   import type { PageData as FunnelPageData } from '../../[slug]-funnel/$types';
 
-  // ⚡️ Elite 2026: Static imports of primary above-the-fold views to guarantee complete SSR coverage and 0ms layout flash
-  import ProductDetailDesktop from '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte';
-  import ProductDetailMobile from '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte';
-  import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
-  import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
-  import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
-  import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
+  // ── Dynamic Component State (Zero Bundle Overlap) ──────────────────────────
+  // Each component is isolated in its own Vite chunk.
+  // A mobile user NEVER downloads desktop code, and vice versa.
+  // Funnel/Landing is completely separate from product-detail bundles.
+  let activeComponent = $state<Component<any> | null>(null);
+  let activeProps = $state<Record<string, unknown>>({});
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
   const siteUrl = $derived($page.url.origin);
-  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || "SmartShop");
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || 'SmartShop');
 
   interface NewsItem {
     id: string;
@@ -35,7 +33,7 @@
     createdAt?: string;
   }
 
-  // Elite V2.2: Route Navigation Scroll Restoration Shield
+  // Route Navigation Scroll Restoration Shield
   afterNavigate(() => {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -45,11 +43,11 @@
     }
   });
 
-  // Elite V2.2: Reactive Funnel Detection (Zero-Latency Sync)
+  // Reactive Funnel Detection
   const landingType = $derived(data.product?.metadata?.landing_type || 'standard');
   const isFunnel = $derived(landingType !== 'standard');
 
-  // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol) - pre-paint synchronization
+  // Dynamic Layout Sync — pre-paint synchronization
   $effect.pre(() => {
     if (isFunnel || ui.isMobile) {
       ui.isHeaderHidden = true;
@@ -58,35 +56,26 @@
       ui.isHeaderHidden = false;
       ui.isFooterHidden = false;
     }
-
     return () => {
-      // Auto-restore on unmount
       ui.isHeaderHidden = false;
       ui.isFooterHidden = false;
     };
   });
 
-  // Elite V6.3: Neural Product Sync (Reactive Name Only)
+  // Neural Product Sync (Reactive Name Only)
   $effect(() => {
-    const pName = data.product?.name || "";
-    untrack(() => {
-        supportAgent.currentProductName = pName;
-    });
-    return () => {
-        untrack(() => {
-            supportAgent.currentProductName = "";
-        });
-    };
+    const pName = data.product?.name || '';
+    untrack(() => { supportAgent.currentProductName = pName; });
+    return () => { untrack(() => { supportAgent.currentProductName = ''; }); };
   });
 
-  // SEO Derived State (Elite V2.2)
+  // SEO Derived State
   const productSeoMeta = $derived(data.product?.seoMeta || data.product?.seo_meta || null);
   const categorySeoMeta = $derived(data.category?.seoMeta || data.category?.seo_meta || null);
 
-  // Elite V2.2: Semantic Breadcrumb Logic (GEO 2026)
+  // Semantic Breadcrumb Logic
   const breadcrumbItems = $derived.by(() => {
     const items = [{ name: 'Trang chủ', url: '/' }];
-    
     if (data.type === 'category') {
       items.push({ name: data.categoryName, url: `/${data.categorySlug}/` });
     } else if (data.type === 'product' && data.product) {
@@ -98,10 +87,8 @@
     return items;
   });
 
-  // Elite V2.2: FAQ Extraction for SGE
   const pageFaqs = $derived(data.product?.metadata?.faqs || []);
 
-  // Elite V2.2: Define precise PageData subsets to resolve Svelte-check compiler issues
   interface CategoryPageData {
     type: 'category';
     categoryName: string;
@@ -111,14 +98,12 @@
     items: Product[];
     facets?: Record<string, unknown> | null;
   }
-
   interface ProductPageData {
     type: 'product';
     product: Product;
     reviewStats: ReviewStats | null;
     relatedProducts: Product[];
   }
-
   interface NewsPageData {
     type: 'news';
     categoryName: string;
@@ -128,9 +113,95 @@
   const categoryData = $derived(data.type === 'category' ? (data as unknown as CategoryPageData) : null);
   const productData = $derived(data.type === 'product' ? (data as unknown as ProductPageData) : null);
   const newsData = $derived(data.type === 'news' ? (data as unknown as NewsPageData) : null);
-
-  // Cast page data securely for FunnelPage component
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
+
+  // ── Elite Code Splitting: Load exactly ONE bundle per user session ──────────
+  // Vite creates separate async chunks for each branch:
+  //   chunk-funnel        → Landing/Viral pages
+  //   chunk-product-desk  → Desktop product detail
+  //   chunk-product-mob   → Mobile product detail
+  //   chunk-list-desk     → Desktop category/search list
+  //   chunk-list-mob      → Mobile category list
+  //   chunk-news-desk     → Desktop news list
+  //   chunk-news-mob      → Mobile news list
+  onMount(async () => {
+    try {
+      if (data.type === 'product' && productData) {
+        if (isFunnel && funnelPageData) {
+          // ── Funnel / Landing (isolated chunk) ─────────────────────────────
+          const { default: FunnelPage } = await import('../../[slug]-funnel/+page.svelte');
+          activeComponent = FunnelPage;
+          activeProps = { data: funnelPageData };
+        } else if (data.isMobile) {
+          // ── Mobile Product Detail (isolated chunk) ─────────────────────────
+          const { default: ProductDetailMobile } = await import(
+            '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
+          );
+          activeComponent = ProductDetailMobile;
+          activeProps = {
+            product: productData.product,
+            relatedProducts: productData.relatedProducts,
+            reviewStats: productData.reviewStats
+          };
+        } else {
+          // ── Desktop Product Detail (isolated chunk) ─────────────────────────
+          const { default: ProductDetailDesktop } = await import(
+            '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
+          );
+          activeComponent = ProductDetailDesktop;
+          activeProps = {
+            product: productData.product,
+            relatedProducts: productData.relatedProducts,
+            reviewStats: productData.reviewStats
+          };
+        }
+      } else if (data.type === 'news' && newsData) {
+        if (data.isMobile) {
+          const { default: NewsListMobile } = await import(
+            '$lib/components/storefront/news/NewsListMobile.svelte'
+          );
+          activeComponent = NewsListMobile;
+          activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+        } else {
+          const { default: NewsListDesktop } = await import(
+            '$lib/components/storefront/news/NewsListDesktop.svelte'
+          );
+          activeComponent = NewsListDesktop;
+          activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+        }
+      } else if (data.type === 'category' && categoryData) {
+        if (data.isMobile) {
+          const { default: ProductListMobile } = await import(
+            '$lib/components/storefront/product/ProductListMobile.svelte'
+          );
+          activeComponent = ProductListMobile;
+          activeProps = {
+            products: categoryData.items,
+            categoryName: categoryData.categoryName,
+            categorySlug: categoryData.categorySlug,
+            serverTotal: categoryData.serverTotal,
+            facets: categoryData.facets,
+            category: categoryData.category
+          };
+        } else {
+          const { default: ProductListDesktop } = await import(
+            '$lib/components/storefront/product/ProductListDesktop.svelte'
+          );
+          activeComponent = ProductListDesktop;
+          activeProps = {
+            products: categoryData.items,
+            categoryName: categoryData.categoryName,
+            categorySlug: categoryData.categorySlug,
+            serverTotal: categoryData.serverTotal,
+            facets: categoryData.facets,
+            category: categoryData.category
+          };
+        }
+      }
+    } catch (e) {
+      console.error('[PageRouter] Dynamic component import failed:', e);
+    }
+  });
 </script>
 
 <!-- Elite LCP Optimization: Preload hero product image as early as possible for Chrome/Safari -->
@@ -192,53 +263,13 @@
   />
 {/if}
 
-{#if data.type === 'category' || data.type === 'news'}
-  <!-- CATEGORY/NEWS VIEW -->
-  {#if data.type === 'news' && newsData}
-    {#if data.isMobile}
-      <NewsListMobile newsList={newsData.items} categoryName={newsData.categoryName} />
-    {:else}
-      <NewsListDesktop newsList={newsData.items} categoryName={newsData.categoryName} />
-    {/if}
-  {:else if categoryData}
-    {#if data.isMobile}
-      <ProductListMobile 
-        products={categoryData.items} 
-        categoryName={categoryData.categoryName} 
-        categorySlug={categoryData.categorySlug} 
-        serverTotal={categoryData.serverTotal} 
-        facets={categoryData.facets} 
-        category={categoryData.category} 
-      />
-    {:else}
-      <ProductListDesktop 
-        products={categoryData.items} 
-        categoryName={categoryData.categoryName} 
-        categorySlug={categoryData.categorySlug} 
-        serverTotal={categoryData.serverTotal} 
-        facets={categoryData.facets} 
-        category={categoryData.category} 
-      />
-    {/if}
-  {/if}
-
-{:else if productData}
-  <!-- PRODUCT DETAIL / FUNNEL VIEW -->
-  {#if isFunnel && funnelPageData}
-    <FunnelPage data={funnelPageData} />
-  {:else}
-    {#if data.isMobile}
-      <ProductDetailMobile 
-        product={productData.product} 
-        relatedProducts={productData.relatedProducts as Product[] | undefined} 
-        reviewStats={productData.reviewStats} 
-      />
-    {:else}
-      <ProductDetailDesktop 
-        product={productData.product} 
-        relatedProducts={productData.relatedProducts as Product[] | undefined} 
-        reviewStats={productData.reviewStats} 
-      />
-    {/if}
-  {/if}
+{#if activeComponent}
+  {@const DynamicComponent = activeComponent}
+  <DynamicComponent {...activeProps} />
+{:else}
+  <!-- Elite 2026: Zero-CLS Luxury Skeleton Placeholders to prevent UI flashes during lazy bundle load -->
+  <div class="min-h-[80vh] flex flex-col items-center justify-center text-gray-400 gap-3 bg-[#fafafa]">
+    <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+    <span class="text-[9px] font-black tracking-widest uppercase text-gray-400/80">Đang tải giao diện...</span>
+  </div>
 {/if}
