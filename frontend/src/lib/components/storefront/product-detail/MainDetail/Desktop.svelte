@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { goto } from "$app/navigation";
 
   // Types
@@ -299,8 +299,17 @@
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
       if (saved) {
         try {
-          unlockedVoucherInfo = JSON.parse(saved);
+          const data = JSON.parse(saved);
+          unlockedVoucherInfo = data;
           isViralUnlocked = true;
+          
+          if (data.code) {
+            untrack(() => {
+              if (!selectedVouchers.includes(data.code)) {
+                toggleVoucher(data.code);
+              }
+            });
+          }
           return;
         } catch (e) {
           // Silent fail safe

@@ -60,13 +60,13 @@ class AlchemyConfig:
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
-                # [Elite V2.2] Optimized pooling for 2GB RAM VPS
-                # pool_size=20: handle concurrent requests under peak load
-                # max_overflow=15: burst buffer before hard-reject (total max 35 conn)
+                # [Elite V2.2] Optimized pooling for 2GB/4GB RAM VPS
+                # pool_size=12: handle concurrent requests safely under peak load
+                # max_overflow=8: burst buffer before hard-reject (total max 20 conn per engine)
                 # pool_timeout=10: fail fast instead of hanging requests
                 engine_kwargs.update({
-                    "pool_size": 20,
-                    "max_overflow": 15,
+                    "pool_size": 12,
+                    "max_overflow": 8,
                     "pool_timeout": 10,
                     "pool_pre_ping": True,
                     "pool_recycle": 300,
@@ -79,7 +79,7 @@ class AlchemyConfig:
                         }
                     }
                 })
-                logger.info(f"[Database] Initializing Elite asyncpg engine")
+                logger.info(f"[Database] Initializing Elite asyncpg engine with optimized pool limits")
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine
@@ -120,3 +120,22 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, execmany)
         total = time.perf_counter() - context._query_start_time
         if total > 1.0:
             logger.warning(f"⚠️ [SLOW_QUERY] Duration: {total:.4f}s | SQL: {statement}")
+
+from sqlalchemy.pool import Pool
+
+@event.listens_for(Pool, "checkout")
+def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+    """Ghi nhận thời điểm connection được lấy ra khỏi pool để phục vụ phát hiện rò rỉ (leak)."""
+    connection_record.info["checkout_time"] = time.perf_counter()
+
+@event.listens_for(Pool, "checkin")
+def receive_checkin(dbapi_connection, connection_record):
+    """Tính toán và cảnh báo nếu connection bị chiếm giữ quá lâu (nguy cơ leak)."""
+    checkout_time = connection_record.info.get("checkout_time")
+    if checkout_time:
+        duration = time.perf_counter() - checkout_time
+        if duration > 10.0:  # Ngưỡng 10 giây giữ kết nối
+            logger.warning(
+                f"⚠️ [CONNECTION_LEAK_WARNING] Connection checkout duration: {duration:.4f}s! "
+                f"Phát hiện nguy cơ rò rỉ kết nối (leak) hoặc transaction bị treo lâu."
+            )

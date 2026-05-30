@@ -96,6 +96,7 @@
 
   let shareStartTime = $state<number>(0);
   let showFlyGhost = $state(false);
+  let honeypotTriggered = $state(false);
 
   // ── Elite V2.2: Focus Listeners & Verification Controls ──────────────────────
   let hasRegisteredListeners = false;
@@ -237,7 +238,6 @@
       activePlatform = platform;
       step = 'sharing';
       startProgress();
-      let oauthSuccessReceived = false;
       
       try {
         const res = await fetch('/api/v1/client/viral/share-intent', {
@@ -258,16 +258,8 @@
         const left = (window.innerWidth / 2) - (w / 2);
         const top = (window.innerHeight / 2) - (h / 2);
         
-        // Elite V2.2: Trỏ thẳng tới Social Share Dialog thật 100% của MXH thay vì trang OAuth Login
         const productUrl = window.location.origin + '/product/' + product.id;
-        let shareUrl = '';
-        if (platform === 'facebook') {
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
-        } else if (platform === 'zalo') {
-            shareUrl = `https://sp.zalo.me/share_to_zalo?url=${encodeURIComponent(productUrl)}`;
-        } else {
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
-        }
+        const targetUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
         
         cleanupFocusListeners();
         
@@ -275,35 +267,26 @@
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
         hasRegisteredListeners = true;
-        console.log(`[ShareToUnlock Share] Bắt đầu click mở popup chia sẻ. Platform: ${platform}. shareStartTime: ${shareStartTime}`);
+        console.log(`[ShareToUnlock Share] Mở popup. Target: Share Dialog. shareStartTime: ${shareStartTime}`);
 
-        popupWindow = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
+        popupWindow = window.open(targetUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
         
         if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
             console.error('[ShareToUnlock Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
-            // Popup bị chặn → fallback verify sau 2s
             setTimeout(() => viralActions.verify(), 2000);
         } else {
             console.log('[ShareToUnlock Share] Mở popup thành công. Bắt đầu pollTimer.');
-            // Fallback polling: phát hiện khi popup đóng
-            // Tính toán thời gian tương tác thực tế (Engagement Time) để chống Click-and-Close bypass
+            // Polling phát hiện khi popup đóng
             pollTimer = setInterval(() => {
                 if (popupWindow) {
                     const isClosed = popupWindow.closed;
                     const duration = Date.now() - shareStartTime;
                     
                     if (isClosed) {
-                        console.log(`[ShareToUnlock Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms (yêu cầu >= 4500ms)`);
-                        
-                        // Nếu thời gian tương tác đã đủ >= 4.5 giây, tự động gọi verify ngay để mở khóa
-                        if (duration >= 4500) {
-                            console.log(`[ShareToUnlock Poller] Thời lượng mở cửa sổ hợp lệ (${duration}ms >= 4500ms). Gọi cleanupFocusListeners() và attemptVerify().`);
-                            cleanupFocusListeners();
-                            if (step !== 'revealed') {
-                                attemptVerify();
-                            }
-                        } else {
-                            console.warn(`[ShareToUnlock Poller] Phát hiện closed ảo/sớm: ${duration}ms < 4500ms. Bỏ qua, tiếp tục chờ sự kiện focus trang cha.`);
+                        console.log(`[ShareToUnlock Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms`);
+                        cleanupFocusListeners();
+                        if (step !== 'revealed') {
+                            attemptVerify();
                         }
                     }
                 }
@@ -367,7 +350,7 @@
               popup_was_blocked: false,
               mouse_acceleration: 0.0,
               interaction_rhythm: 0.0,
-              honeypot_triggered: false
+              honeypot_triggered: honeypotTriggered
             }
           }),
         });

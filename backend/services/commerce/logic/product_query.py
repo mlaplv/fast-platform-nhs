@@ -11,18 +11,24 @@ from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
-def _get_base_query():
+def _get_base_query(include_description: bool = True):
     """Elite V2.2: Centralized projection to prevent MissingGreenlet errors."""
-    return select(
+    cols = [
         ProductBase.id, ProductBase.name, ProductBase.sku,
         ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-        ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
+        ProductBase.category_id, ProductBase.short_description
+    ]
+    if include_description:
+        cols.append(ProductBase.description)
+    cols.extend([
+        ProductBase.type,
         ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
         ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
         ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
         ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured, ProductBase.ctv_rate_override_bps,
         Category.name.label("category_name"), Category.slug.label("category_slug")
-    ).outerjoin(Category, ProductBase.category_id == Category.id)
+    ])
+    return select(*cols).outerjoin(Category, ProductBase.category_id == Category.id)
 
 async def list_products_logic(
     db_session: AsyncSession,
@@ -43,7 +49,7 @@ async def list_products_logic(
     cursor: Optional[str] = None
 ) -> ProductListResponse:
     """Elite V2.2: Advanced Product Query & Filtering (Isolated & Hardened) with Keyset Cursor Pagination."""
-    stmt = _get_base_query().where(ProductBase.deleted_at == None)
+    stmt = _get_base_query(include_description=False).where(ProductBase.deleted_at == None)
 
     # 1. Filters
     if category_slug:

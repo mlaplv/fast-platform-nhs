@@ -19,7 +19,7 @@ class LoyaltyService:
             "u": loyalty.user_id,
             "p": loyalty.available_points,
             "pp": loyalty.pending_points, # R2026: Seal pending points to prevent manipulation
-            "s": float(loyalty.total_spent)
+            "s": int(loyalty.total_spent)
         }
         return GeminiSecurity.encrypt(payload)
 
@@ -69,7 +69,7 @@ class LoyaltyService:
         # Detect manual DB intervention
         pts_match = int(seal_data.get("p", 0)) == loyalty.available_points
         pending_match = int(seal_data.get("pp", 0)) == loyalty.pending_points
-        spent_match = abs(float(seal_data.get("s", 0)) - loyalty.total_spent) < 0.01
+        spent_match = int(seal_data.get("s", 0)) == loyalty.total_spent
         
         if not pts_match or not pending_match or not spent_match:
             logger.error(f"[SECURITY-ALERT] Tamper Detected for user {user_id}! DB: {loyalty.available_points} pts (pp:{loyalty.pending_points}), Seal: {seal_data.get('p')} pts (pp:{seal_data.get('pp')}).")
@@ -82,12 +82,12 @@ class LoyaltyService:
         """Called during checkout to show points 'waiting' to the user."""
         if amount <= 0: return False
         
-        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
         res = await db_session.execute(stmt)
         loyalty = res.scalar_one_or_none()
         
         if not loyalty:
-            loyalty = UserLoyalty(user_id=user_id, available_points=0, pending_points=0, total_spent=0.0)
+            loyalty = UserLoyalty(user_id=user_id, available_points=0, pending_points=0, total_spent=0)
             db_session.add(loyalty)
             
         # Add to pending
@@ -120,13 +120,13 @@ class LoyaltyService:
         if points_to_earn <= 0:
             return False
 
-        # Get or create UserLoyalty
-        loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == order.user_id)
+        # Get or create UserLoyalty with Pessimistic Locking
+        loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == order.user_id).with_for_update()
         l_res = await db_session.execute(loyalty_stmt)
         loyalty = l_res.scalar_one_or_none()
 
         if not loyalty:
-            loyalty = UserLoyalty(user_id=order.user_id, available_points=0, total_spent=0.0)
+            loyalty = UserLoyalty(user_id=order.user_id, available_points=0, total_spent=0)
             db_session.add(loyalty)
 
         # Update points and spent amount

@@ -5,7 +5,7 @@ from litestar.params import Parameter
 from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.schemas.review import CreateReviewRequest, ReviewResponse, ReviewStatsResponse
+from backend.schemas.review import CreateReviewRequest, ReviewResponse, PublicReviewResponse, ReviewStatsResponse
 from backend.services.review_service import ReviewService, provide_review_service
 from backend.database.repositories import provide_system_review_repo, MediaRegistryRepository, provide_media_repo
 from backend.services.media.media_service import media_service
@@ -46,7 +46,7 @@ class PublicReviewController(Controller):
             has_media=has_media
         )
         return {
-            "items": [ReviewResponse.model_validate(r).model_dump() for r in reviews],
+            "items": [PublicReviewResponse.model_validate(r).model_dump() for r in reviews],
             "total": total
         }
 
@@ -61,7 +61,7 @@ class PublicReviewController(Controller):
         return ReviewStatsResponse(**stats)
 
     @post(middleware=[RateLimitConfig(rate_limit=("minute", 5)).middleware])
-    async def create_review(self, request: Request, data: CreateReviewRequest, review_service: ReviewService, db_session: AsyncSession) -> ReviewResponse:
+    async def create_review(self, request: Request, data: CreateReviewRequest, review_service: ReviewService, db_session: AsyncSession) -> PublicReviewResponse:
         # [Elite V2.2] Authenticated User Linkage
         user = getattr(request.state, "user", None)
         if user:
@@ -73,24 +73,19 @@ class PublicReviewController(Controller):
         # [R82] BOT_HONEYPOT: Silent Rejection
         if data.website_url:
             # We return a fake success or just ignore to avoid tipping off the bot
-            return ReviewResponse(
+            return PublicReviewResponse(
                 id="bot-rejected",
-                entity_type=data.entity_type,
-                entity_id=data.entity_id,
                 customer_name=data.customer_name,
-                customer_phone=data.customer_phone,
                 customer_location=data.customer_location,
                 rating=data.rating,
                 content=data.content,
-                status="REJECTED",
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc)
             ) 
 
         # Create review and return response mapping
         review = await review_service.create_review(data)
         await db_session.commit()
-        return ReviewResponse.model_validate(review)
+        return PublicReviewResponse.model_validate(review)
 
     @post("/upload", middleware=[RateLimitConfig(rate_limit=("minute", 10)).middleware], status_code=201)
     async def upload_review_media(

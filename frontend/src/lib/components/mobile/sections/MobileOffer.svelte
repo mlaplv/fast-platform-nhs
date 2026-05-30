@@ -98,6 +98,23 @@
     }
   });
 
+  // Elite V2.2: Auto-apply viral voucher upon unlock for instant premium feeling
+  $effect(() => {
+    if (isViralUnlocked && product?.id) {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.code && !shopStore.selectedVoucherIds.includes(data.code)) {
+            shopStore.toggleVoucher(data.code);
+          }
+        } catch (e) {
+          // Silent safe fail
+        }
+      }
+    }
+  });
+
   const getVoucherValue = (v: any) => {
     let rawVal = typeof v.value === 'number' ? v.value : 0;
     const subText = String(v.sub || "").toLowerCase();

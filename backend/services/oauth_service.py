@@ -32,9 +32,9 @@ class OAuth2Service:
             return f"{base_url}/api/v1/auth/oauth/callback/{provider}"
         return f"{api_url}/api/v1/auth/oauth/callback/{provider}"
 
-    def get_login_url(self, provider: str) -> Tuple[str, Optional[str]]:
+    def get_login_url(self, provider: str, custom_state: Optional[str] = None) -> Tuple[str, Optional[str]]:
         """Sinh ra Access URL để chuyển hướng User sang nền tảng chỉ định."""
-        state = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+        state = custom_state or "".join(random.choices(string.ascii_letters + string.digits, k=32))
         redirect_uri = self._get_redirect_uri(provider)
         
         if provider == "google":
@@ -183,7 +183,8 @@ class OAuth2Service:
             "email": profile.get("email", ""),
             "name": profile.get("name", "Người dùng Facebook"),
             "provider_id": profile.get("id", ""),
-            "avatar": avatar
+            "avatar": avatar,
+            "access_token": acc_token
         }
 
     async def _process_zalo(self, client: httpx.AsyncClient, code: str, redirect_uri: str, code_verifier: Optional[str] = None) -> Dict[str, str]:

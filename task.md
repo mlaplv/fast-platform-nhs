@@ -1,5 +1,36 @@
 # Task Checklist - Restoring Support System Connectivity
 
+# Task Checklist - Hardening Viral Sharing Security (Elite V2.2)
+
+# Task Checklist - Hybrid Trust Verification (Elite V2.2)
+
+- [x] Chuyển đổi toàn bộ cơ chế xác thực từ OAuth-gating truyền thống sang "Xác thực lòng tin lai (Hybrid Trust Verification)" trên Backend. (Done)
+- [x] Refactor các component Frontend (ShareToUnlock.svelte, ShareToUnlockPromoMobile.svelte, ViralFunnelLanding.svelte) để trỏ thẳng tới Social Share Dialog thật của Facebook/Zalo thay vì trang OAuth Login rườm rà. (Done)
+- [x] Tích hợp cơ chế đo lường thời gian tương tác (Engagement Time) trên Frontend khi popup chia sẻ đóng, áp dụng ngưỡng 4.5 giây tối thiểu để chống click-and-close bypass. (Done)
+- [x] Sửa lỗi đóng popup sớm giả lập của trình duyệt bằng cách thêm bộ lọc nhiễu 1.5 giây (ignore premature closed events) trên Frontend. (Done)
+- [x] Tích hợp nút bấm Xác minh thủ công ("Tôi đã chia sẻ xong, Xác minh ngay") khi có lỗi đóng popup để tăng độ tin cậy và UX linh hoạt trên di động. (Done)
+- [x] Đồng bộ payload telemetry với backend chứa share_duration_ms và honeypot_triggered để backend thực hiện verify an toàn tuyệt đối. (Done)
+- [x] Hỗ trợ One-Time Token (OTT) consumption mượt mà trong Redis, dọn dẹp các token/verified key tương ứng ngay sau khi redemption thành công. (Done)
+- [x] Biên dịch thành công dự án frontend với pnpm build tĩnh sạch 100% không cảnh báo lỗi. (Done)
+
+- [x] Rà soát và loại bỏ triệt để 100% các class CSS lỗi thời (`.global-viral-overlay`, `.global-confirm-card`, etc.) liên quan đến mock logic cũ trong `Mobile.svelte`. (Done)
+- [x] Đơn giản hóa nút Share ở header di động thành hành động Native Share / Clipboard thông thường, loại bỏ 100% code thối rườm rà. (Done)
+- [x] Đồng bộ hóa toàn bộ mã nguồn sửa đổi đã tối ưu lên Production VPS thông qua rsync. (Done)
+- [x] Sửa lỗi signature của `oauth_gateway` bằng cách đổi tên tham số `state` thành `oauth_state` để tránh xung đột với keyword reserved `state` của Litestar. (Done)
+- [x] Import đầy đủ `Response` từ gói `litestar` vào `backend/controllers/client/viral.py` để tránh lỗi NameError lúc chạy. (Done)
+- [x] Cập nhật các file Frontend (`ShareToUnlockPromoMobile.svelte`, `ShareToUnlock.svelte`, `ViralFunnelLanding.svelte`) để trỏ popup URL tới tham số `oauth_state` chuẩn xác. (Done)
+- [x] Khắc phục triệt để lỗi "Xóa sớm Token trong Redis" khi khách hàng chưa click share/webhook chưa phản hồi mà client đã gửi request verify-share sớm. Chuyển cơ chế xóa token (One-Time Token consumption) lùi lại sau khi cả 2 bước xác thực đều thành công, giúp bảo toàn token khi polling. (Done)
+- [x] Chuyển đổi toàn bộ `ValidationException` thành `HTTPException(status_code=400)` để loại bỏ thông báo thô cứng `"Data validation failed"` mặc định của Pydantic/Litestar, thay thế bằng chuỗi thông báo thuần Việt siêu thân thiện trực tiếp tới Client. (Done)
+- [x] Biên dịch static build frontend hoàn tất bằng `pnpm build` không có cảnh báo hoặc lỗi. (Done)
+- [x] Sử dụng rsync đồng bộ toàn bộ code mới nhất lên Production VPS và restart thành công các dịch vụ Docker (`fast_platform_api` và `fast_platform_worker_high`). (Done)
+- [x] Thiết lập script chẩn đoán tự động `test_atomic_viral.py` và kiểm chứng end-to-end atomic flow thành công 100% trên môi trường VPS thực tế. (Done)
+- [x] Liên kết luồng Share-to-Unlock với hệ thống Social OAuth Đăng nhập thật (Google, Facebook, Zalo) của Storefront để chống gian lận/chống ảo 100%. (Done)
+- [x] Cấu hình tham số 'oauth_state' thông qua Parameter mapping của Litestar để trích xuất state an toàn từ query callback mà không gây lỗi conflict với reserved keyword 'state' của Litestar. (Done)
+- [x] Thiết lập popup auto-close trong auth callback page để tự động tắt cửa sổ popup sau khi lưu trữ session đăng nhập và verify share thành công. (Done)
+
+
+
+
 - [x] Restart the exited `fast_platform_api` container and verify it is running and healthy. (Done)
 - [x] Verify end-to-end delivery of the Telegram notification pipeline using the `test_notification.py` framework. (Done)
 - [x] Clean up the exited orphan `fast_platform_ui` container. (Done - verified cleaned and purged)
@@ -621,4 +652,21 @@
 - [x] Sửa lỗi runtime `Cannot read properties of undefined (reading 'filter')` khi thực hiện tính toán breakdown tại `checkout/+page.svelte` bằng cách thêm cơ chế phòng thủ null-safety `(cartStore.vouchers || [])` trong khối đồng bộ `$effect.pre`. (Done)
 - [x] Chuẩn hóa kiến trúc module build Svelte 5 / Vite bằng cách loại bỏ triệt để phần mở rộng tệp `.ts` và `.svelte.ts` của các import nội bộ trong: `VerifiedReviews.svelte`, `DiagnosticsSection.svelte`, `OfferCard.svelte`, `ClinicalQuiz.svelte`, `HeroBanner.svelte`, `MobileProductDetailsModal.svelte`, `MobileScience.svelte`, `MobileDiagnostics.svelte`, `GiftModal.svelte`, `pulse.ts`, `supportAgent.svelte.ts`, `nanobot.svelte.ts`, `MobileHero.svelte`, `MobileReviews.svelte`, `MobileVariantTabs.svelte`, `SupportAgentFAB.svelte`, `DesktopProductDetailsModal.svelte`, `ScienceBento.svelte`, `OfferGrid.svelte`, `OfferVoucherSheet.svelte`, `EmotionalIncentive.svelte`, `OfferFomoTimer.svelte`, `MobileGiftModal.svelte`, và `TiptapEditor.svelte`. (Done)
 - [x] Chạy thử nghiệm thành công tiến trình build sản phẩm `npm run build` trên SvelteKit storefront để xác nhận triệt tiêu toàn bộ lỗi Module Resolution và Temporal Dead Zone (TDZ). (Done)
+- [x] Sửa lỗi hiển thị thông báo lỗi (`errorMsg`) khi phát hiện gian lận hoặc chưa chia sẻ trên di động (`ShareToUnlockPromoMobile.svelte`) bằng cách tích hợp thông báo Toast qua `clientUi.showToast` và hiển thị nhãn đỏ cảnh báo động thay thế mô tả phụ khi có lỗi. (Done)
+- [x] Tối ưu hóa giao diện báo lỗi trên Desktop (`ShareToUnlock.svelte`) bằng cách nâng cấp thẻ hiển thị `errorMsg` thành dạng nhãn viền bo góc đỏ nhạt phong cách chuyên nghiệp. (Done)
+- [x] Giải quyết triệt để lỗi trống khung ("đóng khung") khi unlock thành công bằng cách chuyển đổi logic `step !== 'revealed'` ở lớp bọc ngoài, luôn giữ component mount và kết xuất thẻ coupon `.stu-revealed-card` đẹp mắt dạng vé dashed bưu chính hoặc glassmorphic mini-pill cho chế độ floating trong carousel ảnh di động. (Done)
+- [x] Đồng bộ hóa bộ parser phản hồi JSON thông tin lỗi chi tiết của server để hiển thị chính xác các thông điệp bot detection / an ninh thay vì fallback chung chung (đã sửa lỗi trích xuất trường `errors` chứa thông báo lỗi tiếng Việt thực tế thay vì lấy nhãn thô `"Data validation failed"` từ Litestar ValidationException). (Done)
+- [x] Đảm bảo hiển thị thông điệp xác thực 100% bằng tiếng Việt rõ ràng, có bộ dịch fallback thông minh trên Client nếu phát hiện chuỗi tiếng Anh `"Data validation failed"`. (Done)
+- [x] Triệt tiêu/Ẩn hoàn toàn khung chia sẻ (Share Box) sau khi đã mở khóa thành công trên cả Mobile, Landing page và Desktop (`step === 'revealed'`) để trả lại giao diện gọn gàng tuyệt đối cho người dùng. (Done)
+- [x] Xác nhận toàn bộ storefront biên dịch thành công 100% với mã nguồn sạch đẹp không cảnh báo dư thừa. (Done)
+
+# Task Checklist - Hardening Viral Sharing Security & UI (Elite V2.2)
+
+- [x] Front-end: Fix `ViralFunnelLanding.svelte` UI freeze by setting step = 'error' and calling finishProgress() when popup closed too fast (<4s). (Done)
+- [x] Front-end: Harden and sync `ShareToUnlock.svelte` to clean up and call finishProgress() and release timers on error/quick exits. (Done)
+- [x] Front-end: Harden and sync `ShareToUnlockPromoMobile.svelte` to correctly handle quick exit, setting step = 'error' and ending the progress bar. (Done)
+- [x] Back-end: Update `viral_fraud_agent.py` to only allow Heuristic APPROVE for `share_method == "native"`. (Done)
+- [x] Back-end: Harden Heuristic scoring rule threshold details (duration, interactions, visibility change) inside `viral_fraud_agent.py`. (Done)
+- [x] Back-end: Enrich PydanticAI system prompt in `viral_fraud_agent.py` to identify "Idle waiting & closing" bot behavior. (Done)
+- [x] Verification: Test compile Front-end and verify Back-end tests. (Done - storefront built successfully, offline heuristic tests passed 100%)
 

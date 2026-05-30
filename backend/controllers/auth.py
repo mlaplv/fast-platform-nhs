@@ -3,6 +3,7 @@ import logging
 from litestar import Controller, post, get, Request, Response
 from litestar.response import Redirect
 from litestar.middleware.rate_limit import RateLimitConfig
+from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
 import os
 
@@ -12,8 +13,13 @@ from backend.schemas.auth import (
     OTPRequestResponse, OTPVerifyResponse, OTPRequest, OTPVerifyRequest
 )
 from backend.schemas.common import SuccessResponse
+from sqlalchemy import select
+from datetime import datetime, timezone
+from backend.database.models import User
+from backend.utils.uid import new_id_default
 from backend.services.auth_service import auth_service
 from backend.services.oauth_service import oauth2_service
+from backend.services.viral_share_service import viral_share_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -83,9 +89,14 @@ class AuthController(Controller):
     # ═══════════════════════════════════════════════════════
 
     @get("/oauth/login/{provider:str}")
-    async def oauth_login(self, request: Request, provider: str) -> Redirect:
+    async def oauth_login(
+        self,
+        request: Request,
+        provider: str,
+        oauth_state: Optional[str] = Parameter(query="state", default=None, required=False)
+    ) -> Redirect:
         """PUBLIC: Chuyển hướng người dùng sang trang Đăng nhập của Provider."""
-        login_url, code_verifier = oauth2_service.get_login_url(provider)
+        login_url, code_verifier = oauth2_service.get_login_url(provider, oauth_state)
         resp = Redirect(path=login_url)
         if code_verifier:
             resp.set_cookie(
@@ -100,12 +111,40 @@ class AuthController(Controller):
         return resp
 
     @get("/oauth/callback/{provider:str}")
-    async def oauth_callback(self, request: Request, db_session: AsyncSession, provider: str, code: str) -> Redirect:
+    async def oauth_callback(
+        self,
+        request: Request,
+        db_session: AsyncSession,
+        provider: str,
+        code: Optional[str] = Parameter(query="code", default=None, required=False),
+        error: Optional[str] = Parameter(query="error", default=None, required=False),
+        oauth_state: Optional[str] = Parameter(query="state", default=None, required=False)
+    ) -> Redirect:
         """PUBLIC: Hứng Authorization Code từ Provider, sinh JWT và set HttpOnly Cookie."""
+
+        # Khi user bấm Hủy trên trang OAuth của Provider, Provider redirect về với ?error=access_denied
+        # Cần redirect về frontend với thông báo lỗi thay vì crash "Data validation failed"
+        if error or not code:
+            error_msg = "Đăng nhập bị hủy. Vui lòng thử lại."
+            logger.info(f"[OAuth Callback] User cancelled OAuth — provider={provider}, error={error}")
+            frontend_callback = f"{oauth2_service.frontend_url}/auth/callback?error={error_msg}"
+            return Redirect(path=frontend_callback)
+
         code_verifier = request.cookies.get("zalo_code_verifier")
         user_profile = await oauth2_service.exchange_code_for_user(provider, code, code_verifier)
         access_token = await auth_service.handle_social_user(db_session, user_profile)
+        
+
+
         await db_session.commit()
+
+        # Elite V2.2: Official Social OAuth Share Verification Link
+        # Viral token là 64-char HMAC-SHA256 hex string.
+        # Mark verified để trigger unlock voucher ở trang cha.
+        if oauth_state and len(oauth_state) == 64 and oauth_state.isalnum():
+            is_viral = await viral_share_service.mark_token_verified(oauth_state)
+            if is_viral:
+                logger.info(f"[OAuth Callback] Viral share token verified via actual login: state={oauth_state[:16]}…")
 
         # Social Login luôn remember_me=True (UX chuẩn)
         is_admin = self._is_admin_host(request)
@@ -113,9 +152,10 @@ class AuthController(Controller):
         resp = Redirect(path=frontend_callback)
         if code_verifier:
             resp.delete_cookie(key="zalo_code_verifier", path="/")
-            
+
         self._set_secure_cookie(resp, access_token, is_admin, remember_me=True)
         return resp
+
 
     @post("/otp/request", middleware=[auth_rate_limit.middleware])
     async def request_otp(self, db_session: AsyncSession, data: OTPRequest) -> OTPRequestResponse:

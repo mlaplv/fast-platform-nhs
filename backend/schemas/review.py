@@ -60,6 +60,20 @@ class ReviewResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class PublicReviewResponse(BaseModel):
+    """Payload tinh gọn trả về thông tin Review ở Public Storefront (Bảo mật PII & Tối ưu RAM)."""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: str
+    customer_name: str
+    customer_location: Optional[str]
+    rating: int
+    content: str
+    attributes: Optional[dict[str, ReviewAttributeValue]]
+    attachments: Optional[list[ReviewAttachment]]
+    likes_count: int
+    created_at: datetime
+
 class ReviewStatsResponse(BaseModel):
     """Payload thống kê Review."""
     total_count: int

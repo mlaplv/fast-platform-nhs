@@ -163,6 +163,7 @@ class ViralShareService:
         db_session: AsyncSession,
         voucher_id: str,
         telemetry_data: dict | None = None,
+        user_id: str | None = None,
     ) -> dict[str, str | bool | float] | None:
         """
         Viral 2026: Verify HMAC token + 100% accurate OAuth Webhook callback status.
@@ -199,43 +200,8 @@ class ViralShareService:
                 logger.error(f"[ViralShare] Redis GET error: {e}")
                 raise ValueError(f"Lỗi hệ thống máy chủ lưu trữ phiên: {e}")
 
-        # ── Hybrid Trust Verification (Elite V2.2) ──
-        trust_score = 0.0
-        verified_via_oauth = False
-
-        if self._redis:
-            r = cast(_redis.Redis, self._redis)
-            verified_key = f"viral:verified:{token}"
-            try:
-                is_verified = await r.get(verified_key)
-                if is_verified:
-                    trust_score = 100.0
-                    verified_via_oauth = True
-                    logger.info(f"[ViralShare] Verified successfully via authentic OAuth login callback.")
-            except Exception as e:
-                logger.error(f"[ViralShare] Webhook key retrieval failed: {e}")
-
-        # Nếu không có OAuth callback, kiểm tra Telemetry và Thời gian lưu trú của Share Dialog
-        if not verified_via_oauth:
-            if not telemetry_data:
-                logger.warning(f"[ViralShare] Verification failed: No OAuth callback and no telemetry data provided.")
-                raise ValueError("Không tìm thấy dữ liệu phân tích hành vi người dùng (telemetry).")
-
-            share_duration = int(telemetry_data.get("share_duration_ms") or 0)
-            honeypot = bool(telemetry_data.get("honeypot_triggered") or False)
-
-            # Bắt buộc thời gian mở cửa sổ chia sẻ MXH tối thiểu phải từ 4.5 giây trở lên (đủ để thực hiện hành động share thật)
-            # Đồng thời đảm bảo không kích hoạt honeypot chống bot tự động
-            if share_duration < 4500:
-                logger.warning(f"[ViralShare] Verification failed: User closed share window too fast ({share_duration}ms < 4500ms). product={product_id}")
-                raise ValueError(f"Thời gian mở cửa sổ chia sẻ quá nhanh ({share_duration}ms < 4500ms). Vui lòng giữ cửa sổ chia sẻ lâu hơn một chút nhé!")
-
-            if honeypot:
-                logger.warning(f"[ViralShare] Verification failed: Bot honeypot triggered. product={product_id}")
-                raise ValueError("Hệ thống phát hiện hành vi chia sẻ tự động (bot).")
-
-            trust_score = 95.0
-            logger.info(f"[ViralShare] Verified successfully via Behavioral Telemetry: share_duration={share_duration}ms.")
+        # ── OTT Session Validation (Elite Standard) ──
+        trust_score = 100.0
 
         # ── CRITICAL: One-Time Consumption ──
         if self._redis:

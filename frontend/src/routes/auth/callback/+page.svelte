@@ -26,20 +26,27 @@
     if (error) {
       status = 'error';
       errorMessage = error;
-      setTimeout(() => {
-        goto(returnUrl);
-      }, 3000);
+      // Nếu là popup OAuth (Viral Share), đóng popup ngay — trang cha tự reset về idle
+      if (window.opener && window.opener !== window) {
+        setTimeout(() => { window.close(); }, 800);
+        return;
+      }
+      setTimeout(() => { goto(returnUrl); }, 3000);
       return;
     }
 
     if (!token) {
       status = 'error';
       errorMessage = 'Không hợp lệ (Missing Token)';
-      setTimeout(() => {
-        goto(returnUrl);
-      }, 3000);
+      // Nếu là popup OAuth (Viral Share), đóng popup ngay
+      if (window.opener && window.opener !== window) {
+        setTimeout(() => { window.close(); }, 800);
+        return;
+      }
+      setTimeout(() => { goto(returnUrl); }, 3000);
       return;
     }
+
 
     try {
       // Elite V2.2: Robust JWT Decoding (Handles Base64URL + Unicode)
@@ -65,6 +72,25 @@
       
       // Cleanup UI
       ui.closeModal();
+
+      // If this is an OAuth popup window (e.g. from Viral Share to Unlock), close it gracefully
+      if (window.opener && window.opener !== window) {
+        // Notify parent window that OAuth login completed successfully
+        // Parent will use this to trigger verify-share with proper delay for Redis propagation
+        try {
+          window.opener.postMessage({ type: 'VIRAL_OAUTH_SUCCESS' }, window.location.origin);
+        } catch (e) {
+          // Cross-origin postMessage may fail silently — polling fallback will handle it
+        }
+        setTimeout(() => {
+          try {
+            window.close();
+          } catch (e) {
+            console.error('Failed to close popup:', e);
+          }
+        }, 1500);
+        return;
+      }
       
       // Elite V3.0 SPA Navigation: maintain state (Toasts, Pulse notifications)
       const returnScroll = sessionStorage.getItem('returnScroll');

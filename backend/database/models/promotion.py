@@ -22,6 +22,10 @@ class Banner(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     device_type: Mapped[str] = mapped_column(String, default="all") # all, desktop, mobile
 
+    __table_args__ = (
+        Index("ix_banners_tenant_active_order", "tenant_id", "is_active", "deleted_at", "order_index"),
+    )
+
 class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'vouchers'
 
@@ -50,6 +54,7 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_vouchers_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_vouchers_deleted_at", "deleted_at"),
         Index("ix_vouchers_active_viral", "is_active", "is_viral"),
+        Index("ix_vouchers_performance_active", "tenant_id", "is_active", "deleted_at", "start_date", "end_date"),
     )
 
 class ComboDeal(Base, AuditMixin, SoftDeleteMixin, TenantMixin):

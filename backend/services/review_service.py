@@ -139,27 +139,28 @@ class ReviewService:
             old_status = review.status
             review.status = data.status
 
-            # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
-            # Khi duyệt đánh giá (Approved), tự động trích xuất thực thể để AI Search dễ dàng citation
-            if data.status == "APPROVED" and old_status != "APPROVED":
-                from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
-                try:
-                    kg_data = await generate_knowledge_graph(
-                        content=review.content,
-                        topic=f"Đánh giá từ {review.customer_name} cho {review.entity_type} {review.entity_id}"
-                    )
-                    if not review.attributes:
-                        review.attributes = {}
-                    review.attributes["knowledge_graph"] = kg_data
-                except Exception as e:
-                    # Non-blocking failure for KG generation
-                    import logging
-                    logging.getLogger("api-gateway").error(f"[ReviewService] KG Generation failed: {e}")
-
+            # 1. Ghi dữ liệu review cập nhật status xuống DB
             updated = await self.review_repo.update(review)
 
-            # Write-Through: cập nhật product_metadata sau mọi thay đổi status
+            # 2. Write-Through: cập nhật product_metadata trong cùng transaction
             await self._sync_product_rating(review.entity_type, review.entity_id)
+
+            # 3. BẮT BUỘC CHỦ ĐỘNG COMMIT để tránh Race Condition với Worker ngầm (arq)
+            await self.review_repo.session.commit()
+
+            # 4. Chỉ khi dữ liệu đã commit 100% vật lý mới enqueue background job sinh Knowledge Graph
+            if data.status == "APPROVED" and old_status != "APPROVED":
+                try:
+                    from backend.infra.arq_config import get_redis_settings
+                    from arq import create_pool
+                    
+                    redis_pool = await create_pool(get_redis_settings())
+                    await redis_pool.enqueue_job("generate_review_kg_job", str(review.id), _queue_name="high")
+                    logging.getLogger("api-gateway").info(f"🧬 [ReviewService] Enqueued background KG generation for review {review.id}")
+                except Exception as e:
+                    # Non-blocking failure for KG generation enqueue
+                    import logging
+                    logging.getLogger("api-gateway").error(f"❌ [ReviewService] Failed to enqueue KG generation job: {e}")
 
             return updated
         except NotFoundError:

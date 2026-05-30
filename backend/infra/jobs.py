@@ -100,3 +100,41 @@ async def helen_self_learning_job(ctx: Dict[str, object]) -> None:
         except Exception as e:
             logger.error(f"🧠 [Self-Learning Job] Distillation process failed: {e}")
             await db.rollback()
+
+async def generate_review_kg_job(ctx: Dict[str, object], review_id: str) -> None:
+    """
+    Elite V2.2: Asynchronous Knowledge Graph Generation.
+    Offloads heavy LLM entity extraction from HTTP transaction to background worker.
+    """
+    from backend.database.alchemy_config import alchemy_config
+    from backend.database.models.system import SystemReview
+    from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    logger.info(f"🧬 [Review KG Job] Starting entity extraction for review {review_id} in background.")
+    
+    session_maker = alchemy_config.create_session_maker()
+    async with session_maker() as db:
+        try:
+            review = await db.get(SystemReview, review_id)
+            if not review:
+                logger.warning(f"🧬 [Review KG Job] Review {review_id} not found.")
+                return
+                
+            # Call LLM externally without holding active HTTP transactions
+            kg_data = await generate_knowledge_graph(
+                content=review.content,
+                topic=f"Đánh giá từ {review.customer_name} cho {review.entity_type} {review.entity_id}"
+            )
+            
+            # Explicit update in separate transaction
+            if not review.attributes:
+                review.attributes = {}
+            review.attributes["knowledge_graph"] = kg_data
+            flag_modified(review, "attributes")
+            
+            await db.commit()
+            logger.info(f"🧬 [Review KG Job] Successfully generated and stored Knowledge Graph for review {review_id}.")
+        except Exception as e:
+            logger.error(f"🧬 [Review KG Job] Failed to generate Knowledge Graph: {e}")
+            await db.rollback()

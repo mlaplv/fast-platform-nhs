@@ -11,7 +11,10 @@ from typing import Optional
 from litestar import Controller, get, post, Response
 from litestar.connection import Request
 from litestar.exceptions import TooManyRequestsException, NotFoundException, HTTPException
+from litestar.params import Parameter
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from backend.schemas.viral import (
     ShareIntentRequest,
@@ -20,6 +23,7 @@ from backend.schemas.viral import (
     VerifyShareResponse,
 )
 from backend.services.viral_share_service import viral_share_service
+
 
 logger = logging.getLogger("api-gateway.viral")
 
@@ -87,6 +91,8 @@ class ViralController(Controller):
             expires_at=int(result["expires_at"]),
         )
 
+
+
     @post("/verify-share")
     async def verify_share(
         self,
@@ -106,9 +112,12 @@ class ViralController(Controller):
         Returns voucher details on success, 401 on any failure.
         """
         ip = _extract_ip(request)
+        user_state = request.scope.get("state", {}).get("user", {})
+        user_id = user_state.get("id")
+
         logger.info(
             f"[ViralController] Verify attempt — product={data.product_id}, "
-            f"IP={ip}, FP={data.fingerprint[:16]}…"
+            f"IP={ip}, FP={data.fingerprint[:16]}…, user_id={user_id}"
         )
 
         telemetry_dict = data.telemetry.model_dump() if data.telemetry else None
@@ -123,6 +132,7 @@ class ViralController(Controller):
                 db_session=db_session,
                 voucher_id=data.voucher_id,
                 telemetry_data=telemetry_dict,
+                user_id=user_id,
             )
         except ValueError as val_err:
             logger.warning(

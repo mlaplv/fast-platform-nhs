@@ -60,6 +60,11 @@ class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     message: Mapped[str] = mapped_column(String)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    __table_args__ = (
+        Index("ix_notifications_tenant_deleted", "tenant_id", "deleted_at"),
+        Index("ix_notifications_user_read", "user_id", "is_read", "deleted_at"),
+    )
+
 class SystemSetting(Base, AuditMixin):
     __tablename__ = 'system_settings'
 
@@ -96,6 +101,7 @@ class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_sys_reviews_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_sys_reviews_entity", "entity_type", "entity_id"),
         Index("ix_sys_reviews_created_at_status", "created_at", "status"),
+        Index("ix_sys_reviews_entity_status_time", "entity_type", "entity_id", "status", "created_at"),
     )
 
 class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):

@@ -87,53 +87,56 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str, bool]:
         reasons.append("Nhịp điệu quá đều đặn (Rhythm variance < 10ms)")
 
     # Signal 1: Share duration (Elite V2.2: Hardened thresholds)
-    if t.share_duration_ms < 2000:
+    if t.share_duration_ms < 4000:
         score -= 40.0
-        reasons.append("Share cực nhanh (<2s) - Dấu hiệu gian lận")
-    elif t.share_duration_ms < 4000:
-        score -= 10.0
-        reasons.append("Thời gian share ngắn (<4s)")
-    elif t.share_duration_ms >= 5000:
-        score += 20.0
-        reasons.append("Thời gian share thực tế (>5s)")
+        reasons.append("Share cực nhanh (<4s) - Nghi vấn gian lận")
+    elif t.share_duration_ms < 8000:
+        score -= 15.0
+        reasons.append("Thời gian share ngắn (<8s) - Có khả năng chưa login/đăng")
+    elif t.share_duration_ms >= 12000:
+        score += 10.0
+        reasons.append("Thời gian share thực tế đầy đủ (>=12s)")
 
     # Signal 2: Visibility changes (tab switch = likely opened share dialog)
     if t.visibility_changes >= 1:
-        score += 10.0 # Reduced weight, easy to trigger
+        score += 5.0 # Reduced weight
         reasons.append("Tab đã chuyển")
     else:
-        score -= 30.0
+        score -= 40.0 # Strict penalty
         reasons.append("Tab không hề chuyển (gian lận lộ liễu)")
 
     # Signal 3: Web Share API (native share is strongest signal)
     if t.share_method == "native":
         score += 15.0
-        reasons.append("Web Share API")
+        reasons.append("Web Share API di động")
     elif t.share_method == "popup":
-        if t.share_duration_ms < 3000:
+        if t.share_duration_ms < 5000:
             score -= 30.0
-            reasons.append("Đóng popup quá nhanh (<3s)")
-        elif t.share_duration_ms >= 5000:
-            score += 15.0
+            reasons.append("Đóng popup quá nhanh (<5s)")
+        elif t.share_duration_ms >= 12000:
+            score += 10.0
 
     # Signal 4: Time on page (bots visit < 5s)
-    if t.time_on_page_ms < 2000:
-        score -= 10.0
+    if t.time_on_page_ms < 3000:
+        score -= 15.0
         reasons.append("Thời gian trên trang quá ngắn")
-    elif t.time_on_page_ms > 10000:
-        score += 10.0
-
-    # Signal 5: Scroll depth (engaged users scroll)
-    if t.scroll_depth_pct > 20:
+    elif t.time_on_page_ms > 12000:
         score += 5.0
 
-    # Signal 6: Interaction count (real users interact)
-    if t.interaction_count >= 2:
+    # Signal 5: Scroll depth
+    if t.scroll_depth_pct > 15:
+        score += 5.0
+
+    # Signal 6: Interaction count (real users interact before sharing)
+    if t.interaction_count < 2:
+        score -= 15.0
+        reasons.append("Tương tác trước chia sẻ quá thấp (<2 clicks)")
+    else:
         score += 5.0
 
     # Signal 7: Popup was blocked (user may not have shared)
     if t.popup_was_blocked:
-        score -= 10.0
+        score -= 20.0
         reasons.append("Popup bị chặn")
 
     # Clamp
@@ -149,18 +152,23 @@ Your job: Rigorously analyze behavioral telemetry to detect "Share-to-Unlock" fr
 SIGNALS & THRESHOLDS:
 - share_duration_ms: Real shares take 12-25s (login + post). Anything < 8s is HIGHLY suspicious.
 - visibility_changes: Expect at least 1 (opening popup / switching tabs). 0 is a RED FLAG.
-- share_method: "native" is strong. "popup" requires > 10s. "clipboard" is very weak.
+- share_method: "native" is strong. "popup" requires > 12s. "clipboard" is very weak.
 - scroll_depth_pct: Real users may NOT scroll if the share button is at the top of the page (0% is completely normal and acceptable). Do NOT deny based on 0% scroll depth.
 - time_on_page_ms: Returning or fast-acting users might click the share button instantly (<3s). If their share_duration_ms is genuine (>10s), this is a REAL user, not a bot!
 - interaction_count: Real users have at least 1-2 interactions before sharing.
 - mouse_acceleration: Very high (>8000) means bot telemetry. 0 with interactions means script clicking. Normal is 50-3000.
 - interaction_rhythm: Variance of time between clicks. <20ms is impossibly consistent (macro/script).
 
+IDLE WAITING & CLOSING FRAUD DETECTION:
+- If share_method is "popup" and share_duration_ms is between 5000ms and 15000ms, but interaction_count is extremely low (<2) or mouse_acceleration is 0 (or near 0), this strongly indicates "Idle waiting & closing" fraud.
+- In "Idle waiting & closing" fraud, the user opens the popup, waits passively for the system to detect time, and closes it without logging in or performing any sharing action.
+- Real sharing requires active mouse movement, tab changes, and storefront engagement. If these are missing, mark the transaction as "DENY" with reasoning "Phát hiện hành vi chờ thụ động, chưa thực sự chia sẻ nội dung lên mạng xã hội."
+
 VERDICT CRITERIA:
 - 90-100: Flawless behavior.
 - 70-89: Likely legitimate (long share duration, even if page visit was short or didn't scroll).
 - 40-69: Suspicious (rushed, low interaction, or blocked popups).
-- 0-39: Definite fraud (bot-like speed, extreme rushing, rigid rhythm).
+- 0-39: Definite fraud (bot-like speed, extreme rushing, rigid rhythm, or idle waiting bypass).
 
 Reply with JSON: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "strict Vietnamese explanation", "block_ip": bool}
 (Set block_ip to True ONLY if score is < 15 and telemetry strongly indicates an automated bot attacking the system)
@@ -185,8 +193,8 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
     # Layer 1: Heuristic fast-path
     h_score, h_reason, h_block = heuristic_score(telemetry)
 
-    if h_score >= 80.0:
-        # Strong legitimate signals (e.g. >12s share duration + tab/window switch) → skip AI
+    # Elite V2.2: CHỈ cho phép bypass AI với Web Share API di động (native) có điểm số xuất sắc
+    if h_score >= 85.0 and telemetry.share_method == "native":
         logger.info(f"[ViralFraud] Heuristic APPROVE (score={h_score:.0f}): {h_reason}")
         return ShareVerdict(
             trust_score=h_score,
@@ -195,7 +203,7 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
             block_ip=h_block
         )
 
-    if h_score < 10.0:
+    if h_score < 15.0:
         # Definite fraud → skip AI
         logger.warning(f"[ViralFraud] Heuristic DENY (score={h_score:.0f}): {h_reason}")
         return ShareVerdict(

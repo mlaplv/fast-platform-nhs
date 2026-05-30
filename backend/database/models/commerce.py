@@ -148,6 +148,10 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     tier_updated_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
     balance_seal: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Integrity Seal
 
+    __table_args__ = (
+        Index("ix_user_loyalty_tenant", "tenant_id"),
+    )
+
 class PointTransaction(Base, AuditMixin, TenantMixin):
     """Elite V2.2: Immutable Ledger for Point Activity"""
     __tablename__ = 'point_transactions'
@@ -160,4 +164,8 @@ class PointTransaction(Base, AuditMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String, default="COMPLETED") # PENDING, COMPLETED, CANCELLED
     notes: Mapped[Optional[str]] = mapped_column(Text)
     integrity_token: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Transaction Seal
+
+    __table_args__ = (
+        Index("ix_point_tx_tenant_user_time", "tenant_id", "user_id", "created_at"),
+    )
 

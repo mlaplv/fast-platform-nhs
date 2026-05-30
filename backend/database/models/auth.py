@@ -49,10 +49,11 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     drafts: Mapped[List["Draft"]] = relationship("Draft", foreign_keys="Draft.reviewer_id")
     notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     content_campaigns: Mapped[List["ContentCampaign"]] = relationship("ContentCampaign", back_populates="user", cascade="all, delete-orphan")
-    articles: Mapped[List["Article"]] = relationship("Article", back_populates="author")
     chat_messages: Mapped[List["ChatMessage"]] = relationship("ChatMessage", back_populates="user")
     voice_profile: Mapped[Optional["VoiceProfile"]] = relationship("VoiceProfile", back_populates="user", uselist=False)
+
     loyalty: Mapped[Optional["UserLoyalty"]] = relationship("UserLoyalty", uselist=False)
+    articles: Mapped[List["Article"]] = relationship("Article", back_populates="author")
     
     # RBAC M2M
     roles: Mapped[List["Role"]] = relationship("Role", secondary=user_roles, back_populates="users")
@@ -112,3 +113,5 @@ class Permission(Base, AuditMixin, SoftDeleteMixin):
     
     # RBAC M2M
     roles: Mapped[List["Role"]] = relationship("Role", secondary=role_permissions, back_populates="permissions")
+
+
