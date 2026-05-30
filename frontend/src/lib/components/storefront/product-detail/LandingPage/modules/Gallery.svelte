@@ -103,6 +103,7 @@
         loop={videoEndTime === null}
         playsinline
         preload="auto"
+        fetchpriority="high"
         ontimeupdate={handleTimeUpdate}
       ></video>
       <button
@@ -117,7 +118,14 @@
         {/if}
       </button>
     {:else}
-      <img src={resolveOptimizedImageUrl(currentImage, 600)} alt={product.name} class="media-content image-zoom" />
+      <img 
+        src={resolveOptimizedImageUrl(currentImage, 800)} 
+        alt={product.name} 
+        class="media-content image-zoom" 
+        loading="eager"
+        fetchpriority="high"
+        decoding="sync"
+      />
     {/if}
     
     {#if isFlashSaleActive}
