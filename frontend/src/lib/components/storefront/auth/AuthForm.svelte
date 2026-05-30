@@ -22,7 +22,7 @@
   }
 
   let { onClose, rounded = true }: Props = $props();
-  const r = $derived(rounded ? 'rounded-2xl' : 'rounded-none');
+  const r = $derived(rounded ? 'rounded-lg' : 'rounded-none');
 
   const ui = getClientUi();
   let step = $state<'input' | 'otp'>('input');
@@ -317,7 +317,7 @@
     <div class="space-y-3 pt-2">
         {#if mode === 'register'}
         <div class="group">
-            <label for="fullName" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block">HỌ VÀ TÊN</label>
+            <label for="fullName" class="text-[11px] font-bold text-gray-400 tracking-wider mb-2 ml-2 block">Họ và tên</label>
             <input
             type="text"
             id="fullName"
@@ -329,7 +329,7 @@
         {/if}
 
         <div class="group">
-        <label for="email" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block">ĐỊA CHỈ EMAIL</label>
+        <label for="email" class="text-[11px] font-bold text-gray-400 tracking-wider mb-2 ml-2 block">Địa chỉ email</label>
         <div class="relative">
             <input
             type="email"
@@ -345,7 +345,7 @@
 
         {#if authMethod === 'password' && mode === 'login'}
         <div class="group" in:slide>
-        <label for="password" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block italic">MẬT KHẨU</label>
+        <label for="password" class="text-[11px] font-bold text-gray-400 tracking-wider mb-2 ml-2 block italic">Mật khẩu</label>
         <div class="relative">
             <input
             type={showPassword ? 'text' : 'password'}
@@ -386,7 +386,7 @@
             <button
                 onclick={authMethod === 'otp' ? handleRequestOTP : handlePasswordLogin}
                 disabled={isLoading || !identifier || (authMethod === 'password' && !password)}
-                class="w-full bg-[#C18F7E] text-white p-4 md:p-4.5 {r} font-black text-xs md:text-[12px] tracking-[0.2em] italic flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-luxury-copper/20 group relative overflow-hidden"
+                class="w-full bg-[#C18F7E] text-white p-4 md:p-4.5 {r} font-bold text-sm md:text-[13px] tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-luxury-copper/20 group relative overflow-hidden"
             >
                 <!-- Premium Shine Effect -->
                 <div class="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"></div>
@@ -396,16 +396,16 @@
                 {:else if isLoading}
                 Đang xử lý...
                 {:else}
-                {mode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'} <ArrowRight class="w-5 h-5" />
+                {mode === 'login' ? 'Đăng nhập' : 'Đăng ký'} <ArrowRight class="w-5 h-5" />
                 {/if}
             </button>
 
             {#if mode === 'login'}
                 <button
                 onclick={() => authMethod = authMethod === 'otp' ? 'password' : 'otp'}
-                class="w-full text-center text-[10px] italic text-gray-400 hover:text-black transition-colors mt-1 underline underline-offset-4 decoration-gray-100"
+                class="w-full text-center text-[10px] font-medium text-gray-400 hover:text-black transition-colors mt-1 underline underline-offset-4 decoration-gray-100"
                 >
-                {authMethod === 'otp' ? 'sử dụng mật khẩu' : 'sử dụng mã otp'}
+                {authMethod === 'otp' ? 'Sử dụng mật khẩu đăng nhập' : 'Sử dụng mã xác thực OTP qua email'}
                 </button>
             {/if}
         </div>
@@ -416,8 +416,8 @@
                 <div class="w-full border-t border-gray-100"></div>
             </div>
             <div class="relative flex justify-center text-center">
-                <span class="bg-white px-4 text-[10px] font-black text-gray-300 tracking-[0.2em]">
-                HOẶC TIẾP TỤC VỚI
+                <span class="bg-white px-4 text-[10px] font-bold text-gray-400 tracking-wider">
+                Hoặc tiếp tục với
                 </span>
             </div>
         </div>
@@ -482,16 +482,16 @@
 
         <button
         onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}
-        class="w-full text-center text-[9px] font-bold text-gray-300 hover:text-black transition-colors tracking-[0.1em] pt-2"
+        class="w-full text-center text-[10px] font-semibold text-gray-400 hover:text-[#C18F7E] transition-colors tracking-wide pt-2"
         >
-        {mode === 'login' ? 'CHƯA CÓ TÀI KHOẢN? ĐĂNG KÝ' : 'ĐÃ LÀ THÀNH VIÊN? ĐĂNG NHẬP'}
+        {mode === 'login' ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã là thành viên? Đăng nhập'}
         </button>
     </div>
     {:else}
         <div class="space-y-8 text-center" in:scale>
         <div>
-            <p class="text-[11px] font-black text-gray-400 tracking-[0.3em] italic">XÁC THỰC TRUY CẬP</p>
-            <p class="text-[13px] text-black font-semibold mt-3">
+            <p class="text-[11px] font-bold text-gray-400 tracking-wider">Xác thực truy cập</p>
+            <p class="text-[13px] text-slate-800 font-semibold mt-3">
             Đã gửi mã đến <span class="font-black underline italic decoration-luxury-copper">{identifier}</span>
             </p>
         </div>
@@ -513,26 +513,26 @@
         </div>
 
         {#if error}
-            <div class="text-[#ff3b30] text-[10px] font-black text-center tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20">{error}</div>
+            <div class="text-[#ff3b30] text-[10px] font-black text-center tracking-widest bg-[#ff3b30]/10 p-3 rounded-lg border border-[#ff3b30]/20">{error}</div>
         {/if}
 
         <div class="space-y-4">
             <button
             onclick={handleVerifyOTP}
             disabled={isLoading || fullCode.length < 6}
-            class="w-full bg-[#C18F7E] text-white p-5 {r} font-black text-[13px] tracking-[0.3em] italic flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl shadow-luxury-copper/20"
+            class="w-full bg-[#C18F7E] text-white p-4.5 {r} font-bold text-sm tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl shadow-luxury-copper/20"
             >
             {#if isLoading}
                 <Loader2 class="w-5 h-5 animate-spin" />
             {:else}
-                XÁC NHẬN ĐĂNG NHẬP
+                Xác nhận đăng nhập
             {/if}
             </button>
             <button
             onclick={() => step = 'input'}
-            class="text-[10px] font-bold text-gray-400 hover:text-black transition-colors tracking-[0.2em] italic"
+            class="text-[10px] font-bold text-gray-400 hover:text-black transition-colors tracking-wide"
             >
-            THAY ĐỔI THÔNG TIN
+            Thay đổi thông tin
             </button>
         </div>
         </div>

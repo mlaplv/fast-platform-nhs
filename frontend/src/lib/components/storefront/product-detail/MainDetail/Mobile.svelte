@@ -9,6 +9,7 @@
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
+  import { authStore } from "$lib/state/authStore.svelte";
 
   // Components
   import ProductMobileHeader from "./modules/ProductMobileHeader.svelte";
@@ -172,7 +173,10 @@
   $effect(() => {
     const _id = product.id; // track product transitions
     if (typeof window !== "undefined") {
-      isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
+      const userId = authStore.user?.id;
+      isViralUnlocked = authStore.isAuthenticated && userId
+        ? !!localStorage.getItem(`viral_unlocked_${userId}_${product.id}`)
+        : false;
     }
   });
 

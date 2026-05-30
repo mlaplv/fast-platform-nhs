@@ -58,6 +58,8 @@ class VerifyShareRequest(BaseModel):
     fingerprint: str = Field(..., min_length=64, max_length=64, description="Device fingerprint from share-intent")
     token: str = Field(..., min_length=64, max_length=64, description="HMAC token from share-intent")
     voucher_id: str = Field(..., min_length=1, max_length=64, description="Voucher code configured in product metadata")
+    # Elite V2026: Post ID từ Facebook SDK / Zalo SDK — chứng minh chia sẻ thực sự
+    social_post_id: Optional[str] = Field(None, max_length=128, description="Post ID returned by FB.ui() or Zalo SDK after successful share")
     telemetry: Optional[ShareTelemetryPayload] = Field(None, description="Viral 2026: Behavioral telemetry for AI verification")
 
     @field_validator("fingerprint", "token")

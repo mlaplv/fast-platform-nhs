@@ -9,6 +9,7 @@
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
+  import { authStore } from "$lib/state/authStore.svelte";
 
   // Utils
   import { resolveMediaUrl } from "$lib/state/utils";
@@ -296,7 +297,10 @@
 
   $effect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      const userId = authStore.user?.id;
+      const localKey = userId ? `viral_unlocked_${userId}_${product.id}` : null;
+      const saved = localKey ? localStorage.getItem(localKey) : null;
+      
       if (saved) {
         try {
           const data = JSON.parse(saved);
@@ -465,13 +469,12 @@
     return [...viralVouchers, ...regularDiscount, ...regularShipping] as VoucherUI[];
   });
 
-  /**
-   * Elite V2.2: Hiệu ứng bay vào Box giảm giá
-   */
   function triggerViralFly() {
     isViralUnlocked = true; // Cập nhật state để Svelte render voucher vào box ngay
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      const userId = authStore.user?.id;
+      const localKey = userId ? `viral_unlocked_${userId}_${product.id}` : null;
+      const saved = localKey ? localStorage.getItem(localKey) : null;
       if (saved) {
         try {
           const data = JSON.parse(saved);

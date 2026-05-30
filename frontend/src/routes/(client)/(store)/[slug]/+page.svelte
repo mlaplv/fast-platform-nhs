@@ -208,9 +208,34 @@
 
 <!-- Elite LCP Optimization: Preload hero product image with precise device-optimized resolution to avoid double downloads and maximize LCP -->
 <svelte:head>
-  {#if productData?.product?.images?.[0]}
-    {@const preloadUrl = resolveOptimizedImageUrl(productData.product.images[0], data.isMobile ? 600 : 800)}
-    <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
+  {#if productData?.product}
+    {@const heroImage = (() => {
+      const p = productData.product;
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      if (data.isMobile) {
+        if (tierVar) {
+          const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+          if (mobImgs.length > 0) return mobImgs[0];
+          const deskImgs = (tierVar.images || []).filter(Boolean);
+          if (deskImgs.length > 0) return deskImgs[0];
+        }
+      } else {
+        if (tierVar) {
+          const deskImgs = (tierVar.images || []).filter(Boolean);
+          if (deskImgs.length > 0) return deskImgs[0];
+        }
+      }
+      return p.images?.[0];
+    })()}
+    {#if heroImage}
+      {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(heroImage.split('?')[0].toLowerCase())}
+      {#if isVideo}
+        <link rel="preload" as="video" type="video/mp4" href={heroImage} fetchpriority="high" />
+      {:else}
+        {@const preloadUrl = resolveOptimizedImageUrl(heroImage, data.isMobile ? 600 : 800)}
+        <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
+      {/if}
+    {/if}
   {/if}
 </svelte:head>
 

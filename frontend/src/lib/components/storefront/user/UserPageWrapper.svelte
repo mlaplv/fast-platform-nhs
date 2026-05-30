@@ -131,8 +131,8 @@
   {/if}
 
   {#if showCtvPromo}
-    <div class="fixed inset-0 bg-stone-950/40 backdrop-blur-md z-[999999] flex items-center justify-center p-4" transition:fade={{ duration: 250 }}>
-      <div class="bg-gradient-to-br from-sky-100/60 via-sky-50/40 to-white/80 text-sky-950 rounded-2xl w-full max-w-md border border-white/60 p-6 md:p-8 relative overflow-hidden shadow-2xl backdrop-blur-xl" transition:scale={{ start: 0.95, duration: 300 }}>
+    <div class="fixed inset-0 bg-stone-950/70 backdrop-blur-lg flex items-center justify-center p-4" style="z-index: var(--z-modal-overlay);" transition:fade={{ duration: 250 }}>
+      <div class="bg-gradient-to-br from-sky-100/95 via-sky-50/90 to-white/98 text-sky-950 rounded-2xl w-full max-w-md border border-white p-6 md:p-8 relative overflow-hidden shadow-2xl backdrop-blur-xl" transition:scale={{ start: 0.95, duration: 300 }}>
         <!-- Glow highlights -->
         <div class="absolute -right-20 -top-20 w-48 h-48 bg-sky-300/30 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -left-20 -bottom-20 w-48 h-48 bg-luxury-copper/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -150,7 +150,7 @@
           </div>
 
           <!-- Highlight Promo Card -->
-          <div class="bg-white/40 border border-white/60 rounded-xl p-4 space-y-3.5 shadow-inner backdrop-blur-md">
+          <div class="bg-white/80 border border-white rounded-xl p-4 space-y-3.5 shadow-inner backdrop-blur-md">
             <div class="flex items-center justify-between">
               <span class="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[8px] tracking-[2px] font-black uppercase rounded-full">
                 🔥 Hot Deal Commission
@@ -161,13 +161,13 @@
             </div>
             
             <p class="text-[11px] text-sky-900 leading-relaxed font-light">
-              Nhận ngay chiết khấu chi trả độc quyền từ <strong class="text-[#8C6239]">15% đến 25%</strong> trên mỗi đơn hàng được giới thiệu thành công. Không cần ôm hàng, không lo vận chuyển!
+              Nhận ngay chiết khấu chi trả độc quyền từ <strong class="text-[#8C6239]">5% đến 15%</strong> trên mỗi đơn hàng được giới thiệu thành công. Không cần ôm hàng, không lo vận chuyển!
             </p>
 
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/40 text-center">
               <div class="p-2 bg-white/70 rounded border border-white/80 shadow-sm">
                 <span class="block text-[8px] text-sky-800/80 font-bold uppercase tracking-wider">HOA HỒNG LÊN TỚI</span>
-                <span class="block text-base font-bold text-[#8C6239] mt-0.5 font-mono">25%</span>
+                <span class="block text-base font-bold text-[#8C6239] mt-0.5 font-mono">15%</span>
               </div>
               <div class="p-2 bg-white/70 rounded border border-white/80 shadow-sm">
                 <span class="block text-[8px] text-sky-800/80 font-bold uppercase tracking-wider">MÃ CTV ĐỘC QUYỀN</span>

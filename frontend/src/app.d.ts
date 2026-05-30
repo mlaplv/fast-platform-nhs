@@ -26,6 +26,23 @@ declare global {
       stack?: string;
     }
   }
+
+  // Elite V2026: Facebook SDK type (loaded via app.html)
+  interface Window {
+    FB: {
+      ui(
+        params: {
+          method: string;
+          href?: string;
+          display?: string;
+          [key: string]: unknown;
+        },
+        callback?: (response: { post_id?: string; error_message?: string } | null) => void
+      ): void;
+      init(params: { appId: string; version: string; [key: string]: unknown }): void;
+    };
+    fbq: (...args: unknown[]) => void;
+  }
 }
 
 export {};

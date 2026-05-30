@@ -164,6 +164,7 @@ class ViralShareService:
         voucher_id: str,
         telemetry_data: dict | None = None,
         user_id: str | None = None,
+        social_post_id: str | None = None,
     ) -> dict[str, str | bool | float] | None:
         """
         Viral 2026: Verify HMAC token + 100% accurate OAuth Webhook callback status.
@@ -203,6 +204,18 @@ class ViralShareService:
         # ── OTT Session Validation (Elite Standard) ──
         trust_score = 100.0
 
+        # ── Anti-Fraud: Telemetry Validation ──
+        if telemetry_data:
+            share_method = telemetry_data.get("share_method", "unknown")
+            share_duration_ms = telemetry_data.get("share_duration_ms", 0)
+            
+            if share_method in ("popup", "native", "unknown") and share_duration_ms < 4000:
+                logger.warning(
+                    f"[ViralShare] 🚨 FRAUD BLOCKED: share_duration_ms too short ({share_duration_ms}ms) "
+                    f"for method '{share_method}'. product={product_id}, user_id={user_id[:8] if user_id else 'none'}…"
+                )
+                raise ValueError("Thời gian thao tác quá ngắn (dưới 5 giây). Vui lòng thực hiện chia sẻ bài viết thực tế trước khi quay lại nhận quà nhé!")
+
         # ── CRITICAL: One-Time Consumption ──
         if self._redis:
             try:
@@ -215,6 +228,19 @@ class ViralShareService:
                 logger.info(f"[ViralShare] Token and verification keys consumed successfully for product={product_id}")
             except Exception as e:
                 logger.error(f"[ViralShare] Redis deletion error on consumption: {e}")
+
+        # ── Audit Trail: social_post_id ──
+        if social_post_id:
+            logger.info(
+                f"[ViralShare] ✅ POST_ID PROOF — product={product_id}, "
+                f"user_id={user_id[:8] if user_id else 'none'}…, post_id={social_post_id[:32]}…"
+            )
+            # Future: store to DB audit table for CMS dashboard visibility
+        else:
+            logger.info(
+                f"[ViralShare] Info — product={product_id}, user_id={user_id[:8] if user_id else 'none'}…. "
+                f"Share occurred via popup/native (post_id unavailable on this platform)."
+            )
 
 
 

@@ -10,7 +10,7 @@ from typing import Optional
 
 from litestar import Controller, get, post, Response
 from litestar.connection import Request
-from litestar.exceptions import TooManyRequestsException, NotFoundException, HTTPException
+from litestar.exceptions import TooManyRequestsException, NotFoundException, HTTPException, NotAuthorizedException
 from litestar.params import Parameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,9 +43,17 @@ def _extract_ip(request: Request) -> str:
     return str(request.client.host) if request.client else "unknown"
 
 
+def _require_user(request: Request) -> dict:
+    """Elite V2026: Enforce login for viral endpoints — same pattern as CTV controller."""
+    user_state = request.scope.get("state", {}).get("user")
+    if not user_state:
+        raise NotAuthorizedException("Bạn cần đăng nhập để tham gia chương trình chia sẻ nhận quà!")
+    return user_state
+
+
 class ViralController(Controller):
     """
-    Public viral share endpoints — no auth required.
+    Viral share endpoints — Auth required for share/verify.
     Anti-abuse handled by device fingerprint + HMAC + Redis rate limit.
     """
     path = "/api/v1/client/viral"
@@ -59,15 +67,19 @@ class ViralController(Controller):
     ) -> ShareIntentResponse:
         """
         Issue a one-time HMAC token for a share intent.
+        Requires: Authenticated session (cookie).
         Rate limit: 10 req/IP/hour.
 
         Flow:
-          1. Extract real IP + User-Agent + Accept-Language → fingerprint
-          2. Check rate limit (Lua atomic in Redis)
-          3. Sign token: HMAC-SHA256(secret, "product_id:fingerprint:timestamp")
-          4. Store token in Redis with 24h TTL
-          5. Return { token, fingerprint, expires_at }
+          1. Verify login (HttpOnly cookie JWT)
+          2. Extract real IP + User-Agent + Accept-Language → fingerprint
+          3. Check rate limit (Lua atomic in Redis)
+          4. Sign token: HMAC-SHA256(secret, "product_id:fingerprint:timestamp")
+          5. Store token in Redis with 24h TTL
+          6. Return { token, fingerprint, expires_at }
         """
+        user_state = _require_user(request)  # 🔒 Must be logged in
+        user_id = user_state.get("id")
         ip = _extract_ip(request)
         user_agent = request.headers.get("user-agent", "")
         accept_language = request.headers.get("accept-language", "")
@@ -80,7 +92,7 @@ class ViralController(Controller):
         )
 
         if result is None:
-            logger.warning(f"[ViralController] Rate limit hit — IP={ip}, product={data.product_id}")
+            logger.warning(f"[ViralController] Rate limit hit — IP={ip}, user={user_id}, product={data.product_id}")
             raise TooManyRequestsException(
                 "Bạn đã yêu cầu chia sẻ quá nhiều lần. Vui lòng thử lại sau 1 giờ."
             )
@@ -102,22 +114,24 @@ class ViralController(Controller):
     ) -> VerifyShareResponse:
         """
         Verify the HMAC token and redeem the share reward (voucher from DB).
+        Requires: Authenticated session (cookie).
 
         Anti-fraud layers:
-          1. Token must exist in Redis (not expired, not previously used)
-          2. HMAC must match (cannot be forged without VIRAL_SECRET_KEY)
-          3. Token is DELETED after first successful verify (OTT — replay-proof)
-          4. Voucher is read from DB, not from page source/metadata
-
-        Returns voucher details on success, 401 on any failure.
+          1. Login required — user_id bound to redemption
+          2. Token must exist in Redis (not expired, not previously used)
+          3. HMAC must match (cannot be forged without VIRAL_SECRET_KEY)
+          4. social_post_id from FB.ui() — proof of actual share action
+          5. Token is DELETED after first successful verify (OTT — replay-proof)
+          6. Voucher is read from DB, not from page source/metadata
         """
-        ip = _extract_ip(request)
-        user_state = request.scope.get("state", {}).get("user", {})
+        user_state = _require_user(request)  # 🔒 Must be logged in
         user_id = user_state.get("id")
+        ip = _extract_ip(request)
 
         logger.info(
             f"[ViralController] Verify attempt — product={data.product_id}, "
-            f"IP={ip}, FP={data.fingerprint[:16]}…, user_id={user_id}"
+            f"IP={ip}, FP={data.fingerprint[:16]}…, user_id={user_id}, "
+            f"post_id={'YES' if data.social_post_id else 'NONE'}"
         )
 
         telemetry_dict = data.telemetry.model_dump() if data.telemetry else None
@@ -133,6 +147,7 @@ class ViralController(Controller):
                 voucher_id=data.voucher_id,
                 telemetry_data=telemetry_dict,
                 user_id=user_id,
+                social_post_id=data.social_post_id,
             )
         except ValueError as val_err:
             logger.warning(

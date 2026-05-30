@@ -12,6 +12,7 @@
   import type { Product, Voucher } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti, getProductLikeCount,
     getProductShareCount, getProductShareTarget, getProductShareProgress
@@ -98,6 +99,8 @@
   let voucherCode = $state<string | null>(null);
   let voucherLabel = $state<string | null>(null);
   let codeCopied = $state(false);
+  // Elite V2026: Post ID từ FB.ui() — proof of actual share
+  let socialPostId = $state<string | null>(null);
 
   // Elite V2.2: Centralized Favorite Management
   const isLiked = $derived(wishlistStore.isLiked(product.id));
@@ -134,13 +137,21 @@
   const handleFocus = () => {
     const duration = Date.now() - shareStartTime;
     console.log(`[ViralFunnel Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
-    // Bỏ qua nếu thời gian quá ngắn dưới 1s (tránh focus nhầm khi vừa click mở popup)
-    if (duration < 1000) {
-        console.warn(`[ViralFunnel Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
+    
+    if (duration < 1500) {
+        console.warn(`[ViralFunnel Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1500ms - có thể là focus ảo lúc mở)`);
         return;
     }
     
     cleanupFocusListeners();
+    if (duration < 4500) {
+        console.warn(`[ViralFunnel Focus] Đóng cửa sổ quá nhanh (${duration}ms < 4500ms). Hủy xác thực.`);
+        step = 'error';
+        errorMsg = 'Thời gian chia sẻ quá ngắn (dưới 5 giây). Vui lòng thực hiện chia sẻ bài viết trên trang liên kết trước khi quay lại!';
+        clientUi.showToast(errorMsg, 'error');
+        return;
+    }
+
     if (step !== 'revealed') {
         console.log(`[ViralFunnel Focus] Gọi attemptVerify() để backend kiểm tra.`);
         attemptVerify();
@@ -151,12 +162,21 @@
     if (!document.hidden) {
       const duration = Date.now() - shareStartTime;
       console.log(`[ViralFunnel Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
-      if (duration < 1000) {
-          console.warn(`[ViralFunnel Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
+      
+      if (duration < 1500) {
+          console.warn(`[ViralFunnel Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1500ms)`);
           return;
       }
       
       cleanupFocusListeners();
+      if (duration < 4500) {
+          console.warn(`[ViralFunnel Visibility] Đóng cửa sổ quá nhanh (${duration}ms < 4500ms). Hủy xác thực.`);
+          step = 'error';
+          errorMsg = 'Thời gian chia sẻ quá ngắn (dưới 5 giây). Vui lòng thực hiện chia sẻ bài viết trên trang liên kết trước khi quay lại!';
+          clientUi.showToast(errorMsg, 'error');
+          return;
+      }
+
       if (step !== 'revealed') {
           console.log(`[ViralFunnel Visibility] Gọi attemptVerify() để backend kiểm tra.`);
           attemptVerify();
@@ -274,43 +294,120 @@
 
   const viralActions = {
     async share(platform: string) {
-      if (step !== 'idle' && step !== 'error') return;
+      console.group(`%c[ViralFunnel] 🚀 SHARE TRIGGERED — platform=${platform}`, 'color:#ee4d2d;font-weight:bold');
+      console.log('Step 0 | State check:', { step, platform, productId: product.id, voucher_id: promoConfig?.voucher_id });
+
+      if (step !== 'idle' && step !== 'error') {
+        console.warn('Step 0 | BLOCKED — step is not idle/error:', step);
+        console.groupEnd();
+        return;
+      }
+
+      // 🔒 Step 1: Require Login
+      console.log('Step 1 | Auth check — isAuthenticated:', authStore.isAuthenticated, '| user:', authStore.user?.email ?? 'GUEST');
+      if (!authStore.isAuthenticated) {
+        console.warn('Step 1 | ❌ CHƯA LOGIN — mở AuthModal');
+        clientUi.showToast('Vui lòng đăng nhập để nhận quà chia sẻ!', 'info');
+        // Mở modal login, sau khi login thành công yêu cầu user click lại để bảo mật trình duyệt
+        clientUi.openLogin(() => {
+          console.log('Step 1 | ✅ Login thành công qua modal — yêu cầu user click lại để không bị chặn popup');
+          clientUi.showToast('Đăng nhập thành công! Vui lòng nhấn nút chia sẻ một lần nữa nhé.', 'success');
+          step = 'idle';
+        });
+        console.groupEnd();
+        return;
+      }
+      console.log('Step 1 | ✅ ĐÃ LOGIN — proceeding');
+
       step = 'sharing';
       
       try {
+        // Step 2: POST /share-intent
+        console.log('Step 2 | POST /api/v1/client/viral/share-intent — product_id:', product.id);
         const res = await fetch('/api/v1/client/viral/share-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ product_id: product.id }),
         });
-        if (!res.ok) throw new Error('Yêu cầu thất bại');
+        console.log('Step 2 | Response status:', res.status);
+        if (!res.ok) {
+          if (res.status === 401) {
+            console.error('Step 2 | ❌ 401 — Session hết hạn hoặc cookie mất');
+            throw new Error('Vui lòng đăng nhập để tham gia chương trình chia sẻ!');
+          }
+          console.error('Step 2 | ❌ HTTP', res.status);
+          throw new Error('Yêu cầu thất bại');
+        }
         const data = await res.json();
         _token = data.token;
         _fingerprint = data.fingerprint;
+        console.log('Step 2 | ✅ Token issued — FP:', data.fingerprint?.slice(0,16) + '…', '| expires_at:', new Date(data.expires_at * 1000).toISOString());
         
         shareStartTime = Date.now();
         timeOnPageMs = shareStartTime - initTime;
 
         // Reset verify attempts for a new share sequence
         verifyAttempts = 0;
+        socialPostId = null; // Reset post ID for new share sequence
 
-        // Viral 2026: Auto-detect share method
+        // Step 3: Chọn phương thức share
+        console.log('Step 3 | Detect share method — native:', !!(navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)), '| FB.ui:', typeof window.FB !== 'undefined');
         if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
             shareMethod = 'native';
+            console.log('Step 3 | 📱 Native Web Share API');
             try {
                 await navigator.share({
                     title: product.name,
                     text: `Xem ngay ưu đãi ${voucherLabel || ''} tại Osmo!`,
                     url: window.location.href
                 });
+                console.log('Step 3 | ✅ Native share completed — auto verify');
                 // Promise resolved = user picked an app. Auto verify!
                 await viralActions.verify();
             } catch (err: unknown) {
-                if (err.name === 'AbortError') {
+                if ((err as Error).name === 'AbortError') {
+                    console.warn('Step 3 | ⚠️ User hủy native share (AbortError)');
                     throw new Error('Bạn đã hủy chia sẻ');
                 }
                 throw err; // Fallback
             }
+        } else if (platform === 'facebook' && typeof window.FB !== 'undefined') {
+            // 🎯 Step 3b: FB.ui() — lấy post_id thực sự
+            shareMethod = 'popup';
+            console.log('Step 3b | 🎯 FB.ui() mode — lấy post_id');
+            cleanupFocusListeners();
+            const cleanUrl = window.location.origin + window.location.pathname;
+            console.log('Step 3b | Share URL:', cleanUrl);
+            
+            await new Promise<void>((resolve, reject) => {
+                window.FB.ui({
+                    method: 'share',
+                    href: cleanUrl,
+                    display: 'popup',
+                }, (response: { post_id?: string; error_message?: string } | null) => {
+                    console.log('Step 3b | FB.ui callback — response:', response);
+                    if (!response) {
+                        console.warn('Step 3b | ⚠️ User đóng FB dialog (null response)');
+                        reject(new Error('Bạn đã hủy chia sẻ hoặc không cấp quyền. Vui lòng thử lại!'));
+                        return;
+                    }
+                    if (response.error_message) {
+                        console.error('Step 3b | ❌ FB error:', response.error_message);
+                        reject(new Error(`Lỗi chia sẻ Facebook: ${response.error_message}`));
+                        return;
+                    }
+                    if (response.post_id) {
+                        socialPostId = response.post_id;
+                        console.log(`Step 3b | ✅ Post ID captured: ${socialPostId}`);
+                    } else {
+                        console.warn('Step 3b | ⚠️ Share OK nhưng FB không trả post_id (public share — expected for link shares)');
+                    }
+                    resolve();
+                });
+            });
+            console.log('Step 3b | ✅ FB.ui share xong — auto verify, post_id:', socialPostId);
+            // FB.ui resolved = share completed, auto verify
+            await viralActions.verify();
         } else {
             shareMethod = 'popup';
             // Desktop fallback: Open popup and detect when they come back
@@ -329,9 +426,8 @@
             
             if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
                 popupWasBlocked = true;
-                console.error('[ViralFunnel Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
-                // If popup blocked, let's just try to verify anyway, AI will handle
-                setTimeout(() => viralActions.verify(), 2000);
+                console.error('[ViralFunnel Share] Popup bị chặn hoặc closed ngay lập tức.');
+                throw new Error('Cửa sổ chia sẻ bị trình duyệt chặn (Popup Blocked). Vui lòng cho phép popup trong cài đặt trình duyệt và bấm chia sẻ lại nhé!');
             } else {
                 console.log('[ViralFunnel Share] Mở popup thành công. Bắt đầu pollTimer.');
                 // Poll popup closure
@@ -351,9 +447,15 @@
                                     window.addEventListener('focus', handleFocus);
                                     document.addEventListener('visibilitychange', handleVisibilityChange);
                                 }
+                            } else if (elapsed < 4500) {
+                                // 🔒 Anti-Fraud: User vừa mở lên tắt ngay lập tức
+                                console.warn(`[ViralFunnel Poller] Phát hiện đóng popup quá nhanh (${elapsed}ms < 4500ms). Từ chối xác thực.`);
+                                step = 'error';
+                                errorMsg = 'Thời gian chia sẻ quá ngắn (dưới 5 giây). Vui lòng thực hiện chia sẻ bài viết trên trang liên kết trước khi đóng!';
+                                clientUi.showToast(errorMsg, 'error');
                             } else {
                                 // Normal browser, popup legitimately closed.
-                                console.log(`[ViralFunnel Poller] Cửa sổ đóng hợp lệ (${elapsed}ms >= 1500ms). Tiến hành gọi attemptVerify().`);
+                                console.log(`[ViralFunnel Poller] Cửa sổ đóng hợp lệ (${elapsed}ms >= 4500ms). Tiến hành gọi attemptVerify().`);
                                 attemptVerify();
                             }
                         }
@@ -362,17 +464,34 @@
             }
         }
       } catch (e: unknown) {
-        errorMsg = e instanceof Error ? e.message : 'Lỗi chia sẻ';
+        const errMsg = e instanceof Error ? e.message : 'Lỗi chia sẻ';
+        console.error('[ViralFunnel] ❌ Share flow error:', errMsg);
+        console.groupEnd();
+        errorMsg = errMsg;
         step = 'error';
       }
     },
     async verify() {
-      if (!_token || !_fingerprint || !promoConfig) return;
-      if (step === 'revealed') return;
+      if (!_token || !_fingerprint || !promoConfig) {
+        console.warn('[ViralFunnel] verify() bị block — thiếu token/fingerprint/promoConfig', { _token: !!_token, _fingerprint: !!_fingerprint, promoConfig: !!promoConfig });
+        return;
+      }
+      if (step === 'revealed') {
+        console.log('[ViralFunnel] verify() skip — đã revealed rồi');
+        return;
+      }
       
       const shareDurationMs = Date.now() - shareStartTime;
       const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
 
+      console.log('Step 4 | POST /api/v1/client/viral/verify-share', {
+        product_id: product.id,
+        voucher_id: promoConfig.voucher_id,
+        fingerprint: _fingerprint?.slice(0,16) + '…',
+        social_post_id: socialPostId,
+        share_method: shareMethod,
+        share_duration_ms: shareDurationMs,
+      });
       step = 'verifying';
       try {
         const res = await fetch('/api/v1/client/viral/verify-share', {
@@ -383,6 +502,8 @@
             fingerprint: _fingerprint, 
             token: _token, 
             voucher_id: promoConfig.voucher_id,
+            // 🎯 Elite V2026: Gửi post_id (có thể null nếu platform không hỗ trợ)
+            social_post_id: socialPostId,
             telemetry: {
                 time_on_page_ms: timeOnPageMs,
                 share_duration_ms: shareDurationMs,
@@ -399,6 +520,7 @@
         });
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
+            console.error('Step 4 | ❌ verify-share failed — status:', res.status, '| detail:', errData);
             let errMsg = 'Mã xác nhận không hợp lệ hoặc đã hết hạn. Vui lòng chia sẻ lại.';
             if (errData) {
                 if (typeof errData.detail === 'string') {
@@ -414,6 +536,7 @@
             throw new Error(errMsg);
         }
         const data = await res.json();
+        console.log('Step 4 | ✅ verify-share SUCCESS —', { voucher_code: data.voucher_code, voucher_label: data.voucher_label, trust_score: data.trust_score });
         voucherCode = data.voucher_code;
         voucherLabel = data.voucher_label;
         
@@ -443,6 +566,15 @@
             shopStore.toggleVoucher(newVoucher.id);
         }
 
+        console.log('Step 5 | 🎉 VOUCHER NHẬN THÀNH CÔNG', {
+          code: voucherCode,
+          label: voucherLabel,
+          compoundKey: `${product.id}_${newVoucher.id}`,
+          unlockedIds: shopStore.unlockedVoucherIds,
+          selectedIds: shopStore.selectedVoucherIds,
+        });
+        console.groupEnd();
+
         onUnlock?.();
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
         clientUi.showToast(`🎉 Đã áp dụng mã ${voucherCode}!`, 'success');
@@ -451,11 +583,10 @@
         errorMsg = errMsg;
         step = 'error';
         
-        // Elite V2.2: Professional transparent toast and clean logs
         clientUi.showToast(errMsg, 'error');
-        console.groupCollapsed('⚠️ [Osmo Viral Verify] Xác thực lượt chia sẻ không thành công');
+        console.groupCollapsed('⚠️ [ViralFunnel] Xác thực lượt chia sẻ không thành công');
         console.warn(`Chi tiết: ${errMsg}`);
-        console.warn(`Telemetry state: token=${_token ? _token.slice(0, 8) + '...' : 'none'}`);
+        console.warn(`Token: ${_token ? _token.slice(0, 8) + '...' : 'none'} | post_id: ${socialPostId ?? 'none'}`);
         console.groupEnd();
       }
     }
@@ -474,7 +605,7 @@
   }
 </script>
 
-{#if campaignExists && promoConfig?.voucher_id}
+{#if campaignExists && promoConfig?.voucher_id && step !== 'revealed'}
 <div class="vfl-root">
   <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
   <input 

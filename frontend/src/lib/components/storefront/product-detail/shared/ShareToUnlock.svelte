@@ -16,6 +16,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
@@ -187,15 +188,30 @@
     });
 
     if (typeof window !== 'undefined') {
+      // Dọn dẹp cache legacy không an toàn (không chứa userId)
+      localStorage.removeItem(`viral_unlocked_${product.id}`);
+
+      // CẤM: Cho phép restore trạng thái nếu chưa đăng nhập thực tế
+      if (!authStore.isAuthenticated) {
+        step = 'idle';
+        voucherCode = null;
+        voucherLabel = null;
+        return;
+      }
+
+      const userId = authStore.user?.id;
       const isCookieUnlocked = promoConfig?.voucher_id && shopStore?.unlockedVoucherIds?.includes(`${product.id}_${promoConfig.voucher_id}`);
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      
+      // Elite V2026: Lưu cache theo user_id để cô lập lượt share giữa các tài khoản khác nhau
+      const localKey = userId ? `viral_unlocked_${userId}_${product.id}` : null;
+      const saved = localKey ? localStorage.getItem(localKey) : null;
       
       if (saved) {
         try {
           const data = JSON.parse(saved);
           
           if (promoConfig?.voucher_id && data.code !== promoConfig.voucher_id) {
-            localStorage.removeItem(`viral_unlocked_${product.id}`);
+            if (localKey) localStorage.removeItem(localKey);
             voucherCode = null;
             voucherLabel = null;
           } else {
@@ -211,7 +227,7 @@
             step = 'revealed';
           }
         } catch {
-          localStorage.removeItem(`viral_unlocked_${product.id}`);
+          if (localKey) localStorage.removeItem(localKey);
         }
       } else if (isCookieUnlocked && promoConfig?.voucher_id) {
         const existingVoucher = shopStore?.vouchers?.find(v => v.id === promoConfig.voucher_id);
@@ -235,6 +251,16 @@
         platform = 'facebook';
       }
       if (step !== 'idle' && step !== 'error') return;
+
+      // Elite V2.2: Bắt buộc login mới được kích hoạt hành động share
+      if (!authStore.isAuthenticated) {
+        clientUi.showToast('Vui lòng đăng nhập để tham gia nhận ưu đãi!', 'warning');
+        getClientUi().openLogin();
+        step = 'error';
+        errorMsg = 'Bạn cần đăng nhập để tham gia chương trình.';
+        return;
+      }
+
       activePlatform = platform;
       step = 'sharing';
       startProgress();
@@ -385,10 +411,13 @@
         voucherCode = data.voucher_code;
         voucherLabel = data.voucher_label;
         
-        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({
-          code: voucherCode, label: voucherLabel, unlocked_at: Date.now(),
-          value: data.voucher_value, type: data.voucher_type, min_spend: data.min_spend
-        }));
+        const userId = authStore.user?.id;
+        if (userId) {
+          localStorage.setItem(`viral_unlocked_${userId}_${product.id}`, JSON.stringify({
+            code: voucherCode, label: voucherLabel, unlocked_at: Date.now(),
+            value: data.voucher_value, type: data.voucher_type, min_spend: data.min_spend
+          }));
+        }
         
         shopStore?.injectViralVoucher(
           data.voucher_code,
@@ -496,73 +525,75 @@
 
 </script>
 
-{#if isMounted && isEnabled && step !== 'revealed'}
-  <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
-  <button 
-    class="stu-honeypot" 
-    style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;" 
-    aria-hidden="true" 
-    tabindex="-1"
-    onclick={() => { honeypotTriggered = true; }}
-  >
-    Share Promo
-  </button>
-  
-  <div class="stu-desktop-root" class:stu-compact={compact}>
-    {#if step === 'idle' || step === 'error'}
-      <div class="stu-view-bar group">
-        <div class="glass-shimmer"></div>
-        <div class="stp-one-line">
-          <div class="stp-icon-box">
-            <div class="gift-pulse"></div>
-            <Gift size={18} />
+{#if isMounted && isEnabled}
+  {#if step !== 'revealed'}
+    <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
+    <button 
+      class="stu-honeypot" 
+      style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;" 
+      aria-hidden="true" 
+      tabindex="-1"
+      onclick={() => { honeypotTriggered = true; }}
+    >
+      Share Promo
+    </button>
+    
+    <div class="stu-desktop-root" class:stu-compact={compact}>
+      {#if step === 'idle' || step === 'error'}
+        <div class="stu-view-bar group">
+          <div class="glass-shimmer"></div>
+          <div class="stp-one-line">
+            <div class="stp-icon-box">
+              <div class="gift-pulse"></div>
+              <Gift size={18} />
+            </div>
+            <div class="stp-msg">
+              <span class="stp-t">{displayRewardLabel}</span>
+              {#if errorMsg}
+                <div class="flex flex-col gap-1 mt-0.5 items-start">
+                  <span class="text-[10px] text-red-500 font-bold bg-red-50 border border-red-200/50 px-2 py-0.5 rounded-sm w-fit leading-tight">{errorMsg}</span>
+                  {#if _token}
+                    <button 
+                      class="text-[10px] text-[#ee4d2d] hover:text-[#d33b1d] font-extrabold hover:underline flex items-center gap-0.5 mt-1 transition-colors border:none bg-transparent p-0 cursor-pointer"
+                      onclick={() => attemptVerify()}
+                    >
+                      <span>➔ Tôi đã chia sẻ xong, Xác minh ngay</span>
+                    </button>
+                  {/if}
+                </div>
+              {:else if subDescription}
+                <span class="stp-sub">{subDescription}</span>
+              {/if}
+            </div>
+            <button class="stp-go group/cta" onclick={viralActions.share}>
+              <span>{ctaText}</span>
+              <ExternalLink size={12} class="group-hover/cta:translate-x-0.5 transition-transform" />
+            </button>
           </div>
-          <div class="stp-msg">
-            <span class="stp-t">{displayRewardLabel}</span>
-            {#if errorMsg}
-              <div class="flex flex-col gap-1 mt-0.5 items-start">
-                <span class="text-[10px] text-red-500 font-bold bg-red-50 border border-red-200/50 px-2 py-0.5 rounded-sm w-fit leading-tight">{errorMsg}</span>
-                {#if _token}
-                  <button 
-                    class="text-[10px] text-[#ee4d2d] hover:text-[#d33b1d] font-extrabold hover:underline flex items-center gap-0.5 mt-1 transition-colors border:none bg-transparent p-0 cursor-pointer"
-                    onclick={() => attemptVerify()}
-                  >
-                    <span>➔ Tôi đã chia sẻ xong, Xác minh ngay</span>
-                  </button>
-                {/if}
-              </div>
-            {:else if subDescription}
-              <span class="stp-sub">{subDescription}</span>
-            {/if}
+        </div>
+      {/if}
+    </div>
+
+    {#if step === 'sharing' || step === 'verifying'}
+      <div class="viral-overlay" transition:fade={{ duration: 250 }}>
+        <div class="viral-card" transition:scale={{ duration: 300, start: 0.95 }}>
+          <div class="viral-glow"></div>
+          <div class="viral-icon-box">
+            <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
           </div>
-          <button class="stp-go group/cta" onclick={viralActions.share}>
-            <span>{ctaText}</span>
-            <ExternalLink size={12} class="group-hover/cta:translate-x-0.5 transition-transform" />
-          </button>
+          <h3 class="viral-title">
+            {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
+          </h3>
+          <p class="viral-step">{verificationText}</p>
+          
+          <div class="viral-progress-track">
+            <div class="viral-progress-bar" style="width: {progressPercent}%"></div>
+          </div>
+          
+          <span class="viral-footer">Hệ thống đang đối chiếu telemetry thời gian thực. Vui lòng giữ kết nối.</span>
         </div>
       </div>
     {/if}
-  </div>
-
-  {#if step === 'sharing' || step === 'verifying'}
-    <div class="viral-overlay" transition:fade={{ duration: 250 }}>
-      <div class="viral-card" transition:scale={{ duration: 300, start: 0.95 }}>
-        <div class="viral-glow"></div>
-        <div class="viral-icon-box">
-          <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
-        </div>
-        <h3 class="viral-title">
-          {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
-        </h3>
-        <p class="viral-step">{verificationText}</p>
-        
-        <div class="viral-progress-track">
-          <div class="viral-progress-bar" style="width: {progressPercent}%"></div>
-        </div>
-        
-        <span class="viral-footer">Hệ thống đang đối chiếu telemetry thời gian thực. Vui lòng giữ kết nối.</span>
-      </div>
-    </div>
   {/if}
 {/if}
 
@@ -570,7 +601,7 @@
   .viral-overlay {
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: var(--z-modal-overlay);
     background: rgba(8, 10, 18, 0.7);
     backdrop-filter: blur(16px) saturate(180%);
     display: flex;

@@ -253,9 +253,11 @@ export class ShopStore {
         this.unlockedVoucherIds = ids || [];
     }
 
-    unlockVoucher(id: string): void {
-        if (!this.unlockedVoucherIds.includes(id)) {
-            this.unlockedVoucherIds = [...this.unlockedVoucherIds, id];
+    unlockVoucher(voucherId: string): void {
+        if (!this.product?.id) return;
+        const compoundKey = `${this.product.id}_${voucherId}`;
+        if (!this.unlockedVoucherIds.includes(compoundKey)) {
+            this.unlockedVoucherIds = [...this.unlockedVoucherIds, compoundKey];
         }
     }
 
@@ -339,9 +341,10 @@ export class ShopStore {
             const filtered = rawVouchers.filter(v => {
                 if (!isViralVoucher(v)) return true;
                 
-                // If is_viral, check if it's in the unlocked list
+                // Elite V2026: ONLY compound key `${product.id}_${v.id}` is valid.
+                // Plain id fallback removed — prevents viral voucher leaking without share unlock.
                 const unlockKey = `${this.product?.id}_${v.id}`;
-                return this.unlockedVoucherIds.includes(unlockKey) || this.unlockedVoucherIds.includes(v.id);
+                return this.unlockedVoucherIds.includes(unlockKey);
             });
 
             // Position #1 priority for viral vouchers

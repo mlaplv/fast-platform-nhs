@@ -26,6 +26,7 @@
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   interface MobileOfferProps {
     product?: Product;
@@ -94,14 +95,20 @@
   
   $effect(() => {
     if (product?.id && typeof window !== 'undefined') {
-      isViralUnlocked = localStorage.getItem(`viral_unlocked_${product.id}`) !== null;
+      const userId = authStore.user?.id;
+      const localKey = userId ? `viral_unlocked_${userId}_${product.id}` : null;
+      isViralUnlocked = authStore.isAuthenticated && localKey
+        ? localStorage.getItem(localKey) !== null
+        : false;
     }
   });
 
   // Elite V2.2: Auto-apply viral voucher upon unlock for instant premium feeling
   $effect(() => {
     if (isViralUnlocked && product?.id) {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      const userId = authStore.user?.id;
+      const localKey = userId ? `viral_unlocked_${userId}_${product.id}` : null;
+      const saved = localKey ? localStorage.getItem(localKey) : null;
       if (saved) {
         try {
           const data = JSON.parse(saved);

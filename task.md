@@ -670,3 +670,65 @@
 - [x] Back-end: Enrich PydanticAI system prompt in `viral_fraud_agent.py` to identify "Idle waiting & closing" bot behavior. (Done)
 - [x] Verification: Test compile Front-end and verify Back-end tests. (Done - storefront built successfully, offline heuristic tests passed 100%)
 
+# Task Checklist - Fixing User Page Wrapper & CTV Promo Popup Aesthetics (Elite V2.2)
+
+- [x] Cập nhật lớp phủ nền Backdrop từ `bg-stone-950/40 backdrop-blur-md` lên `bg-stone-950/70 backdrop-blur-lg` để tăng độ tương phản và tập trung thị giác trong `UserPageWrapper.svelte`. (Done)
+- [x] Thay đổi dải màu kính cực kỳ trong suốt của Container Modal sang Kính đục cao cấp "Solid Glassmorphism" (`bg-gradient-to-br from-sky-100/95 via-sky-50/90 to-white/98 text-sky-950 border-white`) để ngăn chặn việc xuyên thấu thẻ thành viên và chữ phía sau. (Done)
+- [x] Tinh chỉnh lớp màu của thẻ Highlight Promo Card bên trong từ `bg-white/40 border border-white/60` lên `bg-white/80 border border-white` để tăng độ trắng mịn và độ trực quan. (Done)
+- [x] Thực hiện chạy tiến trình `pnpm build` tại thư mục `/frontend` để bảo đảm biên dịch hoàn toàn thành công, zero warnings/errors. (Done)
+- [x] Cấu trúc tệp minh chứng kỹ thuật `walkthrough.md` với các thay đổi và kết quả build làm bằng chứng nghiệm thu thành công. (Done)
+
+# Task Checklist - Z-Index Centralized Governance Cleanup (Elite V2.2)
+
+- [x] Trinh sát & Quét toàn bộ: Phát hiện các giá trị z-index hardcoded vi phạm Điều lệ IV trong Hiến pháp. (Done)
+- [x] UserPageWrapper.svelte: Thay thế `z-[999999]` bằng biến CSS `var(--z-modal-overlay)` được đồng bộ hóa từ layout. (Done)
+- [x] ShareToUnlock.svelte: Khử bỏ `z-index: 99999` trong style block, thay bằng `var(--z-modal-overlay)`. (Done)
+- [x] ShareToUnlockPromoMobile.svelte: Khử bỏ `z-index: 99999` trong style block, thay bằng `var(--z-modal-overlay)`. (Done)
+
+# Task Checklist - LCP Hero Image Preload Synchronization (Elite V2.2)
+
+- [x] Phân tích nguồn: Xác định sự không đồng bộ giữa ảnh mặc định `product.images[0]` của thẻ preload với các biến thể sản phẩm (`tierVariations`) có trong các chế độ giao diện Mobile/Desktop khác nhau. (Done)
+- [x] Sửa lỗi +page.svelte: Đồng bộ hóa toàn diện thuật toán lấy ảnh đầu tiên của các biến thể phân loại (Mobile & Desktop) tương ứng với logic hiển thị thực tế của component con. (Done)
+- [x] Xử lý tệp đa phương tiện: Tích hợp bộ nhận dạng video (`isVideoUrl`) để thay đổi kiểu preload từ `image` sang `video` một cách tương thích, tránh nạp trùng lặp. (Done)
+
+# Task Checklist - Landing Share Box Auto-Unmounting (Elite V2.2)
+
+- [x] ViralFunnelLanding.svelte: Thiết lập điều kiện `step !== 'revealed'` tại thẻ bao ngoài cùng để unmount và ẩn hoàn toàn khối chia sẻ (ViralFunnel) ngay sau khi mở khóa thành công, làm sạch giao diện landing page tối đa. (Done)
+
+# Task Checklist - Logging & PII Masking Hygiene (Elite V2.2)
+
+- [x] Bảo mật PII: Thực hiện che mặt nạ (masking) đối với trường nhạy cảm `user_id` (`user_id[:8]...`) trong tất cả các log sự kiện xác thực của `viral_share_service.py` để tránh vi phạm quy chuẩn an toàn thông tin. (Done)
+- [x] Tối ưu hóa Log Level: Hạ cấp cảnh báo `NO POST_ID` từ mức `WARNING` xuống `INFO` vì đây là trường hợp fallback bình thường của các nền tảng (popup/native share không hỗ trợ post_id), giúp tránh làm nhiễu hệ thống giám sát. (Done)
+
+# Task Checklist - Storefront Quick Login Modal Desktop Dual-Panel Redevelopment (Elite V2.2)
+
+- [x] Sửa lỗi hiển thị nút Close bằng cách thiết kế dạng viên kính tròn nổi (Floating Circle Glass) đặt tại góc trên cùng bên phải toàn bộ Modal Card. (Done)
+- [x] Khắc phục triệt để lỗi "tự ý viết hoa" in đậm aggressive uppercase bằng cách chuyển đổi 100% các nhãn text uppercase sang mixed-case/title-case thanh lịch trong `AuthForm.svelte` và `QuickLoginModalDesktop.svelte`. (Done)
+- [x] Thiết kế lại `QuickLoginModalDesktop.svelte` theo cấu trúc Dual-Panel (Hai Cột) chuẩn phong cách Hình 2 (Osmo.vn) với chiều rộng 880px. (Done)
+- [x] Cấu hình Cột Trái hiển thị 3 Quyền lợi thành viên VIP chuẩn Viral FOMO (Cộng tác viên hoa hồng 30%, Tích điểm mua sắm hoàn tiền 5%, Quản lý Voucher & Đơn hàng) với hiệu ứng kính mờ và glowing orbs tuyệt đẹp. (Done)
+- [x] Đồng bộ hóa hiển thị và các nút social login, đảm bảo responsive ẩn cột trái trên màn hình di động/tablet nhỏ. (Done)
+- [x] Thực hiện chạy tiến trình build sản phẩm storefront `npm run build` hoặc `pnpm build` để xác nhận biên dịch 100% không cảnh báo lỗi. (Done)
+- [x] Cập nhật tài liệu minh chứng `walkthrough.md` với các chi tiết kỹ thuật đã thực hiện. (Done)
+
+# Task Checklist - Purging Bubbly Rounded "AI Slop" Borders & Toning Down Glowing Colors (Elite V2.2)
+
+- [x] Sửa đổi `AuthForm.svelte` chuyển hóa công thức `r` từ `rounded-2xl` sang `rounded-lg` chuẩn lập trình viên tối giản. (Done)
+- [x] Sửa đổi `AuthForm.svelte` chuyển đổi khung thông báo lỗi từ `rounded-xl` thành `rounded-lg` cho đồng bộ. (Done)
+- [x] Tái thiết kế `QuickLoginModalDesktop.svelte` giảm bán kính bo góc toàn bộ Modal Card từ `rounded-3xl` xuống `rounded-xl` sắc nét, chuyên nghiệp. (Done)
+- [x] Loại bỏ triệt để các quầng sáng phát quang nền neon `blur-3xl` gây cảm giác "AI slop" và thay thế nền gradient xanh lam bằng nền đen mờ sang trọng `bg-[#090d16]`. (Done)
+- [x] Thay đổi bo góc của các Perk Card từ `rounded-2xl` sang `rounded-lg`, và bo góc của các icon container từ `rounded-xl` sang `rounded-md`. (Done)
+- [x] Thay thế huy hiệu hình tròn `rounded-full` bằng nhãn hình chữ nhật bo góc nhỏ `rounded`. (Done)
+- [x] Thay đổi nút Close floating từ `rounded-full` sang `rounded-lg` cho đồng bộ tuyệt đối với phong cách Linear/Vercel. (Done)
+- [x] Biên dịch storefront thành công 100% với 0 lỗi/cảnh báo. (Done)
+
+# Task Checklist - True Frosted Liquid Glassmorphism Integration (Elite V2.2)
+
+- [x] Sửa đổi `QuickLoginModalDesktop.svelte` tích hợp lớp kính mờ `bg-slate-950/20 backdrop-blur-xl border-r border-white/10`. (Done)
+- [x] Tạo dải màu gradient chìm sâu `from-[#0c1a30]/90 via-[#070e1b]/95 to-[#1c183a]/80` và phản chiếu mặt kính chéo `via-white/[0.02]` phía dưới lớp kính. (Done)
+- [x] Biến đổi các Perk Cards thành các tấm kính mờ thực thụ `bg-white/[0.02] backdrop-blur-md border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/20`. (Done)
+- [x] Bảo chứng biên dịch tĩnh storefront hoàn hảo 100%. (Done)
+- [x] Tích hợp chính xác liên kết Điều khoản dịch vụ (`https://osmo.vn/dieu-khoan-dich-vu.html`) và Chính sách bảo mật (`https://osmo.vn/chinh-sach-bao-mat-thong-tin.html`) dưới chân Cột Trái. (Done)
+
+
+
+
