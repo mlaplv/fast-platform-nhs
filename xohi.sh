@@ -966,6 +966,46 @@ function upgrade_python_packages() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function total_garbage_clean() {
+    echo -e "${CYAN}[CLEAN] Đang tiến hành dọn rác toàn diện (Cache, Logs & Old Packages)...${NC}"
+
+    # 1. Truncate Docker logs
+    echo -e "${YELLOW}-> [1/5] Đang giải phóng bộ nhớ logs Docker...${NC}"
+    if sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
+        echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker!${NC}"
+    else
+        echo -e "${YELLOW}[INFO] Không tìm thấy tệp logs để dọn dẹp hoặc thiếu quyền sudo.${NC}"
+    fi
+
+    # 2. Clean UV cache inside container
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        echo -e "${YELLOW}-> [2/5] Đang xóa bộ nhớ đệm UV Cache trong container...${NC}"
+        docker exec -i fast_platform_api uv cache clean 2>/dev/null || true
+        echo -e "${GREEN}   ✔ Đã xóa sạch UV Cache inside container!${NC}"
+    fi
+
+    # 3. Clean local host UV cache
+    if command -v uv &> /dev/null; then
+        echo -e "${YELLOW}-> [3/5] Đang xóa bộ nhớ đệm UV Cache cục bộ...${NC}"
+        uv cache clean 2>/dev/null || true
+    fi
+
+    # 4. Prune unused Docker builds & caches
+    echo -e "${YELLOW}-> [4/5] Đang dọn dẹp Docker rác (Dangling images, build caches)...${NC}"
+    docker system prune -f 2>/dev/null || true
+    docker builder prune -f 2>/dev/null || true
+    echo -e "${GREEN}   ✔ Đã giải phóng toàn bộ tài nguyên Docker dư thừa!${NC}"
+
+    # 5. Clean local system temp logs & caches
+    echo -e "${YELLOW}-> [5/5] Đang làm sạch logs hệ thống cục bộ...${NC}"
+    sudo rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
+    sudo find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
+    
+    echo -e "${GREEN}[SUCCESS] Đã hoàn tất dọn dẹp hệ thống siêu sạch!${NC}"
+    df -h /
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 # Handle direct command-line arguments (e.g. ./xohi.sh dondep)
 if [[ -n "$1" ]]; then
     case "$1" in
@@ -1010,6 +1050,7 @@ while true; do
     echo "19) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
     echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
     echo "21) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
+    echo "22) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1106,6 +1147,9 @@ while true; do
             ;;
         21)
             upgrade_python_packages
+            ;;
+        22)
+            total_garbage_clean
             ;;
         0)
             exit 0
