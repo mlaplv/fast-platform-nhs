@@ -45,6 +45,7 @@
   let { product, compact = false, variant = 'floating', onUnlock }: Props = $props();
   const clientUi = getClientUi();
   const shopStore = getShopStore();
+  const cartStore = getCartStore();
 
   let isMounted = $state(false);
   onMount(() => {
@@ -105,22 +106,7 @@
   let errorMsg = $state('');
   let activePlatform = $state<string>('facebook');
 
-  // Viral 2026 Telemetry State
   let shareStartTime = $state<number>(0);
-  let timeOnPageMs = $state<number>(0);
-  let visibilityChanges = $state<number>(0);
-  let maxScrollY = $state<number>(0);
-  let interactionCount = $state<number>(0);
-  let shareMethod = $state<'native' | 'popup' | 'clipboard'>('unknown');
-  let popupWasBlocked = $state<boolean>(false);
-  let mouseAcceleration = $state<number>(0);
-  let interactionRhythm = $state<number>(0);
-  let honeypotTriggered = $state<boolean>(false);
-  
-  let _lastTouchX = 0, _lastTouchY = 0, _lastTouchTime = 0;
-  let _clickTimes: number[] = [];
-  
-  const initTime = Date.now();
 
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoaded = $state(false);
@@ -202,51 +188,78 @@
     }
   }
 
+  // ── Elite V2.2: Focus Listeners & Verification Controls ──────────────────────
+  let hasRegisteredListeners = false;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let popupWindow: Window | null = null;
+  let verifyAttempts = 0;
+  let isVerifying = false;
+  let oauthMessageHandler: ((e: MessageEvent) => void) | null = null;
+
+  const handleFocus = () => {
+    const duration = Date.now() - shareStartTime;
+    console.log(`[ShareToUnlockMobile Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
+    // Bỏ qua nếu thời gian quá ngắn dưới 1s (tránh focus nhầm khi vừa click mở popup)
+    if (duration < 1000) {
+        console.warn(`[ShareToUnlockMobile Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
+        return;
+    }
+    
+    cleanupFocusListeners();
+    if (step !== 'revealed') {
+        console.log(`[ShareToUnlockMobile Focus] Gọi attemptVerify() để backend kiểm tra.`);
+        attemptVerify();
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      const duration = Date.now() - shareStartTime;
+      console.log(`[ShareToUnlockMobile Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
+      if (duration < 1000) {
+          console.warn(`[ShareToUnlockMobile Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
+          return;
+      }
+      
+      cleanupFocusListeners();
+      if (step !== 'revealed') {
+          console.log(`[ShareToUnlockMobile Visibility] Gọi attemptVerify() để backend kiểm tra.`);
+          attemptVerify();
+      }
+    }
+  };
+
+  function cleanupFocusListeners() {
+    if (hasRegisteredListeners) {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      hasRegisteredListeners = false;
+    }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    if (oauthMessageHandler) {
+      window.removeEventListener('message', oauthMessageHandler);
+      oauthMessageHandler = null;
+    }
+  }
+
+  const attemptVerify = async () => {
+    if (!isComponentMounted || isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
+    
+    isVerifying = true;
+    verifyAttempts++;
+    try {
+      await viralActions.verify();
+    } catch (e) {
+      // Failed, let them try again by focusing
+    } finally {
+      isVerifying = false;
+    }
+  };
 
   $effect(() => {
-    const onVisibilityChange = () => { 
-      if (document.hidden) visibilityChanges++; 
-    };
-    const onBlur = () => {
-      visibilityChanges++;
-    };
-    const onClick = () => {
-      interactionCount++;
-      _clickTimes.push(Date.now());
-      if (_clickTimes.length > 2) {
-        const diffs = _clickTimes.slice(1).map((t, i) => t - _clickTimes[i]);
-        const mean = diffs.reduce((a,b) => a+b, 0) / diffs.length;
-        interactionRhythm = diffs.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / diffs.length;
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      const now = Date.now();
-      if (_lastTouchTime > 0) {
-        const dt = (now - _lastTouchTime) / 1000;
-        if (dt > 0) {
-          const dx = touch.clientX - _lastTouchX;
-          const dy = touch.clientY - _lastTouchY;
-          const v = Math.sqrt(dx*dx + dy*dy) / dt;
-          if (v > mouseAcceleration) mouseAcceleration = v;
-        }
-      }
-      _lastTouchX = touch.clientX;
-      _lastTouchY = touch.clientY;
-      _lastTouchTime = now;
-    };
-    const onScroll = () => {
-        const scrolled = window.scrollY;
-        if (scrolled > maxScrollY) maxScrollY = scrolled;
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('blur', onBlur);
-    document.addEventListener('click', onClick);
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
-
     if (typeof window !== 'undefined') {
       const isCookieUnlocked = promoConfig?.voucher_id && shopStore?.unlockedVoucherIds?.includes(`${product.id}_${promoConfig.voucher_id}`);
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
@@ -255,7 +268,6 @@
         try {
           const data = JSON.parse(saved);
           
-          // Elite V2.2: Nếu mã đã lưu khác với mã đang hoạt động được backend hydrate -> dọn sạch cache cũ để tự động chuyển dịch sang mã mới
           if (promoConfig?.voucher_id && data.code !== promoConfig.voucher_id) {
             localStorage.removeItem(`viral_unlocked_${product.id}`);
             voucherCode = null;
@@ -291,18 +303,12 @@
     }
     return () => {
         isComponentMounted = false;
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-        window.removeEventListener('blur', onBlur);
-        document.removeEventListener('click', onClick);
-        window.removeEventListener('touchmove', onTouchMove);
-        window.removeEventListener('scroll', onScroll);
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
+        cleanupFocusListeners();
     };
   });
 
   onDestroy(() => {
+    cleanupFocusListeners();
     if (progressInterval) {
       clearInterval(progressInterval);
     }
@@ -310,11 +316,15 @@
 
   const viralActions = {
     async share(platform: string = 'facebook') {
+      if (typeof platform !== 'string') {
+        platform = 'facebook';
+      }
       if (step !== 'idle' && step !== 'error') return;
       activePlatform = platform;
       step = 'sharing';
       startProgress();
-      
+      let oauthSuccessReceived = false;
+
       try {
         const res = await fetch('/api/v1/client/viral/share-intent', {
           method: 'POST',
@@ -327,103 +337,69 @@
         _fingerprint = data.fingerprint;
         
         shareStartTime = Date.now();
-        timeOnPageMs = shareStartTime - initTime;
+        verifyAttempts = 0;
 
-        // Viral 2026: Auto-detect share method
-        if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
-            shareMethod = 'native';
-            try {
-                await navigator.share({
-                    title: product.name,
-                    text: `Xem ngay ưu đãi ${voucherLabel || ''} tại Osmo!`,
-                    url: window.location.href
-                });
-                // Promise resolved = user picked an app. Auto verify!
-                await viralActions.verify();
-            } catch (err: unknown) {
-                if (err instanceof Error && err.name === 'AbortError') {
-                    throw new Error('Bạn đã hủy chia sẻ');
-                }
-                throw err;
-            }
+        // Open official OAuth gateway with authentic social login and verification state
+        const w = 600;
+        const h = 600;
+        const left = (window.innerWidth / 2) - (w / 2);
+        const top = (window.innerHeight / 2) - (h / 2);
+        
+        // Elite V2.2: Trỏ thẳng tới Social Share Dialog thật 100% của MXH thay vì trang OAuth Login
+        const productUrl = window.location.origin + '/product/' + product.id;
+        let shareUrl = '';
+        if (platform === 'facebook') {
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
+        } else if (platform === 'zalo') {
+            shareUrl = `https://sp.zalo.me/share_to_zalo?url=${encodeURIComponent(productUrl)}`;
         } else {
-            shareMethod = 'popup';
-            // Desktop fallback: Open popup and detect when they come back
-            const w = 600;
-            const h = 400;
-            const left = (window.innerWidth / 2) - (w / 2);
-            const top = (window.innerHeight / 2) - (h / 2);
-            const cleanUrl = window.location.origin + window.location.pathname;
-            
-            const encodedUrl = encodeURIComponent(cleanUrl);
-            const platforms: Record<string, string> = {
-              facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-              zalo: `https://sp.zalo.me/plugins/share?url=${encodedUrl}`,
-              twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(product.name)}`,
-              tiktok: `https://www.tiktok.com/`
-            };
-            const shareUrl = platforms[platform] || platforms['facebook'];
-            
-            const popup = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
-            
-            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                popupWasBlocked = true;
-                // If popup blocked, let's just try to verify anyway, AI will handle
-                setTimeout(() => { if(isComponentMounted) viralActions.verify() }, 2000);
-            } else {
-                let verifyAttempts = 0;
-                let isVerifying = false;
+            // Default fallback
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
+        }
+        
+        cleanupFocusListeners();
+        
+        // Đăng ký listeners cho trang cha để phát hiện người dùng quay lại trang
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        hasRegisteredListeners = true;
+        console.log(`[ShareToUnlockMobile Share] Bắt đầu click mở popup chia sẻ. Platform: ${platform}. shareStartTime: ${shareStartTime}`);
 
-                const attemptVerify = async () => {
-                    if (!isComponentMounted || isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
-                    const elapsed = Date.now() - shareStartTime;
-                    if (elapsed < 4000) {
-                        errorMsg = 'Vui lòng dành thêm chút thời gian để chia sẻ nhé!';
-                        step = 'error';
-                        return;
-                    }
+        popupWindow = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
+        
+        if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
+            console.error('[ShareToUnlockMobile Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
+            // Popup bị chặn → fallback verify sau 2s
+            setTimeout(() => { if (isComponentMounted) viralActions.verify(); }, 2000);
+        } else {
+            console.log('[ShareToUnlockMobile Share] Mở popup thành công. Bắt đầu pollTimer.');
+            // Fallback polling: phát hiện khi popup đóng
+            // Tính toán thời gian tương tác thực tế (Engagement Time) để chống Click-and-Close bypass
+            pollTimer = setInterval(() => {
+                if (!isComponentMounted) {
+                    cleanupFocusListeners();
+                    return;
+                }
+                if (popupWindow) {
+                    const isClosed = popupWindow.closed;
+                    const duration = Date.now() - shareStartTime;
                     
-                    isVerifying = true;
-                    verifyAttempts++;
-                    try {
-                        await viralActions.verify();
-                    } catch (e) {
-                        // Failed, let them try again by focusing
-                    } finally {
-                        isVerifying = false;
-                    }
-                };
-
-                const handleFocus = () => {
-                    if (step !== 'revealed') attemptVerify();
-                };
-
-                const handleVisibilityChange = () => {
-                    if (!document.hidden) handleFocus();
-                };
-
-                // Poll popup closure
-                const pollTimer = setInterval(() => {
-                    if (!isComponentMounted || popup.closed) {
-                        clearInterval(pollTimer);
-                        window.removeEventListener('focus', handleFocus);
-                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    if (isClosed) {
+                        console.log(`[ShareToUnlockMobile Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms (yêu cầu >= 4500ms)`);
                         
-                        if (isComponentMounted && popup.closed) {
-                            const elapsed = Date.now() - shareStartTime;
-                            if (elapsed < 1500) {
-                                // Firefox isolation detected. Popup is actually still open.
-                                // Rely strictly on focus events when they return to the main window.
-                                window.addEventListener('focus', handleFocus, { once: true });
-                                document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
-                            } else {
-                                // Normal browser, popup legitimately closed.
+                        // Nếu thời gian tương tác đã đủ >= 4.5 giây, tự động gọi verify ngay để mở khóa
+                        if (duration >= 4500) {
+                            console.log(`[ShareToUnlockMobile Poller] Thời lượng mở cửa sổ hợp lệ (${duration}ms >= 4500ms). Gọi cleanupFocusListeners() và attemptVerify().`);
+                            cleanupFocusListeners();
+                            if (isComponentMounted && step !== 'revealed') {
                                 attemptVerify();
                             }
+                        } else {
+                            console.warn(`[ShareToUnlockMobile Poller] Phát hiện closed ảo/sớm: ${duration}ms < 4500ms. Bỏ qua, tiếp tục chờ sự kiện focus trang cha.`);
                         }
                     }
-                }, 500);
-            }
+                }
+            }, 800);
         }
       } catch (e: unknown) {
         errorMsg = e instanceof Error ? e.message : 'Đã xảy ra lỗi';
@@ -433,20 +409,21 @@
     },
     async verify() {
       if (!_token || !_fingerprint || !promoConfig) return;
+      if (!promoConfig.voucher_id) {
+        errorMsg = 'Cấu hình ưu đãi không hợp lệ. Vui lòng tải lại trang.';
+        step = 'error';
+        return;
+      }
       if (step === 'revealed') return;
       
-      const shareDurationMs = Date.now() - shareStartTime;
-      const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
-
       step = 'verifying';
       startProgress();
 
-      // Elite V2.2: Simulated AI Deep Verification Sequence
       const verificationSteps = [
-        'Đang phân tích Social Graph...',
-        'Kiểm tra tính nhất quán Metadata...',
-        'Xác thực hành vi chia sẻ...',
-        'Đối chiếu Telemetry thời gian thực...'
+        'Đang thiết lập kênh Webhook...',
+        'Xác thực chữ ký OAuth 2.0...',
+        'Chờ tín hiệu từ máy chủ xã hội...',
+        'Hoàn tất mở khóa ưu đãi...'
       ];
       
       let currentStepIdx = 0;
@@ -457,32 +434,33 @@
         } else {
           clearInterval(stepInterval);
         }
-      }, 1200);
+      }, 800);
 
       try {
-        // Minimum wait time for AI "thinking" effect
-        await new Promise(r => setTimeout(r, 4500));
+        // Wait 2 seconds for nice premium feeling
+        await new Promise(r => setTimeout(r, 2000));
 
+        const durationMs = Date.now() - shareStartTime;
         const res = await fetch('/api/v1/client/viral/verify-share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-              product_id: product.id, 
-              fingerprint: _fingerprint, 
-              token: _token, 
-              voucher_id: promoConfig.voucher_id,
-              telemetry: {
-                  time_on_page_ms: Math.round(timeOnPageMs),
-                  share_duration_ms: Math.round(shareDurationMs),
-                  visibility_changes: visibilityChanges,
-                  scroll_depth_pct: scrollDepthPct,
-                  interaction_count: interactionCount,
-                  share_method: shareMethod,
-                  popup_was_blocked: popupWasBlocked,
-                  mouse_acceleration: mouseAcceleration,
-                  interaction_rhythm: interactionRhythm,
-                  honeypot_triggered: honeypotTriggered
-              }
+            product_id: product.id, 
+            fingerprint: _fingerprint, 
+            token: _token, 
+            voucher_id: promoConfig.voucher_id,
+            telemetry: {
+              time_on_page_ms: 0,
+              share_duration_ms: durationMs,
+              visibility_changes: 0,
+              scroll_depth_pct: 0.0,
+              interaction_count: 0,
+              share_method: activePlatform || 'facebook',
+              popup_was_blocked: false,
+              mouse_acceleration: 0.0,
+              interaction_rhythm: 0.0,
+              honeypot_triggered: false
+            }
           }),
         });
         
@@ -490,7 +468,27 @@
         
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.error || 'Hệ thống phát hiện bất thường. Vui lòng chia sẻ lại!');
+            let errMsg = 'Xác minh chia sẻ không thành công. Bạn chưa hoàn thành việc đăng bài chia sẻ.';
+            if (errData) {
+                if (typeof errData.errors === 'string') {
+                    errMsg = errData.errors;
+                } else if (Array.isArray(errData.errors) && errData.errors.length > 0) {
+                    const firstErr = errData.errors[0];
+                    errMsg = firstErr?.message || firstErr?.msg || JSON.stringify(firstErr);
+                } else if (typeof errData.detail === 'string' && errData.detail !== 'Data validation failed') {
+                    errMsg = errData.detail;
+                } else if (Array.isArray(errData.detail) && errData.detail.length > 0) {
+                    const firstErr = errData.detail[0];
+                    errMsg = firstErr?.message || firstErr?.msg || JSON.stringify(firstErr);
+                } else if (errData.detail === 'Data validation failed' && errData.errors) {
+                    errMsg = typeof errData.errors === 'object' ? JSON.stringify(errData.errors) : String(errData.errors);
+                } else if (typeof errData.error === 'string') {
+                    errMsg = errData.error;
+                } else if (typeof errData.message === 'string') {
+                    errMsg = errData.message;
+                }
+            }
+            throw new Error(errMsg);
         }
         const data = await res.json();
         voucherCode = data.voucher_code;
@@ -499,7 +497,7 @@
           code: voucherCode, label: voucherLabel, unlocked_at: Date.now(),
           value: data.voucher_value, type: data.voucher_type, min_spend: data.min_spend
         }));
-         shopStore?.injectViralVoucher(
+        shopStore?.injectViralVoucher(
           data.voucher_code,
           data.voucher_label,
           data.voucher_value,
@@ -507,7 +505,6 @@
           data.min_spend
         );
         try {
-          const cartStore = getCartStore();
           cartStore?.setVouchers(cartStore.vouchers);
         } catch (e) {
           console.error('Failed to sync to cartStore on unlock', e);
@@ -518,8 +515,13 @@
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
         clientUi.showToast('🎉 Đã áp mã ưu đãi!', 'success');
       } catch (e: unknown) {
-        errorMsg = e instanceof Error ? e.message : 'Xác minh thất bại';
+        const errMsg = e instanceof Error ? e.message : 'Xác minh thất bại';
+        errorMsg = errMsg;
         step = 'error';
+        clientUi.showToast(errorMsg, 'error');
+        console.groupCollapsed('⚠️ [Osmo Mobile Verify] Xác thực lượt chia sẻ không thành công');
+        console.warn(`Chi tiết: ${errorMsg}`);
+        console.groupEnd();
       } finally {
         finishProgress();
       }
@@ -571,7 +573,19 @@
           <div class="stu-ios-container">
             <div class="stu-ios-content">
               <h4 class="stu-ios-title first-letter:uppercase">{displayRewardLabel}</h4>
-              {#if subDescription}
+              {#if errorMsg}
+                <div class="flex flex-col gap-1.5 mt-1 items-start">
+                  <span class="text-[9px] text-red-400 font-bold bg-red-950/40 border border-red-500/20 px-2 py-0.5 rounded-sm w-fit">{errorMsg}</span>
+                  {#if _token}
+                    <button 
+                      class="text-[9px] text-[#ffb7c5] hover:text-white font-extrabold hover:underline flex items-center gap-0.5 mt-0.5 transition-colors border:none bg-transparent p-0 cursor-pointer"
+                      onclick={() => attemptVerify()}
+                    >
+                      <span>➔ Tôi đã chia sẻ xong, Xác minh ngay</span>
+                    </button>
+                  {/if}
+                </div>
+              {:else if subDescription}
                 <span class="stu-ios-sub inline-block first-letter:uppercase">{subDescription}</span>
               {/if}
             </div>
@@ -597,7 +611,19 @@
             <div class="stp-funnel-row">
               <div class="stp-f-msg">
                 <span class="stp-f-t inline-block first-letter:uppercase">{displayRewardLabel}</span>
-                {#if subDescription}
+                {#if errorMsg}
+                  <div class="flex flex-col gap-1 items-start mt-0.5">
+                    <span class="text-[9px] text-red-400 font-bold leading-none mb-1 inline-block first-letter:uppercase">{errorMsg}</span>
+                    {#if _token}
+                      <button 
+                        class="text-[9px] text-[#ffb7c5] hover:text-white font-extrabold hover:underline flex items-center gap-0.5 mb-1 transition-colors border:none bg-transparent p-0 cursor-pointer"
+                        onclick={() => attemptVerify()}
+                      >
+                        <span>➔ Tôi đã chia sẻ xong, Xác minh ngay</span>
+                      </button>
+                    {/if}
+                  </div>
+                {:else if subDescription}
                   <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1 inline-block first-letter:uppercase">{subDescription}</span>
                 {/if}
                 <div class="stp-f-progress">

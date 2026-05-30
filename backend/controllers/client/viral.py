@@ -8,9 +8,9 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from litestar import Controller, get, post
+from litestar import Controller, get, post, Response
 from litestar.connection import Request
-from litestar.exceptions import TooManyRequestsException, NotFoundException, ValidationException
+from litestar.exceptions import TooManyRequestsException, NotFoundException, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.viral import (
@@ -115,21 +115,31 @@ class ViralController(Controller):
         if telemetry_dict is not None:
             telemetry_dict["client_ip"] = ip
 
-        result = await viral_share_service.verify_and_redeem(
-            product_id=data.product_id,
-            fingerprint=data.fingerprint,
-            token=data.token,
-            db_session=db_session,
-            voucher_id=data.voucher_id,
-            telemetry_data=telemetry_dict,
-        )
+        try:
+            result = await viral_share_service.verify_and_redeem(
+                product_id=data.product_id,
+                fingerprint=data.fingerprint,
+                token=data.token,
+                db_session=db_session,
+                voucher_id=data.voucher_id,
+                telemetry_data=telemetry_dict,
+            )
+        except ValueError as val_err:
+            logger.warning(
+                f"[ViralController] VERIFY FAILED (ValueError) — product={data.product_id}, IP={ip}, Error={val_err}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=str(val_err)
+            )
 
         if result is None:
             logger.warning(
                 f"[ViralController] VERIFY FAILED — product={data.product_id}, IP={ip}"
             )
-            raise ValidationException(
-                "Mã xác nhận không hợp lệ hoặc đã hết hạn. Vui lòng chia sẻ lại."
+            raise HTTPException(
+                status_code=400,
+                detail="Mã xác nhận không hợp lệ hoặc bạn chưa hoàn tất chia sẻ trên mạng xã hội. Vui lòng chia sẻ lại nhé!"
             )
 
         return VerifyShareResponse(
@@ -167,3 +177,6 @@ class ViralController(Controller):
             "enabled": result.get("is_active", True),
             **result
         }
+
+
+

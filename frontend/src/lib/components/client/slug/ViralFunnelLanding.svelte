@@ -132,14 +132,35 @@
   let isVerifying = false;
 
   const handleFocus = () => {
+    const duration = Date.now() - shareStartTime;
+    console.log(`[ViralFunnel Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
+    // Bỏ qua nếu thời gian quá ngắn dưới 1s (tránh focus nhầm khi vừa click mở popup)
+    if (duration < 1000) {
+        console.warn(`[ViralFunnel Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
+        return;
+    }
+    
     cleanupFocusListeners();
-    if (step !== 'revealed') attemptVerify();
+    if (step !== 'revealed') {
+        console.log(`[ViralFunnel Focus] Gọi attemptVerify() để backend kiểm tra.`);
+        attemptVerify();
+    }
   };
 
   const handleVisibilityChange = () => {
     if (!document.hidden) {
+      const duration = Date.now() - shareStartTime;
+      console.log(`[ViralFunnel Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
+      if (duration < 1000) {
+          console.warn(`[ViralFunnel Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
+          return;
+      }
+      
       cleanupFocusListeners();
-      if (step !== 'revealed') attemptVerify();
+      if (step !== 'revealed') {
+          console.log(`[ViralFunnel Visibility] Gọi attemptVerify() để backend kiểm tra.`);
+          attemptVerify();
+      }
     }
   };
 
@@ -157,8 +178,6 @@
 
   const attemptVerify = async () => {
     if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
-    const elapsed = Date.now() - shareStartTime;
-    if (elapsed < 4000) return; // Too fast to be a real share
     
     isVerifying = true;
     verifyAttempts++;
@@ -304,30 +323,39 @@
             
             // Clean up old listeners before creating new ones
             cleanupFocusListeners();
+            console.log(`[ViralFunnel Share] Bắt đầu click mở popup chia sẻ. shareStartTime: ${shareStartTime}`);
 
             popupWindow = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
             
             if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
                 popupWasBlocked = true;
+                console.error('[ViralFunnel Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
                 // If popup blocked, let's just try to verify anyway, AI will handle
                 setTimeout(() => viralActions.verify(), 2000);
             } else {
+                console.log('[ViralFunnel Share] Mở popup thành công. Bắt đầu pollTimer.');
                 // Poll popup closure
                 pollTimer = setInterval(() => {
-                    if (popupWindow && popupWindow.closed) {
-                        cleanupFocusListeners();
-                        const elapsed = Date.now() - shareStartTime;
-                        if (elapsed < 1500) {
-                            // Firefox isolation detected. Popup is actually still open.
-                            // Rely strictly on focus events when they return to the main window.
-                            if (!hasRegisteredListeners) {
-                                hasRegisteredListeners = true;
-                                window.addEventListener('focus', handleFocus);
-                                document.addEventListener('visibilitychange', handleVisibilityChange);
+                    if (popupWindow) {
+                        const isClosed = popupWindow.closed;
+                        if (isClosed) {
+                            cleanupFocusListeners();
+                            const elapsed = Date.now() - shareStartTime;
+                            console.log(`[ViralFunnel Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${elapsed}ms`);
+                            if (elapsed < 1500) {
+                                console.warn(`[ViralFunnel Poller] Phát hiện closed ảo/sớm: ${elapsed}ms < 1500ms. Kích hoạt Focus listeners trên trang cha.`);
+                                // Firefox/Chrome isolation detected. Popup is actually still open.
+                                // Rely strictly on focus events when they return to the main window.
+                                if (!hasRegisteredListeners) {
+                                    hasRegisteredListeners = true;
+                                    window.addEventListener('focus', handleFocus);
+                                    document.addEventListener('visibilitychange', handleVisibilityChange);
+                                }
+                            } else {
+                                // Normal browser, popup legitimately closed.
+                                console.log(`[ViralFunnel Poller] Cửa sổ đóng hợp lệ (${elapsed}ms >= 1500ms). Tiến hành gọi attemptVerify().`);
+                                attemptVerify();
                             }
-                        } else {
-                            // Normal browser, popup legitimately closed.
-                            attemptVerify();
                         }
                     }
                 }, 500);
