@@ -15,7 +15,13 @@
     sensitivity: number;
   }
 
-  let { data = $bindable({ skinType: '', concerns: [], sensitivity: 5 }) }: { data: SkinData } = $props();
+  let { data = $bindable() }: { data: SkinData } = $props();
+
+  $effect.pre(() => {
+    if (!data) {
+      data = { skinType: '', concerns: [], sensitivity: 5 };
+    }
+  });
 
   const skinTypes = [
     { id: 'oily', label: 'Dầu', desc: 'Tiết nhiều bã nhờn, lỗ chân lông to', icon: Droplets },

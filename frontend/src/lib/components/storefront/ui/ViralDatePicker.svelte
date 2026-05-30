@@ -8,10 +8,16 @@
   import Check from "@lucide/svelte/icons/check";
 
   let { 
-    value = $bindable(''), 
+    value = $bindable(), 
     min = '', 
     onSelect 
   } = $props();
+
+  $effect.pre(() => {
+    if (value === undefined) {
+      value = '';
+    }
+  });
 
   // 🚀 ELITE STATE: Svelte 5 Runes
   let viewDate = $state(new Date());

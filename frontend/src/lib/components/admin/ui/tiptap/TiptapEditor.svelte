@@ -29,7 +29,7 @@
     assets = $bindable(),
     selectedAvatarUrl = $bindable(),
     selectedAssetIndex = $bindable(),
-    fullScreen = $bindable(false),
+    fullScreen = $bindable(),
     onToggleFullScreen = null,
     toolbarActions = [] as ToolbarAction[],
     annotations = [] as EditorAnnotation[],
@@ -332,6 +332,7 @@
     if (assets === undefined) assets = [];
     if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
     if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+    if (fullScreen === undefined) fullScreen = false;
     
     editor = new Editor({
       element,

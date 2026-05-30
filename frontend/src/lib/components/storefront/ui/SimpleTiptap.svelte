@@ -17,12 +17,18 @@
   }
 
   let {
-    content = $bindable(''),
+    content = $bindable(),
     placeholder = 'Nhập nội dung...',
     limit = 5000,
     variant = 'light',
     minHeight = '160px'
   }: Props = $props();
+
+  $effect.pre(() => {
+    if (content === undefined) {
+      content = '';
+    }
+  });
 
   let element: HTMLElement;
   let editor = $state.raw<Editor | null>(null);

@@ -21,13 +21,19 @@
     insights = [],
     campaigns = [],
     googleMetrics = [],
-    selectedCampaign = $bindable(null),
+    selectedCampaign = $bindable(),
     aiLoading = false,
     priorityColor,
     aiSuggest,
     aiResult = null,
     fmt = (n: number) => n.toLocaleString()
   } = $props();
+
+  $effect.pre(() => {
+    if (selectedCampaign === undefined) {
+      selectedCampaign = null;
+    }
+  });
 
   let dropdownOpen = $state(false);
 

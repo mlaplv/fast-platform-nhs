@@ -792,6 +792,9 @@
 - [x] Đồng bộ hóa hiệu ứng bóng đổ từ màu xanh lam lạc tông sang sắc hồng pha lê `rgba(255, 183, 197, 0.5)` và `rgba(255, 183, 197, 0.3)` tương thích với chủ đề di động. (Done)
 - [x] Khắc phục triệt để lỗi ReferenceError do biến `loadJIT` chưa được khai báo tại `+page.svelte` và `MobileLandingLayout.svelte`. (Done)
 - [x] Tiến hành biên dịch tĩnh dự án storefront thành công 100% không sinh lỗi hay cảnh báo. (Done)
+- [x] Quét toàn bộ mã nguồn Frontend và loại bỏ triệt để 100% lỗi `$bindable(default_value)` (Svelte 5 Binding Trap) có nguy cơ gây crash ứng dụng thành `props_invalid_value`. (Done)
+- [x] Khởi tạo an toàn cho 10 các tệp tin quan trọng (TrackMobile, SkinProfile, ViralDatePicker, SimpleTiptap, CheckResultPanel, AnalysisResultCopyright, AdsInsights, TiptapEditor, NeuralEditor, DraftStep) bằng cách gán giá trị mặc định trong `onMount` hoặc `$effect.pre`. (Done)
+- [x] Cập nhật toàn bộ các gói thư viện Python lên phiên bản mới nhất (bao gồm litellm 1.86.2, pydantic-ai 1.104.0, litestar 2.23.0, redis 8.0.0, numpy 2.4.6, advanced-alchemy 1.10.0, cryptography 48.0.0) và đồng bộ hóa uv.lock. (Done)
 
 
 

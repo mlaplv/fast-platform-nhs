@@ -12,7 +12,7 @@
   import { useNanobot } from '$lib/state/nanobot.svelte';
   const nanobot = useNanobot();
 
-  let { orderId = $bindable(''), phone = $bindable(''), isSubmitting, onTrack } = $props<{ 
+  let { orderId = $bindable(), phone = $bindable(), isSubmitting, onTrack } = $props<{ 
     orderId: string, 
     phone: string, 
     isSubmitting: boolean,
@@ -20,6 +20,8 @@
   }>();
 
   onMount(() => {
+    if (orderId === undefined) orderId = '';
+    if (phone === undefined) phone = '';
     const originalHideFooter = nanobot.ui.hideFooter;
     nanobot.ui.hideFooter = true;
     return () => {

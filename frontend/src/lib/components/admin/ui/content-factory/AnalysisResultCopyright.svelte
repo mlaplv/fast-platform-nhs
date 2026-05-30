@@ -17,7 +17,13 @@
     userPlanNote?: string;
   }
 
-  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, isRewriting = false, runNeuralRewrite, streamingText = '', streamingTarget = null, userPlanNote = $bindable('') }: Props = $props();
+  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, isRewriting = false, runNeuralRewrite, streamingText = '', streamingTarget = null, userPlanNote = $bindable() }: Props = $props();
+
+  $effect.pre(() => {
+    if (userPlanNote === undefined) {
+      userPlanNote = '';
+    }
+  });
 
   let lineNotes = $state<Record<string, string>>({});
   let editingLines = $state<Record<string, boolean>>({});

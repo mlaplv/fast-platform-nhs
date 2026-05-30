@@ -23,7 +23,7 @@
     runNeuralRewrite,
     runBulkBoosterFix,
     runAiBooster,
-    userPlanNote = $bindable(''),
+    userPlanNote = $bindable(),
     currentAnalysisStep = null,
     boosterAnnotations = [],
     clinicalSources = [],
@@ -57,6 +57,12 @@
       relevance: string;
     }>;
   } = $props();
+
+  $effect.pre(() => {
+    if (userPlanNote === undefined) {
+      userPlanNote = '';
+    }
+  });
 
   let isFixing = $state<string | null>(null);
   const phaseCtrl = createPhaseController();

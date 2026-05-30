@@ -36,7 +36,7 @@
     campaign_id, isEditing, editedDraft = $bindable(), draft_content = $bindable(),
     outline = {} as CampaignOutline, assets = [] as (MediaAsset | string)[], isExpanded,
     selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
-    editorRef = $bindable(), analysis_cache = $bindable({} as AnalysisCache), analysis_metrics = $bindable({} as CampaignMetrics),
+    editorRef = $bindable(), analysis_cache = $bindable(), analysis_metrics = $bindable(),
     analysis_report = {},
     copyrightScore = $bindable(), seoScore = $bindable(), aiScore = $bindable(), isProcessing = false
   }: Props = $props();
@@ -83,6 +83,8 @@
     if (copyrightScore === undefined) copyrightScore = null;
     if (seoScore === undefined) seoScore = null;
     if (aiScore === undefined) aiScore = null;
+    if (analysis_cache === undefined) analysis_cache = {} as AnalysisCache;
+    if (analysis_metrics === undefined) analysis_metrics = {} as CampaignMetrics;
 
     if (isEditing && !editedDraft) {
       editedDraft = draft_content || (typeof outline === 'string' ? outline : outline?.html) || "";

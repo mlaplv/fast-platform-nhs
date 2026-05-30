@@ -60,7 +60,7 @@
     topic = "",
     editable = true,
     placeholder = "Nhập nội dung...",
-    fullScreen = $bindable(false),
+    fullScreen = $bindable(),
     analysisCache = $bindable(),
     analysisMetrics = $bindable(),
     toolbarActions = [],
