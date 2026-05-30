@@ -10,6 +10,8 @@
   import { page } from '$app/stores';
   import type { PageData } from './$types';
   import type { PageData as FunnelPageData } from '../../[slug]-funnel/$types';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
+
 
   // ── Dynamic Component State (Zero Bundle Overlap) ──────────────────────────
   // Each component is isolated in its own Vite chunk.
@@ -204,12 +206,14 @@
   });
 </script>
 
-<!-- Elite LCP Optimization: Preload hero product image as early as possible for Chrome/Safari -->
+<!-- Elite LCP Optimization: Preload hero product image with precise device-optimized resolution to avoid double downloads and maximize LCP -->
 <svelte:head>
   {#if productData?.product?.images?.[0]}
-    <link rel="preload" as="image" href={productData.product.images[0]} fetchpriority="high" />
+    {@const preloadUrl = resolveOptimizedImageUrl(productData.product.images[0], data.isMobile ? 600 : 800)}
+    <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
   {/if}
 </svelte:head>
+
 
 <!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
 {#if data.type === 'category' || data.type === 'news'}
