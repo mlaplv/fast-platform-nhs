@@ -51,14 +51,14 @@ class ClientPulseController(Controller):
     def _build_stream(self, request: Request, session_id: str | None) -> Stream:
         if not session_id:
             logger.error("[ClientPulse] Missing session_id (cookie, path, or query_param).")
-            from litestar.exceptions import BadRequestException
-            raise BadRequestException("Missing session_id")
+            from litestar.exceptions import ValidationException
+            raise ValidationException("Missing session_id")
 
         # Elite V3.5: Strict Security Validation to prevent Redis injection/malicious queries
         if not _UUID_RE.match(session_id):
             logger.error(f"[ClientPulse] Blocked invalid session_id attempt: {session_id}")
-            from litestar.exceptions import BadRequestException
-            raise BadRequestException("Invalid session_id format")
+            from litestar.exceptions import ValidationException
+            raise ValidationException("Invalid session_id format")
 
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
