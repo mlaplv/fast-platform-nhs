@@ -929,6 +929,43 @@ function deploy_security_index() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function upgrade_python_packages() {
+    echo -e "${CYAN}[UPGRADE] Đang khởi động quy trình nâng cấp gói thư viện Python (Elite V2.2)...${NC}"
+    
+    # 1. Update local lockfile if on Local machine
+    if [ ! -f /.dockerenv ] && [ ! -d "/opt/fast-platform" ]; then
+        echo -e "${YELLOW}-> Phát hiện môi trường Local. Đang chạy uv lock --upgrade...${NC}"
+        uv lock --upgrade
+    fi
+
+    # 2. Check if container fast_platform_api is running
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        echo -e "${YELLOW}-> [1/3] Đang cập nhật gói bên trong container fast_platform_api...${NC}"
+        if docker exec -i fast_platform_api uv sync --no-dev; then
+            echo -e "${GREEN}   ✔ Đã cập nhật thành công các gói trong container!${NC}"
+        else
+            echo -e "${RED}[ERROR] Cập nhật gói trong container thất bại.${NC}"
+            read -p "Nhấn Enter để quay lại..."
+            return 1
+        fi
+    fi
+
+    # 3. Sync local environment lock if local venv exists
+    if [ -d ".venv" ]; then
+        echo -e "${YELLOW}-> [2/3] Đang đồng bộ hóa môi trường ảo cục bộ (.venv)...${NC}"
+        uv sync
+    fi
+
+    # 4. Restart containers to apply
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        echo -e "${YELLOW}-> [3/3] Đang khởi động lại dịch vụ api + worker_high để áp dụng...${NC}"
+        docker compose restart api worker_high
+    fi
+
+    echo -e "${GREEN}[SUCCESS] Đã nâng cấp và áp dụng toàn bộ các gói thư viện mới thành công!${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 # Handle direct command-line arguments (e.g. ./xohi.sh dondep)
 if [[ -n "$1" ]]; then
     case "$1" in
@@ -972,6 +1009,7 @@ while true; do
     echo "18) DI CƯ TENANT (Đổi Domain -> Update DB)"
     echo "19) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
     echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
+    echo "21) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1065,6 +1103,9 @@ while true; do
             ;;
         20)
             deploy_security_index
+            ;;
+        21)
+            upgrade_python_packages
             ;;
         0)
             exit 0
