@@ -44,6 +44,7 @@
               loop={videoEndTime === null}
               playsinline
               preload="auto"
+              fetchpriority="high"
               ontimeupdate={handleTimeUpdate}
             ></video>
             <button

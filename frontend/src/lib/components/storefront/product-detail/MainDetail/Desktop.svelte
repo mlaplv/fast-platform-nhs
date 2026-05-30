@@ -638,6 +638,9 @@
               SHOP_CONFIG.default_badge_url}
             alt="Verified"
             class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
           />
         </button>
         <ProductGallery
