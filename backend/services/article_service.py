@@ -1,7 +1,6 @@
 import re
 import json
 import time
-import uuid
 from backend.utils.uid import new_id
 import logging
 from datetime import datetime, timezone
@@ -321,7 +320,7 @@ class ArticleService:
         cleaned_excerpt = await noise_cleaner.clean(pre_excerpt, strip_html=True) if pre_excerpt else ""
 
         article = Article(
-            id=new_id,
+            id=new_id_val,
             title=data.title,
             slug=slug,
             excerpt=cleaned_excerpt,
