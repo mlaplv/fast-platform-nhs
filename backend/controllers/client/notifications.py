@@ -3,13 +3,11 @@ from typing import TYPE_CHECKING
 import logging
 from litestar import Controller, get, patch, Request
 from litestar.exceptions import NotAuthorizedException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.services.notification_service import notification_service
 from backend.schemas.notification import NotificationListResponse
 from backend.schemas.common import SuccessResponse
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("api-gateway")
 
