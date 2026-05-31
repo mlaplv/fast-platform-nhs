@@ -696,9 +696,9 @@
               <div>
                 {#if recommendationSteps.length > 0}
                   <!-- Unified iOS Glassmorphic Container -->
-                  <div class="flex flex-col w-full rounded-[1px] bg-zinc-950/40 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] overflow-hidden transition-all duration-300 text-left">
+                  <div class="flex flex-col w-full rounded-[3px] bg-zinc-950/40 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] overflow-hidden transition-all duration-300 text-left">
                     <!-- iOS Glass Tab Header -->
-                    <div class="flex items-center p-1 bg-white/[0.02] border-b border-white/5 backdrop-blur-md relative rounded-[1px]">
+                    <div class="flex items-center p-1 bg-white/[0.02] border-b border-white/5 backdrop-blur-md relative rounded-[3px]">
                       <!-- Liquid / Glass Droplet Active Tab Indicator sliding smoothly -->
                       <div 
                         class="absolute top-1 bottom-1 bg-white/[0.08] backdrop-blur-lg border border-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_2px_12px_rgba(255,255,255,0.05),inset_0_1px_2px_rgba(255,255,255,0.2)]"
