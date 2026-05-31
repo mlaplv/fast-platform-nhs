@@ -859,11 +859,12 @@
 - [x] Rsync đồng bộ hóa mã nguồn Frontend đã xây dựng hoàn chỉnh lên VPS Production. (Done)
 - [x] Tải lại dịch vụ tĩnh Caddy trên VPS để áp dụng ngay lập tức các thay đổi. (Done)
 - [x] Dọn dẹp triệt để hơn 100 dòng mã nguồn thối/dư thừa (formatRecommendation) do merge lịch sử, thay thế bằng bộ render tối giản renderFallbackText cực kỳ sạch sẽ. (Done)
+- [x] Tinh chỉnh thiết kế ClinicalQuiz: Giảm border-radius khung ngoài về 1px, tăng độ bo tròn của các tab, và tạo hiệu ứng giọt nước chuyển động mềm mại giữa các tab khi di chuyển. (Done)
 
 # Task Checklist - Storefront High-LOC Refactoring Campaign (Target 500-700 LOC)
 
 - [x] Phân rã tệp tin cồng kềnh `checkout/+page.svelte` (1845 LOC) về **579 LOC** bằng cách trích xuất 2 sub-components chuyên biệt: `CheckoutDesktop.svelte` và `CheckoutMobile.svelte`, loại bỏ 100% rủi ro phân mảnh và bảo đảm an toàn dữ liệu. (Done)
-- [ ] Phân rã tệp tin `user/ctv/+page.svelte` (1553 LOC) về vùng an toàn dưới 700 LOC.
+- [x] Phân rã tệp tin `user/ctv/+page.svelte` (1553 LOC) về **448 LOC** (vùng an toàn hoàn hảo) bằng cách trích xuất `CtvDashboard.svelte`, `CtvModals.svelte` và helper đối soát `excelExport.ts`. (Done)
 - [ ] Phân rã tệp tin `[slug]/reviews/+page.svelte` (1468 LOC) về vùng an toàn dưới 700 LOC.
 - [ ] Phân rã tệp tin `VerifiedReviews.svelte` (1387 LOC) về vùng an toàn dưới 700 LOC.
 - [ ] Phân rã tệp tin `ProductFormVariants.svelte` (1349 LOC) về vùng an toàn dưới 700 LOC.

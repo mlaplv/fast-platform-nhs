@@ -629,9 +629,9 @@
           >
             <div>
               <h3
-                class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter mb-2 whitespace-nowrap pt-2 uppercase"
+                class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter mb-2 whitespace-nowrap pt-2"
               >
-                PHÁC ĐỒ ĐIỀU TRỊ
+                Phác đồ điều trị
               </h3>
               <p
                 class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em]"
@@ -696,13 +696,19 @@
               <div>
                 {#if recommendationSteps.length > 0}
                   <!-- Unified iOS Glassmorphic Container -->
-                  <div class="flex flex-col w-full rounded-2xl bg-zinc-950/40 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] overflow-hidden transition-all duration-300 text-left">
+                  <div class="flex flex-col w-full rounded-[1px] bg-zinc-950/40 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] overflow-hidden transition-all duration-300 text-left">
                     <!-- iOS Glass Tab Header -->
-                    <div class="flex items-center p-1 bg-white/[0.02] border-b border-white/5 backdrop-blur-md">
+                    <div class="flex items-center p-1 bg-white/[0.02] border-b border-white/5 backdrop-blur-md relative rounded-[1px]">
+                      <!-- Liquid / Glass Droplet Active Tab Indicator sliding smoothly -->
+                      <div 
+                        class="absolute top-1 bottom-1 bg-white/[0.08] backdrop-blur-lg border border-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_2px_12px_rgba(255,255,255,0.05),inset_0_1px_2px_rgba(255,255,255,0.2)]"
+                        style="width: calc((100% - 8px) / {recommendationSteps.length}); left: calc(4px + {activeRecTab} * (100% - 8px) / {recommendationSteps.length});"
+                      ></div>
+
                       {#each recommendationSteps as step, idx}
                         <button
                           onclick={() => activeRecTab = idx}
-                          class="flex-1 py-2 px-3 text-[10px] md:text-xs font-black tracking-widest rounded-lg transition-all duration-300 relative uppercase {activeRecTab === idx ? 'bg-white/[0.08] text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-white/10' : 'text-white/40 hover:text-white/60 border border-transparent'}"
+                          class="flex-1 py-2 px-3 text-[10px] md:text-xs font-semibold tracking-widest rounded-full transition-all duration-300 relative z-10 {activeRecTab === idx ? 'text-white' : 'text-white/40 hover:text-white/60'}"
                         >
                           {step.title}
                         </button>
@@ -718,7 +724,7 @@
                           >
                             {recommendationSteps[activeRecTab].num}
                           </div>
-                          <h5 class="text-[10px] font-semibold text-white/50 tracking-[0.3em] uppercase m-0">
+                          <h5 class="text-[10px] font-semibold text-white/50 tracking-[0.3em] m-0">
                             {recommendationSteps[activeRecTab].title}
                           </h5>
                         </div>
@@ -756,7 +762,7 @@
         <div class="flex items-center justify-center gap-3 mt-5 md:mt-6">
           <button
             onclick={restart}
-            class="px-4 py-2 text-[10px] font-black text-white/30 hover:text-white/60 transition-all duration-300 tracking-[0.25em] uppercase border border-white/5 hover:border-white/10 rounded-lg bg-white/[0.01]"
+            class="px-4 py-2 text-[10px] font-black text-white/30 hover:text-white/60 transition-all duration-300 tracking-[0.25em] border border-white/5 hover:border-white/10 rounded-lg bg-white/[0.01]"
           >
             Làm lại
           </button>
@@ -775,7 +781,7 @@
             }}
             class="group relative px-6 py-2 bg-luxury-copper text-white rounded-lg font-bold text-xs md:text-sm overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90 shadow-[0_4px_12px_rgba(193,143,126,0.2)] border border-white/10"
           >
-            <span class="relative z-surface uppercase tracking-widest">Xem liệu trình</span>
+            <span class="relative z-surface tracking-widest">Xem liệu trình</span>
             <div
               class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"
             ></div>
