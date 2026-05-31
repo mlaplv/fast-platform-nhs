@@ -1,18 +1,18 @@
 <script lang="ts">
   /**
-   * DailyCheckinLanding.svelte — v2
-   * - Auto-open popup (delay 1.5s) nếu user chưa điểm danh hôm nay
-   * - Floating button backup nếu user đã đóng popup
+   * DailyCheckinLanding.svelte — v3
+   * - Hiện cho TẤT CẢ users (kể cả khách chưa login)
+   * - Auto-open sau 1.5s
+   * - Nếu chưa login → click CTA → mở LoginModal
    */
   import { onMount } from 'svelte';
-  import { fade, scale } from 'svelte/transition';
+  import { scale } from 'svelte/transition';
   import { checkinStore } from '$lib/state/commerce/checkin.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import DailyCheckinModalMobile from './DailyCheckinModalMobile.svelte';
   import DailyCheckinModalDesktop from './DailyCheckinModalDesktop.svelte';
 
   let isMobile = $state(false);
-  // Track nếu user đã chủ động đóng popup (không auto-open lại)
   let userDismissed = $state(false);
 
   function updateIsMobile() {
@@ -23,20 +23,20 @@
     updateIsMobile();
     window.addEventListener('resize', updateIsMobile);
 
-    if (!authStore.isAuthenticated) {
-      return () => window.removeEventListener('resize', updateIsMobile);
+    if (authStore.isAuthenticated) {
+      // Đã login: fetch status rồi tự mở nếu chưa điểm danh
+      checkinStore.fetchStatus().then(() => {
+        const st = checkinStore.status;
+        if (st && !st.is_checked_in_today && !userDismissed) {
+          setTimeout(() => { if (!userDismissed) checkinStore.openPopup(); }, 1500);
+        }
+      });
+    } else {
+      // Khách chưa login: auto-open popup preview sau 1.5s (để kích thích đăng ký)
+      setTimeout(() => {
+        if (!userDismissed) checkinStore.openPopup();
+      }, 1500);
     }
-
-    // Fetch status rồi auto-open nếu chưa điểm danh
-    checkinStore.fetchStatus().then(() => {
-      const status = checkinStore.status;
-      if (status && !status.is_checked_in_today && !userDismissed) {
-        // Delay 1.5s để layout settle, tránh jarring
-        setTimeout(() => {
-          if (!userDismissed) checkinStore.openPopup();
-        }, 1500);
-      }
-    });
 
     return () => window.removeEventListener('resize', updateIsMobile);
   });
@@ -45,10 +45,18 @@
     userDismissed = true;
     checkinStore.closePopup();
   }
+
+  // Floating button: hiện khi popup đóng + chưa điểm danh (hoặc khách)
+  let showFloating = $derived(
+    !checkinStore.showPopup && userDismissed && (
+      !authStore.isAuthenticated ||
+      (checkinStore.status !== null && !checkinStore.status.is_checked_in_today)
+    )
+  );
 </script>
 
-<!-- Floating Trigger: hiện sau khi user đóng popup thủ công -->
-{#if authStore.isAuthenticated && checkinStore.status && !checkinStore.status.is_checked_in_today && !checkinStore.showPopup}
+<!-- Floating Trigger — backup sau khi user đóng popup -->
+{#if showFloating}
   <button
     onclick={() => { userDismissed = false; checkinStore.openPopup(); }}
     class="fixed bottom-24 right-4 z-[9990] md:bottom-8 md:right-6 group"

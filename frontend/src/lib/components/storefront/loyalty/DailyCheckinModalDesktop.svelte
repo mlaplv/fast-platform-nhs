@@ -4,6 +4,7 @@
   import { checkinStore } from '$lib/state/commerce/checkin.svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -41,6 +42,10 @@
   }
 
   async function handleClaim() {
+    if (!authStore.isAuthenticated) {
+      getClientUi().openLogin();
+      return;
+    }
     if (!checkinStore.canClaim) return;
     const success = await checkinStore.claimReward();
     if (success) {
@@ -263,7 +268,7 @@
       {:else}
         <button
           onclick={handleClaim}
-          disabled={checkinStore.claiming || !checkinStore.canClaim}
+          disabled={checkinStore.claiming || (authStore.isAuthenticated && !checkinStore.canClaim)}
           class="relative w-full py-4 rounded-2xl font-black text-[15px] tracking-wide overflow-hidden
             bg-gradient-to-r from-[#FFD700] via-[#F7B731] to-[#FFD700] bg-[length:200%_100%]
             text-[#1a1a2e]
@@ -287,7 +292,11 @@
             </span>
           {:else}
             <span class="flex items-center justify-center gap-2">
-              🎁 Nhận {formatVnd(checkinStore.status?.today_reward ?? 100)} xu hôm nay
+              {#if authStore.isAuthenticated}
+                🎁 Nhận {formatVnd(checkinStore.status?.today_reward ?? 100)} xu hôm nay
+              {:else}
+                🔑 Đăng nhập để nhận thưởng điểm danh
+              {/if}
             </span>
           {/if}
         </button>

@@ -4,6 +4,7 @@
   import { checkinStore, type CheckinDay } from '$lib/state/commerce/checkin.svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   // Props từ Landing Controller
   let { onClose }: { onClose: () => void } = $props();
@@ -50,6 +51,11 @@
   }
 
   async function handleClaim() {
+    // Guest guard: mở login modal
+    if (!authStore.isAuthenticated) {
+      getClientUi().openLogin();
+      return;
+    }
     if (!checkinStore.canClaim) return;
     const success = await checkinStore.claimReward();
     if (success) {
@@ -224,7 +230,7 @@
     {:else}
       <button
         onclick={handleClaim}
-        disabled={checkinStore.claiming || !checkinStore.canClaim}
+        disabled={checkinStore.claiming || (authStore.isAuthenticated && !checkinStore.canClaim)}
         class="relative w-full py-4 rounded-2xl font-black text-base tracking-wide overflow-hidden
           bg-gradient-to-r from-[#FFD700] to-[#F7B731] text-[#1a1a2e]
           shadow-xl shadow-[#FFD700]/30
@@ -244,7 +250,11 @@
             Đang nhận...
           </span>
         {:else}
-          👋 Nhận phần thưởng của hôm nay
+          {#if authStore.isAuthenticated}
+            👋 Nhận phần thưởng của hôm nay
+          {:else}
+            🔑 Đăng nhập để nhận thưởng
+          {/if}
         {/if}
       </button>
     {/if}
