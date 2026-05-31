@@ -817,6 +817,12 @@
 - [x] Chạy kiểm thử tĩnh `pnpm build` hoặc `npm run build` trên storefront để xác minh zero errors / zero warnings. (Done - storefront built successfully with static adapter output!)
 - [x] Cập nhật bằng chứng nghiệm thu kỹ thuật vào tệp `walkthrough.md`. (Done)
 
+# Task Checklist - GA4/GTM Content-Security-Policy Resolution (Elite V2.2)
+
+- [x] Cấu hình Caddyfile bổ sung tên miền `https://*.googletagmanager.com` và `https://www.googletagmanager.com` cho `img-src` và `connect-src` để hỗ trợ telemetry và tracking pixel của GTM. (Done)
+- [x] Chạy reload cấu hình Caddy trên VPS để áp dụng ngay lập tức mà không gây gián đoạn dịch vụ. (Done)
+
+
 
 
 

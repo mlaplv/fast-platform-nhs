@@ -1027,5 +1027,22 @@ pnpm build
 
 **Báo cáo: Đã sửa đổi cấu hình và khôi phục hoạt động cho SFTP hoàn tất 100%! Kính trình Sếp phê duyệt!**
 
+---
+
+## 🛠️ 6. Khắc Phục Triệt Để Lỗi CSP (Content-Security-Policy) Vi Phạm Google Tag Manager (GTM) /td
+
+* **Hiện Tượng**: Khi người dùng tải trang chi tiết sản phẩm lần đầu tiên, trình duyệt báo lỗi CSP vi phạm tại cổng `https://www.googletagmanager.com/td?id=...` do vi phạm chỉ thị `img-src`. Khi tải lại bằng F5/Ctrl + F5, lỗi này biến mất.
+* **Nguyên Nhân Gốc Rễ**: 
+  1. GTM/GA4 sử dụng endpoint `/td` làm ảnh theo dõi ẩn (beacon/pixel) cho các phiên cookie-less hoặc lượt tương tác đầu tiên khi chưa có session.
+  2. Directive `img-src` trong `Caddyfile` ban đầu thiếu tên miền `googletagmanager.com`, dẫn đến việc trình duyệt chặn cứng request tải ảnh này ở lượt tải đầu tiên.
+  3. Ở các lượt tải sau (F5/Ctrl + F5), GTM nhận diện cookie phiên làm việc (`_ga` đã được tạo từ lần đầu) nên không cần kích hoạt pixel `/td` ẩn qua `img-src` nữa, mà chuyển hẳn sang `connect-src` qua `fetch`/`XHR`. Do đó lỗi biến mất tạo cảm giác chập chờn.
+* **Biện Pháp Khắc Phục**:
+  * Đã bổ sung chính thức `https://www.googletagmanager.com` và `https://*.googletagmanager.com` vào cả hai directive **`img-src`** và **`connect-src`** trong tệp [Caddyfile](file:///home/lv/Desktop/fast-platform-core/Caddyfile).
+  * Đảm bảo cho phép GTM tải các ảnh beacon và telemetry thành công 100% ở lượt tải đầu tiên mà không làm giảm độ bảo mật của các phân vùng khác.
+  * Đã tiến hành đồng bộ tệp cấu hình mới và reload nóng Caddy thành công trên VPS.
+
+**Báo cáo: Đã khắc phục triệt để lỗi CSP và reload dịch vụ thành công 100%! Kính trình Sếp phê duyệt!**
+
+
 
 
