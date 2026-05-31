@@ -840,3 +840,13 @@
 - [x] Nâng cấp Header biểu mẫu cột phải với dải phân cách mờ tinh tế và mixed-case tiêu đề chuẩn quốc tế. (Done)
 - [x] Đồng bộ hóa an toàn tệp nguồn đã thay đổi lên môi trường VPS Production via rsync. (Done)
 
+
+# Task Checklist - Hardening Storefront LocalStorage Architecture (Elite V2.2)
+
+- [x] Quy chuẩn hóa và Namespace hóa toàn bộ khóa lưu trữ cục bộ sang cấu trúc phân tầng `osmo:{subsystem}:{userId}:{key}` hoặc `osmo:{subsystem}:guest:{key}` bảo đảm cô lập 100% dữ liệu. (Done)
+- [x] Refactor `CartStore` (`cart.svelte.ts`) sử dụng cơ chế reactive `$effect` tự động đồng bộ hóa trạng thái giỏ hàng theo key người dùng cụ thể (`osmo:storefront:{userId}:cart`), hỗ trợ tự động di chuyển (migration) dữ liệu giỏ hàng cũ an toàn và ngăn chặn rò rỉ. (Done)
+- [x] Vá triệt để lỗi "Voucher Hijacking" tại hàm `loadUnlockedViralVouchers()` bằng cách cô lập truy quét voucher đã mở khóa theo tiền tố người dùng riêng biệt (`viral_unlocked_{userId}_{productId}`) và xử lý ép kiểu product ID an toàn. (Done)
+- [x] Nâng cấp `RecentlyViewedStore` (`recentlyViewed.svelte.ts`), `WishlistStore` (`wishlist.svelte.ts`), và `SearchState` (`search.svelte.ts`) chuyển đổi hoàn toàn sang cấu trúc namespace cô lập theo `userId` thực tế, hỗ trợ di chuyển mượt mà trạng thái từ khóa cũ mà không làm gián đoạn trải nghiệm người dùng. (Done)
+- [x] Khử bỏ hoàn toàn mọi logic đọc token thô từ `localStorage` trong `apiClient.ts` và `permissions.svelte.ts` để chặn đứng vector tấn công XSS chiếm dụng token, thiết lập cơ chế ưu tiên đọc an toàn từ Cookie và `sessionStorage` chuẩn an ninh cao cấp. (Done)
+- [x] Tích hợp cơ chế "Purge-on-Logout" dọn sạch toàn bộ các key mồ côi (orphaned keys) và session cũ (`access_token`, `admin_token`, `osmo:auth:user_info`, `elite_global_cart`, `osmo_recently_viewed`, `osmo_search_history`, `vfl_liked_`) nhằm triệt tiêu hoàn toàn rò rỉ chéo tài khoản. (Done)
+
