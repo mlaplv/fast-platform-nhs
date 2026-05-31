@@ -117,9 +117,20 @@ class PointAdjustmentRequest(BaseModel):
     notes: str = Field(..., min_length=1, max_length=500)
     transaction_type: str = "ADJUST_ADMIN"
 
+class CheckinDayItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    day: int
+    reward: int
+    is_completed: bool
+    is_today: bool
+    is_bonus: bool
+
 class CheckinStatusResponse(BaseModel):
-    model_config = ConfigDict(strict=True)
-    today_checked_in: bool
+    model_config = ConfigDict(from_attributes=True)
+    is_checked_in_today: bool
     current_streak: int
-    rewards: List[int]
-    cycle_days: int
+    cycle_length: int
+    today_reward: int
+    days: List[CheckinDayItem]
+    countdown_to_reset: str
+    total_checkin_today: int

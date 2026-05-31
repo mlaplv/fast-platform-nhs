@@ -201,35 +201,79 @@ class LoyaltyService:
 
     @staticmethod
     async def get_checkin_status(db_session: AsyncSession, user_id: str) -> dict:
-        """Get user's current check-in state."""
+        """Get user's current check-in state — full payload for Frontend."""
         config = await LoyaltyService._get_checkin_config(db_session)
-        
+        cycle_days: int = config.get("cycle_days", 7)
+        rewards: list = config.get("rewards", [10000] * cycle_days)
+
         stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
         res = await db_session.execute(stmt)
         loyalty = res.scalar_one_or_none()
-        
-        today_checked_in = False
-        current_streak = 0
-        
+
         now_hcm = datetime.now(timezone(timedelta(hours=7)))
         today_date = now_hcm.date()
-        
+
+        is_checked_in_today = False
+        current_streak = 0
+
         if loyalty and loyalty.last_checkin_date:
             last_date = loyalty.last_checkin_date.astimezone(timezone(timedelta(hours=7))).date()
             if last_date == today_date:
-                today_checked_in = True
+                is_checked_in_today = True
                 current_streak = loyalty.current_checkin_streak
             elif last_date == today_date - timedelta(days=1):
                 current_streak = loyalty.current_checkin_streak
             else:
                 current_streak = 0
-        
+
+        # Build days list
+        days = []
+        for i in range(cycle_days):
+            day_num = i + 1
+            reward = rewards[i] if i < len(rewards) else 10000
+            is_completed = day_num <= current_streak if not is_checked_in_today else day_num <= current_streak
+            is_today = day_num == (current_streak if is_checked_in_today else current_streak + 1)
+            is_bonus = (day_num == cycle_days)  # Last day is bonus
+            days.append({
+                "day": day_num,
+                "reward": reward,
+                "is_completed": is_completed and (day_num < current_streak or (is_checked_in_today and day_num <= current_streak)),
+                "is_today": is_today,
+                "is_bonus": is_bonus,
+            })
+
+        # Countdown HH:MM:SS to 23:59:59 GMT+7
+        midnight_hcm = now_hcm.replace(hour=23, minute=59, second=59, microsecond=0)
+        diff_secs = max(0, int((midnight_hcm - now_hcm).total_seconds()))
+        h = diff_secs // 3600
+        m = (diff_secs % 3600) // 60
+        s = diff_secs % 60
+        countdown = f"{h:02d}:{m:02d}:{s:02d}"
+
+        # Social proof: count today's DAILY_CHECKIN transactions
+        today_start = now_hcm.replace(hour=0, minute=0, second=0, microsecond=0)
+        from sqlalchemy import func
+        count_stmt = select(func.count()).select_from(PointTransaction).where(
+            PointTransaction.transaction_type == "DAILY_CHECKIN",
+            PointTransaction.created_at >= today_start
+        )
+        total_today = (await db_session.execute(count_stmt)).scalar() or 0
+
+        # Today's reward
+        next_streak = (current_streak if is_checked_in_today else current_streak + 1)
+        reward_idx = (next_streak - 1) % cycle_days
+        today_reward = rewards[reward_idx] if reward_idx < len(rewards) else 10000
+
         return {
-            "today_checked_in": today_checked_in,
+            "is_checked_in_today": is_checked_in_today,
             "current_streak": current_streak,
-            "rewards": config["rewards"],
-            "cycle_days": config["cycle_days"]
+            "cycle_length": cycle_days,
+            "today_reward": today_reward,
+            "days": days,
+            "countdown_to_reset": countdown,
+            "total_checkin_today": total_today,
         }
+
 
     @staticmethod
     async def perform_daily_checkin(db_session: AsyncSession, user_id: str) -> dict:
