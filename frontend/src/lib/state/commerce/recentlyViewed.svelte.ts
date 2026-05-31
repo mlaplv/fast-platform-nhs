@@ -1,23 +1,60 @@
 import { browser } from '$app/environment';
 import type { Product } from '$lib/types';
+import { authStore } from '../authStore.svelte';
 
 class RecentlyViewedStore {
-  private key = 'osmo_recently_viewed';
   private maxItems = 12;
 
   items = $state<string[]>([]);
   products = $state<Product[]>([]);
 
+  get storageKey() {
+    const userId = authStore.user?.id;
+    return userId ? `osmo:storefront:${userId}:recently_viewed` : 'osmo:storefront:guest:recently_viewed';
+  }
+
   constructor() {
     if (browser) {
-      const saved = localStorage.getItem(this.key);
-      if (saved) {
-        try {
-          this.items = JSON.parse(saved);
-        } catch (e) {
-          console.error('Failed to parse recently viewed items', e);
-        }
+      $effect.root(() => {
+        $effect(() => {
+          // Watch authStore.user?.id to reactively reload recently viewed on login/logout
+          const _ = authStore.user?.id;
+          this.loadFromStorage();
+        });
+      });
+    }
+  }
+
+  private loadFromStorage() {
+    const key = this.storageKey;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        this.items = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse recently viewed items', e);
       }
+    } else {
+      // Legacy fallback migration
+      const legacyKey = 'osmo_recently_viewed';
+      const legacySaved = localStorage.getItem(legacyKey);
+      if (legacySaved) {
+        try {
+          this.items = JSON.parse(legacySaved);
+          this.save();
+          localStorage.removeItem(legacyKey);
+        } catch (e) {
+          console.error('Failed to parse legacy recently viewed items', e);
+        }
+      } else {
+        this.items = [];
+      }
+    }
+  }
+
+  private save() {
+    if (browser) {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.items));
     }
   }
 
@@ -28,9 +65,7 @@ class RecentlyViewedStore {
     const filtered = this.items.filter(id => id !== productId);
     this.items = [productId, ...filtered].slice(0, this.maxItems);
     
-    if (browser) {
-      localStorage.setItem(this.key, JSON.stringify(this.items));
-    }
+    this.save();
   }
 
   async fetchProducts() {

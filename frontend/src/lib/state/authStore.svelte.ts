@@ -43,12 +43,12 @@ class AuthStore {
 
   constructor() {
     if (browser) {
-      const savedUser = localStorage.getItem('user_info');
+      const savedUser = localStorage.getItem('osmo:auth:user_info');
       if (savedUser) {
         try {
           this.user = JSON.parse(savedUser);
         } catch (e) {
-          localStorage.removeItem('user_info');
+          localStorage.removeItem('osmo:auth:user_info');
           console.error("[AuthStore] Corrupted user_info purged.", e);
         }
         // Chỉ re-verify khi đã có user cache — tránh API call vô ích
@@ -63,7 +63,7 @@ class AuthStore {
     this.user = user;
     if (browser) {
       // R00: Chỉ lưu User Info để hiển thị nhanh, Token nằm trong HttpOnly Cookie
-      localStorage.setItem('user_info', JSON.stringify(user));
+      localStorage.setItem('osmo:auth:user_info', JSON.stringify(user));
 
       // Elite V2.2: Sync with permissionState immediately
       permissionState.syncFromToken();
@@ -82,12 +82,20 @@ class AuthStore {
     if (browser) {
       // Purge legacy localStorage tokens
       localStorage.removeItem('access_token');
-      localStorage.removeItem('user_info');
+      localStorage.removeItem('osmo:auth:user_info');
       localStorage.removeItem('admin_token');
       
-      // Privacy Protocol: Purge order tracking persistence
+      // Privacy Protocol: Purge order tracking persistence and old/orphaned keys
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('order_verify_')) localStorage.removeItem(key);
+        if (
+          key.startsWith('order_verify_') ||
+          key === 'elite_global_cart' ||
+          key === 'osmo_recently_viewed' ||
+          key === 'osmo_search_history' ||
+          key.startsWith('vfl_liked_')
+        ) {
+          localStorage.removeItem(key);
+        }
       });
 
       // Clear local notification state
@@ -139,7 +147,7 @@ class AuthStore {
     Object.assign(this.user, rest);
 
     if (browser) {
-      localStorage.setItem('user_info', JSON.stringify(this.user));
+      localStorage.setItem('osmo:auth:user_info', JSON.stringify(this.user));
     }
   }
 
@@ -150,14 +158,14 @@ class AuthStore {
       );
       this.user = user;
       if (browser) {
-        localStorage.setItem('user_info', JSON.stringify(user));
+        localStorage.setItem('osmo:auth:user_info', JSON.stringify(user));
       }
       return user;
     } catch (e) {
       // CNS V2.2: Nếu fetch profile lỗi (401), clear local user state
       if (this.user) {
         this.user = null;
-        if (browser) localStorage.removeItem('user_info');
+        if (browser) localStorage.removeItem('osmo:auth:user_info');
       }
       return null;
     }

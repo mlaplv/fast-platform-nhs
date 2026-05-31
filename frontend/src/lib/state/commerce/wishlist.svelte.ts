@@ -1,10 +1,10 @@
 import { browser } from '$app/environment';
+import { authStore } from '../authStore.svelte';
 
 /**
  * Elite V2.2: Wishlist (Favorite) Nanobot Store
  * 
  * Manages product "likes" with high-performance persistence and cross-component sync.
- * Uses individual localStorage keys for compatibility with legacy implementations.
  */
 class WishlistStore {
   /** 
@@ -13,32 +13,69 @@ class WishlistStore {
    */
   items = $state<Record<string, boolean>>({});
 
+  get storageKey() {
+    const userId = authStore.user?.id;
+    return userId ? `osmo:storefront:${userId}:wishlist` : 'osmo:storefront:guest:wishlist';
+  }
+
   constructor() {
     if (browser) {
-      this.loadFromStorage();
+      $effect.root(() => {
+        $effect(() => {
+          // Watch authStore.user?.id to reactively reload wishlist on login/logout
+          const _ = authStore.user?.id;
+          this.loadFromStorage();
+        });
+      });
     }
   }
 
   /**
-   * Scans localStorage for existing likes to initialize state.
-   * Handles the 'vfl_liked_{id}' pattern used in Desktop/Funnel versions.
+   * Scans namespaced storage or fallback to legacy individual keys to initialize state.
    */
   private loadFromStorage() {
     try {
-      const loaded: Record<string, boolean> = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('vfl_liked_')) {
-          const val = localStorage.getItem(key);
-          if (val === 'true') {
-            const id = key.replace('vfl_liked_', '');
-            loaded[id] = true;
+      const key = this.storageKey;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        this.items = JSON.parse(saved);
+      } else {
+        // Fallback / legacy individual keys migration
+        const loaded: Record<string, boolean> = {};
+        const legacyKeys: string[] = [];
+        let migrated = false;
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k?.startsWith('vfl_liked_')) {
+            const val = localStorage.getItem(k);
+            if (val === 'true') {
+              const id = k.replace('vfl_liked_', '');
+              loaded[id] = true;
+              migrated = true;
+            }
+            legacyKeys.push(k);
           }
         }
+        this.items = loaded;
+        
+        if (migrated) {
+          this.save();
+          // Cleanup legacy individual keys to avoid polluting
+          legacyKeys.forEach(k => localStorage.removeItem(k));
+        }
       }
-      this.items = loaded;
     } catch (e) {
       console.error("[WishlistStore] Failed to load from storage:", e);
+    }
+  }
+
+  private save() {
+    if (!browser) return;
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.items));
+    } catch (e) {
+      console.warn("[WishlistStore] Storage full or quota exceeded", e);
     }
   }
 
@@ -61,14 +98,8 @@ class WishlistStore {
     // Update reactive state
     this.items[productId] = newStatus;
     
-    // Persist to storage
-    if (browser) {
-      try {
-        localStorage.setItem(`vfl_liked_${productId}`, String(newStatus));
-      } catch (e) {
-        console.warn("[WishlistStore] Storage full or quota exceeded", e);
-      }
-    }
+    // Persist to namespaced storage
+    this.save();
   }
 }
 

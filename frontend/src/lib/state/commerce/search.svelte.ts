@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import type { Product, Article } from '$lib/types';
+import { authStore } from '../authStore.svelte';
 
 export class SearchState {
   // --- Runes ---
@@ -24,8 +25,21 @@ export class SearchState {
     return "Tìm kiếm sản phẩm...";
   }
 
+  get storageKey() {
+    const userId = authStore.user?.id;
+    return userId ? `osmo:storefront:${userId}:search_history` : 'osmo:storefront:guest:search_history';
+  }
+
   constructor() {
-    this.loadHistory();
+    if (browser) {
+      $effect.root(() => {
+        $effect(() => {
+          // Watch authStore.user?.id to reactively reload search history on login/logout
+          const _ = authStore.user?.id;
+          this.loadHistory();
+        });
+      });
+    }
   }
 
   async ensureFeaturedLoaded() {
@@ -50,11 +64,27 @@ export class SearchState {
   }
   loadHistory() {
     if (!browser) return;
-    const history = localStorage.getItem('osmo_search_history');
+    const key = this.storageKey;
+    const history = localStorage.getItem(key);
     if (history) {
       try {
         this.recentSearches = JSON.parse(history);
       } catch (e) {
+        this.recentSearches = [];
+      }
+    } else {
+      // Fallback/migration from legacy key
+      const legacyKey = 'osmo_search_history';
+      const legacyHistory = localStorage.getItem(legacyKey);
+      if (legacyHistory) {
+        try {
+          this.recentSearches = JSON.parse(legacyHistory);
+          this.saveHistory();
+          localStorage.removeItem(legacyKey);
+        } catch (e) {
+          this.recentSearches = [];
+        }
+      } else {
         this.recentSearches = [];
       }
     }
@@ -62,7 +92,7 @@ export class SearchState {
 
   saveHistory() {
     if (!browser) return;
-    localStorage.setItem('osmo_search_history', JSON.stringify(this.recentSearches));
+    localStorage.setItem(this.storageKey, JSON.stringify(this.recentSearches));
   }
 
   addSearch(term: string) {

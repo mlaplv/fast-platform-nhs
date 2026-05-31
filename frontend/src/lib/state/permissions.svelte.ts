@@ -69,8 +69,6 @@ class PermissionState {
     // Elite V2.2: Lockdown V2.2 - Cookies are the primary secure source
     const token =
       this.getCookie("admin_token") ||
-      localStorage.getItem("admin_token") ||
-      localStorage.getItem("access_token") ||
       sessionStorage.getItem("admin_token");
 
     if (token) {
@@ -187,8 +185,6 @@ class PermissionState {
     // Elite V2.2: Lockdown V2.2 - Cookie Priority
     const token =
       this.getCookie("admin_token") ||
-      localStorage.getItem("admin_token") ||
-      localStorage.getItem("access_token") ||
       sessionStorage.getItem("admin_token");
 
     return token || null;

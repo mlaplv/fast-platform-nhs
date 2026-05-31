@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import type { Product, ProductVariant, Voucher } from '$lib/types';
 import { getContext, setContext } from 'svelte';
+import { authStore } from '../authStore.svelte';
 
 export interface CartItem {
     id: string; // Unique ID (product.id + variant.id)
@@ -35,42 +36,86 @@ export class CartStore {
     private static instance: CartStore | null = null;
     private static cleanup: (() => void) | null = null;
 
+    get storageKey() {
+        const userId = authStore.user?.id;
+        return userId ? `osmo:storefront:${userId}:cart` : 'osmo:storefront:guest:cart';
+    }
+
     // Bắt sự kiện khởi tạo để load data từ LocalStorage
     constructor() {
         if (browser) {
-            const saved = localStorage.getItem('elite_global_cart');
-            if (saved) {
+            $effect.root(() => {
+                $effect(() => {
+                    // Watch authStore.user?.id to reactively reload the cart on login/logout
+                    const _ = authStore.user?.id;
+                    this.loadFromStorage();
+                });
+
+                $effect(() => {
+                    // Watch cart items, selectedVoucherIds, giftInfo to auto-save to the current storageKey
+                    const key = this.storageKey;
+                    const dataToSave = {
+                        items: this.items,
+                        selectedVoucherIds: this.selectedVoucherIds,
+                        giftInfo: this.giftInfo
+                    };
+                    localStorage.setItem(key, JSON.stringify(dataToSave));
+                });
+            });
+        }
+    }
+
+    loadFromStorage(): void {
+        if (!browser) return;
+        const key = this.storageKey;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.items) {
+                    this.items = parsed.items
+                        .filter((i: any): i is CartItem => !!(i.id && i.product))
+                        .map((item: any) => ({
+                            ...item,
+                            selected: item.selected ?? true
+                        } as CartItem));
+                } else {
+                    this.items = [];
+                }
+                this.giftInfo = parsed.giftInfo || null;
+                this.selectedVoucherIds = parsed.selectedVoucherIds || [];
+            } catch (e) {
+                console.error('Failed to parse cart data', e);
+            }
+        } else {
+            // Migrating legacy global key if available and no user-specific key exists
+            const legacyKey = 'elite_global_cart';
+            const legacySaved = localStorage.getItem(legacyKey);
+            if (legacySaved) {
                 try {
-                    const parsed = JSON.parse(saved) as { items?: Partial<CartItem>[], giftInfo?: GiftInfo };
+                    const parsed = JSON.parse(legacySaved);
                     if (parsed.items) {
-                        this.items = (parsed.items)
-                            .filter((i): i is CartItem => !!(i.id && i.product))
-                            .map((item) => ({
+                        this.items = parsed.items
+                            .filter((i: any): i is CartItem => !!(i.id && i.product))
+                            .map((item: any) => ({
                                 ...item,
                                 selected: item.selected ?? true
                             } as CartItem));
                     }
-                    if (parsed.giftInfo) {
-                        this.giftInfo = parsed.giftInfo;
-                    }
-                    if (parsed.selectedVoucherIds) {
-                        this.selectedVoucherIds = parsed.selectedVoucherIds;
-                    }
+                    this.giftInfo = parsed.giftInfo || null;
+                    this.selectedVoucherIds = parsed.selectedVoucherIds || [];
+                    // Remove legacy key to avoid polluting
+                    localStorage.removeItem(legacyKey);
                 } catch (e) {
-                    console.error('Failed to parse cart data', e);
+                    console.error('Failed to parse legacy cart data', e);
                 }
+            } else {
+                this.items = [];
+                this.giftInfo = null;
+                this.selectedVoucherIds = [];
             }
-            this.setVouchers([]);
         }
-
-        // Auto-save on state change
-        if (browser) {
-            $effect.root(() => {
-                $effect(() => {
-                    this.save();
-                });
-            });
-        }
+        this.setVouchers([]);
     }
 
     // Computed State
@@ -227,7 +272,7 @@ export class CartStore {
     // Side-effects (Persistence)
     save(): void {
         if (browser) {
-            localStorage.setItem('elite_global_cart', JSON.stringify({
+            localStorage.setItem(this.storageKey, JSON.stringify({
                 items: this.items,
                 selectedVoucherIds: this.selectedVoucherIds,
                 giftInfo: this.giftInfo
@@ -414,10 +459,14 @@ export class CartStore {
         if (!browser) return [];
         const viralVouchersMap = new Map<string, { voucher: Voucher, productIds: Set<string | number> }>();
         try {
+            const userId = authStore.user?.id;
+            if (!userId) return []; // CẤM nạp voucher khi chưa đăng nhập!
+
+            const prefix = `viral_unlocked_${userId}_`;
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('viral_unlocked_')) {
-                    const productId = key.replace('viral_unlocked_', '');
+                if (key && key.startsWith(prefix)) {
+                    const productId = key.replace(prefix, '');
                     const saved = localStorage.getItem(key);
                     if (saved) {
                         const parsed = JSON.parse(saved);

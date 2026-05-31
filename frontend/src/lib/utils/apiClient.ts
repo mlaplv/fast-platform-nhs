@@ -51,19 +51,31 @@ function getTenantIdFromHost(): string {
  * Storefront → chỉ đọc access_token (HttpOnly Cookie xử lý tự động qua credentials:include).
  * CẤM lằn lộn giữa 2 territory.
  */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+}
+
+/**
+ * R00: Territory-Isolated Token Resolution.
+ * Admin domain → chỉ đọc admin_token (cookie / sessionStorage).
+ * Storefront → chỉ đọc access_token cookie (HttpOnly Cookie xử lý tự động qua credentials:include).
+ * CẤM lằn lộn giữa 2 territory.
+ */
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   const isAdmin = window.location.hostname.split(".")[0] === "admin";
   if (isAdmin) {
     return (
-      localStorage.getItem("admin_token") ||
+      getCookie("admin_token") ||
       sessionStorage.getItem("admin_token") ||
       null
     );
   }
-  // Storefront: access_token chỉ dùng làm fallback cho máy chưa migrate sang HttpOnly Cookie.
-  // HttpOnly Cookie được gửi tự động qua credentials: "include".
-  return localStorage.getItem("access_token") || null;
+  return getCookie("access_token") || null;
 }
 
 /**
@@ -72,13 +84,19 @@ function getAuthToken(): string | null {
  */
 function getDeviceFingerprint(): string {
   if (typeof window === "undefined") return "server-node";
-  let fp = localStorage.getItem("xohi_device_fingerprint");
+  let fp = localStorage.getItem("osmo:system:device_fingerprint");
   if (!fp) {
-    // Tạo vân tay ngẫu nhiên nhưng ổn định cho trình duyệt này
-    const randomPart = Math.random().toString(36).substring(2, 15);
-    const timePart = Date.now().toString(36);
-    fp = `fp_${timePart}_${randomPart}`;
-    localStorage.setItem("xohi_device_fingerprint", fp);
+    // Check legacy key
+    const legacy = localStorage.getItem("xohi_device_fingerprint");
+    if (legacy) {
+      fp = legacy;
+    } else {
+      // Tạo vân tay ngẫu nhiên nhưng ổn định cho trình duyệt này
+      const randomPart = Math.random().toString(36).substring(2, 15);
+      const timePart = Date.now().toString(36);
+      fp = `fp_${timePart}_${randomPart}`;
+    }
+    localStorage.setItem("osmo:system:device_fingerprint", fp);
   }
   return fp;
 }
