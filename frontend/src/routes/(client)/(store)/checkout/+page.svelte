@@ -2,51 +2,34 @@
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { authStore } from "$lib/state/authStore.svelte";
-  import { formatCurrency } from "$lib/utils/format";
-  import { resolveMediaUrl } from "$lib/state/utils";
   import { apiClient } from "$lib/utils/apiClient";
   import { browser } from "$app/environment";
   import { onMount, untrack } from "svelte";
-  import { slide, fade } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import vnDivisions from "$lib/data/vn_divisions.json";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
 
   import TikTokShopLoading from "$lib/components/storefront/product/TikTokShopLoading.svelte";
   import { loyaltyStore } from "$lib/state/commerce/loyalty.svelte";
-  import Wallet from "@lucide/svelte/icons/wallet";
-  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { SHIPPING_CONFIG, LOYALTY_CONFIG } from "$lib/config/commerce";
 
-  // Satellite Components (Elite V2.2 Composition)
-  import AddressSection from "./components/AddressSection.svelte";
-  import DeliveryPaymentSection from "./components/DeliveryPaymentSection.svelte";
-  import VoucherSection from "./components/VoucherSection.svelte";
-  import CheckoutItems from "./components/CheckoutItems.svelte";
-  import OrderSummarySection from "./components/OrderSummarySection.svelte";
-
-  import Countdown from "$lib/components/storefront/ui/Countdown.svelte";
   import GiftModal from "$lib/components/storefront/ui/GiftModal.svelte";
   import MobileGiftModal from "$lib/components/storefront/ui/MobileGiftModal.svelte";
-  import NeuralGuardian from "$lib/components/storefront/ui/NeuralGuardian.svelte";
   import { checkoutState } from "$lib/state/commerce/checkout.svelte";
+
+  // New Desktop/Mobile modular layout components
+  import CheckoutDesktop from "./components/CheckoutDesktop.svelte";
+  import CheckoutMobile from "./components/CheckoutMobile.svelte";
 
   // Types
   import type { Voucher } from "$lib/types";
-  import type {
-    CustomItem,
-    CheckoutPayload,
-    CheckoutResponse,
-    CustomerLookupResponse,
-  } from "$lib/types/commerce/checkout";
+  import type { CustomItem, CustomerLookupResponse } from "$lib/types/commerce/checkout";
   import type { User, UserAddress } from "$lib/state/authStore.svelte";
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
 
   // Immersive layout management: Hide global header/footer on mobile
-  // Elite V2.2: Standardize to $effect to avoid SSR/Hydration race conditions
-  // Elite V2.2: Deterministic UI State (SSR-Compatible)
-  // We set this immediately to prevent CLS/Flash on SSR.
   if (clientUi.isDetermined && clientUi.isMobile) {
     clientUi.isHeaderHidden = true;
     clientUi.isFooterHidden = true;
@@ -54,24 +37,15 @@
 
   $effect(() => {
     return () => {
-      // Elite V2.2: Unitary Cleanup - prevent state leakage to other pages
       clientUi.isHeaderHidden = false;
       clientUi.isFooterHidden = false;
     };
   });
 
-  type NeuralStatus =
-    | "idle"
-    | "verifying"
-    | "encoding"
-    | "submitting"
-    | "success"
-    | "error";
+  type NeuralStatus = "idle" | "verifying" | "encoding" | "submitting" | "success" | "error";
   let neuralStatus = $state<NeuralStatus>("idle");
   let isSubmitting = $derived(
-    neuralStatus !== "idle" &&
-      neuralStatus !== "success" &&
-      neuralStatus !== "error",
+    neuralStatus !== "idle" && neuralStatus !== "success" && neuralStatus !== "error"
   );
   let errorMsg = $state("");
   let invalidFields = $state(new Set<string>());
@@ -97,7 +71,6 @@
   let showCustomItemForm = $state(false);
 
   // [ELITE V2.2] User Intent Tracking for Vouchers
-  // Track if user has manually deselected a category to prevent auto-stick fighting
   let userInteractedVoucherTypes = $state({ SHIPPING: false, DISCOUNT: false });
 
   let newCustomItem = $state<CustomItem>({
@@ -125,16 +98,14 @@
   onMount(async () => {
     loadDynamicShippingFee();
     if (browser) {
-      // [ELITE V2.2] STEALTH PERSISTENCE DECRYPTION
       const saved = localStorage.getItem("elite_checkout_draft_v2");
       if (saved) {
         try {
-          // Safe Unicode Base64 Decode to prevent InvalidCharacterError
           const decodedDraft = decodeURIComponent(
             atob(saved)
               .split("")
               .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-              .join(""),
+              .join("")
           );
           const decrypted = JSON.parse(decodedDraft) as {
             form: typeof form;
@@ -148,18 +119,13 @@
         }
       }
 
-      // Step 2: Fetch Fresh Profile & Apply Default Address
       if (authStore.isAuthenticated) {
         try {
           const user = await apiClient.get<User>("/api/v1/client/user/profile");
-
           if (user) {
             authStore.syncUser(user);
-
-            const addresses: UserAddress[] =
-              user.extra_metadata?.addresses || [];
+            const addresses: UserAddress[] = user.extra_metadata?.addresses || [];
             const defaultAddr = addresses.find((a: UserAddress) => a.isDefault);
-
             const isFormEmpty = !form.province || !form.street;
 
             if (defaultAddr && isFormEmpty) {
@@ -189,39 +155,24 @@
     }
   });
 
-  /**
-   * [ELITE V2.2] Product Scope Filter Helper
-   * Resolves total spend only for products matching the voucher's applicable list
-   */
   function getEligibleSubtotal(v: Voucher): number {
     return cartStore.getEligibleSubtotal(v);
   }
 
-  /**
-   * [NEURAL INTELLIGENCE V3.0] Value-First Voucher Resolution
-   * Calculates actual VND savings for a given voucher and subtotal.
-   */
   function getVoucherSavings(v: Voucher, subtotal: number): number {
-    if (!cartStore.isVoucherEligible(v)) return -1; // Ineligible
-
+    if (!cartStore.isVoucherEligible(v)) return -1;
     const eligibleSubtotal = cartStore.getEligibleSubtotal(v);
 
-    if (v.type === "SHIPPING") {
-      // For shipping vouchers, the saving is either the voucher value or the actual shipping fee
-      return v.value || 0;
-    }
-
+    if (v.type === "SHIPPING") return v.value || 0;
     if (v.type === "FIXED") return Math.min(v.value || 0, eligibleSubtotal);
-
     if (v.type === "PERCENT") {
       const savings = (eligibleSubtotal * (v.value || 0)) / 100;
       return v.max_discount ? Math.min(savings, v.max_discount) : savings;
     }
-
     return 0;
   }
 
-  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals - pre-paint synchronization
+  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals
   $effect.pre(() => {
     const subtotal = cartStore.totalAmountWithoutDiscount;
     const vouchers = cartStore.vouchers;
@@ -231,7 +182,6 @@
     if (vouchers.length === 0 || subtotal <= 0) return;
 
     untrack(() => {
-      // 0. Auto-deselect ineligible vouchers
       const activeSelectedIds = [...cartStore.selectedVoucherIds];
       for (const selectedId of activeSelectedIds) {
         const v = vouchers.find((x) => x.id === selectedId);
@@ -241,19 +191,17 @@
       }
 
       const currentSelectedIds = cartStore.selectedVoucherIds;
-
-      // 1. Auto-select best Shipping if nothing selected
       const hasShipSelected = vouchers.some(
-        (v) => v.type === "SHIPPING" && currentSelectedIds.includes(v.id),
+        (v) => v.type === "SHIPPING" && currentSelectedIds.includes(v.id)
       );
+
       if (!hasShipSelected && !shipInteracted) {
         const eligibleShip = vouchers.filter(
-          (v) => v.type === "SHIPPING" && cartStore.isVoucherEligible(v),
+          (v) => v.type === "SHIPPING" && cartStore.isVoucherEligible(v)
         );
         if (eligibleShip.length > 0) {
           const bestShip = eligibleShip.sort(
-            (a, b) =>
-              getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal),
+            (a, b) => getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal)
           )[0];
           if (bestShip && !currentSelectedIds.includes(bestShip.id)) {
             cartStore.toggleVoucher(bestShip.id);
@@ -261,41 +209,28 @@
         }
       }
 
-      // 2. Intelligent Discount Optimization Protocol (PERCENT vs FIXED Value-First Resolution)
       const eligibleDiscounts = vouchers.filter(
-        (v) =>
-          ["FIXED", "PERCENT"].includes(v.type) &&
-          cartStore.isVoucherEligible(v),
+        (v) => ["FIXED", "PERCENT"].includes(v.type) && cartStore.isVoucherEligible(v)
       );
 
       if (eligibleDiscounts.length > 0) {
         const sortedDiscounts = [...eligibleDiscounts].sort((a, b) => {
-          const diff =
-            getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
+          const diff = getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
           if (diff !== 0) return diff;
-          // Tie-breakers: Default flag -> Priority
           if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
           return (b.priority || 0) - (a.priority || 0);
         });
 
         const absoluteBest = sortedDiscounts[0];
         const currentSelectedDiscount = vouchers.find(
-          (v) =>
-            ["FIXED", "PERCENT"].includes(v.type) &&
-            currentSelectedIds.includes(v.id),
+          (v) => ["FIXED", "PERCENT"].includes(v.type) && currentSelectedIds.includes(v.id)
         );
 
         if (absoluteBest) {
           if (!currentSelectedDiscount) {
-            // No discount voucher is selected, auto-select the best one
             cartStore.toggleVoucher(absoluteBest.id);
           } else if (currentSelectedDiscount.id !== absoluteBest.id) {
-            // A discount voucher is selected, but if the absolute best one offers HIGHER savings,
-            // we automatically switch to it to optimize for the customer!
-            const currentSavings = getVoucherSavings(
-              currentSelectedDiscount,
-              subtotal,
-            );
+            const currentSavings = getVoucherSavings(currentSelectedDiscount, subtotal);
             const bestSavings = getVoucherSavings(absoluteBest, subtotal);
             if (bestSavings > currentSavings) {
               cartStore.toggleVoucher(absoluteBest.id);
@@ -306,33 +241,26 @@
     });
   });
 
-
   // ELITE V2.2: Dynamic Tier Notification System
   let prevTierMap = new Map<string, string>();
   $effect.pre(() => {
     for (const item of cartStore.items) {
       if (!item.selected) continue;
       const comboVariants =
-        item.product?.variants?.filter(
-          (v) => v.attributes && v.attributes.combo_qty,
-        ) || [];
+        item.product?.variants?.filter((v) => v.attributes && v.attributes.combo_qty) || [];
       if (comboVariants.length === 0) continue;
 
       const sortedTiers = [...comboVariants].sort(
-        (a, b) =>
-          Number(b.attributes?.combo_qty || 0) -
-          Number(a.attributes?.combo_qty || 0),
+        (a, b) => Number(b.attributes?.combo_qty || 0) - Number(a.attributes?.combo_qty || 0)
       );
-      const reachedTier = sortedTiers.find(
-        (v) => Number(v.attributes?.combo_qty || 0) <= item.quantity,
-      );
+      const reachedTier = sortedTiers.find((v) => Number(v.attributes?.combo_qty || 0) <= item.quantity);
       const tierId = reachedTier?.id || "base";
 
       const lastId = prevTierMap.get(item.id);
       if (lastId && lastId !== tierId && reachedTier) {
         clientUi.showToast(
           `Chúc mừng! Bạn đã đạt mức giá ưu đãi gói ${reachedTier.attributes?.combo_qty || ""} món cho ${item.product.name}`,
-          "success",
+          "success"
         );
       }
       prevTierMap.set(item.id, tierId);
@@ -340,27 +268,21 @@
   });
 
   // [ELITE V2.2] STEALTH PERSISTENCE PROTOCOL
-  // We use untrack to ensure we don't save during the hydration phase (which could wipe data)
   $effect(() => {
-    // Dependencies to track
     const currentForm = $state.snapshot(form);
     const currentItems = $state.snapshot(customItems);
     const cartItemsCount = cartStore.items.length;
 
     if (browser) {
       untrack(() => {
-        // Only save if we have items in cart OR we already have some data filled
-        const hasData =
-          currentForm.province || currentForm.street || currentItems.length > 0;
-
+        const hasData = currentForm.province || currentForm.street || currentItems.length > 0;
         if (cartItemsCount > 0 && hasData) {
           const draft = { form: currentForm, customItems: currentItems };
-          // Safe Unicode Base64 Encode to prevent InvalidCharacterError
           const draftStr = JSON.stringify(draft);
           const encodedDraft = btoa(
             encodeURIComponent(draftStr).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-              String.fromCharCode(parseInt(p1, 16)),
-            ),
+              String.fromCharCode(parseInt(p1, 16))
+            )
           );
           localStorage.setItem("elite_checkout_draft_v2", encodedDraft);
         } else if (cartItemsCount === 0) {
@@ -395,10 +317,10 @@
 
   const normalize = (s: string) => s.normalize("NFC").toLowerCase().trim();
   const validProvinces = $derived(
-    (vnDivisions as unknown as Division[]).filter((p) => "id" in p),
+    (vnDivisions as unknown as Division[]).filter((p) => "id" in p)
   );
   const selectedProvinceData = $derived(
-    validProvinces.find((p) => p.name === form.province),
+    validProvinces.find((p) => p.name === form.province)
   );
 
   const canExpress = $derived.by(() => {
@@ -406,7 +328,7 @@
     const normWard = normalize(form.ward);
     return (
       selectedProvinceData.express_supported_wards?.some(
-        (w: string) => normalize(w) === normWard,
+        (w: string) => normalize(w) === normWard
       ) || false
     );
   });
@@ -421,28 +343,17 @@
 
   const shippingFee = $derived.by(() => {
     let baseFee = standardShippingFee;
-
-    if (
-      form.shippingMethod === "express" &&
-      selectedProvinceData?.express_fee
-    ) {
+    if (form.shippingMethod === "express" && selectedProvinceData?.express_fee) {
       baseFee = selectedProvinceData.express_fee;
     }
 
-    // Elite V2.2: Check if a shipping voucher is applied to zero out the fee
-    const hasShippingDiscount = cartStore.selectedVoucherIds.some(
-      (id: string) => {
-        const v = cartStore.vouchers.find((v: Voucher) => v.id === id);
-        return v?.type === "SHIPPING";
-      },
-    );
+    const hasShippingDiscount = cartStore.selectedVoucherIds.some((id: string) => {
+      const v = cartStore.vouchers.find((v: Voucher) => v.id === id);
+      return v?.type === "SHIPPING";
+    });
 
     if (hasShippingDiscount) return 0;
-
-    // Elite V2.5: Store-wide Free Shipping Threshold
-    if (cartStore.totalAmountWithoutDiscount >= SHIPPING_CONFIG.FREE_THRESHOLD)
-      return 0;
-
+    if (cartStore.totalAmountWithoutDiscount >= SHIPPING_CONFIG.FREE_THRESHOLD) return 0;
     return baseFee;
   });
 
@@ -451,18 +362,13 @@
     if (form.shippingMethod === "express") return "Trong 2 giờ tới";
 
     const now = new Date();
-    let minDays = 3,
-      maxDays = 5;
+    let minDays = 3, maxDays = 5;
 
     if (canExpress) {
       minDays = 1;
       maxDays = 2;
     } else if (
-      [
-        "Thành phố Đà Nẵng",
-        "Thành phố Hải Phòng",
-        "Thành phố Cần Thơ",
-      ].includes(form.province)
+      ["Thành phố Đà Nẵng", "Thành phố Hải Phòng", "Thành phố Cần Thơ"].includes(form.province)
     ) {
       minDays = 2;
       maxDays = 3;
@@ -479,38 +385,23 @@
       .filter((i) => i.selected)
       .reduce(
         (acc: number, item) =>
-          acc +
-          (item.variant?.price ?? item.product.price ?? 0) * item.quantity,
-        0,
+          acc + (item.variant?.price ?? item.product.price ?? 0) * item.quantity,
+        0
       );
   });
 
-  const productSavings = $derived(
-    originalSubtotal - cartStore.totalAmountWithoutDiscount,
-  );
+  const productSavings = $derived(originalSubtotal - cartStore.totalAmountWithoutDiscount);
   const totalSavings = $derived(originalSubtotal - cartStore.totalAmount);
 
-  // [ELITE V2.2] Professional Automatic Points Calculation
   const availablePoints = $derived(loyaltyStore.data?.available_points || 0);
-  const maxPointsAllowed = $derived(
-    Math.floor((cartStore.totalAmount * 0.01) / 1000),
-  );
-  const pointsToRedeem = $derived(
-    form.usePoints ? Math.min(availablePoints, maxPointsAllowed) : 0,
-  );
+  const maxPointsAllowed = $derived(Math.floor((cartStore.totalAmount * 0.01) / 1000));
+  const pointsToRedeem = $derived(form.usePoints ? Math.min(availablePoints, maxPointsAllowed) : 0);
   const pointDiscount = $derived(pointsToRedeem * 1000);
+  const finalTotal = $derived(cartStore.totalAmount + shippingFee - pointDiscount);
 
-  const finalTotal = $derived(
-    cartStore.totalAmount + shippingFee - pointDiscount,
-  );
-
-  // [ELITE V5.0] Ground Truth Sync: Leverage unified breakdown from CartStore - pre-paint synchronization
   $effect.pre(() => {
     const shippingVoucherDiscount = (cartStore.vouchers || [])
-      .filter(
-        (v) =>
-          (cartStore.selectedVoucherIds || []).includes(v.id) && v.type === "SHIPPING",
-      )
+      .filter((v) => (cartStore.selectedVoucherIds || []).includes(v.id) && v.type === "SHIPPING")
       .reduce((acc, v) => acc + v.value, 0);
 
     checkoutState.breakdown = {
@@ -524,7 +415,6 @@
     };
   });
 
-  // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---
   const helenAdvice = $derived.by(() => {
     const selectedItems = cartStore.items.filter((i) => i.selected);
     if (selectedItems.length === 0) return "Dạ chào Sếp, em là Helen. Hãy chọn sản phẩm Sếp muốn thanh toán để em tối ưu hóa ưu đãi nhé!";
@@ -557,7 +447,6 @@
     }
 
     if (advices.length > 0) {
-      // Prioritize the upsell with smallest gap to encourage conversion
       return advices.sort((a, b) => a.gravity - b.gravity)[0].text;
     }
 
@@ -574,14 +463,10 @@
       const hasApplicableItem = cartStore.items.some(
         (item) =>
           item.selected &&
-          (applicableIds.includes(item.product.id) ||
-            applicableIds.includes(item.product.slug)),
+          (applicableIds.includes(item.product.id) || applicableIds.includes(item.product.slug))
       );
       if (!hasApplicableItem) {
-        clientUi.showToast(
-          "Mã giảm giá không áp dụng cho sản phẩm trong giỏ hàng!",
-          "error",
-        );
+        clientUi.showToast("Mã giảm giá không áp dụng cho sản phẩm trong giỏ hàng!", "error");
         return;
       }
     }
@@ -589,31 +474,22 @@
     const eligibleSubtotal = getEligibleSubtotal(voucher);
     if (eligibleSubtotal < (voucher.min_spend || 0)) {
       clientUi.showToast(
-        `Cần mua thêm ${formatCurrency(
-          (voucher.min_spend || 0) - eligibleSubtotal,
-        )} cho các sản phẩm áp dụng mã này!`,
-        "info",
+        `Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - eligibleSubtotal)} cho các sản phẩm áp dụng mã này!`,
+        "info"
       );
       return;
     }
 
-    // Record interaction to prevent Auto-Stick protocol from overstepping
     if (voucher.type === "SHIPPING") userInteractedVoucherTypes.SHIPPING = true;
     else userInteractedVoucherTypes.DISCOUNT = true;
 
     cartStore.toggleVoucher(voucher.id);
   }
 
-
   function optimizeVouchers() {
-    // 1. Reset user interaction flags to allow Auto-Stick protocol to run
     userInteractedVoucherTypes.SHIPPING = false;
     userInteractedVoucherTypes.DISCOUNT = false;
-
-    // 2. Clear current selections to trigger a clean auto-selection
     cartStore.selectedVoucherIds = [];
-
-    // 3. Show "Neural" feedback
     clientUi.showToast("Helen đã tối ưu hóa đơn hàng! ✨", "success");
   }
 
@@ -622,20 +498,16 @@
     try {
       const res = await apiClient.post<{ data: CustomerLookupResponse }>(
         "/api/v1/client/checkout/lookup",
-        { phone: form.phone },
+        { phone: form.phone }
       );
       if (res.data) {
         const data = res.data;
-
         if (data.name && !form.name) form.name = data.name;
-        // Elite V2.2: Safe field extraction from lookup response
         const lookupData = data as Record<string, any>;
         if (lookupData.phone && !form.phone) form.phone = lookupData.phone;
 
         if (lookupData.address && typeof lookupData.address === "string") {
-          const parts = lookupData.address
-            .split(",")
-            .map((s: string) => s.trim());
+          const parts = lookupData.address.split(",").map((s: string) => s.trim());
           if (parts.length >= 3) {
             form.province = parts[parts.length - 1];
             form.ward = parts[parts.length - 2];
@@ -661,14 +533,12 @@
     invalidFields = newInvalid;
 
     if (newInvalid.size > 0) {
-      const msg =
-        "Thông tin vận chuyển chưa hoàn thiện. Vui lòng kiểm tra các trường được đánh dấu.";
+      const msg = "Thông tin vận chuyển chưa hoàn thiện. Vui lòng kiểm tra các trường được đánh dấu.";
       clientUi.showToast(msg, "error");
       isAddressFormVisible = true;
 
-      // [ELITE V2.2] Smart Focus Protocol
       const firstInvalid = ["name", "phone", "province", "ward", "street"].find(
-        (f) => newInvalid.has(f),
+        (f) => newInvalid.has(f)
       );
       const fieldIdMap: Record<string, string> = {
         name: "checkout-name",
@@ -684,14 +554,11 @@
           const el = document.getElementById(id);
           if (el) {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
-            if (
-              el instanceof HTMLInputElement ||
-              el instanceof HTMLButtonElement
-            ) {
+            if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
               el.focus();
             }
           }
-        }, 300); // Wait for transition
+        }, 300);
       }
       return;
     }
@@ -703,7 +570,6 @@
       neuralStatus = "encoding";
       neuralStatus = "submitting";
 
-      // Extract ctv_code from __ctv cookie to pass in payload as fallback
       let ctvCode: string | null = null;
       if (typeof document !== 'undefined') {
         const match = document.cookie.match(/(?:^|; )__ctv=([^;]*)/);
@@ -730,10 +596,7 @@
         customer_name: form.name,
         customer_phone: form.phone.replace(/[\s\.\-\+]/g, ""),
         customer_address: `${form.street}, ${form.ward}, ${form.province}`,
-        total_amount:
-          cartStore.totalAmount +
-          shippingFee -
-          pointsToRedeem * LOYALTY_CONFIG.POINT_VALUE,
+        total_amount: cartStore.totalAmount + shippingFee - pointsToRedeem * LOYALTY_CONFIG.POINT_VALUE,
         shipping_fee: shippingFee,
         payment_method: form.paymentMethod,
         note: form.note || null,
@@ -746,11 +609,10 @@
         ctv_code: ctvCode,
       };
 
-      const res = await apiClient.post<{
-        id: string;
-        ok: boolean;
-        success?: boolean;
-      }>("/api/v1/client/checkout/stealth", backendPayload);
+      const res = await apiClient.post<{ id: string; ok: boolean; success?: boolean }>(
+        "/api/v1/client/checkout/stealth",
+        backendPayload
+      );
       if (res.ok || res.success) {
         neuralStatus = "success";
         await clientUi.showToast("Đặt hàng thành công!", "success");
@@ -758,16 +620,18 @@
       }
     } catch (e: unknown) {
       neuralStatus = "error";
-      errorMsg =
-        e instanceof Error ? e.message : "Lỗi đặt hàng, vui lòng thử lại!";
+      errorMsg = e instanceof Error ? e.message : "Lỗi đặt hàng, vui lòng thử lại!";
       clientUi.showToast(errorMsg, "error");
     }
+  }
+
+  function formatCurrency(val: number): string {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
   }
 </script>
 
 <SeoHead
-  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name ||
-    'SmartShop'}"
+  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name || 'SmartShop'}"
   robots="noindex, nofollow"
 />
 
@@ -775,1059 +639,65 @@
   {#if !clientUi.isHydrated}
     <TikTokShopLoading variant="grid" />
   {:else if !clientUi.isMobile}
-    <div class="pb-20 pt-4 md:pt-10">
-      <div class="max-w-[1240px] mx-auto px-4">
-        {#if cartStore.items.length === 0}
-          <div class="py-20 text-center space-y-6" in:fade>
-            <div
-              class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm"
-            >
-              <svg
-                class="w-12 h-12 text-gray-200"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                /></svg
-              >
-            </div>
-            <h1 class="text-xl font-black text-gray-900 italic tracking-widest">
-              Giỏ hàng đang trống
-            </h1>
-            <p class="text-xs text-gray-400 font-bold tracking-widest">
-              Bạn chưa chọn sản phẩm nào để thanh toán.
-            </p>
-            <a
-              href="/"
-              class="inline-block px-10 py-4 bg-gray-900 text-white font-black text-xs tracking-[0.3em] hover:bg-[#ee4d2d] transition-colors"
-              >Quay lại cửa hàng</a
-            >
-          </div>
-        {:else}
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-7 space-y-6">
-              <div class="flex items-center justify-between mb-2">
-                <h1
-                  class="text-2xl font-black italic text-gray-900 tracking-tighter"
-                >
-                  Xác nhận đơn hàng
-                </h1>
-                <div class="flex items-center gap-2">
-                  <span class="text-[9px] font-bold text-gray-400"
-                    >Sale kết thúc:</span
-                  >
-                  <Countdown
-                    initialSeconds={3600 + Math.floor(Math.random() * 3600)}
-                  />
-                </div>
-              </div>
-
-              {#if errorMsg}
-                <div
-                  class="p-5 bg-white border-l-4 border-[#ee4d2d] shadow-[0_10px_30px_rgba(238,77,45,0.1)] flex items-start gap-4 mb-6"
-                  in:slide
-                >
-                  <div
-                    class="w-10 h-10 rounded-full bg-[#fff0f1] flex items-center justify-center shrink-0"
-                  >
-                    <svg
-                      class="w-5 h-5 text-[#ee4d2d]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2.5"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      /></svg
-                    >
-                  </div>
-                  <div>
-                    <h3 class="text-sm font-black text-gray-900 mb-1 italic">
-                      Helen AI: Yêu cầu bổ sung thông tin
-                    </h3>
-                    <p
-                      class="text-xs text-gray-500 font-medium leading-relaxed"
-                    >
-                      Thông tin vận chuyển chưa hoàn thiện. Helen đã đánh dấu
-                      các trường dữ liệu cần kiểm tra bằng màu đỏ để dễ dàng bổ
-                      sung.
-                    </p>
-                  </div>
-                </div>
-              {/if}
-
-              <div class="space-y-6">
-                {#if isAddressFormVisible}
-                  <div transition:slide>
-                    <AddressSection
-                      bind:form
-                      {invalidFields}
-                      bind:showNote
-                      bind:orderNote={form.note}
-                      {lookupCustomer}
-                    />
-                  </div>
-                {:else}
-                  <div
-                    class="bg-white p-6 shadow-sm flex items-center justify-between"
-                  >
-                    <div>
-                      <h3 class="text-sm font-bold text-gray-800">
-                        Thông tin nhận hàng
-                      </h3>
-                      <p class="text-sm text-gray-600 mt-1">
-                        {form.name} · {form.phone}
-                      </p>
-                      <p class="text-sm text-gray-500 mt-0.5">
-                        {form.street}, {form.ward}, {form.province}
-                      </p>
-                    </div>
-                    <button
-                      onclick={() => (isAddressFormVisible = true)}
-                      class="text-sm font-bold text-[#ee4d2d]">Chỉnh sửa</button
-                    >
-                  </div>
-                {/if}
-
-                <DeliveryPaymentSection
-                  bind:form
-                  {deliveryEstimate}
-                  {canExpress}
-                  {selectedProvinceData}
-                  bind:showCoInspectionModal
-                  {shippingFee}
-                />
-                <VoucherSection
-                  vouchers={cartStore.vouchers}
-                  {toggleVoucher}
-                  onOptimize={optimizeVouchers}
-                />
-              </div>
-            </div>
-
-            <div class="lg:col-span-5">
-              <div
-                class="bg-white p-6 shadow-sm md:sticky md:top-20 border-t-4 border-[#ee4d2d] space-y-6"
-              >
-                <CheckoutItems
-                  bind:customItems
-                  bind:showCustomItemForm
-                  bind:newCustomItem
-                  {addCustomItem}
-                  {removeCustomItem}
-                />
-                <OrderSummarySection
-                  bind:form
-                  {originalSubtotal}
-                  {productSavings}
-                  {shippingFee}
-                  {totalSavings}
-                  {helenAdvice}
-                  {neuralStatus}
-                  {availablePoints}
-                  pointsRedeemed={pointsToRedeem}
-                  {handleSubmit}
-                />
-                <!-- Points section moved to main column -->
-              </div>
-            </div>
-          </div>
-        {/if}
-      </div>
-    </div>
+    <CheckoutDesktop
+      bind:form
+      bind:customItems
+      bind:showCustomItemForm
+      bind:newCustomItem
+      {invalidFields}
+      {neuralStatus}
+      {errorMsg}
+      {shippingFee}
+      {helenAdvice}
+      {deliveryEstimate}
+      bind:showNote
+      bind:isAddressFormVisible
+      {canExpress}
+      {selectedProvinceData}
+      bind:showCoInspectionModal
+      {availablePoints}
+      {pointsToRedeem}
+      {originalSubtotal}
+      {productSavings}
+      {totalSavings}
+      {toggleVoucher}
+      {optimizeVouchers}
+      {addCustomItem}
+      {removeCustomItem}
+      {handleSubmit}
+      {lookupCustomer}
+    />
   {:else}
-    <!-- TIKTOK SHOP MOBILE CART/CHECKOUT THEME -->
-    <div class="bg-[#f5f5f5] min-h-[100dvh] pb-[85px] text-gray-900 font-sans">
-      <!-- HEADER -->
-      <div
-        class="bg-white pt-[env(safe-area-inset-top)] pb-2 px-3 sticky top-0 shadow-sm"
-        style:z-index={Z_INDEX_CLIENT.HEADER}
-      >
-        <div class="relative flex items-center justify-center w-full h-[48px]">
-          <button
-            type="button"
-            onclick={() => history.back()}
-            class="absolute left-0 p-2 flex items-center justify-center"
-            aria-label="Quay lại"
-          >
-            <svg
-              class="w-6 h-6 text-gray-800"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2.5"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M15 19l-7-7 7-7"
-              /></svg
-            >
-          </button>
-          <div class="flex flex-col items-center">
-            <h1 class="text-[17px] font-bold text-gray-900 relative">
-              Giỏ hàng ({cartStore.items.length})
-            </h1>
-          </div>
-          {#if authStore.isAuthenticated}
-            <button
-              type="button"
-              onclick={() => {
-                isAddressFormVisible = !isAddressFormVisible;
-                if (isAddressFormVisible)
-                  setTimeout(
-                    () =>
-                      document
-                        .getElementById("address-section")
-                        ?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        }),
-                    100,
-                  );
-              }}
-              class="absolute right-0 p-2 text-[14px] text-gray-700 font-medium"
-              >{isAddressFormVisible ? "Đóng" : "Chỉnh sửa"}</button
-            >
-          {/if}
-        </div>
-
-        <!-- Address Summary (Matches Tiktok Top Bar Address) -->
-        <div class="flex items-center justify-center mt-0.5 pb-1">
-          <button
-            type="button"
-            onclick={() => {
-              if (authStore.isAuthenticated) isAddressFormVisible = true;
-              setTimeout(
-                () =>
-                  document
-                    .getElementById("address-section")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                100,
-              );
-            }}
-            class="flex items-center text-[12px] text-gray-500 hover:text-gray-800 transition-colors"
-          >
-            <svg
-              class="w-3.5 h-3.5 mr-1 shrink-0 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              /><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              /></svg
-            >
-            <span class="truncate max-w-[200px]"
-              >{form.street && form.province
-                ? `${form.street}, ${form.ward}, ${form.province}`
-                : "Chọn địa chỉ nhận hàng..."}</span
-            >
-            <svg
-              class="w-3.5 h-3.5 ml-0.5 shrink-0 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              /></svg
-            >
-          </button>
-        </div>
-      </div>
-
-      {#if cartStore.items.length === 0}
-        <div class="py-32 text-center space-y-4" in:fade>
-          <div
-            class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm"
-          >
-            <svg
-              class="w-10 h-10 text-gray-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-              /></svg
-            >
-          </div>
-          <p class="text-sm text-gray-500 font-medium">
-            Giỏ hàng của bạn trống
-          </p>
-          <a
-            href="/"
-            class="inline-block px-10 py-3 bg-[#fe2c55] hover:bg-[#e0264b] transition-colors text-white rounded-md font-semibold text-[15px] shadow-sm"
-            >Mua sắm ngay</a
-          >
-        </div>
-      {:else}
-        <div class="px-0">
-          <!-- Freeship Banner -->
-          {#if shippingFee === 0 && cartStore.items.some(i => i.selected)}
-            <div
-              class="bg-[#eaf8f4] text-[#00a870] text-[13px] font-medium px-4 py-3 flex items-center gap-2 mb-2 mt-2"
-            >
-              <svg
-                class="w-5 h-5 text-[#00a870]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                /></svg
-              >
-              Bạn được Freeship!
-            </div>
-          {/if}
-
-          <!-- Items list -->
-          <div
-            class="bg-white rounded-xl shadow-sm mb-3 mt-1 overflow-hidden mx-2"
-          >
-            <!-- Gift Banner -->
-            {#if cartStore.items.some(item => {
-                if (!item.selected) return false;
-                const activeVariant = cartStore.getEffectiveVariant(item.id);
-                const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : '';
-                const resolvedGifts = activeVariant?.attributes?.gifts?.length ? activeVariant.attributes.gifts : activeVariant?.gifts?.length ? activeVariant.gifts : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3) ? [1] : item.product?.gifts || [];
-                return resolvedGifts.length > 0;
-            })}
-              <div
-                class="bg-[#fff0f1] text-[#fe2c55] text-[13px] font-medium px-3 py-3 flex items-center justify-between border-b border-[#ffe1e3]"
-              >
-                <div class="flex items-center gap-1.5">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    /></svg
-                  >
-                  Bạn có quà miễn phí
-                </div>
-                <svg
-                  class="w-4 h-4 text-[#fe2c55]/80"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  /></svg
-                >
-              </div>
-            {/if}
-
-            {#each cartStore.items as item}
-              {@const activeVariant = cartStore.getEffectiveVariant(item.id)}
-              {@const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : ''}
-              {@const giftMultiplierMobile = activeVariant?.attributes?.combo_qty ? Math.floor(item.quantity / activeVariant.attributes.combo_qty) : item.quantity}
-              {@const resolvedGiftsMobile = activeVariant?.attributes?.gifts?.length
-                ? activeVariant.attributes.gifts
-                : activeVariant?.gifts?.length
-                  ? activeVariant.gifts
-                  : item.product?.gifts || []}
-              <div
-                class="p-3 border-b border-gray-50 flex items-start gap-3 last:border-b-0 relative"
-              >
-                <!-- Checkbox -->
-                <button
-                  type="button"
-                  class="mt-[28px] shrink-0"
-                  onclick={() => cartStore.toggleItemSelection(item.id)}
-                >
-                  <div
-                    class="w-[18px] h-[18px] rounded-full flex items-center justify-center border {item.selected
-                      ? 'bg-[#fe2c55] border-[#fe2c55]'
-                      : 'border-gray-300'} transition-colors"
-                  >
-                    {#if item.selected}
-                      <svg
-                        class="w-3 h-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        ><path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M5 13l4 4L19 7"
-                        /></svg
-                      >
-                    {/if}
-                  </div>
-                </button>
-
-                <!-- Image -->
-                <div
-                  class="w-[88px] h-[88px] bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100"
-                >
-                  <img
-                    src={item.product.images?.[0] ||
-                      "/favicon.svg"}
-                    alt={item.product.name}
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-
-                <!-- Info -->
-                <div class="flex-1 min-w-0">
-                  <h4
-                    class="text-[14px] text-gray-800 leading-snug line-clamp-2"
-                  >
-                    {item.product.name}
-                  </h4>
-
-                  <div class="mt-1 flex flex-nowrap items-center gap-1.5 min-w-0">
-                    {#if activeVariant}
-                      <button
-                        class="flex items-center bg-[#fff0f1] border border-[#fecdd3] text-[#fe2c55] font-bold text-[10px] px-1.5 py-0.5 rounded-[2px] gap-1 active:bg-[#ffe4e6] transition-colors shadow-sm leading-none min-w-0"
-                      >
-                        <span class="truncate"
-                          >Phân loại: {activeVariantName || activeVariant.sku}</span
-                        >
-                        <svg
-                          class="w-3 h-3 shrink-0"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 9l-7 7-7-7"
-                          /></svg
-                        >
-                      </button>
-                    {/if}
-                    
-                    <div class="flex items-center gap-1 shrink-0">
-                      <span
-                        class="bg-gradient-to-r from-[#ff4760] to-[#fe2c55] text-white text-[9px] font-bold px-1.5 py-[3px] rounded-[2px] shadow-sm leading-none"
-                        >Flash Sale</span
-                      >
-                      {#if item.variant?.discountPrice || item.product.discountPrice}
-                        <span
-                          class="text-[#fe2c55] text-[9px] font-bold flex items-center gap-0.5 leading-none shrink-0"
-                        >
-                          <svg
-                            class="w-3 h-3 shrink-0"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            ><path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            /></svg
-                          >
-                          04:46:42
-                        </span>
-                      {/if}
-                    </div>
-                  </div>
-
-                  <div class="flex items-end justify-between mt-2 max-w-full gap-1">
-                    <div class="flex items-center gap-1 flex-1 min-w-0">
-                      <div
-                        class="text-[14px] font-bold text-[#fe2c55] leading-none shrink-0 flex items-center gap-0.5"
-                      >
-                        {formatCurrency(cartStore.getEffectiveItemPrice(item.id))}
-                        {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || item.variant?.price || item.product.price || 0)}
-                          <span class="text-[8px] bg-[#fe2c55] text-white px-1 py-[1px] rounded-[2px] font-black italic tracking-tighter shadow-sm animate-pulse-subtle leading-none">Combo</span>
-                        {/if}
-                      </div>
-                      <div class="flex items-center gap-0.5 min-w-0">
-                        {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || 0)}
-                          <span class="text-[10px] text-gray-400 line-through shrink-0 italic">{formatCurrency(item.variant?.discountPrice || item.product.discountPrice || 0)}</span>
-                        {:else if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                          <span class="text-[10px] text-gray-400 line-through shrink-0">{formatCurrency(item.variant?.price || item.product.price || 0)}</span>
-                        {/if}
-                        {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                          <span class="bg-[#fff0f1] text-[#fe2c55] text-[8px] px-0.5 py-[1px] rounded-[2px] font-bold shrink-0 leading-none">
-                            -{Math.round(100 - (cartStore.getEffectiveItemPrice(item.id) / (item.variant?.price ?? item.product.price ?? 1)) * 100)}%
-                          </span>
-                        {/if}
-                      </div>
-                    </div>
-
-                    <!-- Qty Control matches TikTok design: border, compact -->
-                    <div
-                      class="flex items-center border border-gray-200 rounded shrink-0 bg-white"
-                    >
-                      <button
-                        type="button"
-                        onclick={() =>
-                          cartStore.updateQuantity(item.id, item.quantity - 1)}
-                        class="w-7 h-6 flex items-center justify-center text-gray-500 font-medium active:bg-gray-100 border-r border-gray-200"
-                        >-</button
-                      >
-                      <span
-                        class="text-[13px] font-medium min-w-[24px] text-center bg-gray-50"
-                        >{item.quantity}</span
-                      >
-                      <button
-                        type="button"
-                        onclick={() =>
-                          cartStore.updateQuantity(item.id, item.quantity + 1)}
-                        class="w-7 h-6 flex items-center justify-center text-gray-500 font-medium active:bg-gray-100 border-l border-gray-200"
-                        >+</button
-                      >
-                    </div>
-                  </div>
-
-                  <!-- QUÀ TẶNG KÈM THEO MOBILE -->
-                  {#if resolvedGiftsMobile && resolvedGiftsMobile.length > 0}
-                    <div
-                      class="mt-2.5 bg-[#fef2f2] border border-[#fecdd3] rounded-sm p-1.5 flex flex-col gap-1.5 w-full relative overflow-hidden"
-                    >
-                      <div
-                        class="absolute inset-0 bg-gradient-to-r from-[#ffe4e6]/50 to-transparent pointer-events-none"
-                      ></div>
-                      <span
-                        class="text-[10px] font-bold text-[#e11d48] flex items-center gap-1 leading-none relative z-10"
-                      >
-                        <svg
-                          class="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2.5"
-                            d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-                          /></svg
-                        >
-                        Quà tặng kèm:
-                      </span>
-                      
-                      <div class="space-y-1.5 relative z-10">
-                        {#each resolvedGiftsMobile as gift}
-                          <div class="flex items-center gap-2 pl-0.5">
-                            <!-- 🎁 MOBILE GIFT IMAGE -->
-                            <div class="w-6 h-6 bg-white border border-[#fecdd3] rounded-[2px] overflow-hidden shrink-0 flex items-center justify-center">
-                              {#if gift.image}
-                                <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
-                              {:else}
-                                <svg class="w-3 h-3 text-[#fecdd3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                              {/if}
-                            </div>
-                            
-                            <div class="flex-1 flex items-center justify-between min-w-0">
-                              <span
-                                class="text-[#e11d48] font-bold text-[10px] tracking-tight truncate pr-2"
-                                >{gift.name}</span
-                              >
-                              <span
-                                class="text-[#e11d48] font-black text-[10px] shrink-0 min-w-[16px] text-center bg-[#ffe4e6] px-1 rounded-[2px]"
-                                >x{(gift.qty || gift.quantity || 1) * giftMultiplierMobile}</span
-                              >
-                            </div>
-                          </div>
-                        {/each}
-                      </div>
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-
-            <!-- MAPPED CUSTOM ITEMS ON MOBILE -->
-            {#if customItems.length > 0}
-              <div class="px-3 pb-3 space-y-2 border-t border-gray-100 pt-3">
-                <h3
-                  class="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-1.5"
-                >
-                  <svg
-                    class="w-3.5 h-3.5 text-[#fe2c55]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2.5"
-                      d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                    /></svg
-                  >
-                  Yêu cầu mua thêm
-                </h3>
-                {#each customItems as item, idx}
-                  <div
-                    class="flex gap-3 bg-[#fff0f1]/50 p-2 border border-[#ffe1e3] rounded relative group"
-                  >
-                    <div
-                      class="w-10 h-10 bg-white border border-[#ffe1e3] shrink-0 flex items-center justify-center overflow-hidden rounded-sm"
-                    >
-                      {#if item.image && item.image.startsWith("http")}
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          class="w-full h-full object-cover"
-                        />
-                      {:else}
-                        <svg
-                          class="w-5 h-5 text-gray-300"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.5"
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z"
-                          /></svg
-                        >
-                      {/if}
-                    </div>
-                    <div class="flex-1 min-w-0 flex flex-col justify-center">
-                      <h4
-                        class="text-[10px] font-bold text-gray-800 line-clamp-1"
-                      >
-                        {item.name}
-                      </h4>
-                      <div class="text-[9px] text-gray-500 font-medium">
-                        SL: {item.quantity} ·
-                        <span class="text-[#fe2c55]">Chờ báo giá</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onclick={() => removeCustomItem(idx)}
-                      class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-gray-200 text-gray-400 hover:text-[#fe2c55] rounded-full flex items-center justify-center shadow-sm"
-                    >
-                      <svg
-                        class="w-3 h-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        ><path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="3"
-                          d="M6 18L18 6M6 6l12 12"
-                        /></svg
-                      >
-                    </button>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-
-            <!-- ADD CUSTOM ITEM BUTTON/FORM ON MOBILE -->
-            <div
-              class="px-3 pb-3 {customItems.length === 0
-                ? 'pt-3 border-t border-gray-50'
-                : 'pt-0'}"
-            >
-              {#if !showCustomItemForm}
-                <button
-                  type="button"
-                  onclick={() => (showCustomItemForm = true)}
-                  class="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 hover:border-[#fe2c55] hover:text-[#fe2c55] hover:bg-[#fff0f1] transition-all flex items-center justify-center gap-2 rounded-lg group"
-                >
-                  <svg
-                    class="w-4 h-4 transition-transform group-hover:scale-110"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2.5"
-                      d="M12 4v16m8-8H4"
-                    /></svg
-                  >
-                  <span class="text-[11px] font-bold tracking-wide"
-                    >Yêu cầu thêm sản phẩm khác</span
-                  >
-                </button>
-              {:else}
-                <div
-                  class="p-3 bg-gray-50 border border-gray-100 rounded-lg space-y-3"
-                  transition:slide
-                >
-                  <div class="flex items-center justify-between">
-                    <span
-                      class="text-[10px] font-bold text-gray-800 flex items-center gap-1.5"
-                    >
-                      <div class="w-1.5 h-1.5 bg-[#fe2c55] rounded-full"></div>
-                      Thông tin sản phẩm muốn thêm
-                    </span>
-                    <button
-                      type="button"
-                      onclick={() => (showCustomItemForm = false)}
-                      class="text-gray-400 hover:text-gray-900"
-                      ><svg
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        ><path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        /></svg
-                      ></button
-                    >
-                  </div>
-                  <div class="space-y-2">
-                    <input
-                      id="mobile-custom-name"
-                      type="text"
-                      bind:value={newCustomItem.name}
-                      placeholder="VD: Sữa rửa mặt Cerave SA..."
-                      class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded"
-                    />
-                    <div class="grid grid-cols-2 gap-2">
-                      <input
-                        id="mobile-custom-qty"
-                        type="number"
-                        bind:value={newCustomItem.quantity}
-                        placeholder="Số lượng"
-                        class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded"
-                      />
-                      <input
-                        id="mobile-custom-price"
-                        type="number"
-                        bind:value={newCustomItem.price}
-                        placeholder="Giá dự kiến (nếu có)"
-                        class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded"
-                      />
-                    </div>
-                    <input
-                      id="mobile-custom-image"
-                      type="text"
-                      bind:value={newCustomItem.image}
-                      placeholder="Link ảnh hoặc ghi chú..."
-                      class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onclick={addCustomItem}
-                    class="w-full py-2.5 bg-gray-900 text-white text-[11px] font-bold tracking-wider hover:bg-[#fe2c55] transition-colors rounded"
-                  >
-                    Xác nhận thêm
-                  </button>
-                </div>
-              {/if}
-            </div>
-          </div>
-
-          <!-- AGENTIC AI OVERSIGHT (MOBILE - TỔNG HỢP SAU Giỏ hàng) -->
-          <!-- [ELITE V2.2] Professional Loyalty Toggle Mobile -->
-          {#if authStore.isAuthenticated && availablePoints > 0}
-            <div class="px-2 mb-3 mt-1" in:slide>
-              <div
-                class="bg-white rounded-xl shadow-sm overflow-hidden select-none"
-              >
-                <!-- Toggle Row -->
-                <div
-                  class="p-4 flex items-center justify-between active:bg-gray-50 transition-colors cursor-pointer"
-                  onclick={() => (form.usePoints = !form.usePoints)}
-                >
-                  <div class="flex items-center gap-3">
-                    <div
-                      class="w-10 h-10 rounded-full flex items-center justify-center {form.usePoints
-                        ? 'bg-amber-500/10 text-amber-600'
-                        : 'bg-gray-100 text-gray-400'} transition-all"
-                    >
-                      <Wallet class="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span
-                        class="text-[13px] font-bold text-gray-800 tracking-widest leading-none"
-                        >Dùng {availablePoints} điểm tích lũy</span
-                      >
-                      <p
-                        class="text-[11px] text-gray-500 mt-0.5 font-medium italic"
-                      >
-                        Tiết kiệm {formatCurrency(pointsToRedeem * 1000)} cho đơn
-                        này
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none {form.usePoints
-                      ? 'bg-[#fe2c55]'
-                      : 'bg-gray-200'}"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 {form.usePoints
-                        ? 'translate-x-5'
-                        : 'translate-x-0'}"
-                    ></span>
-                  </div>
-                </div>
-
-                <!-- Mobile FOMO Tip (Always visible, compact) -->
-                <div class="px-4 pb-3 pt-0 border-t border-gray-50">
-                  <div
-                    class="flex items-start gap-2 bg-amber-50/80 rounded-lg p-2.5 mt-2"
-                  >
-                    <div class="w-4 h-4 shrink-0 mt-0.5">
-                      <svg
-                        class="w-4 h-4 text-amber-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        ><path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M13 10V3L4 14h7v7l9-11h-7z"
-                        /></svg
-                      >
-                    </div>
-                    <div>
-                      <p
-                        class="text-[10px] text-gray-700 font-bold leading-relaxed"
-                      >
-                        🔥 Đơn này tích thêm <span
-                          class="text-[#fe2c55] font-black"
-                          >+{Math.floor(finalTotal / 100000)} Pts</span
-                        >. Mua thêm combo để
-                        <span
-                          class="bg-[#fe2c55] text-white px-1 rounded-sm text-[9px] font-black"
-                          >X2 TÍCH LŨY</span
-                        >
-                      </p>
-                      <p
-                        class="text-[9px] text-gray-400 font-medium mt-1 italic"
-                      >
-                        Luật: Giảm tối đa 1% đơn hàng · #StayElite
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <div class="px-2 mb-3 mt-1">
-            <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
-          </div>
-
-          <!-- Extra Fields (Required for Checkout to function) styled conservatively -->
-          {#if isAddressFormVisible}
-            <div
-              id="address-section"
-              transition:slide
-              class="mb-3 mt-3 mx-2 scroll-mt-[90px]"
-            >
-              <AddressSection
-                bind:form
-                {invalidFields}
-                bind:showNote
-                bind:orderNote={form.note}
-                {lookupCustomer}
-              />
-            </div>
-          {/if}
-
-          <div
-            class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2"
-          >
-            <DeliveryPaymentSection
-              bind:form
-              {deliveryEstimate}
-              {canExpress}
-              {selectedProvinceData}
-              bind:showCoInspectionModal
-              {shippingFee}
-            />
-          </div>
-
-          <div
-            class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2"
-          >
-            <VoucherSection
-              vouchers={cartStore.vouchers}
-              {toggleVoucher}
-              onOptimize={optimizeVouchers}
-            />
-          </div>
-        </div>
-
-        <!-- Terms and Conditions -->
-        <div
-          class="px-3 pb-2 pt-2 text-[10.5px] leading-snug text-gray-400 text-center"
-        >
-          Bằng cách đặt đơn hàng, bạn đồng ý với <a
-            href="/terms"
-            class="font-bold text-gray-700 hover:underline"
-            >Điều khoản sử dụng và bán hàng của cửa hàng</a
-          >
-          và đồng ý rằng dữ liệu của bạn sẽ được xử lý theo
-          <a href="/privacy" class="font-bold text-gray-700 hover:underline"
-            >Chính sách quyền riêng tư của cửa hàng</a
-          >.
-        </div>
-
-        <!-- Local errorMsg toast removed in favor of global premium toast -->
-
-        <!-- Fixed Bottom Bar -->
-        <div
-          class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 px-3 py-2 flex items-center justify-between pb-[calc(10px+env(safe-area-inset-bottom))]"
-          style:z-index={Z_INDEX_CLIENT.HEADER}
-        >
-          <label class="flex items-center gap-2">
-            <button
-              type="button"
-              class="shrink-0"
-              onclick={() =>
-                cartStore.toggleAll(
-                  cartStore.selectedItemsCount < cartStore.totalItems,
-                )}
-            >
-              <div
-                class="w-[18px] h-[18px] rounded-full flex items-center justify-center border {cartStore.selectedItemsCount ===
-                  cartStore.totalItems && cartStore.totalItems > 0
-                  ? 'bg-[#fe2c55] border-[#fe2c55]'
-                  : 'border-gray-300'} transition-colors"
-              >
-                {#if cartStore.selectedItemsCount === cartStore.totalItems && cartStore.totalItems > 0}
-                  <svg
-                    class="w-3.5 h-3.5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="3"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M5 13l4 4L19 7"
-                    /></svg
-                  >
-                {/if}
-              </div>
-            </button>
-            <span class="text-[14px] text-gray-600">Tất cả</span>
-          </label>
-
-          <div class="flex items-center gap-3">
-            <div class="text-right flex flex-col justify-center">
-              {#if cartStore.totalDiscount > 0 || shippingFee === 0}
-                <div class="text-[11px] text-gray-500 leading-tight">
-                  {#if shippingFee === 0}Freeship{/if}
-                  {#if cartStore.totalDiscount > 0}
-                    · Giảm {formatCurrency(cartStore.totalDiscount)}{/if}
-                </div>
-              {/if}
-              <div
-                class="text-[15px] font-bold text-[#fe2c55] leading-tight flex items-center gap-1 justify-end"
-              >
-                {formatCurrency(finalTotal)}
-                <svg
-                  class="w-3 h-3 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 15l7-7 7 7"
-                  /></svg
-                >
-              </div>
-            </div>
-            <button
-              type="button"
-              onclick={(e) => handleSubmit(e as unknown as SubmitEvent)}
-              disabled={isSubmitting || cartStore.selectedItemsCount === 0}
-              class="px-5 py-3 bg-[#fe2c55] text-white text-[15px] font-semibold rounded-lg min-w-[140px] shadow-sm shadow-[#fe2c55]/30 disabled:opacity-50 disabled:cursor-not-allowed active:bg-[#e0264b] transition-colors flex justify-center items-center overflow-hidden relative group"
-            >
-              {#if neuralStatus === "verifying"}
-                <div class="flex items-center gap-2" in:slide={{ axis: "y" }}>
-                  <div
-                    class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"
-                  ></div>
-                  <span
-                    class="text-[11px] font-black tracking-widest leading-none"
-                    >Neural Verifying...</span
-                  >
-                </div>
-              {:else if neuralStatus === "encoding"}
-                <div class="flex items-center gap-2" in:slide={{ axis: "y" }}>
-                  <div class="flex gap-0.5">
-                    <div class="w-1 h-1 bg-white/60 animate-bounce"></div>
-                    <div
-                      class="w-1 h-1 bg-white/60 animate-bounce"
-                      style:animation-delay="0.1s"
-                    ></div>
-                    <div
-                      class="w-1 h-1 bg-white/60 animate-bounce"
-                      style:animation-delay="0.2s"
-                    ></div>
-                  </div>
-                  <span
-                    class="text-[11px] font-black tracking-widest leading-none"
-                    >Stealth Encoding...</span
-                  >
-                </div>
-              {:else if neuralStatus === "submitting"}
-                <svg
-                  class="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  ><circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle><path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path></svg
-                >
-              {:else}
-                Thanh toán ({cartStore.selectedItemsCount})
-              {/if}
-            </button>
-          </div>
-        </div>
-      {/if}
-    </div>
+    <CheckoutMobile
+      bind:form
+      bind:customItems
+      bind:showCustomItemForm
+      bind:newCustomItem
+      {invalidFields}
+      {neuralStatus}
+      {errorMsg}
+      {shippingFee}
+      {helenAdvice}
+      {deliveryEstimate}
+      bind:showNote
+      bind:isAddressFormVisible
+      {canExpress}
+      {selectedProvinceData}
+      bind:showCoInspectionModal
+      {availablePoints}
+      {pointsToRedeem}
+      {finalTotal}
+      {isSubmitting}
+      {toggleVoucher}
+      {optimizeVouchers}
+      {addCustomItem}
+      {removeCustomItem}
+      {handleSubmit}
+      {lookupCustomer}
+    />
   {/if}
 </div>
+
 {#if clientUi.isMobile}
   <MobileGiftModal onClose={() => {}} />
 {:else}
