@@ -178,6 +178,23 @@
   let quizContainer = $state<HTMLElement | null>(null);
   let draggingIdx = $state<number | null>(null);
 
+  let activeRecTab = $state(0);
+
+  const recommendationSteps = $derived.by(() => {
+    const text = shopStore.diagnosticResult?.recommendation || "";
+    const cleaned = text.trim();
+    const stepMatches = [
+      ...cleaned.matchAll(
+        /(\d+)\.\s*([^:]+):\s*(.+?)(?=\s*\d+\.\s*|\s*\*\*|\Z)/gs,
+      ),
+    ];
+    return stepMatches.map((m) => ({
+      num: m[1],
+      title: m[2].trim(),
+      desc: m[3].trim(),
+    }));
+  });
+
   // Elite V2.2: Absolute Direct Editing Logic
   function addQuestion() {
     const newQuestion = {
@@ -271,6 +288,7 @@
     answers = [];
     shopStore.diagnosticResult = null;
     shopStore.setQuantity(1);
+    activeRecTab = 0;
   }
 
   function toSentenceCase(str: string) {
@@ -280,113 +298,12 @@
     return cleanStr.charAt(0).toUpperCase() + cleanStr.slice(1).toLowerCase();
   }
 
-  function formatRecommendation(
-    text: string,
-    theme: "desktop" | "mobile",
-  ): string {
+  function renderFallbackText(text: string): string {
     if (!text) return "";
-    const cleaned = text.trim();
-
-    const stepMatches = [
-      ...cleaned.matchAll(
-        /(\d+)\.\s*([^:]+):\s*(.+?)(?=\s*\d+\.\s*|\s*\*\*|\Z)/gs,
-      ),
-    ];
-    const phaseMatches = [
-      ...cleaned.matchAll(/\*\*([^*]+?):\*\*\s*(.+?)(?=\s*\*\*|\Z)/gs),
-    ];
-
-    let html = "";
-
-    if (stepMatches.length > 0) {
-      html += `<div class="recommendation-steps-container space-y-3 mb-5 text-left">`;
-      stepMatches.forEach((m) => {
-        const num = m[1];
-        const title = m[2].trim();
-        const desc = m[3].trim();
-
-        const accentColor =
-          theme === "desktop" ? "var(--luxury-gold)" : "#FFB7C5";
-        const badgeBg =
-          theme === "desktop"
-            ? "rgba(193, 143, 126, 0.08)"
-            : "rgba(255, 183, 197, 0.08)";
-        const badgeBorder =
-          theme === "desktop"
-            ? "rgba(193, 143, 126, 0.2)"
-            : "rgba(255, 183, 197, 0.2)";
-
-        html += `
-          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-            <div class="flex items-center gap-3 mb-2">
-              <div class="step-badge w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0" 
-                   style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
-                ${num}
-              </div>
-              <h5 class="text-xs font-black tracking-widest first-letter:uppercase" style="color: ${accentColor}; margin: 0;">${title}</h5>
-            </div>
-            <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    if (phaseMatches.length > 0) {
-      html += `<div class="recommendation-phases-container grid grid-cols-1 gap-3 pt-4 border-t border-white/5 text-left">`;
-      phaseMatches.forEach((m) => {
-        const title = m[1].trim();
-        const desc = m[2].trim();
-
-        let phaseBg = "rgba(239, 68, 68, 0.03)";
-        let phaseBorder = "rgba(239, 68, 68, 0.15)";
-        let phaseText = "text-red-400";
-
-        if (title.toLowerCase().includes("duy trì")) {
-          phaseBg = "rgba(52, 211, 153, 0.03)";
-          phaseBorder = "rgba(52, 211, 153, 0.15)";
-          phaseText = "text-emerald-400";
-        } else if (title.toLowerCase().includes("tấn công")) {
-          phaseBg =
-            theme === "desktop"
-              ? "rgba(193, 143, 126, 0.03)"
-              : "rgba(255, 183, 197, 0.03)";
-          phaseBorder =
-            theme === "desktop"
-              ? "rgba(193, 143, 126, 0.15)"
-              : "rgba(255, 183, 197, 0.15)";
-          phaseText =
-            theme === "desktop" ? "text-luxury-copper" : "text-pink-300";
-        }
-
-        html += `
-          <div class="phase-card p-4 rounded-[1.5rem] border transition-all duration-300" 
-               style="background: ${phaseBg}; border-color: ${phaseBorder};">
-            <div class="flex items-center gap-2 mb-2">
-              <div class="w-1.5 h-1.5 rounded-full bg-current ${phaseText} animate-pulse"></div>
-              <h5 class="text-xs font-black tracking-[0.2em] first-letter:uppercase ${phaseText}">${title}</h5>
-            </div>
-            <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    if (stepMatches.length === 0 && phaseMatches.length === 0) {
-      let fallback = cleaned
-        .replace(
-          /\*\*([^*]+?):\*\*/g,
-          '<strong class="text-emerald-400 font-bold">$1:</strong>',
-        )
-        .replace(
-          /\*\*([^*]+?)\*\*/g,
-          '<strong class="text-emerald-400 font-bold">$1</strong>',
-        );
-      return `<p class="text-white/80 text-xs md:text-sm leading-relaxed">${fallback}</p>`;
-    }
-
-    return html;
+    const cleaned = text.trim()
+      .replace(/\*\*([^*]+?):\*\*/g, '<strong class="text-emerald-400 font-bold">$1:</strong>')
+      .replace(/\*\*([^*]+?)\*\*/g, '<strong class="text-emerald-400 font-bold">$1</strong>');
+    return `<p class="text-white/80 text-xs md:text-sm leading-relaxed">${cleaned}</p>`;
   }
 </script>
 
@@ -777,29 +694,72 @@
                 </p>
               </div>
               <div>
-                <div class="flex items-center gap-3 mb-3">
-                  <h4
-                    class="text-[10px] font-semibold text-emerald-400/60 tracking-[0.3em]"
-                  >
-                    Liệu trình tối ưu
-                  </h4>
-                </div>
-                <div
-                  class="text-emerald-500/80 text-sm font-medium leading-relaxed"
-                >
-                  {@html formatRecommendation(
-                    shopStore.diagnosticResult.recommendation,
-                    "desktop",
-                  )}
-                </div>
+                {#if recommendationSteps.length > 0}
+                  <!-- Unified iOS Glassmorphic Container -->
+                  <div class="flex flex-col w-full rounded-2xl bg-zinc-950/40 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] overflow-hidden transition-all duration-300 text-left">
+                    <!-- iOS Glass Tab Header -->
+                    <div class="flex items-center p-1 bg-white/[0.02] border-b border-white/5 backdrop-blur-md">
+                      {#each recommendationSteps as step, idx}
+                        <button
+                          onclick={() => activeRecTab = idx}
+                          class="flex-1 py-2 px-3 text-[10px] md:text-xs font-black tracking-widest rounded-lg transition-all duration-300 relative uppercase {activeRecTab === idx ? 'bg-white/[0.08] text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-white/10' : 'text-white/40 hover:text-white/60 border border-transparent'}"
+                        >
+                          {step.title}
+                        </button>
+                      {/each}
+                    </div>
+
+                    <!-- Step Details Body -->
+                    {#if recommendationSteps[activeRecTab]}
+                      <div class="p-5 bg-gradient-to-b from-white/[0.01] to-transparent">
+                        <div class="flex items-center gap-2.5 mb-3">
+                          <div 
+                            class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 bg-white/5 border border-white/10 text-white/90 shadow-[0_0_8px_rgba(255,255,255,0.05)]"
+                          >
+                            {recommendationSteps[activeRecTab].num}
+                          </div>
+                          <h5 class="text-[10px] font-semibold text-white/50 tracking-[0.3em] uppercase m-0">
+                            {recommendationSteps[activeRecTab].title}
+                          </h5>
+                        </div>
+                        <p class="text-white/85 text-xs md:text-sm leading-relaxed m-0 font-medium">
+                          {recommendationSteps[activeRecTab].desc}
+                        </p>
+                      </div>
+                    {/if}
+                  </div>
+                {:else}
+                  <!-- Fallback if Recommendation parsing failed -->
+                  <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3 mb-3">
+                      <h4
+                        class="text-[10px] font-semibold text-emerald-400/60 tracking-[0.3em]"
+                      >
+                        Liệu trình tối ưu
+                      </h4>
+                    </div>
+                    <div
+                      class="text-emerald-500/80 text-sm font-medium leading-relaxed"
+                    >
+                      {@html renderFallbackText(
+                        shopStore.diagnosticResult.recommendation,
+                      )}
+                    </div>
+                  </div>
+                {/if}
               </div>
             </div>
           </div>
         </div>
 
-        <div
-          class="flex flex-col gap-2.5 max-w-xs mx-auto mt-6 md:mt-8"
-        >
+        <!-- Compact Buttons Row -->
+        <div class="flex items-center justify-center gap-3 mt-5 md:mt-6">
+          <button
+            onclick={restart}
+            class="px-4 py-2 text-[10px] font-black text-white/30 hover:text-white/60 transition-all duration-300 tracking-[0.25em] uppercase border border-white/5 hover:border-white/10 rounded-lg bg-white/[0.01]"
+          >
+            Làm lại
+          </button>
           <button
             onclick={() => {
               const recommendedQty = shopStore.diagnosticResult?.quantity || 1;
@@ -813,29 +773,24 @@
                 .getElementById("offers")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            class="group relative w-full py-3 md:py-3.5 bg-luxury-copper text-white rounded-xl font-bold text-sm md:text-base overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90"
+            class="group relative px-6 py-2 bg-luxury-copper text-white rounded-lg font-bold text-xs md:text-sm overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90 shadow-[0_4px_12px_rgba(193,143,126,0.2)] border border-white/10"
           >
-            <span class="relative z-surface">Xem liệu trình</span>
+            <span class="relative z-surface uppercase tracking-widest">Xem liệu trình</span>
             <div
               class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"
             ></div>
           </button>
-
-          <!-- Security & Privacy Disclaimer integrated inside clinical results card -->
-          <p
-            class="text-[9px] font-medium text-white/30 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1 animate-fade-in"
-          >
-            AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác
-            sĩ.
-          </p>
-
-          <button
-            onclick={restart}
-            class="text-[10px] font-semibold text-white/15 hover:text-luxury-copper/50 transition-colors tracking-[0.2em] py-1"
-          >
-            Làm lại chẩn đoán
-          </button>
         </div>
+
+        <!-- Mobile Warning Disclaimer -->
+        <span class="block text-[8px] font-medium text-white/20 tracking-wider text-center mt-3 md:hidden pointer-events-none select-none">
+          AI có thể mắc sai sót. Hãy xác minh thông tin này với bác sĩ.
+        </span>
+
+        <!-- Desktop Absolute Warning Disclaimer (nằm sát đáy phải của container chính) -->
+        <span class="absolute bottom-4 right-8 text-[8px] font-medium text-white/20 tracking-wider pointer-events-none select-none hidden md:block">
+          AI có thể mắc sai sót. Hãy xác minh thông tin này với bác sĩ.
+        </span>
       </div>
     {/if}
   {:else}

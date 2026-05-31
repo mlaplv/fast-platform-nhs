@@ -850,3 +850,13 @@
 - [x] Khử bỏ hoàn toàn mọi logic đọc token thô từ `localStorage` trong `apiClient.ts` và `permissions.svelte.ts` để chặn đứng vector tấn công XSS chiếm dụng token, thiết lập cơ chế ưu tiên đọc an toàn từ Cookie và `sessionStorage` chuẩn an ninh cao cấp. (Done)
 - [x] Tích hợp cơ chế "Purge-on-Logout" dọn sạch toàn bộ các key mồ côi (orphaned keys) và session cũ (`access_token`, `admin_token`, `osmo:auth:user_info`, `elite_global_cart`, `osmo_recently_viewed`, `osmo_search_history`, `vfl_liked_`) nhằm triệt tiêu hoàn toàn rò rỉ chéo tài khoản. (Done)
 
+# Task Checklist - Fixing Desktop Clinical Quiz Layout & Tabbed Recommendations (Elite V2.2)
+
+- [x] Phân tích cấu trúc chuỗi kết quả chẩn đoán và thiết kế bộ parser phản ứng `$derived.by` trong `ClinicalQuiz.svelte`. (Done)
+- [x] Khai báo biến trạng thái tab phản ứng `activeRecTab` trong `ClinicalQuiz.svelte` và đồng bộ hóa reset tab tại hàm `restart()`. (Done)
+- [x] Tích hợp thanh chọn tab Segmented Pill Glassmorphism và khối nội dung phản ứng mượt mà vào cột bên phải ("Liệu trình tối ưu") trên giao diện Desktop của `ClinicalQuiz.svelte`. (Done)
+- [x] Thực hiện biên dịch tĩnh Svelte storefront (`pnpm build`) để xác thực 100% không cảnh báo hay lỗi static compile. (Done)
+- [x] Rsync đồng bộ hóa mã nguồn Frontend đã xây dựng hoàn chỉnh lên VPS Production. (Done)
+- [x] Tải lại dịch vụ tĩnh Caddy trên VPS để áp dụng ngay lập tức các thay đổi. (Done)
+- [x] Dọn dẹp triệt để hơn 100 dòng mã nguồn thối/dư thừa (formatRecommendation) do merge lịch sử, thay thế bằng bộ render tối giản renderFallbackText cực kỳ sạch sẽ. (Done)
+
