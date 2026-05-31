@@ -683,7 +683,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-              <div class="flex flex-col justify-between">
+              <div class="flex flex-col justify-between pt-[4px]">
                 <div>
                   <h4
                     class="text-[10px] font-semibold text-white/30 mb-3 tracking-[0.3em]"
@@ -695,23 +695,22 @@
                   </p>
                 </div>
                 <!-- Line Wave Vector (To prevent empty space, premium 2026 aesthetic) -->
-                <div class="mt-6 relative w-full h-[60px] overflow-hidden rounded-lg opacity-40 hover:opacity-80 transition-opacity duration-500 hidden md:block">
+                <div class="mt-6 relative w-full h-[80px] overflow-hidden rounded-lg opacity-30 hover:opacity-60 transition-opacity duration-500 hidden md:block">
                   <svg class="absolute inset-0 w-full h-full" viewBox="0 0 120 28" fill="none" preserveAspectRatio="none">
                     <defs>
-                      <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" stop-color="rgba(193, 143, 126, 0)" />
-                        <stop offset="30%" stop-color="rgba(193, 143, 126, 0.3)" />
-                        <stop offset="70%" stop-color="rgba(16, 185, 129, 0.2)" />
-                        <stop offset="100%" stop-color="rgba(16, 185, 129, 0)" />
+                        <stop offset="50%" stop-color="rgba(193, 143, 126, 0.25)" />
+                        <stop offset="100%" stop-color="rgba(193, 143, 126, 0)" />
                       </linearGradient>
                       <linearGradient id="waveGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="rgba(255, 255, 255, 0)" />
-                        <stop offset="50%" stop-color="rgba(255, 255, 255, 0.15)" />
-                        <stop offset="100%" stop-color="rgba(255, 255, 255, 0)" />
+                        <stop offset="0%" stop-color="rgba(16, 185, 129, 0)" />
+                        <stop offset="50%" stop-color="rgba(16, 185, 129, 0.15)" />
+                        <stop offset="100%" stop-color="rgba(16, 185, 129, 0)" />
                       </linearGradient>
                     </defs>
-                    <path class="wave-path-1" d="M 0,14 C 30,2 40,26 60,14 C 80,2 90,26 120,14 L 120,28 L 0,28 Z" fill="url(#waveGrad)" />
-                    <path class="wave-path-2" d="M 0,14 C 20,24 50,4 70,14 C 90,24 100,4 120,14" stroke="url(#waveGrad2)" stroke-width="0.5" fill="none" />
+                    <path class="wave-path-1" d="M 0,14 C 30,2 40,26 60,14 C 80,2 90,26 120,14" stroke="url(#waveGrad1)" stroke-width="0.75" fill="none" />
+                    <path class="wave-path-2" d="M 0,14 C 20,24 50,4 70,14 C 90,24 100,4 120,14" stroke="url(#waveGrad2)" stroke-width="0.75" fill="none" />
                   </svg>
                 </div>
               </div>
