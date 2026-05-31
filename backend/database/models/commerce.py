@@ -148,6 +148,10 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     tier_updated_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
     balance_seal: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Integrity Seal
 
+    # Loyalty Check-in (V2.2)
+    current_checkin_streak: Mapped[int] = mapped_column(Integer, default=0)
+    last_checkin_date: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
+
     __table_args__ = (
         Index("ix_user_loyalty_tenant", "tenant_id"),
     )

@@ -116,3 +116,10 @@ class PointAdjustmentRequest(BaseModel):
     amount: int
     notes: str = Field(..., min_length=1, max_length=500)
     transaction_type: str = "ADJUST_ADMIN"
+
+class CheckinStatusResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    today_checked_in: bool
+    current_streak: int
+    rewards: List[int]
+    cycle_days: int

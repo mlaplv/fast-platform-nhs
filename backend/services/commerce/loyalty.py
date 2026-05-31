@@ -1,5 +1,6 @@
 import logging
-from typing import Optional
+from typing import Optional, Tuple
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, UserLoyalty, PointTransaction
@@ -180,3 +181,114 @@ class LoyaltyService:
         order.points_earned = points_to_earn
         
         return True
+
+    @staticmethod
+    async def _get_checkin_config(db_session: AsyncSession) -> dict:
+        """Fetch check-in config from SystemSetting or fallback to default."""
+        stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_CHECKIN_CONFIG")
+        res = await db_session.execute(stmt)
+        setting = res.scalar_one_or_none()
+        default_config = {
+            "cycle_days": 7,
+            "rewards": [10000, 10000, 10000, 10000, 10000, 10000, 10000]
+        }
+        if setting and setting.value and isinstance(setting.value, dict):
+            return {
+                "cycle_days": setting.value.get("cycle_days", 7),
+                "rewards": setting.value.get("rewards", default_config["rewards"])
+            }
+        return default_config
+
+    @staticmethod
+    async def get_checkin_status(db_session: AsyncSession, user_id: str) -> dict:
+        """Get user's current check-in state."""
+        config = await LoyaltyService._get_checkin_config(db_session)
+        
+        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+        res = await db_session.execute(stmt)
+        loyalty = res.scalar_one_or_none()
+        
+        today_checked_in = False
+        current_streak = 0
+        
+        now_hcm = datetime.now(timezone(timedelta(hours=7)))
+        today_date = now_hcm.date()
+        
+        if loyalty and loyalty.last_checkin_date:
+            last_date = loyalty.last_checkin_date.astimezone(timezone(timedelta(hours=7))).date()
+            if last_date == today_date:
+                today_checked_in = True
+                current_streak = loyalty.current_checkin_streak
+            elif last_date == today_date - timedelta(days=1):
+                current_streak = loyalty.current_checkin_streak
+            else:
+                current_streak = 0
+        
+        return {
+            "today_checked_in": today_checked_in,
+            "current_streak": current_streak,
+            "rewards": config["rewards"],
+            "cycle_days": config["cycle_days"]
+        }
+
+    @staticmethod
+    async def perform_daily_checkin(db_session: AsyncSession, user_id: str) -> dict:
+        """Perform daily check-in with pessimistic locking."""
+        # SECURITY R00: Verify integrity before updating points balance
+        is_intact = await LoyaltyService.verify_loyalty_integrity(db_session, user_id)
+        if not is_intact:
+            raise Exception("[SECURITY-FATAL] Dữ liệu điểm thưởng bị sai lệch, không thể tiếp tục.")
+
+        config = await LoyaltyService._get_checkin_config(db_session)
+        
+        # Lock the row
+        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
+        res = await db_session.execute(stmt)
+        loyalty = res.scalar_one_or_none()
+        
+        if not loyalty:
+            loyalty = UserLoyalty(user_id=user_id, available_points=0, total_spent=0, current_checkin_streak=0)
+            db_session.add(loyalty)
+            
+        now_hcm = datetime.now(timezone(timedelta(hours=7)))
+        today_date = now_hcm.date()
+        
+        if loyalty.last_checkin_date:
+            last_date = loyalty.last_checkin_date.astimezone(timezone(timedelta(hours=7))).date()
+            if last_date == today_date:
+                raise Exception("Hôm nay bạn đã điểm danh rồi!")
+            elif last_date == today_date - timedelta(days=1):
+                loyalty.current_checkin_streak += 1
+            else:
+                loyalty.current_checkin_streak = 1
+        else:
+            loyalty.current_checkin_streak = 1
+            
+        # Cycle reset
+        cycle_days = config.get("cycle_days", 7)
+        if loyalty.current_checkin_streak > cycle_days:
+            loyalty.current_checkin_streak = 1
+            
+        # Determine reward
+        rewards = config.get("rewards", [])
+        reward_idx = loyalty.current_checkin_streak - 1
+        reward_amount = rewards[reward_idx] if reward_idx < len(rewards) else 10000
+        
+        loyalty.last_checkin_date = now_hcm
+        loyalty.available_points += reward_amount
+        
+        pt = PointTransaction(
+            user_id=user_id,
+            amount=reward_amount,
+            transaction_type="DAILY_CHECKIN",
+            notes=f"Điểm danh hằng ngày (Ngày {loyalty.current_checkin_streak})"
+        )
+        pt.integrity_token = LoyaltyService._create_transaction_token(pt)
+        db_session.add(pt)
+        
+        loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
+        
+        return {
+            "reward_amount": reward_amount,
+            "current_streak": loyalty.current_checkin_streak
+        }

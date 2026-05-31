@@ -11,7 +11,7 @@ import logging
 
 from backend.database.models import User, Role
 from backend.database.repositories import MediaRegistryRepository
-from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload, LoyaltyResponse, PointTransactionResponse
+from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload, LoyaltyResponse, PointTransactionResponse, CheckinStatusResponse
 from backend.schemas.order import OrderListResponse, OrderResponse, CancelOrderRequest
 from backend.database.models.commerce import Order, UserLoyalty, PointTransaction
 from backend.schemas.common import SuccessResponse
@@ -385,3 +385,57 @@ class ClientUserController(Controller):
         
         return resp
 
+    @get("/loyalty/checkin")
+    async def get_loyalty_checkin_status(self, request: Request, db_session: AsyncSession) -> CheckinStatusResponse:
+        """
+        Elite V2.2: Get daily check-in status and config.
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+
+        # SECURITY: Status check
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động")
+            
+        from backend.services.commerce.loyalty import LoyaltyService
+        status_data = await LoyaltyService.get_checkin_status(db_session, user_id)
+        return CheckinStatusResponse.model_validate(status_data)
+
+    @post("/loyalty/checkin")
+    async def perform_loyalty_checkin(self, request: Request, db_session: AsyncSession) -> SuccessResponse:
+        """
+        Elite V2.2: Perform daily check-in.
+        """
+        from litestar.exceptions import ClientException, NotAuthorizedException
+        
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+
+        # SECURITY: Status check
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            raise NotAuthorizedException("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động")
+            
+        from backend.services.commerce.loyalty import LoyaltyService
+        try:
+            result = await LoyaltyService.perform_daily_checkin(db_session, user_id)
+            await db_session.commit()
+            return SuccessResponse(
+                ok=True, 
+                id=user_id, 
+                data={"reward_amount": result["reward_amount"], "current_streak": result["current_streak"]}
+            )
+        except Exception as e:
+            await db_session.rollback()
+            raise ClientException(status_code=400, detail=str(e))
