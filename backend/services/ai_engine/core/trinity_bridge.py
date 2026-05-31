@@ -15,7 +15,8 @@ from .trinity_models import TrinityModels
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
-    from pydantic_ai.result import RunResult, StreamedRunResult
+    from pydantic_ai.run import AgentRunResult
+    from pydantic_ai.result import StreamedRunResult
 
 logger = logging.getLogger("api-gateway")
 
@@ -163,7 +164,7 @@ class TrinityBridge:
             logger.warning(f"⚠️ [TrinityBridge] Failed to load tenant VoiceProfile for {active_tenant}: {e}")
             return self.db_primary_model, self.db_waterfall
 
-    async def run(self, agent: Agent, prompt: Union[str, list], **kwargs: object) -> RunResult:
+    async def run(self, agent: Agent, prompt: Union[str, list], **kwargs: object) -> AgentRunResult:
         val_t: object = kwargs.pop("timeout", 90.0)
         t: float = float(val_t) if isinstance(val_t, (int, float)) else 90.0
         
