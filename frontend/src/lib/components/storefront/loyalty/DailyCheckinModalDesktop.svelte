@@ -59,6 +59,20 @@
     return String(v);
   }
 
+  // Preview days cho guest (không cần API)
+  const PREVIEW_DAYS = [
+    { day: 1, reward: 100,  is_completed: false, is_today: true,  is_bonus: false },
+    { day: 2, reward: 200,  is_completed: false, is_today: false, is_bonus: false },
+    { day: 3, reward: 200,  is_completed: false, is_today: false, is_bonus: false },
+    { day: 4, reward: 200,  is_completed: false, is_today: false, is_bonus: false },
+    { day: 5, reward: 200,  is_completed: false, is_today: false, is_bonus: false },
+    { day: 6, reward: 200,  is_completed: false, is_today: false, is_bonus: false },
+    { day: 7, reward: 500,  is_completed: false, is_today: false, is_bonus: true  },
+  ];
+
+  let displayDays = $derived(
+    checkinStore.status?.days?.length ? checkinStore.status.days : PREVIEW_DAYS
+  );
   let days = $derived(checkinStore.status?.days ?? []);
   let isCheckedIn = $derived(checkinStore.status?.is_checked_in_today ?? false);
   let streak = $derived(checkinStore.status?.current_streak ?? 0);
@@ -147,55 +161,58 @@
         <h3 class="font-bold text-[#1a1a1a] text-[15px]">Nhiệm vụ thưởng</h3>
       </div>
 
-      <!-- Day row scroll -->
-      <div class="flex gap-2.5 px-4 pb-4 overflow-x-auto scrollbar-hide">
-        {#each days as d (d.day)}
+      <div class="flex gap-2.5 px-4 pb-4 overflow-x-auto" style="-ms-overflow-style:none;scrollbar-width:none;">
+        {#each displayDays as d (d.day)}
           {@const active = d.is_today}
-          {@const done = d.is_completed}
+          {@const done  = d.is_completed}
+          {@const w     = active ? 72  : 58}
+          {@const h     = active ? 88  : 74}
+          {@const bagSz = active ? 26  : 18}
+          {@const bgSz  = active ? 16  : 12}
 
-          <div class="flex-shrink-0 flex flex-col items-center gap-1.5">
+          <div class="flex-shrink-0 flex flex-col items-center" style="gap:6px;">
             <div
-              class="relative rounded-[14px] flex flex-col items-center justify-center transition-all
-                {active
-                  ? 'w-[72px] h-[88px] bg-gradient-to-b from-[#FFF9CC] to-[#FFE566] border-2 border-[#FFD600]/70 shadow-md'
-                  : done
-                    ? 'w-[58px] h-[74px] bg-gray-100 border border-gray-200'
-                    : 'w-[58px] h-[74px] bg-gray-50 border border-gray-150'}"
+              class="relative flex flex-col items-center justify-center rounded-[14px]"
+              style="
+                width:{w}px; height:{h}px;
+                background:{done && !active ? '#F5F5F5' : active ? 'linear-gradient(to bottom,#FFF9CC,#FFE566)' : '#F8F8F8'};
+                border:{active ? '2px solid rgba(255,214,0,0.7)' : '1px solid #E8E8E8'};
+                box-shadow:{active ? '0 4px 12px rgba(255,200,0,0.25)' : 'none'};
+              "
             >
               <!-- Done overlay -->
               {#if done && !active}
-                <div class="absolute inset-0 flex items-center justify-center rounded-[13px] bg-white/70 z-10">
-                  <div class="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-[#C8960C]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-                    </svg>
-                  </div>
+                <div class="absolute inset-0 flex items-center justify-center rounded-[13px]" style="background:rgba(255,255,255,0.75);">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#C8960C" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
                 </div>
               {/if}
 
               <!-- Stacked money bags -->
-              <div class="relative flex items-end justify-center" style="height:{active?'46px':'38px'};width:{active?'56px':'44px'}">
-                {#if !done}
-                  <span class="absolute" style="bottom:0;left:0;font-size:{active?'18px':'14px'};opacity:0.4;transform:rotate(-14deg);">💰</span>
-                  <span class="absolute" style="bottom:2px;left:{active?'7':'5'}px;font-size:{active?'20px':'15px'};opacity:0.65;transform:rotate(-5deg);">💰</span>
-                {/if}
-                <span class="relative z-10" style="font-size:{active?'26px':'18px'}">{done && !active ? '💰' : '💰'}</span>
+              <div class="relative" style="width:{w-14}px;height:{bagSz+10}px;">
+                <span class="absolute" style="font-size:{bgSz}px;bottom:0;left:0;opacity:0.4;transform:rotate(-14deg);">💰</span>
+                <span class="absolute" style="font-size:{Math.round(bgSz*1.2)}px;bottom:2px;left:{bgSz-2}px;opacity:0.65;transform:rotate(-5deg);">💰</span>
+                <span class="absolute" style="font-size:{bagSz}px;bottom:0;right:0;">💰</span>
               </div>
 
               <!-- Reward badge -->
               {#if !done}
-                <div class="mt-1.5 {active ? 'bg-[#FFD600] text-[#4a3000]' : 'bg-gray-200 text-gray-500'} rounded-full px-2 py-0.5">
-                  <span class="font-black text-[10px] leading-none">{fmtVnd(d.reward)}</span>
+                <div class="rounded-full" style="margin-top:6px;padding:1px 7px;background:{active?'#FFD600':'#E0E0E0'};">
+                  <span class="font-black leading-none" style="font-size:10px;color:{active?'#4a3000':'#888'};">
+                    {fmtVnd(d.reward)}
+                  </span>
                 </div>
               {/if}
             </div>
 
-            <span class="text-[10px] font-semibold {active ? 'text-[#FF9900]' : 'text-gray-400'}">
+            <span class="font-semibold" style="font-size:10px;color:{active?'#FF9900':'#AAAAAA'};">
               {active ? 'Hôm nay' : `Ngày ${d.day}`}
             </span>
           </div>
         {/each}
       </div>
+
 
       <!-- Streak progress bar inside white card -->
       {#if streak > 0 || isCheckedIn}
