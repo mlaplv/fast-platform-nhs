@@ -8,326 +8,263 @@
 
   let { onClose }: { onClose: () => void } = $props();
 
+  let countdownText = $state('');
+  let cInterval: ReturnType<typeof setInterval> | null = null;
   let showConfetti = $state(false);
-  let confettiParticles = $state<Array<{ x: number; y: number; r: number; color: string; delay: number; rot: number }>>([]);
-  let countdownText = $state('00:00:00');
-  let countdownInterval: ReturnType<typeof setInterval> | null = null;
+  let particles = $state<{x:number;y:number;color:string;d:number}[]>([]);
 
-  const CONFETTI_COLORS = ['#FFD700', '#FF6B35', '#F7B731', '#A29BFE', '#fd79a8', '#55efc4'];
+  const COLORS = ['#FFD700','#FF6B35','#FFA500','#FFE066','#FFFBE7','#FF9900'];
 
-  function calcCountdown(): string {
+  function calcCountdown() {
     const now = new Date();
-    const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-    const end = new Date(vnNow);
-    end.setUTCHours(16, 59, 59, 999);
-    if (end < vnNow) end.setUTCDate(end.getUTCDate() + 1);
-    const diff = end.getTime() - vnNow.getTime();
-    const h = Math.floor(diff / 3_600_000).toString().padStart(2, '0');
-    const m = Math.floor((diff % 3_600_000) / 60_000).toString().padStart(2, '0');
-    const s = Math.floor((diff % 60_000) / 1_000).toString().padStart(2, '0');
+    const vnMs = now.getTime() + 7*3600*1000;
+    const vnNow = new Date(vnMs);
+    const end = new Date(vnMs);
+    end.setUTCHours(23,59,59,999);
+    const diff = Math.max(0, end.getTime() - vnNow.getTime());
+    const h = Math.floor(diff/3600000).toString().padStart(2,'0');
+    const m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
+    const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
     return `${h}:${m}:${s}`;
   }
 
   function spawnConfetti() {
-    confettiParticles = Array.from({ length: 40 }, (_, i) => ({
-      x: 30 + Math.random() * 40,
-      y: 45,
-      r: 6 + Math.random() * 10,
-      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-      delay: i * 30,
-      rot: Math.random() * 360,
+    particles = Array.from({length:30},(_,i)=>({
+      x: 25 + Math.random()*50, y: 55,
+      color: COLORS[i%COLORS.length],
+      d: i*35,
     }));
     showConfetti = true;
-    setTimeout(() => { showConfetti = false; confettiParticles = []; }, 2500);
+    setTimeout(()=>{showConfetti=false;particles=[];},2200);
   }
 
   async function handleClaim() {
     if (!authStore.isAuthenticated) {
-      getClientUi().openLogin();
+      onClose();
+      setTimeout(()=>getClientUi().openLogin(),200);
       return;
     }
-    if (!checkinStore.canClaim) return;
-    const success = await checkinStore.claimReward();
-    if (success) {
+    if (!checkinStore.canClaim || checkinStore.claiming) return;
+    const ok = await checkinStore.claimReward();
+    if (ok) {
       spawnConfetti();
-      getClientUi().showToast(`🎉 Nhận thành công ${formatVnd(checkinStore.status?.today_reward ?? 100)} xu!`, 'success');
+      getClientUi().showToast(`🎉 Nhận ${fmtVnd(checkinStore.status?.today_reward??100)} xu thành công!`,'success');
     } else if (checkinStore.error) {
-      getClientUi().showToast(checkinStore.error, 'error');
+      getClientUi().showToast(checkinStore.error,'error');
     }
   }
 
-  function formatVnd(val: number): string {
-    if (val >= 1_000) return (val / 1_000).toFixed(0) + 'K';
-    return val.toString();
+  function fmtVnd(v:number):string {
+    if(v>=1000) return `${Math.round(v/1000)}K`;
+    return String(v);
   }
 
   let days = $derived(checkinStore.status?.days ?? []);
+  let isCheckedIn = $derived(checkinStore.status?.is_checked_in_today ?? false);
   let streak = $derived(checkinStore.status?.current_streak ?? 0);
-  let totalCheckin = $derived(checkinStore.status?.total_checkin_today ?? 0);
-  let availablePoints = $derived(loyaltyStore.data?.available_points ?? 0);
+  let cycleLen = $derived(checkinStore.status?.cycle_length ?? 7);
+  let todayReward = $derived(checkinStore.status?.today_reward ?? 100);
+  let balance = $derived(loyaltyStore.data?.available_points ?? 0);
+  let totalToday = $derived(checkinStore.status?.total_checkin_today ?? 0);
 
-  onMount(() => {
+  onMount(()=>{
     countdownText = calcCountdown();
-    countdownInterval = setInterval(() => { countdownText = calcCountdown(); }, 1_000);
+    cInterval = setInterval(()=>{countdownText=calcCountdown();},1000);
   });
-
-  onDestroy(() => {
-    if (countdownInterval) clearInterval(countdownInterval);
-  });
+  onDestroy(()=>{ if(cInterval) clearInterval(cInterval); });
 </script>
 
 <!-- Backdrop -->
 <div
-  role="button"
-  tabindex="-1"
-  aria-label="Đóng"
-  class="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-md"
+  role="button" tabindex="-1" aria-label="Đóng"
+  class="fixed inset-0 z-[9998] bg-black/65 backdrop-blur-[2px]"
   onclick={onClose}
-  onkeydown={(e) => e.key === 'Escape' && onClose()}
-  transition:fade={{ duration: 250 }}
+  onkeydown={(e)=>e.key==='Escape'&&onClose()}
+  transition:fade={{duration:200}}
 ></div>
 
-<!-- Desktop Modal: Centered Dialog -->
-<div
-  class="fixed inset-0 z-[9999] flex items-center justify-center p-6"
-  aria-modal="true"
-  role="dialog"
->
+<!-- Center dialog -->
+<div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
   <div
-    class="relative w-full max-w-[480px] rounded-[32px] overflow-hidden
-      bg-gradient-to-b from-[#0f0f23] via-[#1a1a2e] to-[#0d0d1e]
-      border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.8),0_0_60px_rgba(255,215,0,0.08)]"
-    transition:scale={{ duration: 300, start: 0.92, opacity: 0 }}
+    class="relative w-full max-w-[420px] rounded-[24px] overflow-hidden shadow-2xl"
+    style="background: #18181f;"
+    transition:scale={{duration:280,start:0.94}}
   >
-    <!-- Decorative glows -->
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-40 bg-[#FFD700]/8 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute bottom-0 right-0 w-48 h-48 bg-[#A29BFE]/6 rounded-full blur-3xl pointer-events-none"></div>
-
-    <!-- Header -->
-    <div class="relative flex items-center justify-between px-6 pt-6 pb-4">
-      <div>
-        <h2 class="text-white font-black text-xl tracking-tight">Trung tâm thưởng</h2>
-        <p class="text-white/40 text-xs mt-0.5">Điểm danh mỗi ngày để nhân thưởng</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button
-          onclick={() => checkinStore.openHistory()}
-          class="text-[#FFD700] text-xs font-semibold bg-[#FFD700]/10 hover:bg-[#FFD700]/20 px-3 py-1.5 rounded-full transition-colors border border-[#FFD700]/20"
-        >
-          Lịch sử
-        </button>
-        <button
-          onclick={onClose}
-          class="w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/50 hover:bg-white/15 transition-colors"
-          aria-label="Đóng"
-        >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
+    <!-- ── TOP HEADER ──────────────────────── -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/6">
+      <button onclick={onClose} class="flex items-center gap-2 text-white/75 hover:text-white transition-colors">
+        <span class="text-xl font-light leading-none mt-[-1px]">×</span>
+        <span class="font-semibold text-[15px]">Trung tâm thưởng</span>
+      </button>
+      <button onclick={()=>checkinStore.openHistory()} class="text-[#FF9900] text-[13px] font-medium hover:underline">
+        Quy định
+      </button>
     </div>
 
-    <!-- Balance Showcase -->
-    <div class="relative mx-5 mb-5">
-      <div class="relative rounded-2xl p-5 overflow-hidden
-        bg-gradient-to-br from-[#FFD700]/15 via-[#F7B731]/8 to-transparent
-        border border-[#FFD700]/20">
-        <!-- Inner glow -->
-        <div class="absolute inset-0 bg-gradient-to-br from-[#FFD700]/5 to-transparent pointer-events-none rounded-2xl"></div>
-        
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="flex items-center gap-3 mb-1">
-              <!-- Animated coin icon -->
-              <div class="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFD700] to-[#F7B731] flex items-center justify-center shadow-lg shadow-[#FFD700]/30">
-                <span class="text-xl">🪙</span>
-                <div class="absolute inset-0 rounded-2xl ring-2 ring-[#FFD700]/30 animate-pulse"></div>
-              </div>
-              <div>
-                <span class="text-[#FFD700] text-3xl font-black tracking-tighter block leading-none">
-                  {availablePoints.toLocaleString('vi-VN')}đ
-                </span>
-                <span class="text-white/40 text-[11px]">Số dư hiện tại</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 mt-2">
-              <div class="w-1.5 h-1.5 rounded-full bg-[#FF6B35] animate-pulse"></div>
-              <span class="text-white/40 text-[11px]">
-                Chuỗi đứt sau: <span class="text-[#FF6B35] font-mono font-bold">{countdownText}</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Streak badge -->
-          <div class="text-center">
-            <div class="relative inline-flex flex-col items-center justify-center w-16 h-16 rounded-2xl
-              bg-gradient-to-br from-[#FF6B35] to-[#e84393]
-              shadow-xl shadow-[#FF6B35]/30">
-              <span class="text-white text-xl font-black leading-none">{streak}</span>
-              <span class="text-white/80 text-[9px] font-bold uppercase tracking-wide">ngày</span>
-              <div class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center text-[8px]">
-                🔥
-              </div>
-            </div>
-            <p class="text-white/30 text-[10px] mt-1">Chuỗi hiện tại</p>
-          </div>
-        </div>
-
-        <!-- Social proof bar -->
-        {#if totalCheckin > 0}
-          <div class="mt-4 pt-3 border-t border-white/8 flex items-center gap-2">
-            <div class="flex -space-x-1">
-              {#each ['🧑', '👩', '🧑‍💼', '👨‍💼'] as emoji}
-                <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] border border-white/10">
-                  {emoji}
-                </span>
-              {/each}
-            </div>
-            <span class="text-white/40 text-[11px]">
-              <strong class="text-white/60">{totalCheckin.toLocaleString('vi-VN')}</strong> người đã điểm danh hôm nay
+    <!-- ── BALANCE ─────────────────────────── -->
+    <div class="px-5 py-4 border-b border-white/6">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[24px]">🪙</span>
+            <span class="text-[#FFD700] font-black text-[28px] leading-none tracking-tight">
+              {#if authStore.isAuthenticated}
+                {fmtVnd(balance)}đ
+              {:else}
+                --đ
+              {/if}
             </span>
           </div>
-        {/if}
+          {#if authStore.isAuthenticated}
+            <p class="text-white/40 text-[12px]">
+              {fmtVnd(todayReward)}.000đ tiền thưởng sẽ hết hạn sau
+              <span class="text-[#FF9900] font-mono font-semibold">{countdownText}</span>
+            </p>
+          {:else}
+            <p class="text-white/35 text-[12px]">Đăng nhập để xem và nhận xu điểm danh</p>
+          {/if}
+        </div>
+        <button
+          onclick={()=>checkinStore.openHistory()}
+          class="flex items-center gap-1 text-white/55 text-[12px] font-medium bg-white/7 hover:bg-white/12 transition-colors border border-white/10 rounded-full px-3 py-1.5 mt-0.5"
+        >Lịch sử <span class="text-white/30">›</span></button>
       </div>
+
+      <!-- Social proof -->
+      {#if totalToday > 0}
+        <div class="flex items-center gap-1.5 mt-3">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-[#FF9900] animate-pulse"></span>
+          <span class="text-white/35 text-[11px]">
+            🔥 <strong class="text-white/50">{totalToday.toLocaleString('vi-VN')}</strong> người đã điểm danh hôm nay
+          </span>
+        </div>
+      {/if}
     </div>
 
-    <!-- Day streak timeline -->
-    <div class="px-5 mb-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-white/50 text-[10px] font-bold tracking-widest uppercase">Nhiệm vụ điểm danh</h3>
-        <span class="text-[#FFD700]/60 text-[10px]">{streak}/{checkinStore.status?.cycle_length ?? 7} ngày</span>
+    <!-- ── MISSION CARD ────────────────────── -->
+    <div class="mx-4 my-4 bg-white rounded-[16px] overflow-hidden">
+      <div class="px-4 pt-4 pb-2">
+        <h3 class="font-bold text-[#1a1a1a] text-[15px]">Nhiệm vụ thưởng</h3>
       </div>
 
-      {#if checkinStore.loading}
-        <div class="grid grid-cols-7 gap-2">
-          {#each Array(7) as _}
-            <div class="h-[72px] rounded-xl bg-white/5 animate-pulse"></div>
-          {/each}
-        </div>
-      {:else}
-        <div class="grid gap-2" style="grid-template-columns: repeat({days.length || 7}, 1fr);">
-          {#each days as day (day.day)}
-            {@const isToday = day.is_today}
-            {@const isDone = day.is_completed}
-            {@const isBonus = day.is_bonus}
-            <div class="flex flex-col items-center gap-1">
-              <div
-                class="relative w-full aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200
-                  {isDone 
-                    ? 'bg-gradient-to-br from-[#FFD700]/25 to-[#F7B731]/15 border border-[#FFD700]/30' 
-                    : isToday 
-                      ? 'bg-gradient-to-br from-[#FFD700] to-[#F7B731] shadow-lg shadow-[#FFD700]/40 ring-2 ring-[#FFD700]/40 scale-105' 
-                      : 'bg-white/5 border border-white/8 opacity-60'}"
-              >
-                {#if isBonus}
-                  <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-[#FF6B35] text-white text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap z-10">
-                    BONUS
-                  </div>
-                {/if}
-                {#if isDone}
-                  <svg class="w-4 h-4 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                  </svg>
-                {:else}
-                  <span class="text-[12px] leading-none">{isToday ? '🪙' : '💰'}</span>
-                  <span class="text-[9px] font-black leading-none {isToday ? 'text-[#1a1a2e]' : 'text-white/50'}">
-                    {formatVnd(day.reward)}
-                  </span>
-                {/if}
-              </div>
-              <span class="text-[9px] {isToday ? 'text-[#FFD700] font-bold' : 'text-white/30'}">
-                {isToday ? 'Nay' : `N${day.day}`}
-              </span>
-            </div>
-          {/each}
-        </div>
+      <!-- Day row scroll -->
+      <div class="flex gap-2.5 px-4 pb-4 overflow-x-auto scrollbar-hide">
+        {#each days as d (d.day)}
+          {@const active = d.is_today}
+          {@const done = d.is_completed}
 
-        <!-- Progress bar -->
-        <div class="mt-3 h-1 bg-white/8 rounded-full overflow-hidden">
+          <div class="flex-shrink-0 flex flex-col items-center gap-1.5">
+            <div
+              class="relative rounded-[14px] flex flex-col items-center justify-center transition-all
+                {active
+                  ? 'w-[72px] h-[88px] bg-gradient-to-b from-[#FFF9CC] to-[#FFE566] border-2 border-[#FFD600]/70 shadow-md'
+                  : done
+                    ? 'w-[58px] h-[74px] bg-gray-100 border border-gray-200'
+                    : 'w-[58px] h-[74px] bg-gray-50 border border-gray-150'}"
+            >
+              <!-- Done overlay -->
+              {#if done && !active}
+                <div class="absolute inset-0 flex items-center justify-center rounded-[13px] bg-white/70 z-10">
+                  <div class="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-[#C8960C]" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                    </svg>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Stacked money bags -->
+              <div class="relative flex items-end justify-center" style="height:{active?'46px':'38px'};width:{active?'56px':'44px'}">
+                {#if !done}
+                  <span class="absolute" style="bottom:0;left:0;font-size:{active?'18px':'14px'};opacity:0.4;transform:rotate(-14deg);">💰</span>
+                  <span class="absolute" style="bottom:2px;left:{active?'7':'5'}px;font-size:{active?'20px':'15px'};opacity:0.65;transform:rotate(-5deg);">💰</span>
+                {/if}
+                <span class="relative z-10" style="font-size:{active?'26px':'18px'}">{done && !active ? '💰' : '💰'}</span>
+              </div>
+
+              <!-- Reward badge -->
+              {#if !done}
+                <div class="mt-1.5 {active ? 'bg-[#FFD600] text-[#4a3000]' : 'bg-gray-200 text-gray-500'} rounded-full px-2 py-0.5">
+                  <span class="font-black text-[10px] leading-none">{fmtVnd(d.reward)}</span>
+                </div>
+              {/if}
+            </div>
+
+            <span class="text-[10px] font-semibold {active ? 'text-[#FF9900]' : 'text-gray-400'}">
+              {active ? 'Hôm nay' : `Ngày ${d.day}`}
+            </span>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Streak progress bar inside white card -->
+      {#if streak > 0 || isCheckedIn}
+        <div class="mx-4 mb-4 h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
-            class="h-full bg-gradient-to-r from-[#FFD700] to-[#FF6B35] rounded-full transition-all duration-700"
-            style="width: {Math.min(100, (streak / (checkinStore.status?.cycle_length ?? 7)) * 100)}%"
+            class="h-full bg-gradient-to-r from-[#FFD700] to-[#FF9900] rounded-full transition-all duration-700"
+            style="width:{Math.min(100,(streak/cycleLen)*100)}%"
           ></div>
         </div>
       {/if}
     </div>
 
-    <!-- CTA -->
-    <div class="px-5 pb-6">
-      {#if checkinStore.status?.is_checked_in_today}
-        <div class="w-full py-4 rounded-2xl bg-white/5 border border-[#FFD700]/20 flex flex-col items-center gap-1">
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-            </svg>
-            <span class="text-[#FFD700] font-bold text-sm">Đã điểm danh hôm nay!</span>
-          </div>
-          <span class="text-white/30 text-xs">Quay lại vào ngày mai để duy trì chuỗi 🔥</span>
+    <!-- ── CTA ─────────────────────────────── -->
+    <div class="px-4 pb-5">
+      {#if isCheckedIn && authStore.isAuthenticated}
+        <div class="w-full py-[14px] rounded-full bg-white/5 border border-white/8 flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+          </svg>
+          <span class="text-white/45 text-[14px] font-semibold">Đã nhận thưởng hôm nay</span>
         </div>
+        <p class="text-center text-white/25 text-[11px] mt-2.5">
+          Quay lại ngày mai để duy trì chuỗi {streak} ngày 🔥
+        </p>
       {:else}
         <button
           onclick={handleClaim}
-          disabled={checkinStore.claiming || (authStore.isAuthenticated && !checkinStore.canClaim)}
-          class="relative w-full py-4 rounded-2xl font-black text-[15px] tracking-wide overflow-hidden
-            bg-gradient-to-r from-[#FFD700] via-[#F7B731] to-[#FFD700] bg-[length:200%_100%]
-            text-[#1a1a2e]
-            shadow-[0_8px_32px_rgba(255,215,0,0.4)]
-            hover:shadow-[0_12px_40px_rgba(255,215,0,0.5)]
-            disabled:opacity-60 disabled:cursor-not-allowed
-            active:scale-[0.98] transition-all duration-200
-            animate-gradient-x"
+          disabled={checkinStore.claiming}
+          class="relative w-full py-[15px] rounded-full overflow-hidden
+            bg-[#1f1e24] border border-white/10
+            text-white font-bold text-[15px]
+            shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_24px_rgba(0,0,0,0.4)]
+            hover:bg-[#2a2933] active:scale-[0.98]
+            disabled:opacity-60 transition-all duration-150
+            flex items-center justify-center gap-2.5"
         >
-          <!-- Shine sweep -->
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent
-            -translate-x-full animate-shine pointer-events-none"></div>
-
           {#if checkinStore.claiming}
-            <span class="flex items-center justify-center gap-2">
-              <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-              </svg>
-              Đang nhận thưởng...
-            </span>
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            Đang nhận thưởng...
+          {:else if authStore.isAuthenticated}
+            <span>Nhận phần thưởng của hôm nay</span>
+            <span class="text-[18px]">👆</span>
           {:else}
-            <span class="flex items-center justify-center gap-2">
-              {#if authStore.isAuthenticated}
-                🎁 Nhận {formatVnd(checkinStore.status?.today_reward ?? 100)} xu hôm nay
-              {:else}
-                🔑 Đăng nhập để nhận thưởng điểm danh
-              {/if}
-            </span>
+            <span>Đăng nhập để nhận thưởng</span>
+            <span class="text-[16px]">🔑</span>
           {/if}
         </button>
 
-        <!-- Tomorrow teaser -->
-        {#if days.length > 0}
-          {@const tomorrowDay = days.find(d => d.day === (checkinStore.status?.current_streak ?? 0) + 2)}
-          {#if tomorrowDay}
+        <!-- Tomorrow tease -->
+        {#if authStore.isAuthenticated}
+          {@const nextDay = days.find(d => d.day === streak + 2)}
+          {#if nextDay}
             <p class="text-center text-white/30 text-[11px] mt-2.5">
-              ✨ Mai nhận <strong class="text-[#FFD700]/70">{formatVnd(tomorrowDay.reward)} xu</strong> — đừng bỏ lỡ!
+              Mai nhận thêm <strong class="text-[#FFD700]/60">{fmtVnd(nextDay.reward)} xu</strong> — giữ chuỗi nhé!
             </p>
           {/if}
         {/if}
       {/if}
     </div>
 
-    <!-- Confetti overlay -->
+    <!-- Confetti -->
     {#if showConfetti}
-      <div class="absolute inset-0 pointer-events-none overflow-hidden z-10" aria-hidden="true">
-        {#each confettiParticles as p, i}
-          <div
-            class="absolute rounded-sm animate-confetti-desktop"
-            style="
-              left: {p.x}%;
-              top: {p.y}%;
-              width: {p.r}px;
-              height: {p.r * 0.6}px;
-              background: {p.color};
-              animation-delay: {p.delay}ms;
-              transform: rotate({p.rot}deg);
-            "
+      <div class="absolute inset-0 pointer-events-none overflow-hidden z-20" aria-hidden="true">
+        {#each particles as p}
+          <div class="absolute w-2 h-1.5 rounded-sm animate-confetti"
+            style="left:{p.x}%;top:{p.y}%;background:{p.color};animation-delay:{p.d}ms;"
           ></div>
         {/each}
       </div>
@@ -336,28 +273,11 @@
 </div>
 
 <style>
-  @keyframes shine {
-    0% { transform: translateX(-100%); }
-    50%, 100% { transform: translateX(300%); }
+  .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none;}
+  .scrollbar-hide::-webkit-scrollbar{display:none;}
+  @keyframes confetti{
+    0%{transform:translateY(0) rotate(0deg) scaleX(1);opacity:1;}
+    100%{transform:translateY(-200px) rotate(720deg) scaleX(0.5);opacity:0;}
   }
-  .animate-shine {
-    animation: shine 2.8s ease-in-out infinite;
-  }
-
-  @keyframes gradient-x {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-  .animate-gradient-x {
-    animation: gradient-x 3s ease infinite;
-  }
-
-  @keyframes confetti-desktop {
-    0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
-    80% { opacity: 0.8; }
-    100% { transform: translateY(-220px) rotate(900deg) scale(0.5); opacity: 0; }
-  }
-  .animate-confetti-desktop {
-    animation: confetti-desktop 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  }
+  .animate-confetti{animation:confetti 1.8s cubic-bezier(.25,.46,.45,.94) forwards;}
 </style>
