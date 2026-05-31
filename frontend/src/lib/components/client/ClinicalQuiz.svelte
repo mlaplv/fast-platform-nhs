@@ -762,7 +762,7 @@
         <div class="flex items-center justify-center gap-3 mt-5 md:mt-6">
           <button
             onclick={restart}
-            class="px-4 py-2 text-[10px] font-black text-white/30 hover:text-white/60 transition-all duration-300 tracking-[0.25em] border border-white/5 hover:border-white/10 rounded-lg bg-white/[0.01]"
+            class="flex items-center justify-center h-[38px] px-5 text-[10px] font-black text-white/40 hover:text-white/80 transition-all duration-300 tracking-[0.2em] border border-white/10 hover:border-white/20 rounded-lg bg-white/[0.02] active:scale-[0.98]"
           >
             Làm lại
           </button>
@@ -779,7 +779,7 @@
                 .getElementById("offers")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            class="group relative px-6 py-2 bg-luxury-copper text-white rounded-lg font-bold text-xs md:text-sm overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90 shadow-[0_4px_12px_rgba(193,143,126,0.2)] border border-white/10"
+            class="group relative flex items-center justify-center h-[38px] px-6 bg-luxury-copper text-white rounded-lg font-bold text-xs md:text-sm overflow-hidden active:scale-[0.98] transition-all duration-500 hover:bg-luxury-copper/90 shadow-[0_4px_12px_rgba(193,143,126,0.2)] border border-white/10"
           >
             <span class="relative z-surface tracking-widest">Xem liệu trình</span>
             <div
