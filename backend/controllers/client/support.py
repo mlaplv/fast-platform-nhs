@@ -21,7 +21,7 @@ from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.system import SupportChatHistory
-from backend.schemas.support import SupportRequest, SupportResponse, SupportHistoryItem, SupportStatusResponse, UrgentSupportRequest
+from backend.schemas.support import SupportRequest, SupportResponse, SupportHistoryItem, SupportStatusResponse, SupportIntent, UrgentSupportRequest
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
 from backend.utils.security import GeminiSecurity
@@ -274,7 +274,7 @@ class SupportController(Controller):
                 # B. Anti-Duplicate query check (<10s interval)
                 hash_key = f"support:dup_hash:{session_id}"
                 last_hash = await redis.get(hash_key)
-                if last_hash and last_hash.decode("utf-8") == msg_hash:
+                if last_hash and last_hash == msg_hash:
                     logger.warning(f"🛡️ [Anti-Spam] Duplicate question blocked for Session {session_id}")
                     from backend.schemas.support import SupportIntent
                     return Response(

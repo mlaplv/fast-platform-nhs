@@ -59,7 +59,6 @@
   letter-spacing: 0.2em;
   z-index: 10;
   box-shadow: 0 0 20px rgba(255, 183, 197, 0.1);
-  will-change: transform, border-color;
 }
 
 .expert-choice-ribbon {
@@ -262,7 +261,6 @@
     inset: -150%;
     background: inherit;
     animation: led-rotate 4s linear infinite;
-    will-change: transform;
   }
 }
 

@@ -99,7 +99,6 @@
   border-radius: 50%;
   border: 4px solid rgba(34, 34, 34, 0.8);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
-  will-change: transform;
 }
 
 @keyframes spin {
@@ -119,7 +118,6 @@
   white-space: nowrap;
   animation: ticker 10s linear infinite;
   padding-left: 100%;
-  will-change: transform;
 }
 
 @keyframes ticker {
@@ -157,7 +155,6 @@
   display: flex;
   flex-direction: column;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  will-change: transform;
 }
 
 .mobile-bottom-sheet.active {

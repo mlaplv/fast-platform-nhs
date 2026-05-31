@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import traceback
 from typing import Optional, cast
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent, RunContext
@@ -8,6 +10,8 @@ from backend.services.ai_engine.core.agent_base import MedicalShieldMixin
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 from backend.schemas.support import SupportIntent
 from backend.services.xohi.prompts import composer
+from backend.database.repositories import SupportKnowledgeRepository
+from backend.services.commerce.support_knowledge import SupportKnowledgeService
 
 # Elite V2.2: Context-aware Dependencies for Tool Injection
 class ConsultantDeps(BaseModel):
@@ -157,8 +161,6 @@ async def fetch_product_full_detail(ctx_tool: RunContext[ConsultantDeps], slug: 
 @_consultant_agent.tool
 async def search_knowledge_base(ctx_tool: RunContext[ConsultantDeps], query: str) -> str:
     """Tra cứu kho tri thức của osmo khi không thấy ID phù hợp trong Layer 1."""
-    from backend.database.repositories import SupportKnowledgeRepository
-    from backend.services.commerce.support_knowledge import SupportKnowledgeService
     repo_tool = SupportKnowledgeRepository(session=ctx_tool.deps.db)
     service_tool = SupportKnowledgeService(repo=repo_tool)
     return await service_tool.search_relevant_knowledge(ctx_tool.deps.db, query)
@@ -435,7 +437,6 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         try:
             return await self._handle_internal(ctx)
         except Exception as e:
-            import traceback
             error_details = f"CRASH in ConsultantHandler: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_details)
             # Safe fall-through to the next handler
@@ -490,8 +491,6 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             return True
 
         # [ELITE V6.0] Layer 0: Knowledge Base Fast-Path — Mở rộng cho TẤT CẢ query (không chặn specialist)
-        from backend.database.repositories import SupportKnowledgeRepository
-        from backend.services.commerce.support_knowledge import SupportKnowledgeService
 
         # R112: Isolated Resource Lifecycle (2GB RAM Guard)
         repo: SupportKnowledgeRepository = SupportKnowledgeRepository(session=ctx.db)
@@ -688,7 +687,6 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         )
 
         try:
-            import asyncio as _asyncio
             masked_msg = await self._mask_sensitive_medical_terms(clean_msg)
             masked_prompt = await self._mask_sensitive_medical_terms(full_prompt)
 
@@ -699,7 +697,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
 
             # ⏱️ Elite V6.0: Cổng bảo vệ 12s - Giảm để kích hoạt Smart DB Fallback sớm hơn khi tải cao
-            res = await _asyncio.wait_for(
+            res = await asyncio.wait_for(
                 trinity_bridge.run(
                     _consultant_no_tool_agent,
                     masked_msg,
@@ -736,7 +734,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 return True
             return False
 
-        except _asyncio.TimeoutError:
+        except asyncio.TimeoutError:
             logger.warning("⚠️ [ConsultantHandler] AI vượt 10s — Kích hoạt Smart DB Fallback")
             db_fallback = self._generate_db_fallback(ctx)
             if db_fallback:

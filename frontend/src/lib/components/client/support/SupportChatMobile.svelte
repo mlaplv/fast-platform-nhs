@@ -258,7 +258,7 @@
     class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile helen-box-v2 overflow-hidden {isInputFocused
       ? 'pause-animations'
       : ''}"
-    style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh; will-change: transform, opacity;"
+    style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh;"
     transition:fly={{
       y: 800,
       duration: 500,

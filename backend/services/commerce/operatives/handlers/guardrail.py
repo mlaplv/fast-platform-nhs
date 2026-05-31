@@ -2,6 +2,7 @@ import re
 import logging
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 from backend.schemas.support import SupportIntent
+from backend.services.commerce.security.input_guard import input_guard
 
 logger = logging.getLogger("api-gateway")
 
@@ -43,7 +44,6 @@ class GuardrailHandler(BaseHandler):
         msg = ctx.request.message.lower().strip()
         
         # Elite V2.2: InputGuard Layer Integration
-        from backend.services.commerce.security.input_guard import input_guard
         is_safe, reason = await input_guard.validate_async(ctx.request.message)
         if not is_safe:
             logger.warning(f"[Guardrail] InputGuard rejected query. Reason: {reason}")

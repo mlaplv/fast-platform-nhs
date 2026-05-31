@@ -16,8 +16,9 @@ from backend.utils.uid import new_id
 from typing import Optional, cast, Union, Dict, Type, List, Tuple
 from pydantic import BaseModel, Field, ConfigDict, JsonValue
 from pydantic_ai import Agent, RunContext
-from sqlalchemy import select, and_, desc, or_
+from sqlalchemy import select, and_, desc, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from backend.services.commerce.security.input_guard import input_guard
 
 from backend.database.models.commerce import ProductBase, ProductVariant, Order
 from backend.database.models.content import Category
@@ -36,6 +37,10 @@ from backend.database.alchemy_config import alchemy_config
 from backend.services.event_bus import event_bus
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.security import GeminiSecurity
+from backend.database.models.commerce import UserLoyalty
+from backend.database.models.system import SystemSetting
+from backend.services.commerce.loyalty import LoyaltyService
+from backend.database.models.auth import User
 
 from backend.services.commerce.operatives.handlers.base import NeuralDNA, SupportContext
 from backend.services.commerce.operatives.router import SupportRouter
@@ -105,8 +110,6 @@ def _get_helen_intent_prompt(ctx: RunContext[FastIntentDeps]) -> str:
 @_support_ai_agent.tool
 async def search_knowledge_base(ctx: RunContext[SupportAgentDeps], query: str) -> str:
     """LAYER 3: Tìm kiếm mờ trong toàn bộ kho tri thức."""
-    from backend.database.repositories import SupportKnowledgeRepository
-    from backend.services.commerce.support_knowledge import SupportKnowledgeService
     repo = SupportKnowledgeRepository(session=ctx.deps.db)
     service = SupportKnowledgeService(repo=repo)
     return await service.search_relevant_knowledge(ctx.deps.db, query)
@@ -409,7 +412,6 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         try:
-            from backend.services.commerce.security.input_guard import input_guard as _ig
             # Scalar projection to avoid ORM hydration
             stmt = select(
                 SupportChatHistory.id,
@@ -430,7 +432,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 if len(h_content) > 300: h_content = h_content[:300] + "... [TRUNCATED]"
                 # H-2: Scan decrypted USER history for replay injection before re-injecting into LLM context
                 if r.role == "user":
-                    _safe, _ = _ig.validate(h_content[:2000])
+                    _safe, _ = input_guard.validate(h_content[:2000])
                     if not _safe:
                         logger.warning("[SupportAgent] H-2: Skipping potentially injected history entry, SID: %s", session_id)
                         continue
@@ -462,21 +464,15 @@ class SupportAgentOperative(BaseAgentOperative):
                 dna_obj = NeuralDNA.model_validate(mem["dna"])
                 if not lead_phone and not user_id: return dna_obj
             
-            from backend.database.models.commerce import UserLoyalty
-            from backend.database.models.system import SystemSetting
-            from backend.services.commerce.loyalty import LoyaltyService
-            
             final_user_id = user_id
             customer_name = None
             if not final_user_id and lead_phone:
-                from backend.database.models.auth import User
                 u_stmt = select(User.id, User.name).where(User.phone == lead_phone).limit(1)
                 u_row = (await db.execute(u_stmt)).first()
                 if u_row:
                     final_user_id = u_row[0]
                     customer_name = u_row[1]
             elif final_user_id:
-                from backend.database.models.auth import User
                 u_stmt = select(User.name).where(User.id == final_user_id).limit(1)
                 customer_name = await db.scalar(u_stmt)
 
@@ -516,7 +512,6 @@ class SupportAgentOperative(BaseAgentOperative):
                 if final_user_id: cond.append(Order.user_id == final_user_id)
                 
                 # Direct SQL Aggregations to prevent ORM hydration
-                from sqlalchemy import func
                 stmt = select(func.count(Order.id), func.sum(Order.total_amount)).where(
                     and_(or_(*cond), Order.status == "DELIVERED")
                 )
@@ -553,7 +548,6 @@ class SupportAgentOperative(BaseAgentOperative):
         # ══ SECURITY GATE ② ── InputGuard (Background Worker Guard) ══════════
         # Second checkpoint for background tasks to prevent any injected payload
         # that may have been enqueued before the gate was added.
-        from backend.services.commerce.security.input_guard import input_guard
         _is_safe, _guard_reason = await input_guard.validate_async(request.message)
         if not _is_safe:
             logger.warning("[SupportAgent/Brain] InputGuard rejected background task. Reason: %s | SID: %s", _guard_reason, session_id)

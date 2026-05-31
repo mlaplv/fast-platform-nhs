@@ -277,7 +277,7 @@
       : 'bottom-3 right-3 w-[360px] h-[540px] max-h-[85vh] helen-box-premium helen-float-premium'} {isInputFocused
       ? 'pause-animations'
       : ''}"
-    style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
+    style="z-index: {Z_INDEX_CLIENT.MODAL};"
     transition:scale={{
       start: 0.7,
       opacity: 0,

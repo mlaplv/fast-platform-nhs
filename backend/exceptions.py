@@ -14,12 +14,14 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
 
     if isinstance(exc, ValidationException):
         logger.warning(f"[TRACE:{trace_id}] Validation Error: {exc.detail} - Extra: {getattr(exc, 'extra', None)}")
+        # Elite V2.2: Propagate detailed validation error list to frontend to pinpoint schema mismatches
+        detail_errors = exc.extra if (hasattr(exc, "extra") and exc.extra) else exc.detail
         return Response(
             media_type=MediaType.JSON,
             status_code=400,
             content={
-                "detail": "Data validation failed",
-                "errors": exc.extra if hasattr(exc, "extra") else str(exc),
+                "detail": detail_errors,
+                "errors": detail_errors,
                 "trace_id": trace_id,
             },
         )

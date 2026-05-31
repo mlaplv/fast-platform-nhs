@@ -63,20 +63,20 @@ class SupportRequest(BaseModel):
     """Inbound chat message from the client (Zero-Auth)."""
     model_config = ConfigDict(strict=False)
 
-    message: str = Field(..., min_length=1, max_length=400, description="User question")
+    message: str = Field(..., min_length=1, max_length=2000, description="User question (max 2000 chars to support system prompts from quick actions)")
     session_id: Optional[str] = Field(
         default=None,
-        max_length=64,
+        max_length=128,
         description="Guest session UUID for rate limiting. Generated client-side."
     )
     product_slug: Optional[str] = Field(
         default=None,
-        max_length=120,
+        max_length=255,
         description="Optional: slug of the product being viewed. Used for RAG context."
     )
-    customer_name: Optional[str] = Field(default="Khách ẩn danh", max_length=100)
-    customer_phone: Optional[str] = Field(default=None, max_length=20)
-    user_id: Optional[str] = Field(default=None, max_length=64)
+    customer_name: Optional[str] = Field(default="Khách ẩn danh", max_length=255)
+    customer_phone: Optional[str] = Field(default=None, max_length=100)
+    user_id: Optional[str] = Field(default=None, max_length=128)
     cart_items: Optional[List[Dict[str, JSONValue]]] = Field(default=None, description="Current cart snapshot from client localStorage.")
     selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
     pricing_context: Optional[PricingBreakdown] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")

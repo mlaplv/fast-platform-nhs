@@ -617,10 +617,10 @@
               />
             </button>
           {/if}
-          <div class="flex flex-col">
+          <div class="flex flex-col text-left items-start">
             <span
-              class="text-[10px] font-black text-white/20 tracking-[0.4em] font-mono"
-              >Ai sequence phase</span
+              class="text-[10px] font-black text-white/20 tracking-[0.4em] font-mono text-left"
+              >TIẾN TRÌNH KHẢO SÁT AI</span
             >
             <div class="flex items-center gap-2 mt-1">
               <span

@@ -15,6 +15,8 @@ import traceback
 from datetime import datetime, timezone
 from sqlalchemy import and_, or_
 from backend.database.models.promotion import Voucher
+import asyncio
+
 
 logger = logging.getLogger("api-gateway")
 
@@ -180,8 +182,7 @@ class OrderHandler(BaseHandler):
                         resolved_addr: str | None = ctx.order_draft.customer_address
                         resolved_possible_provinces: list[str] = []
                         if ctx.order_draft.customer_address:
-                            import asyncio as _asyncio
-                            geo = await _asyncio.to_thread(location_resolver.resolve, ctx.order_draft.customer_address)
+                            geo = await asyncio.to_thread(location_resolver.resolve, ctx.order_draft.customer_address)
                             if geo.is_valid:
                                 resolved_shipping_days = geo.shipping_days
                                 resolved_possible_provinces = geo.possible_provinces or []

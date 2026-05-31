@@ -1,5 +1,9 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import List
+from sqlalchemy import select, func, and_
+from backend.schemas.support import SupportIntent
+from backend.database.models.system import SupportChatHistory
 from backend.services.commerce.operatives.handlers.base import SupportContext, BaseHandler
 from backend.services.commerce.operatives.handlers.guardrail import GuardrailHandler
 from backend.services.commerce.operatives.handlers.order import OrderHandler
@@ -25,14 +29,9 @@ class SupportRouter:
         
     async def process(self, ctx: SupportContext) -> SupportContext:
         """Execute the pipeline of specialists based on priority hierarchy."""
-        from backend.schemas.support import SupportIntent
 
         # 1. Chống Spammer bằng cách đếm tin nhắn trong 2 phút gần nhất tại Database (Anti-DoS Shield)
         try:
-            from sqlalchemy import select, func, and_
-            from datetime import datetime, timedelta, timezone
-            from backend.database.models.system import SupportChatHistory
-            
             two_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=2)
             stmt = select(func.count(SupportChatHistory.id)).where(
                 and_(

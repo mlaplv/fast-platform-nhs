@@ -3,6 +3,7 @@ import logging
 import asyncio
 import os
 import re
+import time
 import sqlalchemy as sa
 from typing import Optional, Union, cast, TYPE_CHECKING
 from contextlib import asynccontextmanager
@@ -210,7 +211,6 @@ class TrinityBridge:
         model_settings_base = cast(dict[str, object], kwargs.pop("model_settings", {}))
         safety_none = bool(kwargs.pop("safety_none", False))
 
-        import time
         start_time = time.time()
         _billing_quota_streak = 0
 

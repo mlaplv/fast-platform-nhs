@@ -12,17 +12,42 @@ class PricingInputItem(BaseModel):
 
 class PricingItem(BaseModel):
     model_config = ConfigDict(strict=False)
-    product_id: str
-    name: str
-    quantity: int
-    unit_price: float
-    total_price: float
+    product_id: Optional[str] = Field(default="unknown")
+    name: Optional[str] = Field(default="Sản phẩm")
+    quantity: int = Field(default=1)
+    unit_price: float = Field(default=0.0)
+    total_price: float = Field(default=0.0)
+
+    @field_validator("quantity", "unit_price", "total_price", mode="before")
+    @classmethod
+    def sanitize_item_numeric_inputs(cls, v, info):
+        if v is None:
+            return 0
+        if isinstance(v, (int, float)):
+            if math.isnan(v) or math.isinf(v):
+                return 0
+        elif isinstance(v, str):
+            if v.lower() in ("nan", "null", "undefined", ""):
+                return 0
+            try:
+                val = float(v)
+                return int(val) if info.field_name == "quantity" else val
+            except ValueError:
+                return 0
+        return v
 
 class PricingBreakdown(BaseModel):
     """Elite V2.2: Unified Pricing Breakdown Model"""
     model_config = ConfigDict(strict=False)
     
     items: List[PricingItem] = Field(default_factory=list)
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def sanitize_items(cls, v):
+        if v is None:
+            return []
+        return v
     
     subtotal: float = 0.0
     combo_discount: float = 0.0

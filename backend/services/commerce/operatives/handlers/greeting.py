@@ -1,5 +1,7 @@
+import os
 import logging
 import unicodedata
+from datetime import datetime
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 
 logger = logging.getLogger("api-gateway")
@@ -24,8 +26,6 @@ class GreetingHandler(BaseHandler):
         is_question = "?" in msg or any(q in msg for q in q_keywords)
 
         if (is_first_msg or has_greeting) and len(msg) < 30 and not ctx.request.cart_items and not is_question:
-            import os
-            from datetime import datetime
             debug_prefix = "[z1] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
 
             # Elite V2.5: Time-aware greetings

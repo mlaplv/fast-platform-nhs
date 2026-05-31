@@ -602,8 +602,13 @@ class SupportAgentState {
         this.isTyping = true;
 
         try {
+            const MAX_MSG_LEN = 2000;
+            const rawMsg = text.trim();
+            if (rawMsg.length > MAX_MSG_LEN) {
+                console.warn(`[SupportAgent] Message truncated: ${rawMsg.length} → ${MAX_MSG_LEN} chars`);
+            }
             const res = await apiClient.post<SupportChatResponse>("/api/v1/client/support/chat", {
-                message: text.trim(),
+                message: rawMsg.slice(0, MAX_MSG_LEN),
                 product_slug: productSlug || null,
                 customer_name: customerName || "Khách ẩn danh",
                 customer_phone: customerPhone || null,
