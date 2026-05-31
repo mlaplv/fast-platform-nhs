@@ -683,15 +683,37 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-              <div>
-                <h4
-                  class="text-[10px] font-semibold text-white/30 mb-3 tracking-[0.3em]"
-                >
-                  Tổng quan
-                </h4>
-                <p class="text-white/50 text-sm leading-relaxed">
-                  {shopStore.diagnosticResult.reasoning}
-                </p>
+              <div class="flex flex-col justify-between">
+                <div>
+                  <h4
+                    class="text-[10px] font-semibold text-white/30 mb-3 tracking-[0.3em]"
+                  >
+                    Tổng quan
+                  </h4>
+                  <p class="text-white/50 text-sm leading-relaxed">
+                    {shopStore.diagnosticResult.reasoning}
+                  </p>
+                </div>
+                <!-- Line Wave Vector (To prevent empty space, premium 2026 aesthetic) -->
+                <div class="mt-6 relative w-full h-[60px] overflow-hidden rounded-lg opacity-40 hover:opacity-80 transition-opacity duration-500 hidden md:block">
+                  <svg class="absolute inset-0 w-full h-full" viewBox="0 0 120 28" fill="none" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="rgba(193, 143, 126, 0)" />
+                        <stop offset="30%" stop-color="rgba(193, 143, 126, 0.3)" />
+                        <stop offset="70%" stop-color="rgba(16, 185, 129, 0.2)" />
+                        <stop offset="100%" stop-color="rgba(16, 185, 129, 0)" />
+                      </linearGradient>
+                      <linearGradient id="waveGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="rgba(255, 255, 255, 0)" />
+                        <stop offset="50%" stop-color="rgba(255, 255, 255, 0.15)" />
+                        <stop offset="100%" stop-color="rgba(255, 255, 255, 0)" />
+                      </linearGradient>
+                    </defs>
+                    <path class="wave-path-1" d="M 0,14 C 30,2 40,26 60,14 C 80,2 90,26 120,14 L 120,28 L 0,28 Z" fill="url(#waveGrad)" />
+                    <path class="wave-path-2" d="M 0,14 C 20,24 50,4 70,14 C 90,24 100,4 120,14" stroke="url(#waveGrad2)" stroke-width="0.5" fill="none" />
+                  </svg>
+                </div>
               </div>
               <div>
                 {#if recommendationSteps.length > 0}
@@ -894,5 +916,36 @@
 
   :global(.clinical-quiz .liquid-bubble:active) {
     transform: translateY(0) scale(0.98);
+  }
+
+  @keyframes flowWave {
+    0% {
+      transform: translateX(0) scaleY(1);
+    }
+    50% {
+      transform: translateX(-15%) scaleY(0.9);
+    }
+    100% {
+      transform: translateX(0) scaleY(1);
+    }
+  }
+  @keyframes flowWaveAlt {
+    0% {
+      transform: translateX(0) scaleY(1);
+    }
+    50% {
+      transform: translateX(15%) scaleY(1.1);
+    }
+    100% {
+      transform: translateX(0) scaleY(1);
+    }
+  }
+  .wave-path-1 {
+    transform-origin: center;
+    animation: flowWave 12s ease-in-out infinite;
+  }
+  .wave-path-2 {
+    transform-origin: center;
+    animation: flowWaveAlt 18s ease-in-out infinite;
   }
 </style>
