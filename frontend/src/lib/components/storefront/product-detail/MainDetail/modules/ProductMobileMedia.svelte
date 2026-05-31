@@ -133,7 +133,7 @@
   .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; position: relative; }
   .slide-media { width: 100%; height: 100%; object-fit: cover; }
   .image-counter { position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); color: white; padding: 2px 10px; border-radius: 100px; font-size: 10px; font-weight: 1000; z-index: 5; border: 1px solid rgba(255,255,255,0.1); }
-  .media-promo-anchor { position: absolute; bottom: 8px; left: 8px; z-index: 10; }
+  .media-promo-anchor { position: absolute; bottom: 10px; left: 10px; z-index: 10; }
   .mute-btn {
     position: absolute; bottom: 72px; left: 12px; z-index: 10; width: 32px; height: 32px; border-radius: 50%;
     background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;

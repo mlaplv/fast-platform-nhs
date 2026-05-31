@@ -966,6 +966,21 @@ function upgrade_python_packages() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function update_storefront_ro() {
+    echo -e "${CYAN}[SYSTEM] ĐANG CẬP NHẬT STOREFRONT DIST LÊN DOCKER CADDY (READ-ONLY)...${NC}"
+    
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_caddy"; then
+        echo -e "${YELLOW}-> Đang tiến hành làm mới Caddy Container...${NC}"
+        # Restart container Caddy để làm sạch bộ nhớ cache, nạp lại phân vùng Read-Only static chính xác
+        docker compose restart caddy
+        echo -e "${GREEN}   ✔ Đã làm mới thành công! Caddy đang phục vụ dist mới của Sếp ở chế độ Read-Only.${NC}"
+    else
+        echo -e "${RED}[ERROR] Container fast_platform_caddy không chạy. Hãy chắc chắn Sếp đã khởi chạy dự án.${NC}"
+    fi
+    
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 function total_garbage_clean() {
     local NO_WAIT=false
     if [[ "$1" == "--no-wait" ]]; then
@@ -1021,6 +1036,16 @@ if [[ -n "$1" ]]; then
             total_garbage_clean --no-wait
             exit 0
             ;;
+        dist-ro|caddy-ro|update-ro|ro)
+            if docker ps --format '{{.Names}}' | grep -q "fast_platform_caddy"; then
+                docker compose restart caddy
+                echo -e "${GREEN}✔ Đã làm mới Caddy Read-Only dist thành công!${NC}"
+            else
+                echo -e "${RED}Error: fast_platform_caddy container is not running.${NC}"
+                exit 1
+            fi
+            exit 0
+            ;;
     esac
 fi
 
@@ -1059,6 +1084,7 @@ while true; do
     echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
     echo "21) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
     echo "22) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
+    echo "23) CẬP NHẬT DIST LÊN DOCKER RO (Restart Caddy)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1158,6 +1184,9 @@ while true; do
             ;;
         22)
             total_garbage_clean
+            ;;
+        23)
+            update_storefront_ro
             ;;
         0)
             exit 0

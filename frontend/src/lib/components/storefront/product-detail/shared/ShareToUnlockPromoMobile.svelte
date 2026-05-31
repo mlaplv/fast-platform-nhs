@@ -821,8 +821,8 @@
   .stu-ios-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding-bottom: 4px;
+    gap: 6px;
+    padding-bottom: 2px;
   }
   .stu-ios-content { display: flex; flex-direction: column; gap: 0; }
   .stu-ios-title { 
@@ -832,7 +832,7 @@
   }
   .stu-ios-sub { 
     font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.9); 
-    letter-spacing: 0.05em; margin-top: 4px;
+    letter-spacing: 0.05em; margin-top: 2px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
   }
   

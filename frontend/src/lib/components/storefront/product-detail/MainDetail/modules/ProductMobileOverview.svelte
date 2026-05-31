@@ -669,15 +669,15 @@
   .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }
   .time-box .separator { background: none; border: none; padding: 0; min-width: 4px; opacity: 0.8; text-align: center; font-weight: 1000; }
 
-  .info-content { background: white; padding: 10px 5px 0px 5px; }
-  .vouchers-outer { position: relative; margin-bottom: 10px; margin-left: -5px; margin-right: -5px; }
+  .info-content { background: white; padding: 8px 10px 8px 10px; }
+  .vouchers-outer { position: relative; margin-bottom: 8px; margin-left: -10px; margin-right: -10px; }
   .vouchers-list {
     display: flex;
     gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
-    padding: 0 5px;
-    scroll-padding: 0 5px;
+    padding: 0 10px;
+    scroll-padding: 0 10px;
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
   .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper, #C18F7E); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }
@@ -690,13 +690,13 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: var(--color-luxury-copper, #C18F7E); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); -webkit-tap-highlight-color: transparent;
   }
   .scroll-btn:active { scale: 0.85; background: white; }
-  .scroll-btn.prev { left: 4px; }
-  .scroll-btn.next { right: 4px; }
+  .scroll-btn.prev { left: 8px; }
+  .scroll-btn.next { right: 8px; }
 
-  .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; margin-bottom: 10px; }
+  .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 6px; margin-bottom: 6px; }
   .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; }
 
-  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; margin-bottom: 10px; }
+  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; margin-bottom: 6px; }
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
@@ -707,11 +707,11 @@
   .variations-container {
     padding-top: 0;
     padding-bottom: 0;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: 8px;
+    margin-bottom: 8px;
   }
 
   .promo-container {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 </style>

@@ -120,7 +120,7 @@
   </div>
 
   {#if hasAiSentiment}
-    <div class="ai-sentiment-box mb-[10px] p-4 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
+    <div class="ai-sentiment-box mb-2 p-3 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
        <div class="flex items-center gap-2 mb-2 relative z-10">
          <Sparkles size={16} class="text-[#ee4d2d] fill-current" />
          <h3 class="text-[12px] font-black tracking-widest text-[#ee4d2d]">AI Tổng hợp đánh giá</h3>
@@ -233,7 +233,7 @@
         </div>
       {/if}
 
-      <div class="fomo-footer mt-[10px] p-3 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
+      <div class="fomo-footer mt-1.5 p-2.5 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
         <div class="flex flex-col">
           <span class="text-[11px] font-black text-luxury-copper tracking-tighter italic">Cảm nhận thực tế</span>
           <span class="text-[9px] text-gray-400 font-bold tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
@@ -245,8 +245,8 @@
 </section>
 
 <style>
-  .content-section { background: white; padding: 6px 5px 10px 5px; }
-  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .content-section { background: white; padding: 8px 10px 8px 10px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .section-title { font-size: 14px; font-weight: 800; color: #222; margin: 0; letter-spacing: -0.01em; }
   .view-all { font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }
 
@@ -254,13 +254,13 @@
   .score-big span { font-size: 14px; color: #999; font-weight: 500; }
 
   .viral-review-card { position: relative; }
-  .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
   .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #666; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
   .user-meta { flex: 1; }
   .username { font-size: 13px; font-weight: 700; color: #222; }
   .review-date-mini { font-size: 10px; color: #bbb; font-weight: 500; }
 
-  .review-content { margin-bottom: 10px; font-size: 14px; color: #444; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .review-content { margin-bottom: 6px; font-size: 14px; color: #444; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
   .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 4px; }
   .media-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative; background: #f9f9f9; border: 1px solid #f0f0f0; }

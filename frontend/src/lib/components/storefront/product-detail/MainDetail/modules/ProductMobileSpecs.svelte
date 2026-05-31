@@ -251,7 +251,7 @@
 
 <section class="content-section">
   {#if product.attributes && Object.entries(product.attributes).length > 0}
-    <div class="mb-[10px] grid grid-cols-2 gap-x-6 gap-y-1">
+    <div class="mb-2 grid grid-cols-2 gap-x-6 gap-y-1">
       {#each Object.entries(product.attributes) as [key, val]}
         {@const isBrandKey = key === "Thương hiệu" || key === "Brand" || key === "brand"}
         <div
@@ -274,7 +274,7 @@
   {/if}
 
   {#if product.metadata?.desc_semantic}
-    <div class="mb-[10px] pb-[10px] border-b border-gray-100">
+    <div class="mb-2 pb-2 border-b border-gray-100">
       <div class="prose max-w-none text-[13.5px] text-gray-700 semantic-summary">
         {@html product.metadata.desc_semantic}
       </div>
@@ -283,7 +283,7 @@
 
   <!-- Elite V2.2: Featured Ingredients (Viral Cards) -->
   {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
-    <div class="mb-[10px]">
+    <div class="mb-2">
       <h2 class="section-title">Thành phần nổi bật</h2>
       <div class="grid grid-cols-1 gap-2">
         {#each product.metadata.featured_ingredients as ing}
@@ -311,7 +311,7 @@
 
   <!-- Elite V2.2: Full Ingredients (Mobile Transparency) -->
   {#if product.metadata?.ingredients}
-    <div class="mt-[10px] mb-[10px] flex flex-col gap-2">
+    <div class="my-2 flex flex-col gap-2">
       <h2
         class="flex items-center gap-2 text-[16px] font-bold text-gray-800 tracking-tight"
       >
@@ -401,7 +401,7 @@
     </div>
   {/if}
 
-  <div class="flex items-center justify-between mt-[10px] mb-[4px] pr-1">
+  <div class="flex items-center justify-between my-2 pr-1">
     <h2 class="section-title !mb-0 !mt-0">Chi tiết</h2>
     <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
     <button
@@ -454,7 +454,7 @@
       {/if}
 
       <!-- Elite V2.2: Premium OSMO Purity & CRO Guarantee Bento (Mobile-Optimized - Borderless & Super Compact) -->
-      <div class="mt-[10px] pt-[10px] border-t border-gray-100/60">
+      <div class="mt-2.5 pt-2 border-t border-gray-100/60">
         <div class="py-2.5 bg-white relative select-none">
           
           <!-- Decorative Mobile backlight -->
@@ -558,7 +558,7 @@
   {#if parsedDescription.commitments}
     {@const commitments = parsedDescription.commitments}
     <div
-      class="commitment-card-luxury mt-[10px] p-4 rounded-xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_10px_20px_rgba(4,120,87,0.01)] backdrop-blur-md transition-all duration-300"
+      class="commitment-card-luxury mt-2 p-3 rounded-xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_10px_20px_rgba(4,120,87,0.01)] backdrop-blur-md transition-all duration-300"
     >
       <!-- Subtle Mobile backlights -->
       <div
@@ -676,7 +676,7 @@
 
   <!-- GEO 2026: Mobile FAQ Section -->
   {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
-    <div class="mt-[10px] border-t border-gray-100 pt-[10px]">
+    <div class="mt-2 border-t border-gray-100 pt-2">
       <h2 class="section-title">Câu hỏi thường gặp</h2>
       <div class="flex flex-col gap-2 mt-4">
         {#each product.metadata.faqs as faq, i}
@@ -721,7 +721,7 @@
 
 <style>
   .content-section {
-    padding: 6px 5px 10px 5px;
+    padding: 8px 10px 8px 10px;
     background: white;
     overflow: hidden;
   }

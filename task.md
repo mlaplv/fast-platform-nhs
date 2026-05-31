@@ -795,6 +795,28 @@
 - [x] Quét toàn bộ mã nguồn Frontend và loại bỏ triệt để 100% lỗi `$bindable(default_value)` (Svelte 5 Binding Trap) có nguy cơ gây crash ứng dụng thành `props_invalid_value`. (Done)
 - [x] Khởi tạo an toàn cho 10 các tệp tin quan trọng (TrackMobile, SkinProfile, ViralDatePicker, SimpleTiptap, CheckResultPanel, AnalysisResultCopyright, AdsInsights, TiptapEditor, NeuralEditor, DraftStep) bằng cách gán giá trị mặc định trong `onMount` hoặc `$effect.pre`. (Done)
 - [x] Cập nhật toàn bộ các gói thư viện Python lên phiên bản mới nhất (bao gồm litellm 1.86.2, pydantic-ai 1.104.0, litestar 2.23.0, redis 8.0.0, numpy 2.4.6, advanced-alchemy 1.10.0, cryptography 48.0.0) và đồng bộ hóa uv.lock. (Done)
+- [x] Tích hợp mục nâng cấp tự động (Lựa chọn 21) vào bộ quản trị `xohi.sh` (XOHI OS Commander) để đơn giản hóa quy trình nâng cấp dependencies trong tương lai. (Done)
+- [x] Tích hợp mục dọn rác toàn diện (Lựa chọn 22) vào bộ quản trị `xohi.sh` (XOHI OS Commander) giúp tự động hóa làm sạch Docker logs, UV cache, rác Docker, giải phóng RAM và SSD của VPS. (Done)
+- [x] Sửa lỗi bất tương thích `ImportError: cannot import name 'BadRequestException'` trong `pulse.py` sau khi nâng cấp lên Litestar 2.23.0 bằng cách chuyển đổi sang lớp ngoại lệ chuẩn `ValidationException`. (Done)
+- [x] Tối ưu hóa lựa chọn `8` (RESTART API) trong `xohi.sh` để thực hiện xóa pycache trực tiếp trên Host trước khi boot, loại bỏ hoàn toàn cơ chế restart-kép (Double Restart) gây treo lock database PostgreSQL và rút ngắn thời gian khởi động xuống tức thì. (Done)
+- [x] Rà soát và chuyển đổi thành công tệp tin legacy còn lại `KnowledgeGraphVisualizer.svelte` lên 100% cú pháp Svelte 5 Runes (`$props`, `$state`, `$effect`), chính thức đưa toàn bộ mã nguồn Frontend sạch bóng cú pháp Svelte 4 cũ. (Done)
+- [x] Rà soát và vá lỗi tương thích PydanticAI V2 trong `trinity_bridge.py`, thay thế import lớp trả về bị deprecated `RunResult` từ `pydantic_ai.result` bằng lớp chính thức `AgentRunResult` từ `pydantic_ai.run` để đảm bảo ép kiểu tĩnh 100% không crash. (Done)
+- [x] Rà soát và sửa lỗi bất tương thích Python 3.14 (PEP 649 / PEP 749 Deferred Annotation Evaluation) trong `notifications.py` bằng cách chuyển import `AsyncSession` ra ngoài khối `TYPE_CHECKING` để tránh lỗi `NameError` khi Litestar hoặc Pydantic gọi `get_type_hints` tại runtime. (Done)
+
+# Task Checklist - Mobile Detail Section Spacing & TikTok/YouTube Compact Style Optimization (Elite V2.2)
+
+- [x] Tích hợp thuộc tính `gap-[8px]` trên lớp container `.content-body` trong `Mobile.svelte` để làm khoảng giãn cách đều tăm tắp, sang trọng giữa các Section chính. (Done)
+- [x] Chuẩn hóa và đồng bộ padding của `.info-content` (Overview) thành `padding: 8px 10px 8px 10px;` tăng độ cân đối và độ nén dọc. (Done)
+- [x] Tinh chỉnh và thu gọn các khoảng cách dọc (margin) bên trong của `ProductMobileOverview.svelte` từ `10px` xuống `6px` và `8px` để thông tin hiển thị dày dặn, cô đọng hơn. (Done)
+- [x] Chuẩn hóa và đồng bộ padding của `.content-section` trong `ProductMobileSpecs.svelte` thành `padding: 8px 10px 8px 10px;`. (Done)
+- [x] Thu gọn các khoảng cách dọc bên trong `ProductMobileSpecs.svelte` (thành phần nổi bật, bảng thành phần, cam kết OSMO, FAQ) về mức `6px` và `8px`. (Done)
+- [x] Chuẩn hóa và đồng bộ padding của `.content-section` trong `ProductMobileReviews.svelte` thành `padding: 8px 10px 8px 10px;`. (Done)
+- [x] Tối ưu hóa khoảng cách nội bộ của `ProductMobileReviews.svelte` (section header, AI sentiment box, review card, fomo footer) để tăng tính gọn gàng. (Done)
+- [x] Chuẩn hóa và đồng bộ padding của `.content-section` trong `ProductMobileRecommendations.svelte` thành `padding: 8px 10px 8px 10px;`. (Done)
+- [x] Thu gọn margin của tiêu đề danh sách gợi ý trong `ProductMobileRecommendations.svelte`. (Done)
+- [x] Chạy kiểm thử tĩnh `pnpm build` hoặc `npm run build` trên storefront để xác minh zero errors / zero warnings. (Done - storefront built successfully with static adapter output!)
+- [x] Cập nhật bằng chứng nghiệm thu kỹ thuật vào tệp `walkthrough.md`. (Done)
+
 
 
 
