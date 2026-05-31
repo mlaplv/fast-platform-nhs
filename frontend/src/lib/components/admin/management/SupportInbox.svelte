@@ -90,7 +90,7 @@
   async function toggleTakeover() {
     if (!selectedSessionId) return;
     try {
-      const res = await apiClient.post<{ is_takeover: boolean }>(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/takeover`);
+      const res = await apiClient.post<{ is_takeover: boolean }>(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/takeover`, {});
       isTakeover = res.is_takeover;
       nanobot.showToast(isTakeover ? "Đã chặn mồm Helen." : "Đã thả xích Helen.", "success");
     } catch { nanobot.showToast("Lỗi hệ thống", "error"); }
@@ -111,14 +111,14 @@
   async function revokeMessage(msgId: string) {
     if (!selectedSessionId) return;
     try {
-      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/messages/${msgId}/revoke`);
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/messages/${msgId}/revoke`, {});
       await selectSession(selectedSessionId);
     } catch { nanobot.showToast("Lỗi thu hồi", "error"); }
   }
 
   async function toggleSessionRead(id: string, currentlyUnread: boolean) {
     try {
-      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/read?is_unread=${!currentlyUnread}`);
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/read?is_unread=${!currentlyUnread}`, {});
       sessions = sessions.map(s => s.session_id === id ? { ...s, is_unread: !currentlyUnread } : s);
       nanobot.showToast(!currentlyUnread ? "Đã đánh dấu là chưa đọc" : "Đã đánh dấu là đã đọc", "success");
     } catch { nanobot.showToast("Lỗi cập nhật trạng thái", "error"); }
@@ -126,7 +126,7 @@
 
   async function moveSessionToTrash(id: string) {
     try {
-      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/trash`);
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/trash`, {});
       sessions = sessions.filter(s => s.session_id !== id);
       if (selectedSessionId === id) {
         selectedSessionId = null;
@@ -138,7 +138,7 @@
 
   async function restoreSessionFromTrash(id: string) {
     try {
-      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/restore`);
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/restore`, {});
       sessions = sessions.filter(s => s.session_id !== id);
       if (selectedSessionId === id) {
         selectedSessionId = null;
@@ -157,7 +157,7 @@
     });
     if (!ok) return;
     try {
-      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/hard-delete`);
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/hard-delete`, {});
       sessions = sessions.filter(s => s.session_id !== id);
       if (selectedSessionId === id) {
         selectedSessionId = null;
@@ -165,6 +165,79 @@
       }
       nanobot.showToast("Đã xóa vĩnh viễn cuộc hội thoại", "success");
     } catch { nanobot.showToast("Lỗi xóa vĩnh viễn", "error"); }
+  }
+
+  async function purgeTrash() {
+    const ok = await nanobot.showConfirm({
+      title: "LÀM SẠCH HỆ THỐNG",
+      message: "Sếp có chắc chắn muốn LÀM SẠCH toàn bộ Thùng rác? Hành động này sẽ xóa vĩnh viễn mọi hội thoại đã xóa tạm khỏi DB và giải phóng bộ nhớ VPS.",
+      confirmLabel: "LÀM SẠCH NGAY",
+      cancelLabel: "HỦY BỎ"
+    });
+    if (!ok) return;
+    isLoading = true;
+    try {
+      const res = await apiClient.post<{ deleted_count: number }>("/api/v1/admin/support/inbox/sessions/bulk/purge-trash", {});
+      sessions = [];
+      if (selectedSessionId) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast(`Đã làm sạch DB, giải phóng hoàn toàn ${res.deleted_count} tin nhắn!`, "success");
+      await loadSessions();
+    } catch { nanobot.showToast("Lỗi làm sạch Thùng rác", "error"); }
+    finally { isLoading = false; }
+  }
+
+  async function bulkTrash(ids: string[]) {
+    try {
+      await apiClient.post("/api/v1/admin/support/inbox/sessions/bulk/trash", { session_ids: ids });
+      sessions = sessions.filter(s => !ids.includes(s.session_id));
+      if (selectedSessionId && ids.includes(selectedSessionId)) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast(`Đã chuyển ${ids.length} hội thoại vào Thùng rác`, "success");
+    } catch { nanobot.showToast("Lỗi chuyển Thùng rác hàng loạt", "error"); }
+  }
+
+  async function bulkRestore(ids: string[]) {
+    try {
+      await apiClient.post("/api/v1/admin/support/inbox/sessions/bulk/restore", { session_ids: ids });
+      sessions = sessions.filter(s => !ids.includes(s.session_id));
+      if (selectedSessionId && ids.includes(selectedSessionId)) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast(`Đã khôi phục ${ids.length} hội thoại thành công`, "success");
+    } catch { nanobot.showToast("Lỗi khôi phục hàng loạt", "error"); }
+  }
+
+  async function bulkHardDelete(ids: string[]) {
+    const ok = await nanobot.showConfirm({
+      title: "HỆ THỐNG GIÁM SÁT",
+      message: `Sếp có chắc muốn XÓA VĨNH VIỄN ${ids.length} cuộc hội thoại đã chọn?`,
+      confirmLabel: "XÓA VĨNH VIỄN",
+      cancelLabel: "HỦY BỎ"
+    });
+    if (!ok) return;
+    try {
+      await apiClient.post("/api/v1/admin/support/inbox/sessions/bulk/hard-delete", { session_ids: ids });
+      sessions = sessions.filter(s => !ids.includes(s.session_id));
+      if (selectedSessionId && ids.includes(selectedSessionId)) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast(`Đã xóa vĩnh viễn ${ids.length} hội thoại`, "success");
+    } catch { nanobot.showToast("Lỗi xóa vĩnh viễn hàng loạt", "error"); }
+  }
+
+  async function bulkToggleRead(ids: string[], isUnread: boolean) {
+    try {
+      await Promise.all(ids.map(id => apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/read?is_unread=${isUnread}`, {})));
+      sessions = sessions.map(s => ids.includes(s.session_id) ? { ...s, is_unread: isUnread } : s);
+      nanobot.showToast(isUnread ? `Đã đánh dấu ${ids.length} hội thoại chưa đọc` : `Đã đánh dấu ${ids.length} hội thoại đã đọc`, "success");
+    } catch { nanobot.showToast("Lỗi cập nhật trạng thái hàng loạt", "error"); }
   }
 
   function handleSearch(e: Event) {
@@ -203,6 +276,11 @@
         onMoveToTrash={moveSessionToTrash}
         onRestore={restoreSessionFromTrash}
         onHardDelete={hardDeleteSession}
+        onPurgeTrash={purgeTrash}
+        onBulkTrash={bulkTrash}
+        onBulkRestore={bulkRestore}
+        onBulkHardDelete={bulkHardDelete}
+        onBulkToggleRead={bulkToggleRead}
       />
     </div>
 

@@ -332,6 +332,9 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 </style>
 
 <div
@@ -403,7 +406,7 @@
   <div
     bind:this={scrollContainer}
     onscroll={handleScroll}
-    class="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center py-4 px-3"
+    class="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center pb-24 pt-4 px-3"
   >
     {#if nanobot.chatPagination.isLoading && filteredLogs.length === 0}
       <div class="flex flex-col items-center justify-center h-full gap-3 opacity-20">

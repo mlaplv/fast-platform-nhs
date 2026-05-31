@@ -51,3 +51,8 @@ class SupportSessionDetailResponse(BaseModel):
 
 class SupportManualMessageRequest(BaseModel):
     message: str
+
+
+class SupportBulkActionRequest(BaseModel):
+    session_ids: list[str]
+

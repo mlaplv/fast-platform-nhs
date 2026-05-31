@@ -822,11 +822,21 @@
 - [x] Cấu hình Caddyfile bổ sung tên miền `https://*.googletagmanager.com` và `https://www.googletagmanager.com` cho `img-src` và `connect-src` để hỗ trợ telemetry và tracking pixel của GTM. (Done)
 - [x] Chạy reload cấu hình Caddy trên VPS để áp dụng ngay lập tức mà không gây gián đoạn dịch vụ. (Done)
 
+# Task Checklist - Admin Support Inbox Bulk Actions & Safe Purge Trash (Elite V2.2)
 
+- [x] Tạo Schema `SupportBulkActionRequest` phục vụ xử lý danh sách `session_ids` hàng loạt tại `backend/schemas/support_inbox.py`. (Done)
+- [x] Triển khai endpoint `/sessions/bulk/trash` hỗ trợ soft-delete hàng loạt theo lô (batch-size 50) và dọn dẹp Redis unread set giúp tối ưu hóa bộ nhớ VPS. (Done)
+- [x] Triển khai endpoint `/sessions/bulk/restore` hỗ trợ khôi phục hàng loạt theo lô (batch-size 50) và phát tín hiệu đồng bộ SSE. (Done)
+- [x] Triển khai endpoint `/sessions/bulk/hard-delete` hỗ trợ xóa vĩnh viễn hàng loạt theo lô (batch-size 50), dọn dẹp triệt để dữ liệu Redis (takeover, presence, spam/dup caches). (Done)
+- [x] Triển khai cơ chế `/sessions/bulk/purge-trash` an toàn cấp quân sự: xóa chia nhỏ (batch-size 1000) kết hợp delay 20ms tránh khóa bảng (table locks), quá tải CPU/IO VPS. (Done)
+- [x] Thiết kế UI checkbox chọn tất cả / chọn từng phần với hiệu ứng Glassmorphic sang xịn mịn tại `SupportChatList.svelte`. (Done)
+- [x] Tích hợp thanh công cụ nổi "Bulk Action Bar" ở chân danh sách với đầy đủ thao tác và nút "Làm sạch Thùng rác" có cảnh báo xác nhận bảo mật tại `SupportChatList.svelte`. (Done)
+- [x] Đồng bộ các API bulk hành động từ `SupportInbox.svelte` truyền xuống `SupportChatList.svelte` qua cơ chế reactive state Svelte 5. (Done)
 
+# Task Checklist - Storefront Quick Login Modal Perks & International Header (Elite V2.2)
 
-
-
-
-
+- [x] Tái cấu trúc Header cột trái của `QuickLoginModalDesktop.svelte` thành dải phân cách mờ cùng chấm trạng thái nhấp nháy động và nhãn OSMO ELITE / huy hiệu đặc quyền VIP cao cấp chuẩn quốc tế. (Done)
+- [x] Thuần Việt hoá 100% nội dung quyền lợi hội viên (đại lý liên kết, tích điểm VIP, ví đặc quyền trợ lý đơn hàng) sắc nét, tự nhiên. (Done)
+- [x] Nâng cấp Header biểu mẫu cột phải với dải phân cách mờ tinh tế và mixed-case tiêu đề chuẩn quốc tế. (Done)
+- [x] Đồng bộ hóa an toàn tệp nguồn đã thay đổi lên môi trường VPS Production via rsync. (Done)
 

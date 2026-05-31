@@ -35,19 +35,28 @@
       <!-- Subtle diagonal dynamic glass reflection -->
       <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent -z-10 rotate-12 scale-150"></div>
 
-      <!-- Top Header Branding -->
-      <div class="relative z-10 flex items-center gap-2">
-        <div class="w-7 h-7 rounded bg-white/5 flex items-center justify-center border border-white/10 backdrop-blur-md">
-          <Sparkles class="w-4 h-4 text-cyan-400" />
+      <!-- Top Header Branding: International Professional Premium Header -->
+      <div class="relative z-10 flex items-center justify-between border-b border-white/[0.08] pb-4 select-none">
+        <div class="flex items-center gap-2">
+          <!-- Premium Pulsing Gold/Cyan Status Indicator -->
+          <div class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+          </div>
+          <span class="text-[11px] font-black tracking-[0.2em] text-white uppercase">Tham gia OSMO</span>
         </div>
-        <span class="text-xs font-bold tracking-[0.15em] text-white/90 uppercase italic">Osmo.vn Perks</span>
+        
+        <!-- Elegant Premium Badge -->
+        <span class="text-[9px] font-bold tracking-[0.08em] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-400/20 uppercase">
+          Đặc Quyền VIP
+        </span>
       </div>
 
       <!-- Core Perks List (Translucent Frosted Glass Cards) -->
-      <div class="relative z-10 space-y-6 my-auto pt-6">
+      <div class="relative z-10 space-y-5 my-auto pt-6">
         <div>
-          <h3 class="text-xl font-bold text-white tracking-tight">Quyền lợi thành viên</h3>
-          <p class="text-[11px] text-slate-300 font-medium tracking-wide mt-1 leading-relaxed">Đăng nhập tài khoản để nhận đặc quyền mua sắm & chiết khấu độc quyền.</p>
+          <h3 class="text-xl font-bold text-white tracking-tight">Hệ Sinh Thái Đặc Quyền</h3>
+          <p class="text-[11px] text-slate-300 font-medium tracking-wide mt-1.5 leading-relaxed">Gia nhập cộng đồng hội viên để mở khóa những đặc quyền tài chính và chiết khấu thượng lưu.</p>
         </div>
 
         <div class="space-y-3.5">
@@ -56,12 +65,12 @@
             <div class="w-9 h-9 rounded bg-white/5 flex items-center justify-center border border-white/10 text-cyan-400 shrink-0">
               <Users class="w-4.5 h-4.5" />
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <div class="flex items-center gap-2">
-                <h4 class="text-xs font-bold text-white">Cộng tác viên (Affiliate)</h4>
-                <span class="text-[9px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">+15% Hoa hồng</span>
+                <h4 class="text-xs font-bold text-white">Đối Tác Liên Kết Thương Hiệu (Affiliate)</h4>
+                <span class="text-[9px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">+15% Hoa Hồng</span>
               </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Hưởng hoa hồng trọn đời lên đến 15% khi giới thiệu sản phẩm. Rút tiền nhanh chóng.</p>
+              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Nhận mức hoa hồng trọn đời lên đến 15% khi chia sẻ sản phẩm. Thanh toán tức thì và minh bạch.</p>
             </div>
           </div>
 
@@ -70,12 +79,12 @@
             <div class="w-9 h-9 rounded bg-white/5 flex items-center justify-center border border-white/10 text-emerald-400 shrink-0">
               <Gift class="w-4.5 h-4.5" />
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <div class="flex items-center gap-2">
-                <h4 class="text-xs font-bold text-white">Tích điểm đổi quà</h4>
+                <h4 class="text-xs font-bold text-white">Tích Điểm Mua Sắm & Đổi Quà VIP</h4>
                 <span class="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20">Hoàn 5% Điểm</span>
               </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Hoàn tiền tích lũy 5% cho mọi đơn hàng. Điểm tích lũy quy đổi quà tặng VIP.</p>
+              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Hoàn tiền tích lũy 5% không giới hạn cho mọi đơn hàng. Điểm số dùng để quy đổi các phần quà cao cấp.</p>
             </div>
           </div>
 
@@ -84,12 +93,12 @@
             <div class="w-9 h-9 rounded bg-white/5 flex items-center justify-center border border-white/10 text-[#e6b1a0] shrink-0">
               <ShoppingBag class="w-4.5 h-4.5" />
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <div class="flex items-center gap-2">
-                <h4 class="text-xs font-bold text-white">Ví Voucher & Đơn hàng</h4>
+                <h4 class="text-xs font-bold text-white">Ví Đặc Quyền & Trợ Lý Đơn Hàng</h4>
                 <span class="text-[9px] font-bold text-[#e6b1a0] bg-[#c18f7e]/15 px-1.5 py-0.5 rounded border border-[#c18f7e]/30">Ví VIP</span>
               </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Ví thông minh tự động áp mã hời nhất và theo dõi lộ trình đơn hàng 24/7.</p>
+              <p class="text-[11px] text-slate-300 leading-relaxed font-normal">Hệ thống tự động tối ưu hóa mã giảm giá tốt nhất và giám sát lộ trình vận chuyển thời gian thực.</p>
             </div>
           </div>
         </div>
@@ -113,12 +122,12 @@
       </button>
 
       <!-- Sentence-case Elegant Header Area -->
-      <div class="mb-6 mt-2 shrink-0">
-        <h2 class="text-lg font-bold text-slate-900 tracking-tight leading-tight">
-          {mode === 'login' ? 'Đăng nhập tài khoản' : (mode === 'register' ? 'Đăng ký thành viên' : 'Hồ sơ tài khoản')}
+      <div class="mb-6 mt-2 shrink-0 pb-4 border-b border-slate-100">
+        <h2 class="text-[19px] font-bold text-slate-900 tracking-tight leading-none">
+          {mode === 'login' ? 'Cổng Đăng Nhập Hội Viên' : (mode === 'register' ? 'Đăng Ký Thành Viên Mới' : 'Quản Trị Hồ Sơ Cá Nhân')}
         </h2>
-        <p class="text-xs text-slate-400 mt-1.5 leading-relaxed font-medium">
-          {mode === 'login' ? 'Nhập thông tin để truy cập giỏ hàng và tích điểm thành viên' : (mode === 'register' ? 'Đăng ký tài khoản hội viên nhanh chóng chỉ với vài thao tác' : 'Quản lý thông tin tài khoản cá nhân')}
+        <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed font-medium">
+          {mode === 'login' ? 'Vui lòng xác thực tài khoản để truy cập ưu đãi độc quyền và theo dõi đơn hàng.' : (mode === 'register' ? 'Bắt đầu hành trình mua sắm thông minh cùng đặc quyền thành viên Osmo.' : 'Cập nhật thông tin định danh và lịch sử tích lũy đặc quyền.')}
         </p>
       </div>
 

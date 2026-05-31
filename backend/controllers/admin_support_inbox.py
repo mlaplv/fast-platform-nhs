@@ -27,6 +27,7 @@ from backend.schemas.support_inbox import (
     SupportChatMessageView,
     SupportSessionDetailResponse,
     SupportManualMessageRequest,
+    SupportBulkActionRequest,
 )
 from backend.schemas.support import SupportIntent
 from backend.utils.security import GeminiSecurity
@@ -436,3 +437,199 @@ class AdminSupportInboxController(Controller):
         })
         
         return {"is_revoked": msg.is_revoked}
+
+    @post("/sessions/bulk/trash", summary="Bulk move sessions to trash")
+    async def bulk_move_to_trash(
+        self,
+        db_session: AsyncSession,
+        data: SupportBulkActionRequest,
+    ) -> dict[str, bool]:
+        """Bulk soft delete sessions by setting deleted_at = utcnow() for their messages"""
+        import asyncio
+        from backend.database.models.base import utcnow
+        from sqlalchemy import update
+        now = utcnow()
+        
+        session_ids = data.session_ids
+        batch_size = 50
+        
+        for i in range(0, len(session_ids), batch_size):
+            chunk = session_ids[i:i + batch_size]
+            stmt = (
+                update(SupportChatHistory)
+                .where(
+                    SupportChatHistory.session_id.in_(chunk),
+                    SupportChatHistory.deleted_at.is_(None)
+                )
+                .values(deleted_at=now)
+            )
+            await db_session.execute(stmt)
+            await db_session.commit()
+            await asyncio.sleep(0.02)  # Prevent CPU spike / allow other threads to breath
+            
+        # Clean up Redis unread status in bulk
+        if session_ids and xohi_memory._use_redis and xohi_memory.client:
+            redis = xohi_memory.client
+            try:
+                await redis.srem("support:unread_sessions", *session_ids)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Redis unread clear failed during bulk trash: {e}")
+                
+        for sid in session_ids:
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+                "session_id": sid,
+                "action": "trash"
+            })
+            
+        return {"ok": True}
+
+    @post("/sessions/bulk/restore", summary="Bulk restore sessions from trash")
+    async def bulk_restore_from_trash(
+        self,
+        db_session: AsyncSession,
+        data: SupportBulkActionRequest,
+    ) -> dict[str, bool]:
+        """Bulk restore soft-deleted sessions by setting deleted_at = None"""
+        import asyncio
+        from sqlalchemy import update
+        
+        session_ids = data.session_ids
+        batch_size = 50
+        
+        for i in range(0, len(session_ids), batch_size):
+            chunk = session_ids[i:i + batch_size]
+            stmt = (
+                update(SupportChatHistory)
+                .where(
+                    SupportChatHistory.session_id.in_(chunk),
+                    SupportChatHistory.deleted_at.isnot(None)
+                )
+                .values(deleted_at=None)
+            )
+            await db_session.execute(stmt)
+            await db_session.commit()
+            await asyncio.sleep(0.02)
+            
+        for sid in session_ids:
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+                "session_id": sid,
+                "action": "restore"
+            })
+            
+        return {"ok": True}
+
+    @post("/sessions/bulk/hard-delete", summary="Bulk permanently delete sessions")
+    async def bulk_hard_delete_sessions(
+        self,
+        db_session: AsyncSession,
+        data: SupportBulkActionRequest,
+    ) -> dict[str, bool]:
+        """Bulk permanently delete sessions from the database in safe batches"""
+        import asyncio
+        from sqlalchemy import delete
+        
+        session_ids = data.session_ids
+        batch_size = 50
+        
+        for i in range(0, len(session_ids), batch_size):
+            chunk = session_ids[i:i + batch_size]
+            stmt = delete(SupportChatHistory).where(SupportChatHistory.session_id.in_(chunk))
+            await db_session.execute(stmt)
+            await db_session.commit()
+            await asyncio.sleep(0.02)
+            
+        # Clean up Redis in bulk to avoid RAM bloat / memory leak thưa sếp
+        if session_ids and xohi_memory._use_redis and xohi_memory.client:
+            redis = xohi_memory.client
+            try:
+                await redis.srem("support:unread_sessions", *session_ids)
+                pipeline = redis.pipeline()
+                for sid in session_ids:
+                    pipeline.delete(
+                        f"support:takeover:{sid}",
+                        f"support:presence:{sid}",
+                        f"support:last_msg_time:{sid}",
+                        f"support:dup_hash:{sid}"
+                    )
+                await pipeline.execute()
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Redis cleanup failed during bulk hard-delete: {e}")
+                
+        for sid in session_ids:
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+                "session_id": sid,
+                "action": "hard-delete"
+            })
+            
+        return {"ok": True}
+
+    @post("/sessions/bulk/purge-trash", summary="Purge all soft-deleted sessions from database in safe batches")
+    async def purge_trash(
+        self,
+        db_session: AsyncSession,
+    ) -> dict[str, int]:
+        """
+        Permanently delete all messages that are soft-deleted (deleted_at is not null).
+        Uses a safe batch-deletion strategy to avoid table locks and VPS resource exhaustion.
+        """
+        import asyncio
+        from sqlalchemy import delete, select
+        
+        # 1. Fetch unique session_ids that are soft-deleted to clean up Redis and notify clients
+        select_stmt = select(SupportChatHistory.session_id).where(SupportChatHistory.deleted_at.isnot(None)).distinct()
+        res = await db_session.execute(select_stmt)
+        trashed_sids = [row[0] for row in res.all()]
+        
+        # 2. Batch-delete DB records to avoid table locks and keep VPS CPU healthy thưa sếp
+        batch_size = 1000
+        total_deleted = 0
+        
+        while True:
+            # Query the first batch of IDs to delete
+            subq = (
+                select(SupportChatHistory.id)
+                .where(SupportChatHistory.deleted_at.isnot(None))
+                .limit(batch_size)
+                .subquery()
+            )
+            delete_stmt = delete(SupportChatHistory).where(SupportChatHistory.id.in_(select(subq)))
+            result = await db_session.execute(delete_stmt)
+            await db_session.commit()
+            
+            rows_deleted = result.rowcount or 0
+            total_deleted += rows_deleted
+            
+            if rows_deleted < batch_size:
+                break
+                
+            await asyncio.sleep(0.02)  # Tiny sleep to allow other async operations to breathe and prevent VPS overload
+            
+        # 3. Clean up Redis cache keys in bulk for all trashed sessions to save memory
+        if trashed_sids and xohi_memory._use_redis and xohi_memory.client:
+            redis = xohi_memory.client
+            try:
+                # Remove from unread Set
+                await redis.srem("support:unread_sessions", *trashed_sids)
+                
+                # Delete takeover, presence, rate limits, and spam caches
+                pipeline = redis.pipeline()
+                for sid in trashed_sids:
+                    pipeline.delete(
+                        f"support:takeover:{sid}",
+                        f"support:presence:{sid}",
+                        f"support:last_msg_time:{sid}",
+                        f"support:dup_hash:{sid}"
+                    )
+                await pipeline.execute()
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Redis cleanup failed during purge: {e}")
+                
+        # 4. Notify all admins and connected client browsers to disconnect and close the session UI
+        for sid in trashed_sids:
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+                "session_id": sid,
+                "action": "hard-delete"
+            })
+            
+        return {"deleted_count": total_deleted}
+
