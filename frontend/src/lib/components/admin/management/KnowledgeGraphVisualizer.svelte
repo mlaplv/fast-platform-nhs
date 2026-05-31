@@ -5,13 +5,15 @@
 
     // We'll dynamically load vis-network from CDN to keep the bundle size small
     let container: HTMLDivElement;
-    let network: any = null;
-    let isLoading = true;
+    let network = $state<any>(null);
+    let isLoading = $state(true);
 
-    // Props
-    export let data: any = { nodes: [], edges: [] };
-    export let height: string = "600px";
-    export let onNodeSelect: (id: string) => void = () => {};
+    // Props (Svelte 5 Runes)
+    let {
+        data = { nodes: [], edges: [] },
+        height = "600px",
+        onNodeSelect = () => {}
+    } = $props();
 
     onMount(() => {
         // Dynamically load vis-network script
@@ -109,10 +111,12 @@
         });
     }
 
-    // Reactively update graph if data changes
-    $: if (network && data && data.nodes && data.nodes.length > 0) {
-        network.setData(data);
-    }
+    // Reactively update graph if data changes (Svelte 5 $effect)
+    $effect(() => {
+        if (network && data && data.nodes && data.nodes.length > 0) {
+            network.setData(data);
+        }
+    });
 </script>
 
 <div class="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 bg-[#050505]" style="height: {height};">
