@@ -9,6 +9,7 @@
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import { onMount, type Snippet, type Component } from "svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
+  import DailyCheckinLanding from "$lib/components/storefront/loyalty/DailyCheckinLanding.svelte";
   import type { LayoutData } from './$types';
 
   import "../client.css";
@@ -141,5 +142,10 @@
 
   {#if searchStore.isOverlayOpen}
     <SmartSearch variant="mobile-overlay" />
+  {/if}
+
+  <!-- Daily Check-in FOMO Popup — tự ẩn/hiện theo auth + trạng thái điểm danh -->
+  {#if !isAdmin}
+    <DailyCheckinLanding />
   {/if}
 </div>
