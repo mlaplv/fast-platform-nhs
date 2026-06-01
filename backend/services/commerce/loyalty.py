@@ -190,39 +190,70 @@ class LoyaltyService:
         setting = res.scalar_one_or_none()
         default_config = {
             "cycle_days": 7,
-            "rewards": [10000, 10000, 10000, 10000, 10000, 10000, 10000]
+            "rewards": [1, 1, 1, 1, 1, 1, 2],  # Sếp Standard: 1 point = 10k VND. Days 1-6 give 1 point, Day 7 gives 2 points.
+            "is_active": True,
+            "start_date": None,
+            "end_date": None
         }
         if setting and setting.value and isinstance(setting.value, dict):
+            rewards = setting.value.get("rewards") or default_config["rewards"]
+            # Auto-clean legacy 10000 points to 1 point
+            cleaned_rewards = [1 if (r >= 10000 or r == 1000) else r for r in rewards]
             return {
                 "cycle_days": setting.value.get("cycle_days", 7),
-                "rewards": setting.value.get("rewards", default_config["rewards"])
+                "rewards": cleaned_rewards,
+                "is_active": setting.value.get("is_active", True),
+                "start_date": setting.value.get("start_date"),
+                "end_date": setting.value.get("end_date")
             }
         return default_config
 
+
     @staticmethod
-    async def get_checkin_status(db_session: AsyncSession, user_id: str) -> dict:
+    async def get_checkin_status(db_session: AsyncSession, user_id: str | None) -> dict:
         """Get user's current check-in state — full payload for Frontend."""
         config = await LoyaltyService._get_checkin_config(db_session)
         cycle_days: int = config.get("cycle_days", 7)
-        rewards: list = config.get("rewards", [10000] * cycle_days)
-
-        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
-        res = await db_session.execute(stmt)
-        loyalty = res.scalar_one_or_none()
+        rewards: list = config.get("rewards", [1] * cycle_days)
+        is_active: bool = config.get("is_active", True)
+        start_date_str: str | None = config.get("start_date")
+        end_date_str: str | None = config.get("end_date")
 
         now_hcm = datetime.now(timezone(timedelta(hours=7)))
         today_date = now_hcm.date()
 
+        is_event_enabled = is_active
+        if is_active:
+            if start_date_str:
+                try:
+                    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                    if today_date < start_date:
+                        is_event_enabled = False
+                except ValueError:
+                    pass
+            if end_date_str:
+                try:
+                    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                    if today_date > end_date:
+                        is_event_enabled = False
+                except ValueError:
+                    pass
+
         is_checked_in_today = False
         current_streak = 0
 
-        if loyalty and loyalty.last_checkin_date:
-            last_date = loyalty.last_checkin_date.astimezone(timezone(timedelta(hours=7))).date()
-            if last_date == today_date:
-                is_checked_in_today = True
-                current_streak = loyalty.current_checkin_streak
-            elif last_date == today_date - timedelta(days=1):
-                current_streak = loyalty.current_checkin_streak
+        if user_id:
+            stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+            res = await db_session.execute(stmt)
+            loyalty = res.scalar_one_or_none()
+
+            if loyalty and loyalty.last_checkin_date:
+                last_date = loyalty.last_checkin_date.astimezone(timezone(timedelta(hours=7))).date()
+                if last_date == today_date:
+                    is_checked_in_today = True
+                    current_streak = loyalty.current_checkin_streak
+                elif last_date == today_date - timedelta(days=1):
+                    current_streak = loyalty.current_checkin_streak
             else:
                 current_streak = 0
 
@@ -230,13 +261,13 @@ class LoyaltyService:
         days = []
         for i in range(cycle_days):
             day_num = i + 1
-            reward = rewards[i] if i < len(rewards) else 10000
+            reward_pts = rewards[i] if i < len(rewards) else 1
             is_completed = day_num <= current_streak if not is_checked_in_today else day_num <= current_streak
             is_today = day_num == (current_streak if is_checked_in_today else current_streak + 1)
             is_bonus = (day_num == cycle_days)  # Last day is bonus
             days.append({
                 "day": day_num,
-                "reward": reward,
+                "reward": reward_pts * 10000 if reward_pts < 10000 else reward_pts,  # Convert to VND for Frontend (e.g. 1 pt = 10,000 VND)
                 "is_completed": is_completed and (day_num < current_streak or (is_checked_in_today and day_num <= current_streak)),
                 "is_today": is_today,
                 "is_bonus": is_bonus,
@@ -262,7 +293,8 @@ class LoyaltyService:
         # Today's reward
         next_streak = (current_streak if is_checked_in_today else current_streak + 1)
         reward_idx = (next_streak - 1) % cycle_days
-        today_reward = rewards[reward_idx] if reward_idx < len(rewards) else 10000
+        today_reward_pts = rewards[reward_idx] if reward_idx < len(rewards) else 1
+        today_reward = today_reward_pts * 10000 if today_reward_pts < 10000 else today_reward_pts
 
         return {
             "is_checked_in_today": is_checked_in_today,
@@ -272,6 +304,9 @@ class LoyaltyService:
             "days": days,
             "countdown_to_reset": countdown,
             "total_checkin_today": total_today,
+            "is_event_enabled": is_event_enabled,
+            "start_date": start_date_str,
+            "end_date": end_date_str
         }
 
 
@@ -284,6 +319,30 @@ class LoyaltyService:
             raise Exception("[SECURITY-FATAL] Dữ liệu điểm thưởng bị sai lệch, không thể tiếp tục.")
 
         config = await LoyaltyService._get_checkin_config(db_session)
+        is_active = config.get("is_active", True)
+        start_date_str = config.get("start_date")
+        end_date_str = config.get("end_date")
+
+        now_hcm = datetime.now(timezone(timedelta(hours=7)))
+        today_date = now_hcm.date()
+
+        if not is_active:
+            raise Exception("Sự kiện điểm danh hàng ngày hiện đang tạm dừng.")
+
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                if today_date < start_date:
+                    raise Exception(f"Sự kiện điểm danh chưa bắt đầu. Thời gian diễn ra từ ngày {start_date_str}.")
+            except ValueError:
+                pass
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                if today_date > end_date:
+                    raise Exception("Sự kiện điểm danh hàng ngày đã kết thúc.")
+            except ValueError:
+                pass
         
         # Lock the row
         stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
@@ -313,10 +372,11 @@ class LoyaltyService:
         if loyalty.current_checkin_streak > cycle_days:
             loyalty.current_checkin_streak = 1
             
-        # Determine reward
+        # Determine reward (Clean points representation: 1 point = 10,000 VND value)
         rewards = config.get("rewards", [])
         reward_idx = loyalty.current_checkin_streak - 1
-        reward_amount = rewards[reward_idx] if reward_idx < len(rewards) else 10000
+        reward_amount_pts = rewards[reward_idx] if reward_idx < len(rewards) else 1
+        reward_amount = 1 if (reward_amount_pts >= 10000 or reward_amount_pts == 1000) else reward_amount_pts
         
         loyalty.last_checkin_date = now_hcm
         loyalty.available_points += reward_amount
@@ -333,6 +393,6 @@ class LoyaltyService:
         loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
         
         return {
-            "reward_amount": reward_amount,
+            "reward_amount": reward_amount * 10000,  # Return VND value to client
             "current_streak": loyalty.current_checkin_streak
         }

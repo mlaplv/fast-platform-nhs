@@ -4,8 +4,8 @@
  */
 
 export const LOYALTY_CONFIG = {
-    // 1 point = 1000 VND discount
-    POINT_VALUE: 1000,
+    // 1 point = 10000 VND discount (Sếp Standard: 1 điểm = 10k VND)
+    POINT_VALUE: 10000,
     
     // 1 point earned per 100k VND spent
     EARNING_RATE_VND: 100000,
@@ -22,7 +22,7 @@ export const LOYALTY_CONFIG = {
     
     // UI Labels
     LABELS: {
-        POINTS_UNIT: "Pts",
+        POINTS_UNIT: "điểm",
         EARN_PREFIX: "Dự kiến tích lũy: +",
         REDEEM_LABEL: "Dùng điểm tích lũy",
         AVAILABLE_POINTS: "Số điểm khả dụng:"

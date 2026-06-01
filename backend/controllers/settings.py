@@ -123,4 +123,45 @@ class SettingsController(Controller):
         await db_session.commit()
         return res
 
+    @get("/loyalty-checkin")
+    async def get_loyalty_checkin_config(self, db_session: "AsyncSession") -> dict:
+        """Fetch daily check-in configuration."""
+        from backend.services.commerce.loyalty import LoyaltyService
+        return await LoyaltyService._get_checkin_config(db_session)
+
+    @post("/loyalty-checkin")
+    async def update_loyalty_checkin_config(
+        self, db_session: "AsyncSession", data: dict
+    ) -> SuccessResponse:
+        """Update daily check-in configuration."""
+        from backend.database.models.system import SystemSetting
+        
+        cycle_days = data.get("cycle_days", 7)
+        rewards = data.get("rewards", [1] * cycle_days)
+        is_active = data.get("is_active", True)
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
+        
+        if len(rewards) != cycle_days:
+            raise HTTPException(status_code=400, detail="Rewards array size must match cycle days count")
+            
+        stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_CHECKIN_CONFIG")
+        res = await db_session.execute(stmt)
+        setting = res.scalar_one_or_none()
+        
+        if not setting:
+            setting = SystemSetting(key="LOYALTY_CHECKIN_CONFIG", value={})
+            db_session.add(setting)
+            
+        setting.value = {
+            "cycle_days": cycle_days,
+            "rewards": rewards,
+            "is_active": is_active,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+        await db_session.commit()
+        return SuccessResponse(ok=True, id="LOYALTY_CHECKIN_CONFIG")
+
+
 

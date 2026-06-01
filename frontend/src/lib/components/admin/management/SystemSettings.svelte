@@ -154,7 +154,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy";
+  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy" | "loyalty";
 
   interface TabDefinition {
     id: TabId;
@@ -172,14 +172,36 @@
     { id: "maintenance", label: "Bảo trì", icon: Tool },
     { id: "helen", label: "Helen AI", icon: Sparkles },
     { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
-    { id: "entropy", label: "SGE Shield", icon: ShieldCheck }
+    { id: "entropy", label: "SGE Shield", icon: ShieldCheck },
+    { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins }
   ];
+
+  // Loyalty Config State
+  let loyaltyConfig = $state({
+    cycle_days: 7,
+    rewards: [1, 1, 1, 1, 1, 1, 2] as number[],
+    is_active: true,
+    start_date: "" as string | null,
+    end_date: "" as string | null
+  });
 
   onMount(async () => {
     try {
       const res = await apiClient.get<{ settings: SystemSettings }>("/api/v1/settings/general");
       if (res?.settings) {
         settings = res.settings;
+      }
+      
+      // Load loyalty config
+      const checkinRes = await apiClient.get<any>("/api/v1/settings/loyalty-checkin");
+      if (checkinRes) {
+        loyaltyConfig = {
+          cycle_days: checkinRes.cycle_days || 7,
+          rewards: checkinRes.rewards || [1, 1, 1, 1, 1, 1, 2],
+          is_active: checkinRes.is_active !== undefined ? checkinRes.is_active : true,
+          start_date: checkinRes.start_date || "",
+          end_date: checkinRes.end_date || ""
+        };
       }
     } catch (e) {
       nanobot.showToast("Failed to fetch settings.", "error");
@@ -191,8 +213,19 @@
   async function saveSettings() {
     isSaving = true;
     try {
-      await apiClient.post("/api/v1/settings/general", settings);
-      nanobot.showToast("Cấu hình hệ thống đã được lưu.", "success");
+      if (activeTab === 'loyalty') {
+        await apiClient.post("/api/v1/settings/loyalty-checkin", {
+          cycle_days: loyaltyConfig.cycle_days,
+          rewards: loyaltyConfig.rewards,
+          is_active: loyaltyConfig.is_active,
+          start_date: loyaltyConfig.start_date || null,
+          end_date: loyaltyConfig.end_date || null
+        });
+        nanobot.showToast("Cấu hình điểm danh hàng ngày đã được lưu.", "success");
+      } else {
+        await apiClient.post("/api/v1/settings/general", settings);
+        nanobot.showToast("Cấu hình hệ thống đã được lưu.", "success");
+      }
     } catch (e) {
       nanobot.showToast("Không thể lưu cấu hình.", "error");
     } finally {
@@ -850,6 +883,101 @@
                   >
                     <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {settings.entropy.lexical_sanitizer_enabled ? 'translate-x-5' : 'translate-x-0'}"></div>
                   </button>
+                </div>
+              </div>
+            </div>
+          {:else if activeTab === 'loyalty'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-cyan-400 tracking-[0.2em] flex items-center gap-2">
+                <Coins size={16} /> Cấu hình Điểm danh hàng ngày (Daily Check-in)
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8">
+                <!-- Toggle Active -->
+                <div class="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
+                  <div>
+                    <h4 class="text-xs font-bold text-white tracking-wider">Trạng thái Chương trình</h4>
+                    <p class="text-[9px] text-zinc-500 font-mono">Bật/tắt toàn bộ tính năng Điểm danh trên Storefront</p>
+                  </div>
+                  <button 
+                    onclick={() => loyaltyConfig.is_active = !loyaltyConfig.is_active}
+                    class="relative w-10 h-5 rounded-full transition-colors duration-300 {loyaltyConfig.is_active ? 'bg-cyan-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {loyaltyConfig.is_active ? 'translate-x-5' : 'translate-x-0'}"></div>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <!-- Cycle Days -->
+                  <div class="space-y-1">
+                    <label for="cycle_days" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Số ngày chu kỳ</label>
+                    <input 
+                      id="cycle_days" 
+                      type="number" 
+                      bind:value={loyaltyConfig.cycle_days} 
+                      min="1" 
+                      max="30"
+                      oninput={() => {
+                        const targetLen = loyaltyConfig.cycle_days || 7;
+                        if (loyaltyConfig.rewards.length < targetLen) {
+                          const diff = targetLen - loyaltyConfig.rewards.length;
+                          loyaltyConfig.rewards = [...loyaltyConfig.rewards, ...Array(diff).fill(1)];
+                        } else if (loyaltyConfig.rewards.length > targetLen) {
+                          loyaltyConfig.rewards = loyaltyConfig.rewards.slice(0, targetLen);
+                        }
+                      }}
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="7"
+                    />
+                  </div>
+
+                  <!-- Start Date -->
+                  <div class="space-y-1">
+                    <label for="start_date" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Ngày bắt đầu</label>
+                    <input 
+                      id="start_date" 
+                      type="date" 
+                      bind:value={loyaltyConfig.start_date}
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                    />
+                  </div>
+
+                  <!-- End Date -->
+                  <div class="space-y-1">
+                    <label for="end_date" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Ngày kết thúc</label>
+                    <input 
+                      id="end_date" 
+                      type="date" 
+                      bind:value={loyaltyConfig.end_date}
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div class="w-full h-px bg-white/5 my-2"></div>
+
+                <!-- Daily Rewards list -->
+                <div class="space-y-4">
+                  <h4 class="text-xs font-bold text-zinc-400 tracking-widest">Phần thưởng & Mệnh giá mỗi ngày</h4>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {#each loyaltyConfig.rewards as _, index}
+                      <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex items-center justify-between gap-3 hover:border-cyan-500/20 transition-all duration-300 group/day">
+                        <div class="flex flex-col">
+                          <span class="text-xs font-bold text-white group-hover/day:text-cyan-400 transition-colors">Ngày {index + 1}</span>
+                          <span class="text-[10px] text-zinc-500 font-mono mt-1">{((loyaltyConfig.rewards[index] || 0) * 10000).toLocaleString('vi-VN')}đ</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <input 
+                            type="number" 
+                            bind:value={loyaltyConfig.rewards[index]} 
+                            min="0"
+                            class="w-16 bg-zinc-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-right text-white focus:border-cyan-500/50 outline-none"
+                          />
+                          <span class="text-[9px] text-zinc-600 font-mono">Điểm</span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
                 </div>
               </div>
             </div>

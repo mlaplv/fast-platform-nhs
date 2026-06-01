@@ -10,11 +10,12 @@
   import UserMenuMobile from './UserMenuMobile.svelte';
   import UserHeaderMobile from './UserHeaderMobile.svelte';
   import SeoHead from '../seo/SeoHead.svelte';
+  import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   
   import Award from '@lucide/svelte/icons/award';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import Sparkles from '@lucide/svelte/icons/sparkles';
-
+ 
   interface Props {
     title: string;
     mobileTitle?: string;
@@ -23,7 +24,7 @@
     requireAuth?: boolean;
     headerHiddenOnMobile?: boolean;
   }
-
+ 
   let { 
     title, 
     mobileTitle, 
@@ -32,12 +33,12 @@
     requireAuth = true,
     headerHiddenOnMobile = true
   }: Props = $props();
-
+ 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
   let showCtvPromo = $state(false);
   let isCtvRegistered = $state(true); // default true
-
+ 
   // Elite V2.2: Deterministic Layout Management + CTV Verification
   onMount(async () => {
     if (ui.isMobile) {
@@ -46,6 +47,11 @@
       ui.isHeaderHidden = false;
     }
     ui.isFooterHidden = false;
+
+    // Pre-fetch loyalty points to ensure user header mobile shows correct available points
+    if (authStore.isAuthenticated) {
+      loyaltyStore.fetchLoyalty();
+    }
 
     // Async CTV Promo check
     if (browser && authStore.isAuthenticated && window.location.pathname !== '/user/ctv') {

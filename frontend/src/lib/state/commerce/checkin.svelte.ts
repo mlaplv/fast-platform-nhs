@@ -18,6 +18,9 @@ export interface CheckinStatus {
   days: CheckinDay[];
   countdown_to_reset: string; // "HH:MM:SS"
   total_checkin_today: number; // social proof count
+  is_event_enabled?: boolean;
+  start_date?: string;
+  end_date?: string;
 }
 
 class CheckinStore {
@@ -35,7 +38,6 @@ class CheckinStore {
   );
 
   async fetchStatus() {
-    if (!authStore.isAuthenticated) return;
     this.loading = true;
     this.error = null;
     try {

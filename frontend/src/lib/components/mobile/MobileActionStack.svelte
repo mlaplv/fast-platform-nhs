@@ -1,5 +1,5 @@
 <script lang="ts">
-    import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import Star from "@lucide/svelte/icons/star";
   import Info from "@lucide/svelte/icons/info";
   import MessageSquare from "@lucide/svelte/icons/message-square";
@@ -7,6 +7,8 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { Product } from '$lib/types';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import { checkinStore } from '$lib/state/commerce/checkin.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   interface Props {
     product: Product;
@@ -41,12 +43,43 @@
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const isCheckedIn = $derived(authStore.isAuthenticated && (checkinStore.status?.is_checked_in_today ?? false));
 </script>
 
 <div
   class="mobile-action-stack"
   class:HUD-hidden={isScrollingDown}
 >
+  <!-- 7. Điểm danh nhận quà (Top-most check-in utility) -->
+  <button
+    class="action-btn-mini group"
+    onclick={() => checkinStore.openPopup()}
+    aria-label="Điểm danh nhận quà"
+  >
+    <div class="relative flex items-center justify-center">
+      {#if !isCheckedIn}
+        <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff9900] rounded-full border-2 border-black animate-pulse z-10"></div>
+        <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🎁</span>
+      {:else}
+        <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🪙</span>
+        <!-- Orange/Green badge overlay with z-10 to ensure it renders on top of the emoji -->
+        <div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-[#111014] flex items-center justify-center z-10 shadow-sm">
+          <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+      {/if}
+    </div>
+    <span class="btn-label-mini text-center leading-[1.1]">
+      {#if isCheckedIn}
+        Đã nhận<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
+      {:else}
+        Nhận quà<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
+      {/if}
+    </span>
+  </button>
+
   <!-- 6. Tra cứu (Top-most utility) -->
   <a
     href="/track"
@@ -54,7 +87,7 @@
     aria-label="Tra cứu đơn hàng"
   >
     <ShieldCheck class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-    <span class="btn-label-mini text-center leading-[1.1]" style="bottom: -1.2rem;">
+    <span class="btn-label-mini text-center leading-[1.1]">
       Tra cứu<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Đơn hàng</span>
     </span>
   </a>
@@ -66,7 +99,7 @@
     aria-label="Tra cứu chính hãng"
   >
     <div class="relative">
-      <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
+      <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black animate-pulse z-10"></div>
       <svg class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 7V5a2 2 0 0 1 2-2h2" />
         <path d="M17 3h2a2 2 0 0 1 2 2v2" />
@@ -75,7 +108,7 @@
         <line x1="7" y1="12" x2="17" y2="12" />
       </svg>
     </div>
-    <span class="btn-label-mini text-center leading-[1.1]" style="bottom: -1.2rem;">
+    <span class="btn-label-mini text-center leading-[1.1]">
       Tra cứu<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Chính hãng</span>
     </span>
   </button>
@@ -136,21 +169,17 @@
 
 <style lang="postcss">
   .action-btn-mini {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 2.75rem;
-    height: 2.75rem;
+    height: auto;
+    gap: 4px; /* Perfect space between icon and label, naturally expanding the flow */
     transition: all 0.4s ease;
   }
 
   .btn-label-mini {
-    position: absolute;
-    bottom: -1rem;
-    left: 50%;
-    transform: translateX(-50%);
     width: max-content;
     text-align: center;
     font-size: 8px;

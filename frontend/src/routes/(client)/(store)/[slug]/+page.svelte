@@ -297,8 +297,8 @@
   <DynamicComponent {...activeProps} />
 {:else}
   <!-- Elite 2026: Zero-CLS Luxury Skeleton Placeholders to prevent UI flashes during lazy bundle load -->
-  <div class="min-h-[80vh] flex flex-col items-center justify-center text-gray-400 gap-3 bg-[#fafafa]">
-    <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-    <span class="text-[9px] font-black tracking-widest uppercase text-gray-400/80">Đang tải giao diện...</span>
+  <div class="flex flex-col items-center justify-center gap-3 transition-colors duration-300 {isFunnel ? 'min-h-screen bg-[#020202] text-stone-400' : 'min-h-[88vh] bg-gradient-to-br from-[#faf8f5] to-[#f2e6d8] text-stone-600'}" style="width: 100%;">
+    <div class="w-8 h-8 rounded-full border-2 animate-spin {isFunnel ? 'border-stone-800' : 'border-stone-200'}" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+    <span class="text-[9px] font-black tracking-widest uppercase {isFunnel ? 'text-stone-500/80' : 'text-stone-600/70'}">Đang tải giao diện...</span>
   </div>
 {/if}

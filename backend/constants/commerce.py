@@ -7,7 +7,7 @@ class ShippingConfig:
     EXPRESS_BASE_FEE = 50000.0
 
 class LoyaltyConfig:
-    POINT_VALUE = 1000.0 # 1 point = 1000 VND
+    POINT_VALUE = 10000.0 # 1 point = 10000 VND (Sếp Standard: 1 điểm = 10k VND)
     MAX_DISCOUNT_PERCENT = 0.01 # Max 1% of total
     EARNING_RATE_VND = 100000.0 # 1 point earned per 100k VND spent
     

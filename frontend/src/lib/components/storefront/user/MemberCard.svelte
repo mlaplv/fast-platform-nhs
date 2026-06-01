@@ -80,7 +80,7 @@
         <div class="text-right">
           <p class="text-[9px] tracking-wider opacity-60 font-bold">Tích lũy</p>
           <p class="text-xl font-black italic tracking-tighter">
-            {points} <span class="text-[10px] not-italic font-bold opacity-80 tracking-tighter">Pts</span>
+            {points} <span class="text-[10px] not-italic font-bold opacity-80 tracking-tighter">{loyaltyStore.data?.point_unit ?? "điểm"}</span>
             {#if pending > 0}
                <span class="text-[10px] not-italic font-bold text-white/70 ml-1">(+{pending})</span>
             {/if}

@@ -784,7 +784,6 @@
 - [x] **[G-5] Velocity Limiter (Redis)**: Giới hạn 5 đơn/giờ per `customer_phone` và per `IP`. Tự động khóa 2 giờ nếu vượt ngưỡng. Chống bot flooding đơn hàng ảo quy mô lớn. (Done)
 - [x] **[G-6] Duplicate Order Guard (Redis)**: Tính SHA-256 fingerprint từ phone + items + total. Chặn đơn trùng hệt trong vòng 5 phút. Ngăn double-submit và replay attack. (Done)
 - [x] **[G-7] Voucher Fraud Guard**: Validate toàn bộ voucher_ids từ DB trước khi tạo đơn: tồn tại, chưa bị xoá, đang hoạt động (`is_active`), chưa hết hạn (`start_date`/`end_date`), chưa đạt giới hạn lượt dùng (`used_count < usage_limit`), đủ điều kiện chi tiêu tối thiểu (`min_spend`). Chặn payload bombing (tối đa 5 mã/đơn). (Done)
-- [x] **[G-8] Stock Overflow Guard**: Batch-load tồn kho (`ProductBase.stock`, `ProductVariant.stock`) — O(2) queries, ưu tiên variant stock. Chặn đặt hàng vượt số lượng tồn kho và sản phẩm hết hàng trước khi bất kỳ giao dịch DB nào được tạo. (Done)
 
 # Task Checklist - Fixing Mobile Diagnostics Option Icons Visibility & JIT Reference Error (Elite V2.2)
 
@@ -837,8 +836,17 @@
 
 - [x] Tái cấu trúc Header cột trái của `QuickLoginModalDesktop.svelte` thành dải phân cách mờ cùng chấm trạng thái nhấp nháy động và nhãn OSMO ELITE / huy hiệu đặc quyền VIP cao cấp chuẩn quốc tế. (Done)
 - [x] Thuần Việt hoá 100% nội dung quyền lợi hội viên (đại lý liên kết, tích điểm VIP, ví đặc quyền trợ lý đơn hàng) sắc nét, tự nhiên. (Done)
-- [x] Nâng cấp Header biểu mẫu cột phải với dải phân cách mờ tinh tế và mixed-case tiêu đề chuẩn quốc tế. (Done)
 - [x] Đồng bộ hóa an toàn tệp nguồn đã thay đổi lên môi trường VPS Production via rsync. (Done)
+
+
+# Task Checklist - Hardening Loyalty Configuration Module (Elite V2.2)
+
+- [x] Cấu hình Dynamic cycle duration & rewards cho hệ thống Điểm danh (Daily Check-in) từ xa. (Done)
+- [x] Cập nhật Administrative SettingsController (`/loyalty-checkin`) để hỗ trợ đầy đủ `is_active`, `start_date`, và `end_date`. (Done)
+- [x] Tích hợp Giao diện Admin Dashboard quản trị "Điểm danh hàng ngày" mượt mà chuẩn Vercel/Linear trong `SystemSettings.svelte`. (Done)
+- [x] Cập nhật `CheckinStatus` và logic Svelte storefront (`DailyCheckinLanding.svelte`) để tự động ẩn/tắt popup & floating trigger khi Admin tắt hoặc ngoài thời hạn sự kiện. (Done)
+- [x] Hỗ trợ cho phép khách vãng lai (guest) truy vấn cấu hình sự kiện công khai qua endpoint `/loyalty/checkin` một cách an toàn mà không bị chặn lỗi NotAuthenticated. (Done)
+- [x] Rsync đồng bộ hóa 100% mã nguồn Backend & Frontend đã hoàn thiện lên môi trường VPS Production và restart dịch vụ thành công. (Done)
 
 
 # Task Checklist - Hardening Storefront LocalStorage Architecture (Elite V2.2)
@@ -871,5 +879,26 @@
 - [ ] Phân rã tệp tin `Info.svelte` (1280 LOC) về vùng an toàn dưới 700 LOC.
 - [ ] Phân rã tệp tin `MobileDiagnostics.svelte` (1215 LOC) về vùng an toàn dưới 700 LOC.
 - [ ] Phân rã tệp tin `checkout/success/[id]/+page.svelte` (1141 LOC) về vùng an toàn dưới 700 LOC.
+
+# Task Checklist - Premium Daily Loyalty Check-in UI/UX Redesign (Elite V2.2)
+
+- [x] Thiết kế lại giao diện của `DailyCheckinModalMobile.svelte` theo phong cách AI Portal View Viral Premium bóng bẩy. (Done)
+- [x] Thiết kế lại giao diện của `DailyCheckinModalDesktop.svelte` tương ứng cho phiên bản Desktop, hiển thị đẹp mắt pixel-perfect theo ảnh mẫu. (Done)
+- [x] Tinh chỉnh logic `DailyCheckinLanding.svelte` và tích hợp tùy chọn "Không hiển thị lại ngày hôm nay" để bảo vệ trải nghiệm người dùng, tránh gây phiền. (Done)
+- [x] Bổ sung các hiệu ứng chuyển động mượt mà, confetti và kính mờ cao cấp lỏng. (Done)
+- [x] Đảm bảo 100% người dùng chưa đăng nhập vẫn xem được bình thường, chỉ yêu cầu đăng nhập khi bấm nhận thưởng. (Done)
+- [x] Đồng bộ rsync toàn diện 3 file Svelte đã thay đổi lên VPS Production và tiến hành biên dịch `pnpm build` không có lỗi. (Done)
+- [x] Restart container Caddy trên VPS để nạp cache static assets mới thành công mỹ mãn. (Done)
+- [x] Khắc phục lỗi "chưa có scroll ngày" trên desktop bằng cách tích hợp custom horizontal thin scrollbar và tính toán chiều dài timeline động. (Done)
+- [x] Khắc phục lỗi "modal tích lũy quy định chung quá cao" bằng cách hạ chiều cao panel xuống `52vh` cực kỳ gọn gàng. (Done)
+- [x] Khử bỏ in hoa tab titles, chuyển sang "Lịch sử nhận" và "Quy định chung". (Done)
+- [x] Khắc phục lỗi "hở mép phải quá nhiều" bằng cách áp dụng âm biên `-mx-5 px-5` giúp danh sách ngày điểm danh tràn lề hoàn hảo. (Done)
+- [x] Thiết kế hiển thị "Thời gian sự kiện" (Campaign active schedule period) sống động, trực quan dưới dạng badge trên cả Mobile và Desktop Daily Check-in Modals. (Done)
+- [x] Khắc phục triệt để lỗi "trên mobile: hiển thị icon desktop chồng chéo" bằng cách ẩn nút floating trigger `DailyCheckinLanding` trên Mobile, tránh đè lên nút "Chi tiết" của `MobileActionStack` (vốn dĩ mobile đã có nút Điểm danh ở trên cùng stack). (Done)
+- [x] Tích hợp tính năng **Drag-to-Scroll (Chuột kéo/giật trượt ngang)** cao cấp chuẩn Premium vào dải ngày điểm danh trên Desktop để hỗ trợ cuộn trực quan 100% bằng chuột máy tính. (Done)
+- [x] Định vị lại panel Lịch sử/Quy định trên Desktop trùng khít 100% sát mép vùng trắng "Nhiệm vụ thưởng" (bắt đầu từ `top: 138px`), bo góc `rounded-t-[28px]` hoàn mỹ và mượt mà. (Done)
+- [x] Chuẩn hóa cân đối khoảng cách lề hai bên (Left/Right padding) của Modal Desktop bằng cách bù đắp trừ hao phần khoảng trống mặc định mà các trình duyệt tự động chừa lại cho thanh cuộn (Scrollbar reservation) — chuyển đổi lề trắng từ `px-4` thành `pl-4 pr-1`, đảm bảo hiển thị đối xứng tuyệt hảo 100% không lo lệch lề. (Done)
+- [x] Rà soát và loại bỏ triệt để 100% kiểu dữ liệu `any` trong mã nguồn được xây dựng hôm nay, triển khai các static interfaces (`RawProduct`, `ProductItem`) để đảm bảo tuân thủ kỷ luật ép kiểu tĩnh của hiến pháp Elite V2.2. (Done)
+
 
 

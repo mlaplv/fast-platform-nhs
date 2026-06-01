@@ -200,7 +200,7 @@
               ? 'text-stone-300'
               : 'text-stone-500'} mt-1 font-bold"
           >
-            Giảm ngay {formatCurrency(pointsRedeemed * 1000)} vào đơn hàng
+            Giảm ngay {formatCurrency(pointsRedeemed * LOYALTY_CONFIG.POINT_VALUE)} vào đơn hàng
           </p>
         </div>
       </div>
@@ -257,7 +257,7 @@
                   🔥 <span class="text-luxury-copper italic">Viral Tip:</span>
                   Đơn này tích được thêm
                   <span class="text-white"
-                    >+{Math.floor(finalTotal / 100000)} Pts</span
+                    >+{Math.floor(finalTotal / LOYALTY_CONFIG.EARNING_RATE_VND)} {LOYALTY_CONFIG.LABELS.POINTS_UNIT}</span
                   >. Mua thêm combo để
                   <span
                     class="bg-luxury-copper text-stone-900 px-1 ml-1 rounded-sm"

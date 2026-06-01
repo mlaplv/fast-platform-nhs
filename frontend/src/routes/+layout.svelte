@@ -86,6 +86,14 @@
         console.warn("[SYSTEM] Vite preload error detected. Auto-healing by reloading page...", event);
         window.location.reload();
       });
+
+      // bfcache (Back-Forward Cache) Auto-Healing: Auto-refresh page on browser back/forward to ensure fresh state
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          console.warn("[SYSTEM] Page restored from back-forward cache (bfcache). Auto-refreshing to guarantee fresh state...");
+          window.location.reload();
+        }
+      });
     }
 
     // Elite V2.2: Non-overlapping Dynamic Imports for Device Separation
@@ -331,6 +339,11 @@
   const zIndexStyles = $derived(!isAdmin ? Object.entries(Z_INDEX_CLIENT)
     .map(([key, value]) => `--z-${key.toLowerCase().replace(/_/g, '-')}: ${value};`)
     .join(' ') : '');
+
+  const isFunnel = $derived(
+    page.data?.product?.metadata?.landing_type && 
+    page.data.product.metadata.landing_type !== 'standard'
+  );
 </script>
 
 <svelte:head>
@@ -349,7 +362,7 @@
     <meta property="og:site_name" content={siteName} />
     <meta property="og:locale" content="vi_VN" />
   {:else}
-    <meta name="theme-color" content="#f5f5f5" />
+    <meta name="theme-color" content={isFunnel ? '#020202' : '#f5f5f5'} />
   {/if}
 
   <link rel="icon" href="/favicon.svg" />
@@ -363,8 +376,8 @@
 {/if}
 
 <div 
-  class="min-h-screen transition-colors duration-200 {isAdmin ? 'bg-[#020202] text-gray-100 selection:bg-[#00FFFF]/20' : 'bg-[#fafafa] text-gray-900 selection:bg-luxury-copper/20'}" 
-  style="{zIndexStyles} --bg-canvas: {isAdmin ? '#010101' : '#fafafa'}; --text-base: {isAdmin ? '#ffffff' : '#111827'};"
+  class="min-h-screen {isAdmin ? 'bg-[#020202] text-gray-100 selection:bg-[#00FFFF]/20' : (isFunnel ? 'bg-[#020202] text-gray-100 selection:bg-luxury-copper/20' : 'bg-[#fafafa] text-gray-900 selection:bg-luxury-copper/20')}" 
+  style="{zIndexStyles} --bg-canvas: {isAdmin ? '#010101' : (isFunnel ? '#020202' : '#fafafa')}; --text-base: {isAdmin || isFunnel ? '#ffffff' : '#111827'};"
 >
   <main class="relative z-10">
     {@render children()}

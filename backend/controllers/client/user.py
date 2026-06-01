@@ -391,18 +391,15 @@ class ClientUserController(Controller):
         Elite V2.2: Get daily check-in status and config.
         """
         user_state = request.scope.get("state", {}).get("user")
-        if not user_state:
-            from litestar.exceptions import NotAuthorizedException
-            raise NotAuthorizedException("User not authenticated")
-            
-        user_id = user_state.get("id")
-
-        # SECURITY: Status check
-        stmt_status = select(User.status).where(User.id == user_id)
-        user_status = (await db_session.execute(stmt_status)).scalar()
-        if not user_status or user_status != "ACTIVE":
-            from litestar.exceptions import NotAuthorizedException
-            raise NotAuthorizedException("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động")
+        user_id = None
+        if user_state:
+            user_id = user_state.get("id")
+            # SECURITY: Status check
+            stmt_status = select(User.status).where(User.id == user_id)
+            user_status = (await db_session.execute(stmt_status)).scalar()
+            if not user_status or user_status != "ACTIVE":
+                from litestar.exceptions import NotAuthorizedException
+                raise NotAuthorizedException("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động")
             
         from backend.services.commerce.loyalty import LoyaltyService
         status_data = await LoyaltyService.get_checkin_status(db_session, user_id)

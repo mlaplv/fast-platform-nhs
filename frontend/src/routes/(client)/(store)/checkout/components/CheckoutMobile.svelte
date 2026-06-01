@@ -71,6 +71,8 @@
   import { formatCurrency } from "$lib/utils/format";
   import { resolveMediaUrl } from "$lib/state/utils";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
+  import { loyaltyStore } from "$lib/state/commerce/loyalty.svelte";
+  import { LOYALTY_CONFIG } from "$lib/constants/loyalty";
 
   const cartStore = getCartStore();
 </script>
@@ -701,12 +703,12 @@
                 <div>
                   <span
                     class="text-[13px] font-bold text-gray-800 tracking-widest leading-none"
-                    >Dùng {availablePoints} điểm tích lũy</span
+                    >Dùng {availablePoints} {loyaltyStore.data?.point_unit ?? "điểm"} tích lũy</span
                   >
                   <p
                     class="text-[11px] text-gray-500 mt-0.5 font-medium italic"
                   >
-                    Tiết kiệm {formatCurrency(pointsToRedeem * 1000)} cho đơn
+                    Tiết kiệm {formatCurrency(pointsToRedeem * LOYALTY_CONFIG.POINT_VALUE)} cho đơn
                     này
                   </p>
                 </div>
@@ -750,7 +752,7 @@
                   >
                     🔥 Đơn này tích thêm <span
                       class="text-[#fe2c55] font-black"
-                      >+{Math.floor(finalTotal / 100000)} Pts</span
+                      >+{Math.floor(finalTotal / LOYALTY_CONFIG.EARNING_RATE_VND)} {loyaltyStore.data?.point_unit ?? "điểm"}</span
                     >. Mua thêm combo để
                     <span
                       class="bg-[#fe2c55] text-white px-1 rounded-sm text-[9px] font-black"

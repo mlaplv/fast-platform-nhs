@@ -11,10 +11,47 @@
   import UserPageWrapper from '$lib/components/storefront/user/UserPageWrapper.svelte';
   import MemberCard from '$lib/components/storefront/user/MemberCard.svelte';
   import { formatCurrency } from '$lib/utils/format';
+  
+  import { checkinStore } from '$lib/state/commerce/checkin.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   onMount(() => {
     loyaltyStore.fetchLoyalty();
+    if (authStore.isAuthenticated) {
+      checkinStore.fetchStatus();
+    }
   });
+
+  const PREVIEW_DAYS = [
+    { day: 1, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 2, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 3, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 4, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 5, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 6, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
+    { day: 7, reward: 20000, is_completed: false, is_today: false, is_bonus: true },
+  ];
+
+  const displayDays = $derived(
+    checkinStore.status?.days?.length ? checkinStore.status.days : PREVIEW_DAYS
+  );
+  const isCheckedIn = $derived(checkinStore.status?.is_checked_in_today ?? false);
+  const completedCount = $derived(displayDays.filter(d => d.is_completed).length);
+  
+  // Completed count connects adjacent days. Each transition is 62px width on desktop.
+  const progressWidth = $derived(
+    completedCount <= 1 ? 0 : Math.min(372, (completedCount - 1) * 62)
+  );
+
+  async function handleClaim() {
+    if (!authStore.isAuthenticated) return;
+    const ok = await checkinStore.claimReward();
+    if (ok) {
+      // Re-fetch status to ensure sync
+      await checkinStore.fetchStatus();
+      await loyaltyStore.fetchLoyalty();
+    }
+  }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleString('vi-VN', {
@@ -46,8 +83,9 @@
     {:else if loyaltyStore.data}
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         <!-- Main Member Card -->
-        <div class="lg:col-span-6">
+        <div class="lg:col-span-6 space-y-6">
            <MemberCard />
+           
            <div class="mt-4 flex items-center justify-center gap-6">
               <div class="text-center">
                  <span class="block text-[8px] tracking-widest text-stone-400 font-bold uppercase">Tổng chi tiêu (LTV)</span>
@@ -57,6 +95,94 @@
               <div class="text-center">
                 <span class="block text-[8px] tracking-widest text-stone-400 font-bold uppercase">Hạng hiện tại</span>
                 <span class="text-[10px] font-bold text-luxury-copper tracking-widest">{loyaltyStore.tierName}</span>
+             </div>
+           </div>
+
+           <!-- EMBEDDED ATTENDANCE CARD (Premium Elite V2.2) -->
+           <div class="p-6 bg-white border border-stone-100/90 rounded-2xl relative overflow-hidden group shadow-[0_4px_25px_rgba(0,0,0,0.015)]">
+             <div class="relative z-10">
+               <!-- Header block -->
+               <div class="flex items-center justify-between mb-4.5">
+                 <div class="flex items-center gap-2">
+                   <div class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></div>
+                   <span class="text-[10px] tracking-[2.5px] font-black text-stone-800 uppercase">ĐIỂM DANH NHẬN QUÀ</span>
+                 </div>
+                 <span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[9px] font-bold tracking-wider">
+                   Chuỗi {checkinStore.status?.current_streak || 0} ngày 🔥
+                 </span>
+               </div>
+
+               <!-- Sub-description -->
+               <p class="text-[11.5px] text-stone-500 leading-relaxed font-medium mb-5">
+                 Tích lũy chuỗi liên tục 7 ngày để nhân đôi phần thưởng! Điểm thưởng được tự động áp dụng để thanh toán hóa đơn của bạn.
+               </p>
+
+               <!-- Days horizontal timeline -->
+               <div class="w-full overflow-x-auto scrollbar-hide py-2 mb-6">
+                 <div class="relative min-w-[420px] flex items-center justify-between px-1">
+                   
+                   <!-- Progress Line Background -->
+                   <div class="absolute top-[26px] left-[26px] right-[26px] h-1 bg-stone-100 rounded-full z-0"></div>
+                   
+                   <!-- Active Progress Line -->
+                   <div 
+                     class="absolute top-[26px] left-[26px] h-1 bg-gradient-to-r from-amber-400 to-[#c5a059] rounded-full z-0 transition-all duration-700"
+                     style="width: {progressWidth}px;"
+                   ></div>
+
+                   <!-- 7 Day Cards -->
+                   {#each displayDays as d}
+                     <div class="flex flex-col items-center gap-2.5 z-10">
+                       <div 
+                         class="w-13 h-13 rounded-xl flex flex-col items-center justify-center relative transition-all duration-200
+                           {d.is_completed 
+                             ? 'bg-amber-50/70 border-2 border-amber-300 text-amber-800 shadow-sm' 
+                             : d.is_today 
+                               ? 'bg-white border-2 border-[#231b15] text-[#231b15] shadow-md scale-105' 
+                               : 'bg-white border border-stone-200 text-stone-400'}"
+                         style="width: 52px; height: 52px;"
+                       >
+                         <span class="text-[8px] font-black tracking-wider uppercase opacity-75 mb-0.5">Ngày {d.day}</span>
+                         
+                         {#if d.is_completed}
+                           <div class="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full bg-green-500 border border-white flex items-center justify-center shadow-sm">
+                             <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                             </svg>
+                           </div>
+                           <span class="text-[10px] font-black text-amber-900">+{d.reward / 1000}K</span>
+                         {:else if d.is_bonus}
+                           <span class="text-xs">🎁</span>
+                         {:else}
+                           <span class="text-[10px] font-bold text-stone-500">+{d.reward / 1000}K</span>
+                         {/if}
+                       </div>
+                     </div>
+                   {/each}
+                 </div>
+               </div>
+
+               <!-- Action Button -->
+               {#if isCheckedIn}
+                 <button 
+                   disabled
+                   class="w-full py-3.5 bg-stone-50 border border-stone-100 rounded-xl text-stone-400 text-[10px] font-black tracking-[3px] uppercase cursor-not-allowed transition-all"
+                 >
+                   BẠN ĐÃ ĐIỂM DANH HÔM NAY
+                 </button>
+               {:else}
+                 <button 
+                   onclick={handleClaim}
+                   disabled={checkinStore.loading}
+                   class="w-full py-3.5 bg-[#231b15] hover:opacity-90 active:scale-[0.98] text-[#f5d7af] text-[10px] font-black tracking-[3px] uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                 >
+                   {#if checkinStore.loading}
+                     <div class="w-3.5 h-3.5 border-2 border-stone-400 border-t-white rounded-full animate-spin"></div>
+                   {:else}
+                     ĐIỂM DANH NHẬN THƯỞNG HÀNG NGÀY
+                   {/if}
+                 </button>
+               {/if}
              </div>
            </div>
         </div>
@@ -99,7 +225,7 @@
                         <div class="w-2 h-2 rounded-full bg-luxury-copper animate-pulse"></div>
                         <span class="text-[10px] tracking-[2px] font-black text-stone-800">QUY TẮC ĐỔI THƯỞNG</span>
                     </div>
-                    <p class="text-[13px] text-stone-600 font-medium">1 Điểm = 1.000 VNĐ chiết khấu</p>
+                    <p class="text-[13px] text-stone-600 font-medium">1 {loyaltyStore.data?.point_unit ?? "điểm"} = 10,000đ chiết khấu</p>
                     <p class="text-[10px] text-stone-400 italic font-medium leading-relaxed">
                         Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng.
                     </p>
@@ -140,9 +266,9 @@
                               </div>
                               <div class="flex flex-col items-end">
                                   <span class="text-base font-black {getTransactionIcon(tx.transaction_type)} tracking-tighter">
-                                      {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                      {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString('vi-VN')}
                                   </span>
-                                  <span class="text-[8px] tracking-widest opacity-40 font-black">Points</span>
+                                  <span class="text-[8px] tracking-widest opacity-40 font-black">{loyaltyStore.data?.point_unit ?? 'điểm'}</span>
                               </div>
                           </div>
                       {/each}

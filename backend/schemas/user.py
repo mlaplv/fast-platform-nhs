@@ -101,6 +101,8 @@ class PointTransactionResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
 
+import os
+
 class LoyaltyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, strict=True)
     tier: str
@@ -109,6 +111,7 @@ class LoyaltyResponse(BaseModel):
     total_spent: float
     tier_updated_at: Optional[datetime] = None
     history: List[PointTransactionResponse] = Field(default_factory=list)
+    point_unit: str = Field(default_factory=lambda: os.getenv("DIEM_THUONG", "điểm"))
 
 
 class PointAdjustmentRequest(BaseModel):
@@ -134,3 +137,6 @@ class CheckinStatusResponse(BaseModel):
     days: List[CheckinDayItem]
     countdown_to_reset: str
     total_checkin_today: int
+    is_event_enabled: bool = True
+    start_date: str | None = None
+    end_date: str | None = None

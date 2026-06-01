@@ -35,12 +35,13 @@
         <h1 class="text-[14px] font-serif italic text-stone-800 truncate w-full text-center tracking-tight font-bold">
           {title}
         </h1>
-        <div class="flex items-center justify-center gap-1.5 opacity-60">
-          <span class="text-[7px] font-bold text-stone-500 tracking-[0.15em] truncate max-w-[100px]">
+        <div class="flex items-center justify-center gap-2 mt-0.5">
+          <span class="text-[9.5px] font-semibold text-stone-500 tracking-wide truncate max-w-[120px]">
               {authStore.user?.name || 'Quý khách'}
           </span>
-          <span class="text-[8px] font-black text-luxury-copper px-1 border-l border-stone-200">
-             {loyaltyStore.data?.available_points ?? (authStore.user?.extra_metadata?.points || 0)} điểm
+          <span class="w-px h-2.5 bg-stone-200"></span>
+          <span class="text-[9.5px] font-black text-luxury-copper tracking-wide">
+             {loyaltyStore.data?.available_points ?? (authStore.user?.extra_metadata?.points || 0)} {loyaltyStore.data?.point_unit ?? "điểm"}
           </span>
         </div>
 
