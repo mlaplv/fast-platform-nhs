@@ -203,13 +203,16 @@ class MediaService(
             # 1. Không có bản ghi usage nào (Mồ côi hoàn toàn)
             # 2. Được tạo cách đây > threshold_hours
             # 3. Chưa bị xóa cứng
+            # 4. TRÁNH XÓA các tệp client đã cô lập (client_uploads/ & avatars/)
             stmt = (
                 select(MediaRegistry)
                 .select_from(outerjoin(MediaRegistry, MediaUsage, MediaRegistry.id == MediaUsage.asset_id))
                 .where(
                     MediaUsage.id == None,
                     MediaRegistry.deleted_at == None,
-                    MediaRegistry.created_at < cutoff
+                    MediaRegistry.created_at < cutoff,
+                    ~MediaRegistry.file_path.contains("client_uploads/"),
+                    ~MediaRegistry.file_path.contains("avatars/")
                 )
             )
             

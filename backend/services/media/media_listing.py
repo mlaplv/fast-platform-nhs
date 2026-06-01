@@ -33,6 +33,11 @@ class MediaListingMixin:
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
         
         stmt = select(MediaRegistry)
+        
+        # Elite Security: Completely hide client isolated uploads from general admin / listing views
+        stmt = stmt.where(~MediaRegistry.file_path.contains("client_uploads/"))
+        stmt = stmt.where(~MediaRegistry.file_path.contains("avatars/"))
+        
         is_admin = False
         user_id = None
         
@@ -104,6 +109,9 @@ class MediaListingMixin:
         if isinstance(owner_id, dict): user_id = owner_id.get("id") or owner_id.get("sub")
 
         def apply_rbac(s):
+            # Elite Security: Exclude client isolated uploads from stats calculations
+            s = s.where(~MediaRegistry.file_path.contains("client_uploads/"))
+            s = s.where(~MediaRegistry.file_path.contains("avatars/"))
             if user_id: return s.where(or_(MediaRegistry.is_public == True, MediaRegistry.owner_id == user_id))
             return s.where(MediaRegistry.is_public == True)
 

@@ -3,6 +3,7 @@
     import { fade } from 'svelte/transition';
     import { onMount, type Component } from 'svelte';
     import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+    import DailyCheckinLanding from '$lib/components/storefront/loyalty/DailyCheckinLanding.svelte';
 
     /**
      * ELITE V2.2 - MISSION CONTROL HUB
@@ -102,6 +103,9 @@
                 isMobile={data.isMobile}
             />
         </div>
+        {#if data.tenant !== 'admin'}
+            <DailyCheckinLanding />
+        {/if}
     {:else}
         <!-- Luxury Storefront/Admin Loading State (Elite V2.2) -->
         <div class="fixed inset-0 flex items-center justify-center bg-[#020202] z-[var(--z-modal-overlay)]">

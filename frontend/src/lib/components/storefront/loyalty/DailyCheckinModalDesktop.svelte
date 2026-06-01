@@ -250,9 +250,8 @@
   let balance      = $derived(loyaltyStore.data?.available_points ?? 0);
 
   let completedCount = $derived(displayDays.filter(d => d.is_completed).length);
-  let totalTimelineWidth = $derived((displayDays.length - 1) * 64);
-  let progressWidth  = $derived(
-    completedCount <= 1 ? 0 : Math.min(totalTimelineWidth, (completedCount - 1) * 64)
+  let progressPercent = $derived(
+    completedCount <= 1 ? 0 : Math.min(100, ((completedCount - 1) / (displayDays.length - 1)) * 100)
   );
 
   let activeTab = $state<'history' | 'rules'>('history');
@@ -408,23 +407,17 @@
           {/if}
         </div>
 
-        <!-- Timeline & Day Cards Container -->
+        <!-- Timeline & Day Cards Container (ELITE V2.2: Full-Width distributed layout with symmetric offsets) -->
         <div class="relative flex items-center pb-4 mt-2 overflow-hidden -ml-4 -mr-1">
-          <!-- Scrollable Cards Box -->
+          <!-- Perfectly Distributed Cards Box -->
           <div 
-            bind:this={scrollContainer}
-            onmousedown={handleMouseDown}
-            onmouseleave={handleMouseLeave}
-            onmouseup={handleMouseUp}
-            onmousemove={handleMouseMove}
-            class="relative w-full flex items-center gap-2.5 justify-start z-10 overflow-x-auto days-scrollbar py-2 pl-4 pr-1"
-            style="cursor: grab;"
+            class="relative w-full flex items-center justify-between z-10 py-2 pl-4 pr-4"
           >
             <!-- Horizontal Timeline Grey Connecting Line -->
-            <div class="absolute top-[35px] h-[2px] bg-gray-100 z-0" style="left: 47px; width: {totalTimelineWidth}px;"></div>
+            <div class="absolute top-[35px] h-[2px] bg-gray-100 z-0" style="left: 43px; right: 43px;"></div>
             <!-- Horizontal Timeline Active Gold Connecting Line -->
             <div class="absolute top-[35px] h-[2px] bg-gradient-to-r from-[#FFD600] to-[#ff9900] z-0 transition-all duration-500 shadow-[0_1px_4px_rgba(255,214,0,0.4)]"
-              style="left: 47px; width: {progressWidth}px;"></div>
+              style="left: 43px; width: calc((100% - 86px) * {progressPercent / 100});"></div>
 
             {#each displayDays as d (d.day)}
               {@const active = d.is_today}

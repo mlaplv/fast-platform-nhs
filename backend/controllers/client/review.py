@@ -112,7 +112,8 @@ class PublicReviewController(Controller):
             file_content=content_obj, 
             filename=data.filename, 
             content_type=data.content_type, 
-            owner_id=user.get("sub", user.get("id"))
+            owner_id=user.get("sub", user.get("id")),
+            is_client=True
         )
         if not asset: 
             raise HTTPException(status_code=500, detail="Quy trình xử lý file thất bại")

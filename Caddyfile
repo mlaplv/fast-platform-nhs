@@ -48,7 +48,7 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	}
 
 	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
-	@dynamic_assets path /uploads/* /v65_assets/* /avatars/*
+	@dynamic_assets path /uploads/* /v65_assets/* /avatars/* /client_uploads/*
 	handle @dynamic_assets {
 		root * /app/frontend/static
 		header Cache-Control "public, max-age=31536000"

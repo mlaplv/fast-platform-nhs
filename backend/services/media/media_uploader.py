@@ -76,15 +76,18 @@ class MediaUploaderMixin:
         # Graceful fallback: return the ID to keep the link alive even if we couldn't find the table
         return campaign_id, ""
 
-    async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None, is_avatar: bool = False) -> Optional[MediaRegistry]:
+    async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None, is_avatar: bool = False, is_client: bool = False) -> Optional[MediaRegistry]:
         """Xử lý upload file trực tiếp, convert sang WEBP và lưu hệ thống."""
         asset_id = str(uuid.uuid4())
 
-        # Elite V3.2: Isolated Avatar Storage
-        if is_avatar:
-            remote_path = f"avatars/{asset_id}.webp"
+        # Elite V3.3: Military-Grade Isolated Client Storage
+        folder = datetime.now().strftime("%Y/%m")
+        if is_client or is_avatar:
+            if is_avatar:
+                remote_path = f"client_uploads/avatars/{asset_id}.webp"
+            else:
+                remote_path = f"client_uploads/reviews/{folder}/{asset_id}.webp"
         else:
-            folder = datetime.now().strftime("%Y/%m")
             remote_path = f"uploads/{folder}/{asset_id}.webp"
 
         try:
@@ -119,7 +122,10 @@ class MediaUploaderMixin:
                 ext = os.path.splitext(filename)[1]
                 # If non-image and avatar requested, fail gracefully
                 if is_avatar: return None
-                remote_path = f"uploads/{folder}/{asset_id}{ext}"
+                if is_client:
+                    remote_path = f"client_uploads/reviews/{folder}/{asset_id}{ext}"
+                else:
+                    remote_path = f"uploads/{folder}/{asset_id}{ext}"
                 mime_type = content_type
 
             # [Elite SEO] Smart Slug Naming / Clean filename fallback
@@ -157,7 +163,8 @@ class MediaUploaderMixin:
                 campaign_id=v_cid,
                 owner_id=v_oid,
                 provider=str(os.getenv("STORAGE_PROVIDER", "local")),
-                media_metadata=m_meta
+                media_metadata=m_meta,
+                is_public=not (is_client or is_avatar)
             )
             repo.session.add(asset); await repo.session.commit()
             from backend.services.event_bus import event_bus

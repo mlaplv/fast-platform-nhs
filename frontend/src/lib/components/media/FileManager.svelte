@@ -6,6 +6,7 @@
     import { vuiController } from '$lib/vui';
     import { fade, slide, scale } from 'svelte/transition';
     import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
+    import { formatBytes } from '$lib/state/utils';
     import type { MediaAsset } from '$lib/state/types';
     import FileToolbar from './FileToolbar.svelte';
     import FileGrid from './FileGrid.svelte';
@@ -282,6 +283,30 @@
         onPickClose={onPickClose}
     />
 
+    {#if showStats && mediaStore.stats}
+        <div class="px-6 py-4 bg-zinc-50 dark:bg-zinc-800/30 border-b border-zinc-200 dark:border-zinc-700/50 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-top-1 duration-200" transition:slide>
+            <div class="bg-white dark:bg-zinc-800/80 p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm flex flex-col">
+                <span class="text-[9px] font-bold text-zinc-400 tracking-wider uppercase">Tổng dung lượng</span>
+                <span class="text-lg font-black text-zinc-800 dark:text-white mt-1">{formatSize(mediaStore.stats.total_size)}</span>
+            </div>
+            <div class="bg-white dark:bg-zinc-800/80 p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm flex flex-col">
+                <span class="text-[9px] font-bold text-zinc-400 tracking-wider uppercase">Tổng số tệp</span>
+                <span class="text-lg font-black text-zinc-800 dark:text-white mt-1">{mediaStore.stats.total_count}</span>
+            </div>
+            <div class="bg-white dark:bg-zinc-800/80 p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm flex flex-col col-span-2">
+                <span class="text-[9px] font-bold text-zinc-400 tracking-wider uppercase">Phân rã định dạng (Breakdown)</span>
+                <div class="flex gap-4 mt-2 flex-wrap">
+                    {#each mediaStore.stats.breakdown as item}
+                        <div class="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-700 px-2.5 py-1 rounded-lg">
+                            <span class="text-[10px] font-black text-blue-500">{item.type}</span>
+                            <span class="text-[10px] text-zinc-500 dark:text-zinc-400">{item.count} files ({formatSize(item.size)})</span>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    {/if}
+
     <div class="flex-1 flex overflow-hidden">
         <div class="flex-1 flex flex-col overflow-y-auto p-4 custom-scrollbar">
             {#if mediaStore.isLoading && mediaStore.assets.length === 0}
@@ -328,6 +353,85 @@
             onPreview={previewImage}
         />
     </div>
+
+    <!-- Pagination Bar -->
+    {#if mediaStore.total > 0}
+        {@const totalPages = Math.ceil(mediaStore.total / mediaStore.limit)}
+        {@const currentPage = Math.floor(mediaStore.offset / mediaStore.limit) + 1}
+        {#if totalPages > 1}
+            <div class="px-4 py-3 border-t border-zinc-200 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-900/30 backdrop-blur-md flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-zinc-400">Hiển thị</span>
+                    <select
+                        value={mediaStore.limit}
+                        onchange={(e) => {
+                            const newLimit = parseInt((e.target as HTMLSelectElement).value);
+                            mediaStore.limit = newLimit;
+                            mediaStore.offset = 0;
+                            mediaStore.loadAssets(campaignId, true);
+                        }}
+                        class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                    <span class="text-xs text-zinc-400">tài nguyên / trang</span>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <button
+                        onclick={() => {
+                            if (currentPage > 1) {
+                                mediaStore.offset = Math.max(0, mediaStore.offset - mediaStore.limit);
+                                mediaStore.loadAssets(campaignId, true);
+                            }
+                        }}
+                        disabled={currentPage === 1}
+                        class="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 disabled:opacity-50 transition-all"
+                    >
+                        Trước
+                    </button>
+
+                    {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+                        {#if page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1}
+                            <button
+                                onclick={() => {
+                                    mediaStore.offset = (page - 1) * mediaStore.limit;
+                                    mediaStore.loadAssets(campaignId, true);
+                                }}
+                                class="w-8 h-8 rounded-lg border text-xs font-bold transition-all
+                                {currentPage === page
+                                    ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+                                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'}"
+                            >
+                                {page}
+                            </button>
+                        {:else if page === 2 || page === totalPages - 1}
+                            <span class="text-xs text-zinc-400 px-1">...</span>
+                        {/if}
+                    {/each}
+
+                    <button
+                        onclick={() => {
+                            if (currentPage < totalPages) {
+                                mediaStore.offset += mediaStore.limit;
+                                mediaStore.loadAssets(campaignId, true);
+                            }
+                        }}
+                        disabled={currentPage === totalPages}
+                        class="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 disabled:opacity-50 transition-all"
+                    >
+                        Sau
+                    </button>
+                </div>
+
+                <div class="text-xs text-zinc-400 font-medium">
+                    Trang {currentPage} / {totalPages} (Tổng {mediaStore.total})
+                </div>
+            </div>
+        {/if}
+    {/if}
 
     <!-- Footer Stats -->
     <div class="p-3 border-t bg-zinc-50 dark:bg-zinc-800/50 flex justify-between items-center text-[10px] text-zinc-500 font-medium overflow-x-auto no-scrollbar whitespace-nowrap">

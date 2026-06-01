@@ -919,3 +919,66 @@
 - [x] Tối ưu hóa biến thanh kéo xám (Drag Handle Bar) thành nút bấm tắt thông minh (`cursor-pointer`) để cho phép kéo hoặc click trực tiếp lên thanh xám để trượt đóng panel một cách tự nhiên và mượt mà nhất. (Done)
 - [x] Thay thế triệt để các emoji hệ thống lỗi thời/không nhất quán tại nút Floating Trigger bằng biểu tượng **Hộp quà nhũ vàng vector SVG siêu Premium** trên cả 2 trạng thái điểm danh, mang lại trải nghiệm thương hiệu hoàn mỹ đỉnh cao. (Done)
 - [x] Thiết lập cờ trạng thái `reopen_after_login` trong `localStorage` và xây dựng `$effect` reactive Svelte 5 giám sát để tự động mở lại modal Điểm danh ngay sau khi đăng nhập thành công ("đi đâu thì về đấy"), tạo luồng trải nghiệm người dùng khép kín hoàn hảo. (Done)
+
+# Task Checklist - Restoring Daily Check-in on Storefront Homepage (Elite V2.2)
+
+- [x] Phát hiện nguyên nhân modal Điểm danh (Daily Check-in) không hoạt động trên trang chủ: Do tệp trang chủ `/` (`frontend/src/routes/+page.svelte`) nằm ngoài nhóm định tuyến `(client)/(store)`, dẫn đến việc bypass hoàn toàn tệp layout `frontend/src/routes/(client)/(store)/+layout.svelte` chứa thẻ `<DailyCheckinLanding />`. (Done)
+- [x] Tích hợp và import cấu phần `DailyCheckinLanding` trực tiếp tại tệp trang chủ gốc `/` (`frontend/src/routes/+page.svelte`). (Done)
+- [x] Kết xuất `<DailyCheckinLanding />` có điều kiện tại phần chân trang chủ (`data.tenant !== 'admin'`) khi component trang chủ được nạp thành công, đảm bảo phủ sóng kích hoạt điểm danh mượt mà 100% cho mọi phiên hoạt động của cả khách vãng lai và thành viên. (Done)
+
+# Task Checklist - Expanding Daily Check-in Calendar to Full Width (Elite V2.2)
+
+- [x] Nâng cấp giao diện Lịch điểm danh 7 ngày trên Desktop (`DailyCheckinModalDesktop.svelte`) từ dạng scrollable cố định sang định dạng **Full-Width** phân phối đều (Perfect Flexbox justify-between). (Done)
+- [x] Thiết lập thuật toán tính toán và vẽ đường nối tiến trình (Connecting Grey/Active lines) 100% responsive theo phần trăm `progressPercent` của các ngày đã hoàn thành thay vì hardcode pixel cố định, triệt tiêu hoàn toàn slop hiển thị. (Done)
+- [x] Khắc phục triệt để khoảng trống "hở mép bên trái" trên cả Mobile và Desktop bằng cách phối hợp biên âm `-ml-4 -mr-1` (Desktop) / `-mx-5` (Mobile) và bù đắp padding đối xứng hoàn hảo (`px-5` / `pl-4 pr-4`), đưa vị trí các thẻ card ngày đầu/ngày cuối và đường tiến trình về tọa độ trung tâm tuyệt đối 100% không lo lệch lề. (Done)
+
+# Task Checklist - Fixing Vanishing User Avatars & Orphan GC Purge (Elite V2.2)
+
+- [x] Chẩn đoán nguyên nhân gốc rễ: Avatar người dùng tải lên được đăng ký trong `MediaRegistry`, nhưng endpoint `/api/v1/client/user/avatar` chỉ cập nhật trường `avatar_url` của bảng `users` mà **không tạo liên kết** trong bảng trung gian `MediaUsage`. Dẫn tới việc trình dọn dẹp Neural GC (`cleanup_orphaned_assets`) sau 24h quét thấy tệp "mồ côi" (không có usage) và xóa cứng khỏi đĩa vật lý. (Done)
+- [x] Nâng cấp endpoint tải lên avatar (`backend/controllers/client/user.py`): Tích hợp luồng đồng bộ liên kết **`media_service.sync_links`** ngay khi cập nhật `avatar_url` cho thực thể `User`, ghi nhận chính xác usage và nâng flag `is_linked = True` để bảo vệ vĩnh viễn tệp ảnh khỏi GC. (Done)
+- [x] Đồng bộ lên remote VPS qua `rsync` và thực hiện khởi động lại container API để áp dụng hot-fix tức thời. (Done)
+
+# Task Checklist - Client Upload Isolation & Admin Listing Hide (Elite V2.2)
+
+- [x] Cô lập thư mục tải lên cho Client: Cấu hình `media_uploader.py` để di chuyển toàn bộ tệp avatar và tài liệu nhạy cảm của khách hàng từ thư mục chung sang phân vùng bảo mật riêng **`client_uploads/avatars/`**, tránh nguy cơ brute-force và rò rỉ chéo. (Done)
+- [x] Ẩn tệp tin khách hàng khỏi Admin UI: Bổ sung lớp lọc bảo mật tại `media_listing.py` trong cả truy vấn liệt kê `list_assets` lẫn tính toán thống kê `get_stats` để **loại trừ hoàn toàn** các tệp nằm trong `client_uploads/` và `avatars/`, ngăn chặn rò rỉ thông tin cá nhân khách hàng trên giao diện quản trị Admin File Manager. (Done)
+- [x] Cập nhật Caddyfile: Bổ sung đường dẫn `/client_uploads/*` vào danh sách Dynamic Assets trong `Caddyfile` để Caddy phục vụ các tệp tin này trực tiếp và hiệu năng cao từ đĩa cứng. (Done)
+- [x] Nghiệm thu & Sync VPS: Tiến hành `rsync` đồng bộ toàn bộ thay đổi (`Caddyfile`, `media_uploader.py`, `media_listing.py`) và khởi động lại các container `api`, `worker_high`, `caddy` để hệ thống áp dụng cơ chế cô lập mới tức thì. (Done)
+
+# Task Checklist - Military-Grade Media Isolation & Client-Admin Separation (Elite V2.2)
+
+- [x] Phân định rõ nhóm tài nguyên: Đã nâng cấp `media_uploader.py` để bổ sung tham số `is_client: bool` phân biệt rạch ròi giữa tệp tin của Admin (Banners, Products, Articles) và tệp tin của User/Client (Avatars, Reviews).
+- [x] Thiết lập cách ly thư mục review: Các tệp do khách hàng tải lên khi viết đánh giá sản phẩm (`PublicReviewController.upload_review_media`) được định tuyến tự động vào thư mục cô lập `/client_uploads/reviews/` thay vì uploads chung.
+- [x] Kích hoạt bảo vệ RBAC đa tầng (`is_public = False`): Toàn bộ tệp khách hàng tải lên (Avatar, Review) được tự động gán nhãn `is_public = False` ngay lúc khởi tạo trong cơ sở dữ liệu, ngăn chặn truy cập ẩn danh hoặc duyệt ngang hàng thông qua API.
+- [x] Độc lập tuyệt đối khỏi Neural GC: Cấu hình loại trừ tại `cleanup_orphaned_assets` trong `media_service.py` để bảo vệ vĩnh viễn tệp khách hàng (`client_uploads/` và `avatars/`) khỏi bị xóa dọn bởi GC tự động, bất kể trạng thái liên kết `MediaUsage`.
+- [x] Hoàn tất triển khai: Đồng bộ các bản vá nâng cấp bảo mật thông qua `rtk rsync` và khởi động lại API server thành công. (Done)
+
+# Task Checklist - FileManager Display Optimization & Selection Fixes (Elite V2.2)
+
+- [x] **Hiển thị đầy đủ & Phân trang tối ưu:** Phát hiện thư mục FileManager bị giới hạn cứng `limit = 50` mà không có giao diện điều khiển phân trang. Đã thiết kế và tích hợp bộ phân trang Svelte 5 cao cấp (Pagination Bar) hiển thị số trang, nút Trước/Sau, và khả năng điều chỉnh kích thước trang (20, 50, 100) để tải đầy đủ hàng ngàn tài nguyên tối ưu bộ nhớ. (Done)
+- [x] **Sửa lỗi click chọn hình ảnh:** Phát hiện chế độ quản trị `manage` không cho phép toggle selection khi click vào card, dẫn đến không thể kích hoạt các công cụ Bulk Actions (Bulk SEO, Xóa hàng loạt, Gắn link). Đã tái cấu trúc `FileGrid.svelte` và `FileList.svelte` bổ sung nút checkmark chọn nhanh (Selection Checkbox) cực kỳ trực quan xuất hiện khi hover, giúp kích hoạt các tính năng Bulk mượt mà. (Done)
+- [x] **Tích hợp Dashboard Thống kê:** Kích hoạt chức năng của nút Stats trên Toolbar để mở rộng bảng điều khiển glassmorphic chi tiết hiển thị tổng dung lượng tệp, tổng số tệp và phân tách chi tiết dung lượng theo từng định dạng (PNG, JPG, MP4, v.v.). (Done)
+- [x] **Triển khai & Sync VPS:** Đồng bộ hóa toàn bộ thay đổi thông qua `rtk rsync` lên remote VPS và khởi động lại API thành công. (Done)
+
+# Task Checklist - Product Mobile Detail Flash Sale Styling Refinement (Elite V2.2)
+
+- [x] Phân tích tệp tin `ProductMobileOverview.svelte` để tìm ra vị trí icon sấm sét đầu của Flash Sale. (Done)
+- [x] Loại bỏ thẻ `<Zap size={18} fill="white" />` dư thừa ở đầu tiêu đề "F⚡ASH SALE" trên di động. (Done)
+- [x] Làm sạch và xóa bỏ dòng import `Zap` không sử dụng trên đầu tệp tin `ProductMobileOverview.svelte`. (Done)
+- [x] Tăng độ đậm của chữ tiêu đề Flash Sale di động bằng cách đổi thuộc tính `font-weight: 900` của `.fs-title` thành `font-weight: 1000`. (Done)
+
+# Task Checklist - Mobile Share Bar Check-in Trigger Integration & Compact Optimization (Elite V2.2)
+
+- [x] Phân tích cấu trúc thanh công cụ nổi dọc (TikTok Style) trong tệp tin `ViralShareBarMobile.svelte`. (Done)
+- [x] Tích hợp import `checkinStore` từ trạng thái quản lý Svelte 5 của loyalty. (Done)
+- [x] Bổ sung hàm tự động gọi `checkinStore.fetchStatus()` khi component được mount để cập nhật trạng thái đồng bộ cho cả Khách và Thành viên. (Done)
+- [x] Tích hợp nút hộp quà điểm danh (Daily Check-in Trigger) lên đầu thanh công cụ dọc (trên Verified Badge) với hiệu ứng Liquid Gold, vòng nhấp nháy phát sáng và badge nhấp nháy "NHẬN" bắt mắt. (Done)
+- [x] Hỗ trợ thay đổi trạng thái sang dạng kính mờ (Glass Frosted) có dấu check xanh cực kỳ premium khi đã hoàn thành điểm danh trong ngày. (Done)
+- [x] **Tối ưu hóa thu gọn kích thước (Space Optimization):** Giảm kích thước vòng tròn các nút chính từ `w-10 h-10` xuống `w-8.5 h-8.5`, thu nhỏ biểu tượng mạng xã hội (Facebook, Zalo, CTV, Copy) xuống `w-7.5 h-7.5`, thu nhỏ icon SVG, đồng thời giảm khoảng cách `gap` của container xuống `gap-2.5` và `gap-2` để chống tràn giao diện trên các dòng smartphone màn hình ngắn. (Done)
+
+# Task Checklist - Voucher System Display Mapping Fix (Elite V2.2)
+
+- [x] Khắc phục lỗi hiển thị hệ thống Voucher: Phát hiện các voucher đi kèm sản phẩm từ trường `product.metadata.vouchers` (như chiến dịch `VIRAL39K` cực kỳ quan trọng) được sử dụng trực tiếp mà không map các trường `title` / `subtitle` / `type` sang đúng các trường hiển thị của UI (`label` / `sub` / `type`), dẫn đến các vé voucher bị hiển thị trống/không có chữ trên di động.
+- [x] Đồng bộ hóa các bản vá tương ứng cho cả 3 tệp tin chủ chốt: `ProductMobileOverview.svelte` (Mobile), `Desktop.svelte` (Desktop) và `LandingPage/Desktop.svelte` (Landing Page).
+- [x] Biên dịch và kiểm thử cục bộ thành công, đồng bộ hóa an toàn thư mục tĩnh `frontend/dist/` lên máy chủ VPS. (Done)
+

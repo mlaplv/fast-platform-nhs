@@ -96,12 +96,20 @@
                 {/if}
             </div>
 
-            <!-- Selection Badge (Top-Left) -->
-            {#if mediaStore.selectedIds.has(asset.id)}
-                <div class="absolute top-3 left-3 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)] border border-white/20" style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};" transition:scale={{ duration: 200, start: 0.8 }}>
-                    <Check size={16} strokeWidth={3} />
-                </div>
-            {/if}
+            <!-- Selection Checkbox Badge (Top-Left) -->
+            <button
+                onclick={(e) => {
+                    e.stopPropagation();
+                    mediaStore.toggleSelection(asset.id);
+                }}
+                class="absolute top-3 left-3 w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-300
+                {mediaStore.selectedIds.has(asset.id)
+                    ? 'bg-blue-500 text-white border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                    : 'bg-black/30 border-white/20 text-white/70 hover:bg-black/60 hover:text-white opacity-0 group-hover:opacity-100'}"
+                style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};"
+            >
+                <Check size={16} strokeWidth={3} />
+            </button>
 
             <!-- Primary Marker (Top-Right) -->
             {#if asset.is_primary}

@@ -334,17 +334,18 @@
       label: string;
       sub: string;
       type: "ship" | "discount";
+      value?: number;
     }[] = [];
 
     // 1. Check if product has specific override vouchers in metadata
     if (Array.isArray(metadata.vouchers) && metadata.vouchers.length > 0) {
-      vouchers = metadata.vouchers as {
-        id: string;
-        label: string;
-        sub: string;
-        type: "ship" | "discount";
-        value?: number;
-      }[];
+      vouchers = metadata.vouchers.map(v => ({
+        id: v.id,
+        label: (v as any).label || (v as any).title || v.id,
+        sub: (v as any).sub || (v as any).subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : v.type === 'PERCENT' ? `Giảm ${(v as any).value}%` : `Giảm ${formatCurrency((v as any).value)}`),
+        type: (v.type === 'SHIPPING' || String(v.type).toLowerCase() === 'ship') ? ('ship' as const) : ('discount' as const),
+        value: (v as any).value || 0
+      }));
     } else {
       // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
       vouchers = cartStore.vouchers

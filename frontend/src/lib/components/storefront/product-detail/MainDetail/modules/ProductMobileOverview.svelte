@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
-  import Zap from "@lucide/svelte/icons/zap";
   import Bookmark from "@lucide/svelte/icons/bookmark";
   import Gift from "@lucide/svelte/icons/gift";
   import Sparkles from "@lucide/svelte/icons/sparkles";
@@ -211,7 +210,13 @@
   const vouchers = $derived.by(() => {
     const list: Array<{ id: string; label: string; sub: string; type: string; value?: number }> = 
       Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0
-        ? product.metadata.vouchers
+        ? product.metadata.vouchers.map(v => ({
+            id: v.id,
+            label: v.label || v.title || v.id,
+            sub: v.sub || v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : v.type === 'PERCENT' ? `Giảm ${v.value}%` : `Giảm ${formatCurrency(v.value)}`),
+            type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount',
+            value: v.value || 0
+          }))
         : cartStore.vouchers
             .filter(v => {
               const applicableIds = v.metadata_json?.applicable_product_ids || [];
@@ -438,7 +443,6 @@
     
     <div class="fs-right">
       <div class="fs-title">
-        <Zap size={18} fill="white" />
         <span>F⚡ASH SALE</span>
       </div>
       <div class="fs-countdown">
@@ -663,7 +667,7 @@
   .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.7); }
   
   .fs-right { text-align: right; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; }
-  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; font-style: italic; }
+  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 1000; font-size: 16px; font-style: italic; }
   .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
   .time-box { display: flex; gap: 2px; align-items: center; }
   .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }

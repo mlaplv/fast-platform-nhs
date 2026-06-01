@@ -59,7 +59,7 @@
     <table class="w-full text-left border-separate border-spacing-y-2">
         <thead>
             <tr class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 tracking-[0.3em] px-4">
-                <th class="pb-4 pl-6 w-16">Preview</th>
+                <th class="pb-4 pl-6 w-24">Select</th>
                 <th class="pb-4">Filename / Metadata</th>
                 <th class="pb-4 w-28">Size <Database size={10} class="inline ml-1 opacity-40" /></th>
                 <th class="pb-4 w-32">Mime Type <Tag size={10} class="inline ml-1 opacity-40" /></th>
@@ -77,48 +77,58 @@
                     onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSelect(asset)}
                     transition:fade={{ duration: 150 }}
                 >
-                    <!-- Column: Preview -->
+                    <!-- Column: Select & Preview -->
                     <td class="py-4 pl-6 rounded-l-2xl">
-                        <div class="w-12 h-12 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent group-hover:border-blue-500/20 transition-all shadow-inner relative">
-                            {#if asset.mime_type?.startsWith('image/')}
-                                <img
-                                    src={resolveThumbnailUrl(asset, 100)}
-                                    alt=""
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                    loading="lazy"
-                                />
-                                {#if mediaStore.selectedIds.has(asset.id)}
-                                    <div class="absolute inset-0 bg-blue-500/40 flex items-center justify-center" style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};" transition:fade>
-                                        <Check size={16} class="text-white" strokeWidth={3} />
+                        <div class="flex items-center gap-3">
+                            <button
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    mediaStore.toggleSelection(asset.id);
+                                }}
+                                class="w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 flex-shrink-0
+                                {mediaStore.selectedIds.has(asset.id)
+                                    ? 'bg-blue-500 border-blue-500 text-white shadow-md shadow-blue-500/20'
+                                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-transparent hover:border-blue-500'}"
+                            >
+                                <Check size={12} strokeWidth={4} />
+                            </button>
+
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent group-hover:border-blue-500/20 transition-all shadow-inner relative flex-shrink-0">
+                                {#if asset.mime_type?.startsWith('image/')}
+                                    <img
+                                        src={resolveThumbnailUrl(asset, 100)}
+                                        alt=""
+                                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        loading="lazy"
+                                    />
+                                {:else if asset.mime_type?.startsWith('video/')}
+                                    <video
+                                        src={asset.file_path}
+                                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        muted
+                                        playsinline
+                                        onmouseenter={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                                        onmouseleave={(e) => {
+                                            const v = e.target as HTMLVideoElement;
+                                            v.pause();
+                                            v.currentTime = 0;
+                                        }}
+                                        onerror={(e) => {
+                                            const video = e.target as HTMLVideoElement;
+                                            console.error('[FileManager] List Video error:', {
+                                                error: video.error,
+                                                src: video.src,
+                                                networkState: video.networkState,
+                                                readyState: video.readyState
+                                            });
+                                        }}
+                                    ></video>
+                                {:else}
+                                    <div class="w-full h-full flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
+                                        <Icon size={20} />
                                     </div>
                                 {/if}
-                            {:else if asset.mime_type?.startsWith('video/')}
-                                <video
-                                    src={asset.file_path}
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                    muted
-                                    playsinline
-                                    onmouseenter={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
-                                    onmouseleave={(e) => {
-                                        const v = e.target as HTMLVideoElement;
-                                        v.pause();
-                                        v.currentTime = 0;
-                                    }}
-                                    onerror={(e) => {
-                                        const video = e.target as HTMLVideoElement;
-                                        console.error('[FileManager] List Video error:', {
-                                            error: video.error,
-                                            src: video.src,
-                                            networkState: video.networkState,
-                                            readyState: video.readyState
-                                        });
-                                    }}
-                                ></video>
-                            {:else}
-                                <div class="w-full h-full flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
-                                    <Icon size={20} />
-                                </div>
-                            {/if}
+                            </div>
                         </div>
                     </td>
 

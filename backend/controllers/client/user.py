@@ -298,9 +298,16 @@ class ClientUserController(Controller):
         if not asset:
             raise InternalServerException("Failed to process avatar upload")
 
-        # 3. Update user avatar_url
+        # 3. Update user avatar_url and register media usage to prevent GC orphan purging
         user.avatar_url = asset.file_path
-        await db_session.commit()
+        await db_session.flush()
+        
+        await media_service.sync_links(
+            repo=repo,
+            entity_id=user_id,
+            entity_type="User",
+            current_urls=[asset.file_path]
+        )
 
         # 4. Hard-delete old avatar if it exists
         if old_avatar_path:

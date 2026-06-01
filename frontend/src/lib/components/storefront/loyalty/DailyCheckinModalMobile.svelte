@@ -346,15 +346,15 @@
         {/if}
       </div>
 
-      <!-- Timeline & Day Cards Container -->
-      <div class="relative flex items-center pb-6 mt-2 overflow-hidden">
+      <!-- Timeline & Day Cards Container (ELITE V2.2: Full-Bleed Edge-to-Edge with symmetric offsets) -->
+      <div class="relative flex items-center pb-6 mt-2 overflow-hidden -mx-5">
         <!-- Scrollable Cards Box -->
-        <div class="relative w-full flex items-center gap-2.5 justify-start z-10 overflow-x-auto scrollbar-hide py-1 px-4">
+        <div class="relative w-full flex items-center gap-2.5 justify-start z-10 overflow-x-auto scrollbar-hide py-1 px-5">
           <!-- Horizontal Timeline Grey Connecting Line (Perfect Scroll Sync) -->
-          <div class="absolute top-[31px] h-[2px] bg-gray-100 z-0" style="left: 27px; width: 384px;"></div>
+          <div class="absolute top-[31px] h-[2px] bg-gray-100 z-0" style="left: 47px; width: 384px;"></div>
           <!-- Horizontal Timeline Active Gold Connecting Line (Perfect Live Link) -->
           <div class="absolute top-[31px] h-[2px] bg-gradient-to-r from-[#FFD600] to-[#ff9900] z-0 transition-all duration-500 shadow-[0_1px_4px_rgba(255,214,0,0.4)]"
-            style="left: 27px; width: {progressWidth}px;"></div>
+            style="left: 47px; width: {progressWidth}px;"></div>
 
           {#each displayDays as d (d.day)}
             {@const active = d.is_today}
