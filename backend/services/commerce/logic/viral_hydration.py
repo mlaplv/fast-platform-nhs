@@ -196,21 +196,13 @@ def sanitize_vouchers_logic(row_dict: Dict) -> None:
     filtered = []
     for v in vouchers:
         if isinstance(v, dict):
-            v_id = str(v.get("id", "") or "").upper()
-            v_label = str(v.get("label", "") or "").upper()
             v_actual_id = str(v.get("id", "") or "")
+            is_v_viral = bool(v.get("is_viral", False))
         else:
-            v_id = str(getattr(v, "id", "") or "").upper()
-            v_label = str(getattr(v, "label", "") or "").upper()
             v_actual_id = str(getattr(v, "id", "") or "")
+            is_v_viral = bool(getattr(v, "is_viral", False))
             
-        # Kiểm tra ID hoặc Nhãn chứa từ khóa nhạy cảm
-        is_viral = (promo_v_id and v_actual_id == promo_v_id) or \
-                    "VIRAL" in v_id or \
-                    "LAN TOA" in v_id or \
-                    "LAN TỎA" in v_id or \
-                    "LAN TOA" in v_label or \
-                    "LAN TỎA" in v_label
+        is_viral = is_v_viral or (promo_v_id and v_actual_id == promo_v_id)
         
         if not is_viral:
             filtered.append(v)

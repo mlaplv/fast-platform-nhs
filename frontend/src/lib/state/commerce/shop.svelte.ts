@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import type { Product, ProductVariant, PromotionDeal, Voucher } from '$lib/types';
 import type { CartStore } from '$lib/state/commerce/cart.svelte';
+import { isViralVoucher } from '$lib/utils/commerce/voucher';
 
 /** Domain model for auto-fill state (used by identity shield) */
 interface CustomerData {
@@ -160,23 +161,7 @@ export class ShopStore {
 
     productVouchers = $derived.by(() => {
         const raw = this.vouchers || [];
-        
-        const cleanString = (s: string) => {
-            return (s || '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toUpperCase();
-        };
-
-        const isViralVoucher = (v: Voucher) => {
-            if (v.is_viral) return true;
-            const cleanId = cleanString(v.id);
-            const cleanTitle = cleanString(v.title);
-            return cleanId.includes('VIRAL') || 
-                   cleanId.includes('LAN TOA') || 
-                   cleanTitle.includes('VIRAL') || 
-                   cleanTitle.includes('LAN TOA');
-        };
+        const sharePromoVoucherId = this.product?.product_metadata?.share_promotion?.voucher_id || this.product?.metadata?.share_promotion?.voucher_id || null;
 
         let mapped = raw.map((v: Voucher) => ({
             id: v.id,
@@ -184,7 +169,7 @@ export class ShopStore {
             sub: v.type === 'SHIPPING' ? 'FREESHIP đ0' : (v.type === 'PERCENT' ? `${v.value}%` : `đ${v.value?.toLocaleString()}`),
             type: v.type === 'SHIPPING' ? 'ship' : 'discount',
             value: v.value || 0,
-            is_viral: isViralVoucher(v)
+            is_viral: isViralVoucher(v, sharePromoVoucherId)
         }));
 
         let sorted = mapped;
@@ -318,40 +303,26 @@ export class ShopStore {
 
     setVouchers(data: Voucher[]): void {
         untrack(() => {
-            // 🛡️ Elite V2.2: Stealth Vault - Hide viral vouchers unless unlocked
+            // 🛡️ Elite V2.2: Stealth Vault - Hide viral vouchers unless unlocked (Single Pass O(N))
             const rawVouchers = data ? [...data] : [];
-            
-            const cleanString = (s: string) => {
-                return (s || '')
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                    .toUpperCase();
-            };
+            const sharePromoVoucherId = this.product?.product_metadata?.share_promotion?.voucher_id || this.product?.metadata?.share_promotion?.voucher_id || null;
 
-            const isViralVoucher = (v: Voucher) => {
-                if (v.is_viral) return true;
-                const cleanId = cleanString(v.id);
-                const cleanTitle = cleanString(v.title);
-                return cleanId.includes('VIRAL') || 
-                       cleanId.includes('LAN TOA') || 
-                       cleanTitle.includes('VIRAL') || 
-                       cleanTitle.includes('LAN TOA');
-            };
+            const viral: Voucher[] = [];
+            const regular: Voucher[] = [];
 
-            const filtered = rawVouchers.filter(v => {
-                if (!isViralVoucher(v)) return true;
-                
-                // Elite V2026: ONLY compound key `${product.id}_${v.id}` is valid.
-                // Plain id fallback removed — prevents viral voucher leaking without share unlock.
-                const unlockKey = `${this.product?.id}_${v.id}`;
-                return this.unlockedVoucherIds.includes(unlockKey);
-            });
+            for (const v of rawVouchers) {
+                const isViral = isViralVoucher(v, sharePromoVoucherId);
+                if (isViral) {
+                    const unlockKey = `${this.product?.id}_${v.id}`;
+                    if (this.unlockedVoucherIds.includes(unlockKey)) {
+                        viral.push(v);
+                    }
+                } else {
+                    regular.push(v);
+                }
+            }
 
-            // Position #1 priority for viral vouchers
-            this.vouchers = [
-                ...filtered.filter(v => isViralVoucher(v)),
-                ...filtered.filter(v => !isViralVoucher(v))
-            ];
+            this.vouchers = [...viral, ...regular];
             
             // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
             if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {

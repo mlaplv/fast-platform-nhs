@@ -33,6 +33,10 @@ export class CartStore {
     giftInfo = $state<GiftInfo | null>(null);
     isGiftModalOpen = $state<boolean>(false);
     
+    // Performance Lookup Indexes (Elite V2.2)
+    voucherIndexMap = new Map<string, Voucher>();
+    private cachedUnlockedViralVouchers: Voucher[] | null = null;
+    
     private static instance: CartStore | null = null;
     private static cleanup: (() => void) | null = null;
 
@@ -48,6 +52,7 @@ export class CartStore {
                 $effect(() => {
                     // Watch authStore.user?.id to reactively reload the cart on login/logout
                     const _ = authStore.user?.id;
+                    this.cachedUnlockedViralVouchers = null; // Reset performance cache on auth state change
                     this.loadFromStorage();
                 });
 
@@ -115,7 +120,9 @@ export class CartStore {
                 this.selectedVoucherIds = [];
             }
         }
-        this.setVouchers([]);
+        // Elite V2.2: Vouchers are NOT loaded from storage.
+        // They are sourced exclusively from the layout API via cart.setVouchers(data.vouchers).
+        // DO NOT call setVouchers here — it would wipe API-loaded vouchers on auth state changes.
     }
 
     // Computed State
@@ -133,7 +140,7 @@ export class CartStore {
         
         let total = 0;
         for (const id of this.selectedVoucherIds) {
-            const v = this.vouchers.find(v => v.id === id);
+            const v = this.voucherIndexMap.get(id);
             if (!v) continue;
             
             if (!this.isVoucherEligible(v)) continue;
@@ -457,6 +464,10 @@ export class CartStore {
 
     loadUnlockedViralVouchers(): Voucher[] {
         if (!browser) return [];
+        if (this.cachedUnlockedViralVouchers !== null) {
+            return this.cachedUnlockedViralVouchers;
+        }
+
         const viralVouchersMap = new Map<string, { voucher: Voucher, productIds: Set<string | number> }>();
         try {
             const userId = authStore.user?.id;
@@ -511,6 +522,7 @@ export class CartStore {
                 };
                 result.push(entry.voucher);
             }
+            this.cachedUnlockedViralVouchers = result;
             return result;
         } catch (e) {
             console.error('Failed to load unlocked viral vouchers from localStorage', e);
@@ -531,10 +543,16 @@ export class CartStore {
         }
         
         this.vouchers = allVouchers;
+
+        // Build performance lookup index map
+        this.voucherIndexMap.clear();
+        for (const v of allVouchers) {
+            this.voucherIndexMap.set(v.id, v);
+        }
     }
 
     toggleVoucher(id: string): void {
-        const voucher = this.vouchers.find(v => v.id === id);
+        const voucher = this.voucherIndexMap.get(id);
         if (!voucher) return;
 
         if (this.selectedVoucherIds.includes(id)) {
@@ -543,13 +561,13 @@ export class CartStore {
             // 🛡️ Elite V2.2: Exclusive Selection Logic (1 Ship + 1 Discount)
             if (voucher.type === 'SHIPPING') {
                 const others = this.selectedVoucherIds.filter(vId => {
-                    const v = this.vouchers.find(v => v.id === vId);
+                    const v = this.voucherIndexMap.get(vId);
                     return v?.type !== 'SHIPPING';
                 });
                 this.selectedVoucherIds = [...others, id];
             } else {
                 const others = this.selectedVoucherIds.filter(vId => {
-                    const v = this.vouchers.find(v => v.id === vId);
+                    const v = this.voucherIndexMap.get(vId);
                     return v?.type === 'SHIPPING';
                 });
                 this.selectedVoucherIds = [...others, id];

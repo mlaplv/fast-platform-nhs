@@ -2,6 +2,7 @@
   import { formatCurrency } from "$lib/utils/format";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import type { Voucher } from "$lib/types";
+  import { cleanString, isViralVoucher, getVoucherDisplayValue } from "$lib/utils/commerce/voucher";
 
   let { vouchers, toggleVoucher, onOptimize } = $props<{
     vouchers: Voucher[];
@@ -36,48 +37,29 @@
   ];
 
   const sortedVouchers = $derived.by(() => {
-    const cleanString = (s: string) => {
-      return (s || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase();
-    };
+    const subtotal = cartStore.totalAmountWithoutDiscount || 1;
 
-    const isViralVoucher = (v: Voucher) => {
-      const cleanId = cleanString(v.id);
-      const cleanTitle = cleanString(v.title || "");
-      return (
-        v.is_viral ||
-        cleanId.includes("VIRAL") ||
-        cleanId.includes("LAN TOA") ||
-        cleanTitle.includes("VIRAL") ||
-        cleanTitle.includes("LAN TOA")
-      );
-    };
-
-    const getVoucherValue = (v: Voucher) => {
-      let rawVal = v.value || 0;
-      const subtotal = cartStore.totalAmountWithoutDiscount || 1;
-      if (v.type === "PERCENT") {
-        return (subtotal * rawVal) / 100;
-      }
-      return rawVal;
-    };
-
-    // Sort by value descending (Giá giảm dần)
+    // Sort by value descending
     const sorted = [...vouchers].sort((a, b) => {
-      const valA = getVoucherValue(a);
-      const valB = getVoucherValue(b);
+      const valA = getVoucherDisplayValue(a, subtotal, vouchers);
+      const valB = getVoucherDisplayValue(b, subtotal, vouchers);
       return valB - valA;
     });
 
-    // Grouping by type:
-    // 1. Viral/Độc quyền Vouchers always at the absolute top
-    const viralVouchers = sorted.filter((v) => isViralVoucher(v));
-    // 2. Regular discount/gift vouchers
-    const regularDiscount = sorted.filter((v) => !isViralVoucher(v) && v.type !== "SHIPPING");
-    // 3. Regular shipping vouchers
-    const regularShipping = sorted.filter((v) => !isViralVoucher(v) && v.type === "SHIPPING");
+    // Grouping by type (Single Pass O(N) optimization)
+    const viralVouchers: any[] = [];
+    const regularDiscount: any[] = [];
+    const regularShipping: any[] = [];
+
+    for (const v of sorted) {
+      if (isViralVoucher(v)) {
+        viralVouchers.push(v);
+      } else if (v.type === "SHIPPING") {
+        regularShipping.push(v);
+      } else {
+        regularDiscount.push(v);
+      }
+    }
 
     return [...viralVouchers, ...regularDiscount, ...regularShipping];
   });

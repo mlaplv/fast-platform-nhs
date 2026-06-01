@@ -6,6 +6,8 @@
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
   import { formatCurrency } from "$lib/utils/format";
+  import { processProductVouchers } from "$lib/utils/commerce/voucher";
+  import type { VoucherUI } from "$lib/utils/commerce/voucher";
   import Diamond from "@lucide/svelte/icons/diamond";
 
   // Modules
@@ -317,133 +319,23 @@
 
   let selectedVouchers = $state<string[]>([]);
   const productVouchers = $derived.by(() => {
-    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount"; value?: number }[] = [];
-    if (
-      Array.isArray(metadata.vouchers) &&
-      metadata.vouchers.length > 0
-    ) {
-      vouchers = metadata.vouchers.map(v => ({
-        id: v.id,
-        label: (v as any).label || (v as any).title || v.id,
-        sub: (v as any).sub || (v as any).subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : v.type === 'PERCENT' ? `Giảm ${(v as any).value}%` : `Giảm ${formatCurrency((v as any).value)}`),
-        type: (v.type === 'SHIPPING' || String(v.type).toLowerCase() === 'ship') ? ('ship' as const) : ('discount' as const),
-        value: (v as any).value || 0
-      }));
-    } else {
-      vouchers = cartStore.vouchers
-        .filter((v) => {
-          const applicableIds = v.metadata_json?.applicable_product_ids || [];
-          if (applicableIds && applicableIds.length > 0) {
-            return applicableIds.includes(product.id);
-          }
-          return true;
-        })
-        .map((v) => ({
-          id: v.id,
-          label: v.title || v.id,
-          sub:
-            v.subtitle ||
-            (v.type === "SHIPPING"
-              ? "Miễn phí vận chuyển"
-              : v.type === "PERCENT"
-                ? `Giảm ${v.value}%`
-                : `Giảm ${formatCurrency(v.value)}`),
-          type: v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
-          value: v.value || 0,
-        }));
-    }
-
-    const cleanString = (s: string) => {
-      return (s || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toUpperCase();
-    };
-
-    const isViralVoucher = (v: { id: string; label?: string }) => {
-      const cleanId = cleanString(v.id);
-      const cleanLabel = cleanString(v.label || '');
-      return cleanId.includes('VIRAL') || 
-             cleanId.includes('LAN TOA') || 
-             cleanLabel.includes('VIRAL') || 
-             cleanLabel.includes('LAN TOA');
-    };
-
-    let vList = vouchers.filter((v: { id: string; label?: string }) => {
-      return !isViralVoucher(v) || isViralUnlocked;
-    });
-
-    // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
+    let unlockedVoucherInfo: { code: string; label?: string } | null = null;
     if (typeof window !== 'undefined' && isViralUnlocked) {
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
       if (saved) {
         try {
-          const data = JSON.parse(saved);
-          // Filter out existing viral vouchers to prevent duplicates or wrong positions
-          vList = vList.filter(v => !isViralVoucher(v) && v.id !== data.code);
-          // Prepend at the absolute top (Position #1)
-          vList.unshift({
-            id: data.code,
-            label: data.label || 'Voucher lan tỏa',
-            sub: 'Đã mở khóa từ chiến dịch',
-            type: 'discount' as "ship" | "discount",
-            value: data.value || 79000
-          });
-        } catch (e) { console.warn('[Desktop] Viral voucher parse error — localStorage key may be corrupted:', e); }
+          unlockedVoucherInfo = JSON.parse(saved);
+        } catch (e) {}
       }
     }
 
-    const getVoucherValue = (v: any) => {
-      let rawVal = typeof v.value === 'number' ? v.value : 0;
-      const subText = String(v.sub || "").toLowerCase();
-      const labelText = String(v.label || "").toLowerCase();
-
-      const productPrice = effectiveUnitPrice || product.price || 0;
-
-      if (rawVal === 0) {
-        const found = cartStore.vouchers.find(x => x.id === v.id);
-        if (found) {
-          rawVal = found.value || 0;
-          if (found.type === 'PERCENT') {
-            return (productPrice * rawVal) / 100;
-          }
-        }
-      }
-
-      if (subText.includes("%") || labelText.includes("%")) {
-        const parsedPercent = parseInt((v.sub || v.label || "").replace(/[^0-9]/g, ""), 10);
-        if (!isNaN(parsedPercent)) {
-          return (productPrice * parsedPercent) / 100;
-        }
-      }
-
-      if (rawVal > 0) {
-        if (rawVal <= 100 && (v.type === 'percent' || String(v.id).toLowerCase().includes('pct') || subText.includes('%'))) {
-          return (productPrice * rawVal) / 100;
-        }
-        return rawVal;
-      }
-
-      const parsed = parseInt(subText.replace(/[^0-9]/g, ''), 10);
-      return isNaN(parsed) ? 0 : parsed;
-    };
-
-    // Sort by value descending (Giá giảm dần)
-    const sorted = [...vList].sort((a, b) => {
-      const valA = getVoucherValue(a);
-      const valB = getVoucherValue(b);
-      return valB - valA;
-    });
-
-    // Grouping by type:
-    // 1. Viral/Độc quyền always at the absolute top
-    const viralVouchers = sorted.filter(v => isViralVoucher(v));
-    // 2. Regular discount vouchers
-    const regularDiscount = sorted.filter(v => !isViralVoucher(v) && v.type === 'discount');
-    // 3. Regular shipping vouchers
-    const regularShipping = sorted.filter(v => !isViralVoucher(v) && v.type === 'ship');
-
-    return [...viralVouchers, ...regularDiscount, ...regularShipping] as VoucherUI[];
+    return processProductVouchers({
+      product,
+      globalVouchers: cartStore.vouchers,
+      isViralUnlocked,
+      unlockedVoucherInfo,
+      productPrice: effectiveUnitPrice || product.price || 0
+    }) as VoucherUI[];
   });
 
   function triggerViralFly() {

@@ -8,6 +8,7 @@
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import OfferVoucherSheet from "./OfferVoucherSheet.svelte";
   import { formatCurrency } from "$lib/utils/format";
+  import { cleanString, isViralVoucher, getVoucherDisplayValue } from "$lib/utils/commerce/voucher";
   import Ticket from "@lucide/svelte/icons/ticket";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Zap from "@lucide/svelte/icons/zap";
@@ -166,59 +167,30 @@
   );
 
   const sortedProductVouchers = $derived.by(() => {
-    const cleanString = (s: string) => {
-      return (s || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase();
-    };
+    const productPrice = finalUnitPrice || unitPrice || 0;
+    const sharePromoVoucherId = product?.product_metadata?.share_promotion?.voucher_id || product?.metadata?.share_promotion?.voucher_id || null;
 
-    const isViralVoucher = (v: Voucher) => {
-      const cleanId = cleanString(v.id);
-      const cleanLabel = cleanString(v.label || v.title || "");
-      return (
-        v.is_viral ||
-        cleanId.includes("VIRAL") ||
-        cleanId.includes("LAN TOA") ||
-        cleanLabel.includes("VIRAL") ||
-        cleanLabel.includes("LAN TOA")
-      );
-    };
-
-    const getVoucherValue = (v: Voucher) => {
-      let rawVal = v.value || 0;
-      const productPrice = finalUnitPrice || unitPrice || 0;
-      const subText = String(v.sub || v.subtitle || "").toLowerCase();
-      const labelText = String(v.label || v.title || "").toLowerCase();
-
-      if (
-        v.type === "PERCENT" ||
-        subText.includes("%") ||
-        labelText.includes("%")
-      ) {
-        return (productPrice * rawVal) / 100;
-      }
-      return rawVal;
-    };
-
-    // Sort by value descending (Giá giảm dần)
+    // Sort by value descending
     const sorted = [...productVouchers].sort((a, b) => {
-      const valA = getVoucherValue(a);
-      const valB = getVoucherValue(b);
+      const valA = getVoucherDisplayValue(a, productPrice, cartStore.vouchers);
+      const valB = getVoucherDisplayValue(b, productPrice, cartStore.vouchers);
       return valB - valA;
     });
 
-    // Grouping by type:
-    // 1. Viral/Độc quyền Vouchers always at the absolute top
-    const viralVouchers = sorted.filter((v) => isViralVoucher(v));
-    // 2. Regular discount/gift vouchers
-    const regularDiscount = sorted.filter(
-      (v) => !isViralVoucher(v) && v.type !== "ship",
-    );
-    // 3. Regular shipping vouchers
-    const regularShipping = sorted.filter(
-      (v) => !isViralVoucher(v) && v.type === "ship",
-    );
+    // Grouping by type (Single Pass O(N) optimization)
+    const viralVouchers: any[] = [];
+    const regularDiscount: any[] = [];
+    const regularShipping: any[] = [];
+
+    for (const v of sorted) {
+      if (isViralVoucher(v, sharePromoVoucherId)) {
+        viralVouchers.push(v);
+      } else if (v.type === "ship") {
+        regularShipping.push(v);
+      } else {
+        regularDiscount.push(v);
+      }
+    }
 
     return [...viralVouchers, ...regularDiscount, ...regularShipping];
   });

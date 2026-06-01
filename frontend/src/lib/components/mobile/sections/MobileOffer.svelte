@@ -122,106 +122,16 @@
     }
   });
 
-  const getVoucherValue = (v: any) => {
-    let rawVal = typeof v.value === 'number' ? v.value : 0;
-    const subText = String(v.sub || "").toLowerCase();
-    const labelText = String(v.label || "").toLowerCase();
-
-    const productPrice = selectedVariant?.discountPrice || selectedVariant?.price || product?.price || 0;
-
-    if (rawVal === 0) {
-      const found = cartStore.vouchers.find(x => x.id === v.id);
-      if (found) {
-        rawVal = found.value || 0;
-        if (found.type === 'PERCENT') {
-          return (productPrice * rawVal) / 100;
-        }
-      }
-    }
-
-    if (subText.includes("%") || labelText.includes("%")) {
-      const parsedPercent = parseInt((v.sub || v.label || "").replace(/[^0-9]/g, ""), 10);
-      if (!isNaN(parsedPercent)) {
-        return (productPrice * parsedPercent) / 100;
-      }
-    }
-
-    if (rawVal > 0) {
-      if (rawVal <= 100 && (v.type === 'percent' || String(v.id).toLowerCase().includes('pct') || subText.includes('%'))) {
-        return (productPrice * rawVal) / 100;
-      }
-      return rawVal;
-    }
-
-    const parsed = parseInt(subText.replace(/[^0-9]/g, ''), 10);
-    return isNaN(parsed) ? 0 : parsed;
-  };
+  import { processProductVouchers, getVoucherDisplayValue } from '$lib/utils/commerce/voucher';
 
   const productVouchers = $derived.by(() => {
-    const rawVouchers = (cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : []) as Voucher[];
-
-    let list = rawVouchers.map((v) => ({
-      id: v.id,
-      label: v.title || v.id || 'ƯU ĐÃI',
-      sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${formatCurrency(v.value || 0)}`),
-      type: v.type === 'SHIPPING' ? 'ship' : 'discount',
-      value: v.value || 0,
-      type_raw: v.type
-    }));
-
-    const cleanString = (s: string) => {
-      return (s || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toUpperCase();
-    };
-
-    const isViralVoucher = (v: { id: string; label?: string }) => {
-      const cleanId = cleanString(v.id);
-      const cleanLabel = cleanString(v.label);
-      return cleanId.includes('VIRAL') || 
-             cleanId.includes('LAN TOA') || 
-             cleanLabel.includes('VIRAL') || 
-             cleanLabel.includes('LAN TOA');
-    };
-
-    // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
-    if (typeof window !== 'undefined' && isViralUnlocked && product?.id) {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          // Filter out existing viral vouchers to prevent duplicates or wrong positions
-          list = list.filter(v => !isViralVoucher(v) && v.id !== data.code);
-          // Prepend at the absolute top (Position #1)
-          list.unshift({
-            id: data.code,
-            label: data.label || 'VOUCHER LAN TỎA',
-            sub: 'Đã mở khóa từ chiến dịch',
-            type: 'discount',
-            value: 79000,
-            type_raw: 'FIXED'
-          });
-        } catch (e) {}
-      }
-    }
-
-    // Sort by value descending (Giá giảm dần)
-    const sorted = [...list].sort((a, b) => {
-      const valA = getVoucherValue(a);
-      const valB = getVoucherValue(b);
-      return valB - valA;
+    return processProductVouchers({
+      product,
+      globalVouchers: cartStore.vouchers,
+      isViralUnlocked,
+      unlockedVoucherInfo: null, // MobileOffer is not inside the product detail view where unlockedVoucherInfo resides
+      productPrice: selectedVariant?.discountPrice || selectedVariant?.price || product?.price || 0
     });
-
-    // Grouping by type:
-    // 1. Viral/Độc quyền Vouchers always at the absolute top
-    const viralVouchers = sorted.filter(v => isViralVoucher(v));
-    // 2. Regular discount vouchers
-    const regularDiscount = sorted.filter(v => !isViralVoucher(v) && v.type === 'discount');
-    // 3. Regular shipping vouchers
-    const regularShipping = sorted.filter(v => !isViralVoucher(v) && v.type === 'ship');
-
-    return [...viralVouchers, ...regularDiscount, ...regularShipping];
   });
 
   // --- FOMO Simulation (Elite V2.2) ---
@@ -469,13 +379,6 @@
 
      <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
      {#if productVouchers.length > 0}
-     {@const sortedVouchers = [...productVouchers].sort((a, b) => {
-         const aApplied = shopStore.selectedVoucherIds.includes(a.id);
-         const bApplied = shopStore.selectedVoucherIds.includes(b.id);
-         if (aApplied && !bApplied) return -1;
-         if (!aApplied && bApplied) return 1;
-         const valA = getVoucherValue(a); const valB = getVoucherValue(b); return valB - valA;
-     })}
      <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
         <div class="flex items-center justify-between mb-1.5 px-1">
            <span class="text-[10px] font-black text-white/30 tracking-[0.2em] italic flex items-center gap-2">
@@ -483,7 +386,7 @@
            </span>
         </div>
        <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar pt-4 pb-2 -mx-4 px-3">
-          {#each sortedVouchers as v}
+          {#each productVouchers as v}
              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
              <button 
                onclick={() => handleVoucherClick(v)}
