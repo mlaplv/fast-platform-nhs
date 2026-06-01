@@ -159,10 +159,10 @@
 
   function calcCountdown(): string {
     const now = new Date();
-    const vnMs = now.getTime() + 7 * 3600 * 1000;
-    const vnNow = new Date(vnMs);
-    const midnight = new Date(vnMs);
-    midnight.setUTCHours(23, 59, 59, 999);
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+    const vnNow = new Date(utcMs + 7 * 3600 * 1000);
+    const midnight = new Date(vnNow);
+    midnight.setHours(23, 59, 59, 999);
     const diff = Math.max(0, midnight.getTime() - vnNow.getTime());
     const h = Math.floor(diff / 3_600_000).toString().padStart(2, '0');
     const m = Math.floor((diff % 3_600_000) / 60_000).toString().padStart(2, '0');
@@ -203,6 +203,7 @@
 
   async function handleClaim() {
     if (!authStore.isAuthenticated) {
+      localStorage.setItem('osmo:loyalty:reopen_after_login', 'true');
       onClose();
       setTimeout(() => getClientUi().openLogin(), 200);
       return;
@@ -227,7 +228,16 @@
         onClose();
       }, 1600);
     } else if (checkinStore.error) {
-      getClientUi().showToast(checkinStore.error, 'error');
+      if (!authStore.isAuthenticated || checkinStore.error.includes('đăng nhập')) {
+        localStorage.setItem('osmo:loyalty:reopen_after_login', 'true');
+        onClose();
+        setTimeout(() => {
+          getClientUi().openLogin();
+          getClientUi().showToast(checkinStore.error || 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!', 'warning');
+        }, 300);
+      } else {
+        getClientUi().showToast(checkinStore.error, 'error');
+      }
     }
   }
 
@@ -359,11 +369,11 @@
     <!-- BALANCE BLOCK -->
     <div class="px-4 pt-3 pb-5 flex-shrink-0 flex flex-col justify-start">
       <div class="flex items-center gap-1.5 mb-1.5">
-        <!-- Ticket gold coin box -->
-        <div class="w-7 h-5.5 rounded-[5px] flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] shadow-sm">
-          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-            <circle cx="12" cy="12" r="10" fill="none"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8M9 12h6"/>
+        <!-- Premium round golden treasury coin -->
+        <div class="w-7.5 h-7.5 rounded-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] shadow-[0_2px_6px_rgba(229,169,60,0.3)]">
+          <svg class="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 6.5L7.5 9h9L12 6.5zM9 10v4.5M12 10v4.5M15 10v4.5M7 15.5h10" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <span class="text-white font-black text-[30px] leading-none tracking-tight">
@@ -616,21 +626,16 @@
         style="top: 138px; height: auto; border-top: 1px solid rgba(0, 0, 0, 0.05);"
         transition:fly={{ y: 500, duration: 280 }}
       >
-        <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-1.5 flex-shrink-0"></div>
+        <button 
+          onclick={() => checkinStore.closeHistory()}
+          class="w-12 h-1 bg-gray-200 hover:bg-gray-300 rounded-full mx-auto mt-3 mb-1.5 flex-shrink-0 cursor-pointer active:scale-95 transition-all"
+          aria-label="Đóng"
+        ></button>
 
-        <div class="flex items-center justify-between pl-4 pr-1 py-3 flex-shrink-0 border-b border-gray-50">
-          <span class="font-black text-[16px] text-gray-900 tracking-wide">
-            {activeTab === 'history' ? 'Lịch sử tích lũy' : 'Quy định thưởng'}
+        <div class="flex items-center pl-4 pr-1 py-3 flex-shrink-0 border-b border-gray-50">
+          <span class="font-black text-[18px] text-gray-900 tracking-wide">
+            Lịch sử tích lũy
           </span>
-          <button 
-            onclick={() => checkinStore.closeHistory()} 
-            class="flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-800 active:scale-90 transition-all"
-            aria-label="Đóng"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
         </div>
 
         <!-- Pill Switcher -->
@@ -655,10 +660,22 @@
         <div class="flex-1 overflow-y-auto pl-4 pr-1 pb-8 scrollbar-hide">
           {#if activeTab === 'history'}
             {#if !authStore.isAuthenticated}
-              <div class="flex flex-col items-center justify-center py-16 text-center">
+              <div class="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
                 <span class="text-4xl mb-3">🔑</span>
                 <h5 class="text-gray-900 font-black text-[14px]">Yêu cầu đăng nhập</h5>
-                <p class="text-gray-400 text-[11px] mt-1 max-w-[200px] leading-normal font-medium">Lịch sử tích lũy chỉ hiển thị khi tài khoản đã được xác thực.</p>
+                <p class="text-gray-400 text-[11px] mt-1 max-w-[200px] leading-normal font-medium mb-4">
+                  Lịch sử tích lũy chỉ hiển thị khi tài khoản đã được xác thực.
+                </p>
+                <button
+                  onclick={() => {
+                    localStorage.setItem('osmo:loyalty:reopen_after_login', 'true');
+                    onClose();
+                    setTimeout(() => getClientUi().openLogin(), 200);
+                  }}
+                  class="px-6 py-2.5 rounded-full bg-[#231b15] text-[#f5d7af] font-black text-[12px] tracking-wider hover:brightness-110 active:scale-95 shadow-md transition-all duration-150"
+                >
+                  ĐĂNG NHẬP NGAY
+                </button>
               </div>
             {:else if loyaltyStore.loading}
               <div class="flex flex-col items-center justify-center py-16">
@@ -675,8 +692,12 @@
                 {#each loyaltyStore.data.history as tx}
                   <div class="flex items-center justify-between p-3.5 bg-gray-50/70 rounded-[16px] border border-gray-100/50">
                     <div class="flex items-center gap-3">
-                      <div class="w-8.5 h-8.5 rounded-full flex items-center justify-center bg-amber-50 text-amber-600 font-bold text-[14px]">
-                        🪙
+                      <!-- Premium golden treasury coin vector -->
+                      <div class="w-8.5 h-8.5 rounded-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] shadow-[0_2px_6px_rgba(229,169,60,0.25)] flex-shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 6.5L7.5 9h9L12 6.5zM9 10v4.5M12 10v4.5M15 10v4.5M7 15.5h10" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                       </div>
                       <div class="flex flex-col">
                         <span class="text-gray-800 font-bold text-[13px] tracking-tight">{tx.notes || 'Điểm danh hàng ngày'}</span>

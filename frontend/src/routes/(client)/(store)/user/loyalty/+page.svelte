@@ -43,6 +43,45 @@
     completedCount <= 1 ? 0 : Math.min(372, (completedCount - 1) * 62)
   );
 
+  // Drag-to-scroll timeline states & handlers
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let scrollContainer = $state<HTMLDivElement | null>(null);
+
+  function handleMouseDown(e: MouseEvent) {
+    if (!scrollContainer) return;
+    isDown = true;
+    scrollContainer.style.cursor = 'grabbing';
+    scrollContainer.style.userSelect = 'none';
+    startX = e.pageX - scrollContainer.offsetLeft;
+    scrollLeft = scrollContainer.scrollLeft;
+  }
+
+  function handleMouseLeave() {
+    isDown = false;
+    if (scrollContainer) {
+      scrollContainer.style.cursor = 'grab';
+      scrollContainer.style.removeProperty('user-select');
+    }
+  }
+
+  function handleMouseUp() {
+    isDown = false;
+    if (scrollContainer) {
+      scrollContainer.style.cursor = 'grab';
+      scrollContainer.style.removeProperty('user-select');
+    }
+  }
+
+  function handleMouseMove(e: MouseEvent) {
+    if (!isDown || !scrollContainer) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 1.5; // Scroll speed
+    scrollContainer.scrollLeft = scrollLeft - walk;
+  }
+
   async function handleClaim() {
     if (!authStore.isAuthenticated) return;
     const ok = await checkinStore.claimReward();
@@ -118,8 +157,16 @@
                </p>
 
                <!-- Days horizontal timeline -->
-               <div class="w-full overflow-x-auto scrollbar-hide py-2 mb-6">
-                 <div class="relative min-w-[420px] flex items-center justify-between px-1">
+               <div 
+                 bind:this={scrollContainer}
+                 onmousedown={handleMouseDown}
+                 onmouseleave={handleMouseLeave}
+                 onmouseup={handleMouseUp}
+                 onmousemove={handleMouseMove}
+                 class="w-full overflow-x-auto days-scrollbar py-2 mb-6 select-none"
+                 style="cursor: grab;"
+               >
+                 <div class="relative min-w-[440px] flex items-center justify-between px-2">
                    
                    <!-- Progress Line Background -->
                    <div class="absolute top-[26px] left-[26px] right-[26px] h-1 bg-stone-100 rounded-full z-0"></div>
@@ -300,5 +347,19 @@
     @keyframes pulse-slow {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.7; }
+    }
+    .days-scrollbar::-webkit-scrollbar {
+        height: 5px;
+    }
+    .days-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 10px;
+    }
+    .days-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(197, 160, 89, 0.25);
+        border-radius: 10px;
+    }
+    .days-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(197, 160, 89, 0.5);
     }
 </style>

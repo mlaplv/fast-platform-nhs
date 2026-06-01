@@ -1,5 +1,5 @@
 import { authStore } from '../authStore.svelte';
-import { apiClient } from '$lib/utils/apiClient';
+import { apiClient, ApiError } from '$lib/utils/apiClient';
 import { loyaltyStore } from './loyalty.svelte';
 
 export interface CheckinDay {
@@ -73,7 +73,12 @@ class CheckinStore {
       return true;
     } catch (err: unknown) {
       console.error('[CheckinStore] claimReward error:', err);
-      this.error = err instanceof Error ? err.message : 'Điểm danh thất bại, vui lòng thử lại';
+      if (err instanceof ApiError && err.status === 401) {
+        authStore.logout();
+        this.error = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại để nhận thưởng!';
+      } else {
+        this.error = err instanceof Error ? err.message : 'Điểm danh thất bại, vui lòng thử lại';
+      }
       return false;
     } finally {
       this.claiming = false;

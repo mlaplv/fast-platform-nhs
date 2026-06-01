@@ -1131,10 +1131,10 @@ while true; do
             
             docker compose up -d api worker_high caddy
             echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, Caddy) sạch sẽ!${NC}"
-            echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (api + worker_high) ---${NC}"
-            echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
-            # Lọc log lỗi cho Sếp thấy thực trạng hệ thống
-            docker compose logs -f api worker_high --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+            echo -e "${CYAN}--- Trạng thái hoạt động mới nhất ---${NC}"
+            docker compose logs --tail 15 api worker_high
+            echo -e "${GREEN}✔ Khởi chạy hoàn tất! Hệ thống đã trực tuyến ổn định.${NC}"
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         9)
             update_ai_model

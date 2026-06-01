@@ -900,5 +900,22 @@
 - [x] Chuẩn hóa cân đối khoảng cách lề hai bên (Left/Right padding) của Modal Desktop bằng cách bù đắp trừ hao phần khoảng trống mặc định mà các trình duyệt tự động chừa lại cho thanh cuộn (Scrollbar reservation) — chuyển đổi lề trắng từ `px-4` thành `pl-4 pr-1`, đảm bảo hiển thị đối xứng tuyệt hảo 100% không lo lệch lề. (Done)
 - [x] Rà soát và loại bỏ triệt để 100% kiểu dữ liệu `any` trong mã nguồn được xây dựng hôm nay, triển khai các static interfaces (`RawProduct`, `ProductItem`) để đảm bảo tuân thủ kỷ luật ép kiểu tĩnh của hiến pháp Elite V2.2. (Done)
 
+# Task Checklist - Voice Activity Detection (VAD) Content-Security-Policy Resolution (Elite V2.2)
 
+- [x] Cấu hình Caddyfile bổ sung các miền `https://*.osmo.vn` và `https://osmo.vn` vào directive `connect-src` trong `Content-Security-Policy` nhằm cho phép client kết nối và tải mô hình ONNX VAD (`silero_vad_legacy.onnx`). (Done)
+- [x] Cấu hình Caddyfile bổ sung các miền `https://*.osmo.vn` và `https://osmo.vn` vào directive `script-src` trong `Content-Security-Policy` nhằm cấp phép load tệp WebAssembly `.mjs` (`ort-wasm-simd-threaded.mjs`). (Done)
+- [x] Cấu hình Caddyfile bổ sung `blob:` vào directive `media-src` trong `Content-Security-Policy` nhằm cho phép tải và phát các tệp tin ghi âm từ microphone dạng blobs. (Done)
+- [x] Chạy reload cấu hình Caddy trên VPS để áp dụng ngay lập tức mà không gây gián đoạn dịch vụ. (Done)
+- [x] Xác nhận hoạt động của hệ thống VAD và đảm bảo không còn lỗi vi phạm CSP trên trình duyệt. (Done)
 
+# Task Checklist - Daily Check-in 401 Error & Coin Icon Fix (Elite V2.2)
+
+- [x] Sửa lỗi hiển thị sai icon "Ticket gold coin box" bằng cách thay thế SVG cộng `+` đơn giản bằng SVG đồng xu vàng có chứa biểu tượng kho bạc/ngân hàng cổ điển cực kỳ premium, đẳng cấp khớp 100% bản vẽ của Sếp trên cả Desktop và Mobile. (Done)
+- [x] Khắc phục triệt để lỗi 401 Unauthorized khi bấm Nhận thưởng bằng cách bổ sung bộ bắt lỗi `ApiError` với mã trạng thái 401 trong `checkin.svelte.ts`. Tự động thực hiện `authStore.logout()` để xoá sạch session đã hết hạn ở LocalStorage và cookie phía client. (Done)
+- [x] Cập nhật giao diện điểm danh trên cả Desktop và Mobile để bắt lỗi phiên đăng nhập hết hạn động, lập tức đóng cửa sổ điểm danh và kích hoạt popup Đăng nhập nhanh của OSMO, nâng cao trải nghiệm tự phục hồi an toàn (Self-Healing UX). (Done)
+- [x] Đồng bộ hoá tức thì qua giao thức `rsync` an toàn lên VPS Production mlap@103.1.236.14. (Done)
+- [x] Chuẩn hóa tiêu đề của sub-panel Lịch sử & Quy định thành `'Lịch sử tích lũy'` (font size `18px` cực kỳ rõ ràng, cân đối) cố định trên cả hai phiên bản Desktop và Mobile. (Done)
+- [x] Loại bỏ hoàn toàn nút Close `X` thừa thãi bên trong sub-panel để giao diện thanh thoát, chuẩn chỉ theo đúng maket Premium của Sếp. (Done)
+- [x] Tối ưu hóa biến thanh kéo xám (Drag Handle Bar) thành nút bấm tắt thông minh (`cursor-pointer`) để cho phép kéo hoặc click trực tiếp lên thanh xám để trượt đóng panel một cách tự nhiên và mượt mà nhất. (Done)
+- [x] Thay thế triệt để các emoji hệ thống lỗi thời/không nhất quán tại nút Floating Trigger bằng biểu tượng **Hộp quà nhũ vàng vector SVG siêu Premium** trên cả 2 trạng thái điểm danh, mang lại trải nghiệm thương hiệu hoàn mỹ đỉnh cao. (Done)
+- [x] Thiết lập cờ trạng thái `reopen_after_login` trong `localStorage` và xây dựng `$effect` reactive Svelte 5 giám sát để tự động mở lại modal Điểm danh ngay sau khi đăng nhập thành công ("đi đâu thì về đấy"), tạo luồng trải nghiệm người dùng khép kín hoàn hảo. (Done)

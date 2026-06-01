@@ -53,6 +53,19 @@
     return () => window.removeEventListener('resize', updateIsMobile);
   });
 
+  // Auto-reopen reward center modal immediately after successful login
+  $effect(() => {
+    if (authStore.isAuthenticated) {
+      const shouldReopen = localStorage.getItem('osmo:loyalty:reopen_after_login');
+      if (shouldReopen === 'true') {
+        localStorage.removeItem('osmo:loyalty:reopen_after_login');
+        checkinStore.fetchStatus().then(() => {
+          checkinStore.openPopup();
+        });
+      }
+    }
+  });
+
   function handleClose() {
     userDismissed = true;
     checkinStore.closePopup();
@@ -83,7 +96,21 @@
       bg-gradient-to-br {hasCheckedIn ? 'from-[#ffffff] to-[#cbd5e1] border border-slate-200 shadow-[0_8px_24px_rgba(255,255,255,0.15)]' : 'from-[#FFD700] to-[#F7B731] shadow-[0_8px_24px_rgba(255,215,0,0.4)]'}
       flex items-center justify-center
       group-hover:scale-110 transition-transform duration-200">
-      <span class="text-[26px] md:text-[30px] select-none">{hasCheckedIn ? '🪙' : '🎁'}</span>
+      
+      <!-- Premium vector gift box SVG -->
+      <div class="w-9.5 h-9.5 flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] rounded-full shadow-[0_2px_8px_rgba(229,169,60,0.3)]">
+        <svg class="w-5.5 h-5.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Lid & Box -->
+          <path d="M20 12v10H4V12" />
+          <!-- Ribbon vertically -->
+          <path d="M12 22V7" />
+          <!-- Ribbon horizontally -->
+          <path d="M2 12h20" />
+          <!-- Bow -->
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+        </svg>
+      </div>
     </div>
 
     <!-- Elegant high-contrast tooltip banner -->
