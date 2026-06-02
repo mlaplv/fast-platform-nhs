@@ -12,8 +12,6 @@
   import DailyCheckinLanding from "$lib/components/storefront/loyalty/DailyCheckinLanding.svelte";
   import type { LayoutData } from './$types';
 
-  import "../client.css";
-
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
   const isAdmin = $derived(data.tenant === 'admin');
   const ui = getClientUi();

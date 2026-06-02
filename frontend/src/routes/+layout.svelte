@@ -1,6 +1,5 @@
 <script lang="ts">
   import "./layout.css";
-  import "$lib/styles/fonts.css";
   import { setClientUi } from "$lib/state/commerce/ui.svelte";
   import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
