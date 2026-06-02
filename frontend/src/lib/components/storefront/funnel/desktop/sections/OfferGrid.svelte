@@ -54,6 +54,11 @@
   const mark2 = $derived((metadata.offer_trust_mark_2 as string) || "HIỆU QUẢ KIỂM CHỨNG");
   const mark3 = $derived((metadata.offer_trust_mark_3 as string) || "DƯỢC MỸ PHẨM CAO CẤP");
 
+  const showH1 = $derived(lightLiveEdit.isEditMode || (!!metadata.offer_headline_1 && !metadata.offer_headline_1.startsWith('[OFF]')));
+  const showH2 = $derived(lightLiveEdit.isEditMode || (!!metadata.offer_headline_2 && !metadata.offer_headline_2.startsWith('[OFF]')));
+  const showDivider1 = $derived(lightLiveEdit.isEditMode || (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')));
+  const showDivider2 = $derived(lightLiveEdit.isEditMode || (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')));
+
   let isDetailsOpen = $state(false);
 
   const gridClass = $derived(variants.length >= 3 
@@ -89,17 +94,17 @@
   <div class="container mx-auto px-3 max-w-6xl relative z-surface">
     <div class="text-center">
       <h2 class="elite-session-headline mb-4 text-center offer-grid-headline">
-        {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || lightLiveEdit.isEditMode}
+        {#if showH1}
           <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             {h1}
           </EditableWrapper>
         {/if}
 
-        {#if (!(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')) || lightLiveEdit.isEditMode}
+        {#if (showH1 && showH2) || lightLiveEdit.isEditMode}
           <br class="md:hidden"/>
         {/if}
 
-        {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]') || lightLiveEdit.isEditMode}
+        {#if showH2}
           <span class="text-luxury-gold md:ml-3">
              <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
                {h2}
@@ -113,7 +118,7 @@
            <span class="text-[8px] tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
          </EditableWrapper>
          
-         {#if (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')) || lightLiveEdit.isEditMode}
+         {#if showDivider1}
             <div class="h-px w-10 bg-white/5"></div>
          {/if}
 
@@ -121,7 +126,7 @@
            <span class="text-[9px] tracking-[0.3em] font-black text-luxury-sakura">{clean(mark2)}</span>
          </EditableWrapper>
          
-         {#if (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')) || lightLiveEdit.isEditMode}
+         {#if showDivider2}
             <div class="h-px w-10 bg-white/5"></div>
          {/if}
 

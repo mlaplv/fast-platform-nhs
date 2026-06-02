@@ -10,9 +10,7 @@
 
   const shopStore = getShopStore();
 
-  let { themeMode, applyTheme, scrollToQuiz, activeId = null } = $props<{
-    themeMode: 'system' | 'light' | 'dark';
-    applyTheme: (mode: 'system' | 'light' | 'dark') => void;
+  let { scrollToQuiz, activeId = null } = $props<{
     scrollToQuiz?: () => void;
     activeId?: string | null;
   }>();

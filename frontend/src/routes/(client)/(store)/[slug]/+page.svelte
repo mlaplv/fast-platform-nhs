@@ -120,9 +120,17 @@
       try {
         if (type === 'product' && productData) {
           if (isFunnel && funnelPageData) {
-            // ── Funnel / Landing (isolated chunk) ─────────────────────────────
-            const { default: FunnelPage } = await import('$lib/components/storefront/funnel/FunnelManager.svelte');
-            return { component: FunnelPage, props: { data: funnelPageData } };
+            if (isMobile) {
+              const { default: MobileFunnelPage } = await import(
+                '$lib/components/storefront/funnel/MobileFunnelManager.svelte'
+              );
+              return { component: MobileFunnelPage, props: { data: funnelPageData } };
+            } else {
+              const { default: DesktopFunnelPage } = await import(
+                '$lib/components/storefront/funnel/DesktopFunnelManager.svelte'
+              );
+              return { component: DesktopFunnelPage, props: { data: funnelPageData } };
+            }
           } else if (isMobile) {
             // ── Mobile Product Detail (isolated chunk) ─────────────────────────
             const { default: ProductDetailMobile } = await import(

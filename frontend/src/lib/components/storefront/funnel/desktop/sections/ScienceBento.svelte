@@ -16,21 +16,30 @@
   const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
+  const clean = (s: unknown) => {
+    if (!s) return "";
+    return String(s)
+      .replace(/^(\[OFF\]|\*|\s)+/i, '')
+      .trim();
+  };
+
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.science_headline?.split('</span><span>') || []);
-  const h1 = $derived(metadata.science_headline_1 || stripTags(legacyParts[0]) || "CƠ CHẾ KHOA HỌC");
-  const h2 = $derived(metadata.science_headline_2 || stripTags(legacyParts[1]) || "Miccosmo Beppin Body Virgin White Serum");
+  const h1 = $derived(clean(metadata.science_headline_1) || stripTags(legacyParts[0]) || "CƠ CHẾ KHOA HỌC");
+  const h2 = $derived(clean(metadata.science_headline_2) || stripTags(legacyParts[1]) || "Miccosmo Beppin Body Virgin White Serum");
 
   const labels = $derived({
-    subheadline: metadata.science_subheadline || '"Không chỉ đơn thuần là dưỡng da, Beppin Body thấu hiểu sự tinh tế của nàng. Tinh chất thẩm thấu sâu, giải quyết triệt để các đốm nâu cứng đầu nhất, trả lại sự mịn màng như lụa để bạn tự tin trong mọi khoảnh khắc."',
+    subheadline: clean(metadata.science_subheadline) || '"Không chỉ đơn thuần là dưỡng da, Beppin Body thấu hiểu sự tinh tế của nàng. Tinh chất thẩm thấu sâu, giải quyết triệt để các đốm nâu cứng đầu nhất, trả lại sự mịn màng như lụa để bạn tự tin trong mọi khoảnh khắc."',
     image: metadata.science_image || '/uploads/img/co--che.webp',
-    card1_title: metadata.science_card1_title || 'TÁC ĐỘNG SÂU - HIỆU QUẢ NHANH',
-    card1_desc: metadata.science_card1_desc || '"Công nghệ dẫn truyền Nano vượt trội giúp tinh chất Placenta Nhật Bản thẩm thấu sâu hơn 3 lần. Giai đoạn 1: Phá vỡ chuỗi melanin tối màu ngay dưới bề mặt biểu bì."',
-    card2_title: metadata.science_card2_title || 'PHỤC HỒI & TRẺ HÓA TỨC THÌ',
-    card2_desc: metadata.science_card2_desc || '"Tổ hợp Collagen cao cấp cùng Vitamin C tinh khiết giúp kích thích sản sinh tế bào mới. Không chỉ dưỡng trắng, chúng tôi còn kiến tạo bề mặt da mịn mướt, săn chắc và luôn khô thoáng."',
-    faq_title: metadata.science_faq_title || 'Câu hỏi thường gặp',
-    faq_subtitle: metadata.science_faq_subtitle || 'Giải đáp các thắc mắc phổ biến về sản phẩm'
+    card1_title: clean(metadata.science_card1_title) || 'TÁC ĐỘNG SÂU - HIỆU QUẢ NHANH',
+    card1_desc: clean(metadata.science_card1_desc) || '"Công nghệ dẫn truyền Nano vượt trội giúp tinh chất Placenta Nhật Bản thẩm thấu sâu hơn 3 lần. Giai đoạn 1: Phá vỡ chuỗi melanin tối màu ngay dưới bề mặt biểu bì."',
+    card2_title: clean(metadata.science_card2_title) || 'PHỤC HỒI & TRẺ HÓA TỨC THÌ',
+    card2_desc: clean(metadata.science_card2_desc) || '"Tổ hợp Collagen cao cấp cùng Vitamin C tinh khiết giúp kích thích sản sinh tế bào mới. Không chỉ dưỡng trắng, chúng tôi còn kiến tạo bề mặt da mịn mướt, săn chắc và luôn khô thoáng."',
+    faq_title: clean(metadata.science_faq_title) || 'Câu hỏi thường gặp',
+    faq_subtitle: clean(metadata.science_faq_subtitle) || 'Giải đáp các thắc mắc phổ biến về sản phẩm'
   });
+  
+  const showSubheadline = $derived(lightLiveEdit.isEditMode || (!!metadata.science_subheadline && !metadata.science_subheadline.startsWith('[OFF]')));
 
   let selectedFaqIndex = $state(-1);
   let isModalOpen = $state(false);
@@ -81,11 +90,13 @@
             </span>
         </h2>
 
+        {#if showSubheadline}
         <p class="section-description text-white/50 text-[11px] md:text-[12px] max-w-xl mx-auto leading-relaxed tracking-[0.1em] -mt-6 mb-12 text-center font-medium">
             <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ" as="span">
-                {product?.metadata?.science_subheadline || labels.subheadline}
+                {product?.metadata?.science_subheadline ? clean(product.metadata.science_subheadline) : clean(labels.subheadline)}
             </EditableWrapper>
         </p>
+        {/if}
 
         <!-- BENTO GRID (KINETIC ASYMMETRIC - Viral 2026) -->
         <div class="bento-grid-kinetic grid grid-cols-1 md:grid-cols-12 gap-10 items-stretch text-left">
@@ -122,13 +133,13 @@
 
                     <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight transition-colors group-hover:text-luxury-sakura">
                         <EditableWrapper path="metadata.science_card1_title" type="text" label="SỬA TIÊU ĐỀ THẺ 1" as="span">
-                            {product?.metadata?.science_card1_title || labels.card1_title}
+                            {product?.metadata?.science_card1_title ? clean(product.metadata.science_card1_title) : clean(labels.card1_title)}
                         </EditableWrapper>
                     </h3>
                     
                     <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
                         <EditableWrapper path="metadata.science_card1_desc" type="text" label="SỬA MÔ TẢ THẺ 1">
-                            {product?.metadata?.science_card1_desc || labels.card1_desc}
+                            {product?.metadata?.science_card1_desc ? clean(product.metadata.science_card1_desc) : clean(labels.card1_desc)}
                         </EditableWrapper>
                     </p>
                 </div>
@@ -144,13 +155,13 @@
 
                     <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight transition-colors group-hover:text-luxury-gold">
                         <EditableWrapper path="metadata.science_card2_title" type="text" label="SỬA TIÊU ĐỀ THẺ 2" as="span">
-                            {product?.metadata?.science_card2_title || labels.card2_title}
+                            {product?.metadata?.science_card2_title ? clean(product.metadata.science_card2_title) : clean(labels.card2_title)}
                         </EditableWrapper>
                     </h3>
 
                     <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
                         <EditableWrapper path="metadata.science_card2_desc" type="text" label="SỬA MÔ TẢ THẺ 2">
-                            {product?.metadata?.science_card2_desc || labels.card2_desc}
+                            {product?.metadata?.science_card2_desc ? clean(product.metadata.science_card2_desc) : clean(labels.card2_desc)}
                         </EditableWrapper>
                     </p>
                 </div> <!-- Close Thẻ 2 -->

@@ -13,6 +13,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
+		inlineStyleThreshold: 1048576,
 		adapter: adapter({
 			pages: 'dist',
 			assets: 'dist',

@@ -25,6 +25,9 @@
       metadata.diagnostics_disclaimer ||
       `AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ`,
   });
+
+  const showHeadline = $derived(lightLiveEdit.isEditMode || (!!product?.metadata?.diagnostics_headline && !product.metadata.diagnostics_headline.startsWith('[OFF]')));
+  const showSubtitle = $derived(lightLiveEdit.isEditMode || (!!product?.metadata?.diagnostics_subtitle && !product.metadata.diagnostics_subtitle.startsWith('[OFF]')));
 </script>
 
 <section
@@ -35,7 +38,7 @@
   <div
     class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface"
   >
-    {#if !(product?.metadata?.diagnostics_headline || "").startsWith("[OFF]") || lightLiveEdit.isEditMode}
+    {#if showHeadline}
       <h3
         id="personalized-care"
         class="elite-session-headline mb-12 text-center diagnostics-headline"
@@ -52,7 +55,7 @@
               "CHẨN ĐOÁN PHỤC HỒI SẮC TỐ GỐC"}
           </EditableWrapper>
         </span>
-        {#if !(product?.metadata?.diagnostics_subtitle || "").startsWith("[OFF]") || lightLiveEdit.isEditMode}
+        {#if showSubtitle}
           <span>
             <EditableWrapper
               path="metadata.diagnostics_subtitle"

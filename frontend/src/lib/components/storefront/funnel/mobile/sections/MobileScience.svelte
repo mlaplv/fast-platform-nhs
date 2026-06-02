@@ -16,6 +16,10 @@
   const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
+  const headline = $derived(metadata.science_headline || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?");
+  const subheadline = $derived(metadata.science_subheadline || "Đột phá công thức hàng đầu từ Nhật Bản.");
+  const showSubheadline = $derived(!!metadata.science_subheadline);
+
   const claims = $derived([
     metadata.science_claims?.[0] || {
       label: "CƠ CHẾ PHÁ VỠ HẮC SẮC TỐ",
@@ -39,12 +43,10 @@
   const tech = $derived([
     {
       icon: ShieldCheck,
-      title:
-        typeof claims[0].label === "string"
+      title: typeof claims[0].label === "string"
           ? claims[0].label
           : "Cơ chế phá vỡ hắc sắc tố",
-      desc:
-        typeof claims[0].content === "string"
+      desc: typeof claims[0].content === "string"
           ? claims[0].content
           : "Ức chế Melanin từ tinh chất Sakura.",
     },
@@ -55,12 +57,10 @@
     },
     {
       icon: Droplets,
-      title:
-        typeof claims[1].label === "string"
+      title: typeof claims[1].label === "string"
           ? claims[1].label
           : "An toàn chuẩn Nhật",
-      desc:
-        typeof claims[1].content === "string"
+      desc: typeof claims[1].content === "string"
           ? claims[1].content
           : "Cam kết 3 KHÔNG: Không cồn, không Paraben, không hóa chất lột tẩy.",
     },
@@ -133,13 +133,14 @@
     <h2
       class="text-center text-3xl font-black text-white italic tracking-tight"
     >
-      {metadata.science_headline || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?"}
+      {headline}
     </h2>
 
+    {#if showSubheadline}
     <p class="science-subheadline">
-      {metadata.science_subheadline ||
-        `Đột phá công thức hàng đầu từ Nhật Bản.`}
+      {subheadline}
     </p>
+    {/if}
   </div>
 
   <div class="science-content-container">

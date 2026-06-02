@@ -77,6 +77,9 @@
     clean(metadata.offer_headline_2) || (product?.name ? product.name.split(' ').slice(1).join(' ') : "độc quyền")
   );
 
+  const showH1 = $derived(!!metadata.offer_headline_1 && !metadata.offer_headline_1.startsWith('[OFF]'));
+  const showH2 = $derived(!!metadata.offer_headline_2 && !metadata.offer_headline_2.startsWith('[OFF]'));
+
   const variantImages = $derived(variants.map((v, i) => {
     const ev = v as ExtendedVariant;
     const tierVar = product?.tierVariations?.[0] || product?.tier_variations?.[0];
@@ -204,19 +207,19 @@
        </div>
     </div>
 
-    {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
+    {#if showH1 || showH2}
     <h3 class="text-3xl font-black text-center italic tracking-tighter leading-tight mb-2">
-      {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]')}
+      {#if showH1}
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40">
         {h1}
       </span>
       {/if}
       
-      {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
+      {#if showH1 && showH2}
       <br/>
       {/if}
       
-      {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
+      {#if showH2}
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-[#FFB7C5] via-[#E8D5B0] to-white drop-shadow-[0_0_20px_rgba(255,183,197,0.5)]">
         {h2}
       </span>

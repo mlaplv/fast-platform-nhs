@@ -7,11 +7,12 @@
   // Dedicated Mobile Sections
   import MobileVideoBanner from './sections/MobileVideoBanner.svelte';
   import MobileHero from './sections/MobileHero.svelte';
-  import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
   // Lazy-load heavy modal components (reduce mobile initial bundle)
   import type { Component } from 'svelte';
   let ScannerHUDComponent = $state<Component<Record<string, unknown>> | null>(null);
   let MobileVerificationCenterComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let MobileProductDetailsModalComponent = $state<Component<any> | null>(null);
+  let BottomSheetComponent = $state<Component<any> | null>(null);
   let loadJIT = $state(false);
   async function loadScannerHUD() {
     if (!ScannerHUDComponent) {
@@ -24,8 +25,11 @@
       const mod = await import('../../product-detail/shared/MobileVerificationCenter.svelte');
       MobileVerificationCenterComponent = mod.default as Component<Record<string, unknown>>;
     }
+    if (!BottomSheetComponent) {
+      const mod = await import('./BottomSheet.svelte');
+      BottomSheetComponent = mod.default as Component<any>;
+    }
   }
-  import BottomSheet from './BottomSheet.svelte';
 
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
@@ -50,19 +54,38 @@
 
   $effect(() => {
     if (loadJIT) {
-      Promise.all([
-        import('./sections/MobileDiagnostics.svelte'),
-        import('./sections/MobileScience.svelte'),
-        import('./sections/MobileReviews.svelte'),
-        import('./sections/MobileOffer.svelte')
-      ]).then(([diagMod, sciMod, revMod, offMod]) => {
-        DiagnosticsComponent = diagMod.default;
-        ScienceComponent = sciMod.default;
-        ReviewsComponent = revMod.default;
-        OfferComponent = offMod.default;
+      // Elite V2.6: Stagger dynamic imports across animation frames to completely prevent simultaneous mounting reflows
+      import('./sections/MobileDiagnostics.svelte').then((mod) => {
+        DiagnosticsComponent = mod.default;
+        
+        requestAnimationFrame(() => {
+          import('./sections/MobileScience.svelte').then((mod) => {
+            ScienceComponent = mod.default;
+            
+            requestAnimationFrame(() => {
+              import('./sections/MobileReviews.svelte').then((mod) => {
+                ReviewsComponent = mod.default;
+                
+                requestAnimationFrame(() => {
+                  import('./sections/MobileOffer.svelte').then((mod) => {
+                    OfferComponent = mod.default;
+                  });
+                });
+              });
+            });
+          });
+        });
       });
     }
   });
+
+  async function openDetailsModal() {
+    if (!MobileProductDetailsModalComponent) {
+      const mod = await import('./MobileProductDetailsModal.svelte');
+      MobileProductDetailsModalComponent = mod.default;
+    }
+    isDetailsModalOpen = true;
+  }
 
   let isScanning = $state(false);
   let showVerification = $state(false);
@@ -80,6 +103,7 @@
     await loadMobileVerificationCenter();
     showVerification = true;
   }
+
 
   interface Props {
     product: Product;
@@ -148,17 +172,20 @@
       { threshold: 0.6 }
     );
 
-    const jitObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          loadJIT = true;
-          jitObserver.disconnect();
-        }
-      });
-    }, { rootMargin: '600px', threshold: 0.01 });
+    let jitObserver: IntersectionObserver | null = null;
+    const jitTimer = setTimeout(() => {
+      jitObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            loadJIT = true;
+            jitObserver?.disconnect();
+          }
+        });
+      }, { rootMargin: '150px', threshold: 0.01 });
 
-    const jitTrigger = document.getElementById('mobile-jit-trigger');
-    if (jitTrigger) jitObserver.observe(jitTrigger);
+      const jitTrigger = document.getElementById('mobile-jit-trigger');
+      if (jitTrigger) jitObserver.observe(jitTrigger);
+    }, 1200);
 
     sections.forEach((el, idx) => {
       el.dataset.sectionIdx = String(idx);
@@ -167,7 +194,8 @@
 
     return () => {
       observer.disconnect();
-      jitObserver.disconnect();
+      clearTimeout(jitTimer);
+      jitObserver?.disconnect();
     };
   });
 </script>
@@ -181,7 +209,7 @@
     onPurchase={() => {
       document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }} 
-    onOpenDetails={() => isDetailsModalOpen = true}
+    onOpenDetails={openDetailsModal}
     onChat={() => supportAgent.toggle()}
     onVerify={triggerScan}
   />
@@ -238,7 +266,7 @@
   <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
     {#if OfferComponent}
       {@const Offer = OfferComponent}
-      <Offer {product} onOpenDetails={() => isDetailsModalOpen = true} {relatedProducts} {reviewStats} />
+      <Offer {product} onOpenDetails={openDetailsModal} {relatedProducts} {reviewStats} />
     {:else}
       <div class="w-full h-full bg-[#000] flex items-center justify-center">
         <div class="w-8 h-8 border border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
@@ -247,14 +275,18 @@
   </section>
 
 
-  <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
+  {#if isDetailsModalOpen && MobileProductDetailsModalComponent}
+    {@const DetailsModal = MobileProductDetailsModalComponent}
+    <DetailsModal bind:active={isDetailsModalOpen} {product} />
+  {/if}
 
   {#if isScanning && ScannerHUDComponent}
     {@const ScannerHUD = ScannerHUDComponent}
     <ScannerHUD barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
   {/if}
 
-  {#if showVerification}
+  {#if showVerification && BottomSheetComponent}
+    {@const BottomSheet = BottomSheetComponent}
     <BottomSheet bind:active={showVerification} title="Verified" fullWidth={true} tight={true} extraStyle="padding-left: 5px !important; padding-right: 5px !important;">
        {#if MobileVerificationCenterComponent}
          {@const VerificationCenter = MobileVerificationCenterComponent}

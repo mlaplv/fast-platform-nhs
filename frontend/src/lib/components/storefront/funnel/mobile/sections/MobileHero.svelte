@@ -42,13 +42,9 @@
 
   onMount(() => { 
     mounted = true; 
-    if (variantScroller) {
-      scrollerWidth = variantScroller.clientWidth || window.innerWidth || 390;
-    }
+    scrollerWidth = window.innerWidth || 390;
     const handleResize = () => {
-      if (variantScroller) {
-        scrollerWidth = variantScroller.clientWidth || window.innerWidth || 390;
-      }
+      scrollerWidth = window.innerWidth || 390;
     };
     window.addEventListener('resize', handleResize, { passive: true });
     return () => {
