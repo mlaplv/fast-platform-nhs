@@ -5,8 +5,6 @@
   import { browser } from "$app/environment";
 
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
-  import ScannerHUD from "$lib/components/storefront/product-detail/shared/ScannerHUD.svelte";
-  import VerificationCenter from "$lib/components/storefront/product-detail/shared/VerificationCenter.svelte";
   import X from "@lucide/svelte/icons/x";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -41,7 +39,26 @@
   let OfferGridComponent = $state<Component<any> | null>(null);
   let EliteLandingFooterComponent = $state<Component<any> | null>(null);
 
-  $effect(() => {
+  // Lazy-loaded heavy modal components
+  let ScannerHUDComponent = $state<Component<any> | null>(null);
+  let VerificationCenterComponent = $state<Component<any> | null>(null);
+
+  async function loadScannerHUD() {
+    if (!ScannerHUDComponent) {
+      const mod = await import("$lib/components/storefront/product-detail/shared/ScannerHUD.svelte");
+      ScannerHUDComponent = mod.default;
+    }
+  }
+
+  async function loadVerificationCenter() {
+    if (!VerificationCenterComponent) {
+      const mod = await import("$lib/components/storefront/product-detail/shared/VerificationCenter.svelte");
+      VerificationCenterComponent = mod.default;
+    }
+  }
+
+  // Elite V2.6: Load core components on mount instead of effect to prevent multiple executions
+  onMount(() => {
     Promise.all([
       import("$lib/components/client/LiquidHeader.svelte"),
       import("$lib/components/client/HeroBanner.svelte")
@@ -205,7 +222,7 @@
     }
   };
 
-  const hasQuiz = $derived((metadata?.quiz_questions?.length || 0) > 0);
+  const hasQuiz = $derived(metadata?.quiz_questions?.length > 0);
   const sectionIds = $derived(
     hasQuiz
       ? ["hero", "diagnostics", "science", "reviews", "offers"]
@@ -218,14 +235,16 @@
   let showVerification = $state(false);
   let verificationData = $state<any>(null);
 
-  function triggerScan() {
+  async function triggerScan() {
+    await loadScannerHUD();
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: { verificationData: any }) {
+  async function handleScanComplete(event: { verificationData: any }) {
     isScanning = false;
     verificationData = event.verificationData;
+    await loadVerificationCenter();
     showVerification = true;
   }
 
@@ -376,14 +395,16 @@
     </div>
   {/if}
 
-  {#if isScanning}
+  {#if isScanning && ScannerHUDComponent}
+    {@const ScannerHUD = ScannerHUDComponent}
     <ScannerHUD
       barcode={product?.sku || (product?.metadata?.["barcode"] as string)}
       oncomplete={handleScanComplete}
     />
   {/if}
 
-  {#if showVerification}
+  {#if showVerification && VerificationCenterComponent}
+    {@const VerificationCenter = VerificationCenterComponent}
     <div
       use:portal
       transition:fade={{ duration: 200 }}
