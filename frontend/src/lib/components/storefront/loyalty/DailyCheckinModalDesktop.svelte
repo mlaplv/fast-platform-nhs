@@ -543,7 +543,7 @@
                 onchange={handleToggleDontShow}
                 class="rounded border-gray-300 bg-gray-50 text-[#ff9900] focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5 cursor-pointer"
               />
-              <span>Không tự động hiển thị lại hôm nay</span>
+              <span>Không hiển thị lại hôm nay</span>
             </label>
           </div>
         {/if}
@@ -616,7 +616,7 @@
     {#if checkinStore.showHistory}
       <div
         class="absolute inset-x-0 bottom-0 z-50 bg-white rounded-t-[28px] flex flex-col pointer-events-auto"
-        style="top: 138px; height: auto; border-top: 1px solid rgba(0, 0, 0, 0.05);"
+        style="top: 144px; height: auto; border-top: 1px solid rgba(0, 0, 0, 0.05);"
         transition:fly={{ y: 500, duration: 280 }}
       >
         <button 

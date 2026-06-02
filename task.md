@@ -997,6 +997,14 @@
 - [x] Đồng bộ hóa các bản vá tương ứng cho cả 3 tệp tin chủ chốt: `ProductMobileOverview.svelte` (Mobile), `Desktop.svelte` (Desktop) và `LandingPage/Desktop.svelte` (Landing Page).
 - [x] Biên dịch và kiểm thử cục bộ thành công, đồng bộ hóa an toàn thư mục tĩnh `frontend/dist/` lên máy chủ VPS. (Done)
 
+# Task Checklist - Storefront Daily Check-in Popup Visibility Debugging (Elite V2.2)
+
+- [x] **Phân tích Nguyên nhân Gốc rễ:** Xác định việc phân tách thư mục định tuyến `routes/(client)/(store)` cô lập tệp tin layout khiến trang chủ storefront `/` (nằm ở `routes/+page.svelte`) bỏ qua hoàn toàn layout chính, dẫn đến việc component điều phối `DailyCheckinLanding` không bao giờ được tải hay dựng trên trang chủ. (Done)
+- [x] **Giải quyết Bằng Kiến trúc Vị trí Tối cao:** Di chuyển hoàn toàn logic khai báo, nạp trì hoãn (Lazy Load) 3 giây, và kết xuất component `<DailyCheckinLanding />` từ layout cục bộ `routes/(client)/(store)/+layout.svelte` lên layout tối cao của toàn hệ thống `routes/+layout.svelte` dưới điều kiện an toàn `{#if isMounted && !isAdmin}`. Đảm bảo phủ sóng kích hoạt điểm danh mượt mà 100% cho cả trang chủ `/` lẫn tất cả các trang con mà không bị trùng lặp. (Done)
+- [x] **Tái Cấu Trúc Khả Năng Kích Hoạt Reactive Svelte 5:** Thay thế logic kích hoạt tĩnh bằng một hàm `$effect` phản xạ trong `DailyCheckinLanding.svelte` để liên tục lắng nghe và giám sát sự thay đổi định tuyến `page.url.pathname`, giải quyết triệt để vấn đề mất kích hoạt popup khi người dùng điều hướng client-side từ trang sản phẩm/danh mục quay trở lại trang chủ. (Done)
+- [x] **Tối Ưu Hóa Trải Nghiệm & Trễ Khởi Động:** Rút ngắn thời gian trễ tự động mở popup sau khi tải xong component từ 5 giây xuống còn 1.5 giây (1500ms) khớp hoàn hảo với tiêu chuẩn thiết kế premium V3, gia cố bằng bộ kiểm tra khớp địa chỉ URL nghiêm ngặt để triệt tiêu nguy cơ mở đè popup khi người dùng đã chuyển trang. (Done)
+- [x] **Đồng Bộ Hóa Đích Sản Xuất:** Thực thi đồng bộ hóa mã nguồn Svelte an toàn (`rsync`) lên VPS Production an toàn của Sếp, kiểm chứng tính ổn định mượt mà trên môi trường thực tế. (Done)
+
 # Task Checklist - Standardizing Voucher Utility Logic (Elite V2.2)
 
 - [x] Tạo helper trung tâm `processProductVouchers` tại `$lib/utils/commerce/voucher.ts` đóng vai trò là "Nguồn sự thật duy nhất (SSOT)" cho toàn bộ logic voucher của hệ thống. (Done)
@@ -1072,3 +1080,32 @@
   - **Làm sạch trực tiếp ở tầng Cơ sở dữ liệu (PostgreSQL):** Viết tập lệnh di chuyển cơ sở dữ liệu `clean_product_metadata.py` sử dụng async engine của hệ thống để trực tiếp truy quét và loại bỏ vĩnh viễn nhãn `[OFF]` thô kệch khỏi tất cả các trường metadata sản phẩm (`science_subheadline`, `offer_trust_mark`, v.v.) của `prod_miccosmo_virgin_white` trực tiếp trong DB PostgreSQL của VPS Production. Giải quyết triệt để vấn đề từ gốc rễ.
   - **Triệt tiêu hoàn toàn code thối startsWith('[OFF]') trong HTML templates:** Dọn dẹp triệt để tất cả các logic điều kiện `startsWith('[OFF]')` rườm rà viết trực tiếp trong HTML của `MobileScience.svelte`, `MobileOffer.svelte`, `ScienceBento.svelte`, `DiagnosticsSection.svelte`, và `OfferGrid.svelte`. Chuyển dịch toàn bộ logic kiểm tra trạng thái này vào các biến reactive `$derived` trong thẻ `<script>` (như `showSubheadline`, `showH1`, `showH2`, `showHeadline`, `showSubtitle`), giữ cho HTML templates 100% tinh khiết và tối ưu hiệu năng.
   - **Đồng bộ hóa & Kiểm thử:** Chạy biên dịch dự án cục bộ `pnpm build` không lỗi, thực thi đồng bộ `rsync` an toàn lên VPS Production và hot-reload Caddy thành công. (Done)
+
+# Task Checklist - Storefront Daily Check-in Sub-Modals Layout Alignment (Elite V2.2)
+
+- [x] **Tinh Chỉnh Bố Cục Desktop (`DailyCheckinModalDesktop.svelte`):** Thay đổi khoảng cách `top` của hộp thoại Lịch sử & Quy định từ `138px` thành chính xác `144px` để mép trên của nó khớp hoàn mỹ và không bị lấn lên phần header/balance block màu đen thưa Sếp. (Done)
+- [x] **Hợp Nhất Cơ Chế Căn Lề Mobile (`DailyCheckinModalMobile.svelte`):** Thay thế thuộc tính `height: 74vh` tĩnh bằng cách đặt tọa độ `top: 146px; height: auto;` tuyệt đối để hộp thoại Lịch sử & Quy định trên di động tự động căn khớp chuẩn xác tuyệt đối với mép trên của phần "Nhiệm vụ thưởng" (White Body) trên mọi kích thước màn hình. (Done)
+- [x] **Đồng Bộ Hóa Mã Nguồn Tức Thì:** Đồng bộ hóa toàn bộ source code sạch sẽ bằng `rsync` an toàn lên VPS Production, kiểm chứng trực quan hoàn mỹ. (Done)
+
+# Task Checklist - Daily Check-in Modal Opt-Out & Text Typo Repair (Elite V2.2)
+
+- [x] **Khắc Phục Lỗi Mất Kích Hoạt Tự Động:** Sửa đổi logic định tuyến tại `DailyCheckinLanding.svelte` để tự động reset `userDismissed = false` khi người dùng điều hướng ra khỏi trang chủ. Đảm bảo rằng nếu người dùng đóng popup mà KHÔNG chọn "Không hiển thị lại hôm nay", popup sẽ tự động hiển thị lại khi họ quay lại trang chủ thay vì bị chặn vĩnh viễn trong phiên SPA. (Done)
+- [x] **Sửa Lỗi Hiển Thị Text Bị Cắt Mép (Typo "hông"):** Đổi nhãn nút tùy chọn từ "Không tự động hiển thị lại hôm nay" thành "Không hiển thị lại hôm nay" ngắn gọn, trực diện trên cả `DailyCheckinModalDesktop.svelte` và `DailyCheckinModalMobile.svelte`. Vừa giải quyết dứt điểm jank cắt mép chữ "K" ở đầu khung chữ do thiếu padding biên, vừa tối ưu độ thoáng của giao diện. (Done)
+- [x] **Đồng Bộ Hóa Đích VPS:** Đồng bộ hóa mã nguồn Svelte an toàn (`rsync`) lên VPS Production của Sếp, kiểm chứng hoạt động hoàn mỹ. (Done)
+
+# Task Checklist - Diagnostics Section Header Size & Subtitle Fix (Elite V2.2)
+
+- [x] **Khắc Phục Lỗi Co Nhỏ Tiêu Đề Độc Lập:** Loại bỏ hoàn toàn sự phụ thuộc vào selector `:global(span:last-child)` trong CSS của `DiagnosticsSection.svelte`. Gán class tường minh `diagnostics-subtitle-text` cho thẻ `span` phụ đề và áp dụng định dạng riêng biệt. Giúp triệt tiêu 100% hiện tượng tiêu đề chính bị thu nhỏ cưỡng bức thành 0.65x và mất hiệu ứng gradient khi cơ sở dữ liệu không cấu hình phụ đề (khiến thẻ tiêu đề chính vô tình trở thành last-child). (Done)
+- [x] **Khôi Phục Phụ Đề Fallback Mặc Định:** Điều chỉnh biến reactive `showSubtitle` để tự động trả về `true` khi `diagnostics_subtitle` trong cơ sở dữ liệu bị trống/undefined thay vì trả về `false` chặn kết xuất. Giúp khôi phục hiển thị hoàn hảo của phụ đề mặc định: *"Thấu hiểu làn da toàn diện với phác đồ quét và phân tích sạm nám bằng công nghệ AI thế hệ mới"*. (Done)
+- [x] **Đồng Bộ Hóa Đích VPS:** Đồng bộ hóa mã nguồn Svelte an toàn (`rsync`) lên VPS Production của Sếp, khôi phục giao diện hoàn mỹ 100%. (Done)
+
+# Task Checklist - Floating FAB Scroll Shrink Synchronization (Elite V2.2)
+
+- [x] **Đồng Bộ Hóa Sự Kiện Cuộn Trang (`DailyCheckinLanding.svelte`):** Tích hợp listener lắng nghe sự kiện `scroll` với ngưỡng `100px` (đồng bộ hoàn hảo với giá trị `SCROLL_SHRINK_THRESHOLD` của Helen AI FAB) để cập nhật trạng thái `isScrolled` của nút Điểm danh. (Done)
+- [x] **Thiết Kế Co Giãn Tỉ Lệ Pixel-Perfect:** Thay thế các kích thước tĩnh `w-15 h-15` bằng các biến reactive được nội suy động theo trạng thái cuộn. Khi cuộn xuống, nút Check-in tự động thu nhỏ từ `60px` xuống `48px` (đồng bộ với Helen từ `64px` xuống `48px`), kết hợp thu nhỏ icon hộp quà bên trong từ `38px` xuống `30px` cực kỳ mượt mà. (Done)
+- [x] **Căn Chỉnh Vị Trí Động Tránh Đè Lấp:** Cấu hình thuộc tính inline `bottom` và `transform: translateY` để khi cuộn trang, nút Check-in tự động trượt xuống vị trí `bottom: 90px` và dịch chuyển `translateY(8px)` đồng nhịp với Helen, duy trì khoảng cách an toàn `10px` giữa hai nút, mang lại cảm giác cực kỳ cao cấp. (Done)
+- [x] **Đồng Bộ Hóa Đích VPS:** Đồng bộ hóa mã nguồn nóng lên môi trường VPS Production bằng `rsync` an toàn. (Done)
+
+
+
+

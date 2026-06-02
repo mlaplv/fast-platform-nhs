@@ -69,6 +69,7 @@
   // Elite V2.2: Dynamic Component State (Post-Mount Resolution & Non-Overlapping Imports)
   let chatComponent = $state<Component<{ productSlug?: string }> | null>(null);
   let searchComponent = $state<Component<{ variant: string }> | null>(null);
+  let DailyCheckinComponent = $state<Component<any> | null>(null);
 
   setNanobotContext();
 
@@ -132,6 +133,15 @@
 
   onMount(() => {
     isMounted = true;
+
+    // Elite V2.2: Lazy Defer Daily Check-in component by 3 seconds to protect initial hydration TBT/LCP
+    if (!isAdmin) {
+      setTimeout(() => {
+        import("$lib/components/storefront/loyalty/DailyCheckinLanding.svelte").then(m => {
+          DailyCheckinComponent = m.default;
+        });
+      }, 3000);
+    }
 
     // Self-healing: Reload page on dynamic asset preload failures (common after new builds)
     if (typeof window !== 'undefined') {
@@ -415,6 +425,11 @@
     <ToastProvider />
     <GlobalConfirmModal />
     <ReportReviewModal />
+
+    {#if DailyCheckinComponent}
+      {@const CheckinLanding = DailyCheckinComponent}
+      <CheckinLanding />
+    {/if}
 
     <SupportAgentFAB isMobile={ui?.isMobile || false} />
     {#if ui?.isMobile}

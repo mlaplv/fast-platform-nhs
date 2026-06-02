@@ -484,7 +484,7 @@
               onchange={handleToggleDontShow}
               class="rounded border-gray-300 bg-gray-50 text-[#ff9900] focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5 cursor-pointer"
             />
-            <span>Không tự động hiển thị lại hôm nay</span>
+            <span>Không hiển thị lại hôm nay</span>
           </label>
         </div>
       {/if}
@@ -569,7 +569,7 @@
   {#if checkinStore.showHistory}
     <div
       class="absolute inset-x-0 bottom-0 z-50 bg-white rounded-t-[24px] shadow-[0_-15px_40px_rgba(0,0,0,0.2)] flex flex-col pointer-events-auto"
-      style="height: 74vh; border-top: 1px solid rgba(0, 0, 0, 0.06);"
+      style="top: 146px; height: auto; border-top: 1px solid rgba(0, 0, 0, 0.06);"
       transition:fly={{ y: 500, duration: 280 }}
     >
       <!-- Header drag bar indicator -->

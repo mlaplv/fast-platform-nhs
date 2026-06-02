@@ -26,8 +26,16 @@
       `AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ`,
   });
 
-  const showHeadline = $derived(lightLiveEdit.isEditMode || (!!product?.metadata?.diagnostics_headline && !product.metadata.diagnostics_headline.startsWith('[OFF]')));
-  const showSubtitle = $derived(lightLiveEdit.isEditMode || (!!product?.metadata?.diagnostics_subtitle && !product.metadata.diagnostics_subtitle.startsWith('[OFF]')));
+  const showHeadline = $derived(
+    lightLiveEdit.isEditMode ||
+    !product?.metadata?.diagnostics_headline ||
+    !product.metadata.diagnostics_headline.startsWith('[OFF]')
+  );
+  const showSubtitle = $derived(
+    lightLiveEdit.isEditMode ||
+    !product?.metadata?.diagnostics_subtitle ||
+    !product.metadata.diagnostics_subtitle.startsWith('[OFF]')
+  );
 </script>
 
 <section
@@ -56,7 +64,7 @@
           </EditableWrapper>
         </span>
         {#if showSubtitle}
-          <span>
+          <span class="diagnostics-subtitle-text">
             <EditableWrapper
               path="metadata.diagnostics_subtitle"
               type="text"
@@ -127,7 +135,7 @@
     margin-bottom: 0.15rem;
   }
   
-  .diagnostics-headline :global(span:last-child) {
+  .diagnostics-headline :global(.diagnostics-subtitle-text) {
     font-size: 0.65em !important;
     opacity: 0.8;
     letter-spacing: 0.05em !important;

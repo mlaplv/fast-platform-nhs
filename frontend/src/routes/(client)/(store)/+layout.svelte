@@ -18,7 +18,6 @@
   const searchStore = getSearchStore();
 
   let NeuralBarComponent = $state<Component<any> | null>(null);
-  let DailyCheckinComponent = $state<Component<any> | null>(null);
 
   // Elite V2.2: Zero-Latency State Sync (Sync before mount to prevent CLS)
   if (data.isMobile !== undefined) {
@@ -42,14 +41,7 @@
         fomoStore.init('smartshop-elite');
     }
 
-    // Elite V2.2: Lazy Defer Daily Check-in component by 3 seconds to protect initial hydration TBT/LCP
-    if (!isAdmin) {
-      setTimeout(() => {
-        import("$lib/components/storefront/loyalty/DailyCheckinLanding.svelte").then(m => {
-          DailyCheckinComponent = m.default;
-        });
-      }, 3000);
-    }
+
 
     return ui.initObservers();
   });
@@ -152,9 +144,4 @@
     <SmartSearch variant="mobile-overlay" />
   {/if}
 
-  <!-- Daily Check-in FOMO Popup — trì hoãn tải động theo chu kỳ tối ưu -->
-  {#if DailyCheckinComponent}
-    {@const CheckinLanding = DailyCheckinComponent}
-    <CheckinLanding />
-  {/if}
 </div>
