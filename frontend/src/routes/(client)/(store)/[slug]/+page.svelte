@@ -7,7 +7,7 @@
   import { onMount, untrack } from 'svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { afterNavigate } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import type { PageData } from './$types';
   import type { PageData as FunnelPageData } from '../../[slug]-funnel/$types';
   import { resolveOptimizedImageUrl } from '$lib/state/utils';
@@ -22,7 +22,7 @@
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
-  const siteUrl = $derived($page.url.origin);
+  const siteUrl = $derived(page.url.origin);
   const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || 'SmartShop');
 
   interface NewsItem {
@@ -130,7 +130,7 @@
     // Reactively track pathname, type, and device state
     const type = data.type;
     const isMobile = ui.isMobile;
-    const path = $page.url.pathname;
+    const path = page.url.pathname;
 
     untrack(async () => {
       try {
