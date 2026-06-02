@@ -4,9 +4,8 @@
   import Droplets from "@lucide/svelte/icons/droplets";
   import HelpCircle from "@lucide/svelte/icons/help-circle";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
-  import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
+
   import "./MobileScience.css";
-  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
 
   const shopStore = getShopStore();
@@ -14,11 +13,7 @@
   let { product: propProduct } = $props<{
     product: import("$lib/types").Product | null;
   }>();
-  const product = $derived(
-    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
-      ? lightLiveEdit.dirtyProduct
-      : propProduct || shopStore.product,
-  );
+  const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
   const claims = $derived([
@@ -138,26 +133,12 @@
     <h2
       class="text-center text-3xl font-black text-white italic tracking-tight"
     >
-      <EditableWrapper
-        path="metadata.science_headline"
-        type="text"
-        label="SỬA TIÊU ĐỀ"
-        as="span"
-      >
-        {metadata.science_headline || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?"}
-      </EditableWrapper>
+      {metadata.science_headline || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?"}
     </h2>
 
     <p class="science-subheadline">
-      <EditableWrapper
-        path="metadata.science_subheadline"
-        type="text"
-        label="SỬA MÔ TẢ PHỤ"
-        as="span"
-      >
-        {metadata.science_subheadline ||
-          `Đột phá công thức hàng đầu từ Nhật Bản.`}
-      </EditableWrapper>
+      {metadata.science_subheadline ||
+        `Đột phá công thức hàng đầu từ Nhật Bản.`}
     </p>
   </div>
 
@@ -181,24 +162,11 @@
 
           <div class="claim-info">
             <h4 class="claim-title">
-              <EditableWrapper
-                path={`metadata.science_claims[${i}].label`}
-                type="text"
-                label="SỬA NHÃN {i + 1}"
-                as="span"
-              >
-                {item.title}
-              </EditableWrapper>
+              {item.title}
             </h4>
 
             <div class="claim-desc">
-              <EditableWrapper
-                path={`metadata.science_claims[${i}].content`}
-                type="text"
-                label="SỬA MÔ TẢ {i + 1}"
-              >
-                {item.desc}
-              </EditableWrapper>
+              {item.desc}
             </div>
           </div>
         </div>
@@ -251,14 +219,7 @@
               onclick={() => openFaq(i)}
             >
               <span class="faq-q-text">
-                <EditableWrapper
-                  path={`metadata.science_faq_${i + 1}_q`}
-                  type="text"
-                  label={`SỬA CÂU HỎI ${i + 1}`}
-                  as="span"
-                >
                   {faq.q}
-                </EditableWrapper>
               </span>
             </button>
           {/each}

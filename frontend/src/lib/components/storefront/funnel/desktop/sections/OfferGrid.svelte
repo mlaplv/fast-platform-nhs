@@ -85,8 +85,8 @@
 
 <section class="offer-section relative contain-layout">
   <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none"></div>
-  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
-  <div class="liquid-orb botto    <div class="container mx-auto px-3 max-w-6xl relative z-surface">
+  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
+  <div class="container mx-auto px-3 max-w-6xl relative z-surface">
     <div class="text-center">
       <h2 class="elite-session-headline mb-4 text-center offer-grid-headline">
         {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || lightLiveEdit.isEditMode}

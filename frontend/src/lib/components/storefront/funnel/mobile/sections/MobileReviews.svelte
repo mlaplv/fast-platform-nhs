@@ -12,11 +12,10 @@
   import User from "@lucide/svelte/icons/user";
   import Send from "@lucide/svelte/icons/send";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
-  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
-  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import type { Review } from '$lib/types';
+
+  import type { Review, Product } from '$lib/types';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
@@ -27,8 +26,23 @@
   let { product: propProduct, initialReviews = [] }: Props = $props();
   const shopStore = getShopStore();
   const ui = getClientUi();
-  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
+  const trustScoreNum = $derived(parseFloat(String(metadata.reviews_trust_score || '4.9').split('/')[0]));
+  const reviewsCountTextFormatted = $derived.by(() => {
+    const raw = product?.orderCountText || metadata?.reviews_count_text || '';
+    if (raw) {
+      if (raw.toLowerCase().includes('lượt') || raw.toLowerCase().includes('mua')) {
+        return raw;
+      }
+      return `${raw} lượt mua`;
+    }
+    const count = product?.orderCount || product?.order_count;
+    if (count) {
+      return `${count.toLocaleString()}+ lượt mua`;
+    }
+    return '1.000+ lượt mua';
+  });
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
@@ -197,47 +211,18 @@
     <div class="inline-flex items-center gap-2 px-3 py-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full backdrop-blur-md mb-6">
       <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.6)]"></div>
       <span class="text-[10px] tracking-[0.1em] text-[#FFB7C5] font-black italic">
-        <EditableWrapper path="metadata.reviews_hud_feedback" label="SỬA NHÃN HỆ THỐNG" as="span">
-          {metadata.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế'}
-        </EditableWrapper>
+        {metadata.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế'}
       </span>
     </div>
     
     <div class="header-content text-center mb-8 relative">
         <h2 class="text-2xl font-black text-white tracking-tighter mb-4 italic">
-          <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-            {h1}
-          </EditableWrapper>
+          {h1}
           <br/>
           <span class="text-luxury-sakura">
-            <EditableWrapper path="metadata.reviews_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-              {h2}
-            </EditableWrapper>
+            {h2}
           </span>
         </h2>
-    </div>
-
-    <div class="flex items-center gap-4 bg-white/[0.03] w-full px-5 py-4 rounded-3xl border border-white/10 backdrop-blur-xl">
-      <div class="flex items-center gap-1">
-        {#each Array(5) as _, i}
-          <Star class="w-3.5 h-3.5 {i < 5 ? 'text-amber-400 fill-amber-400' : 'text-white/10'} drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
-        {/each}
-      </div>
-      <div class="h-4 w-px bg-white/10"></div>
-      <div class="flex flex-col flex-1">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black text-white italic">
-            <EditableWrapper path="metadata.reviews_trust_score" label="SỬA ĐIỂM" as="span">
-              {metadata.reviews_trust_score || '4.9/5'}
-            </EditableWrapper>
-          </span>
-          <span class="text-[10px] text-[#FFB7C5] font-black tracking-tight">
-            <EditableWrapper path="metadata.reviews_count_text" label="SỬA SỐ LƯỢT MUA" as="span">
-              {product?.orderCountText || metadata.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua` : '')}
-            </EditableWrapper>
-          </span>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -253,18 +238,23 @@
       </div>
     {:else}
       {#each realReviews.slice(0, 8) as review, i}
-        <div class="review-card-mobile flex-none snap-start p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
+        <div class="review-card-mobile flex-none snap-start p-6 bg-white/[0.03] border border-white/10 rounded-[5px] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
-                {review.initial}
+              <div class="w-12 h-12 rounded-[5px] bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
+                {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
               </div>
-              <div>
-                <h4 class="text-white font-black text-sm tracking-tight italic">{review.name}</h4>
-                <div class="flex items-center gap-2">
-                  <span class="text-[8px] text-white/30 font-black tracking-[0.2em]">{review.location}</span>
-                  <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40"></div>
-                  <span class="text-[8px] text-[#FFB7C5] font-black tracking-widest">{labels.label_verified}</span>
+              <div class="flex flex-col min-w-0">
+                <h4 class="text-white font-black text-sm tracking-tight italic leading-tight mb-1">{review.name || review.customer_name}</h4>
+                <div class="flex flex-col gap-0.5">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] text-white/40 font-bold tracking-tight">{review.location || review.customer_location || 'Việt Nam'}</span>
+                    <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
+                    <span class="text-[9px] text-[#FFB7C5] font-black tracking-widest uppercase">{labels.label_verified}</span>
+                  </div>
+                  <span class="text-[9px] text-white/20 font-mono tracking-wider">
+                    {review.phone || (review.customer_phone ? review.customer_phone.slice(0, 3) + '****' + review.customer_phone.slice(-3) : '09x****xxx')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -281,16 +271,13 @@
             {/each}
           </div>
 
-          <p class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight">
-            "{@html review.content}"
-          </p>
+          <div class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight review-content-text">“{@html review.content}”</div>
         </div>
       {/each}
     {/if}
   </div>
 
   <div class="mt-4 pb-6 px-[23px]">
-    <EditableWrapper path="metadata.reviews_cta_write" label="SỬA NÚT CTA" class="w-full">
       <button 
         onclick={() => {
           if (!authStore.isAuthenticated) {
@@ -303,7 +290,6 @@
       >
         <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
       </button>
-    </EditableWrapper>
   </div>
 
   <div class="absolute -top-32 -right-32 w-80 h-80 bg-[#FFB7C5]/5 blur-[120px] rounded-full pointer-events-none"></div>
@@ -524,5 +510,11 @@
 
   .reviews-toast {
     z-index: var(--z-toast);
+  }
+
+  :global(.review-content-text p) {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 </style>

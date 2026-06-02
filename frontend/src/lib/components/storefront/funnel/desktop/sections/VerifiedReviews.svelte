@@ -683,41 +683,43 @@
                     <div
                       class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500"
                     >
-                      {review.initial}
+                      {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
                       <div
                         class="absolute inset-0 bg-luxury-sakura/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"
                       ></div>
                     </div>
                     <div class="user-meta flex flex-col min-w-0">
-                      <div class="flex items-center gap-2 mb-0.5">
-                        <span
-                          class="user-name font-black text-base text-white/95 tracking-tight truncate"
-                          >{review.name}</span
-                        >
-                        <span
-                          class="text-[10px] text-white/20 font-mono italic shrink-0 leading-none"
-                          >{review.phone}</span
-                        >
-                        <div
-                          class="verified-badge-mini text-luxury-sakura shrink-0"
-                        >
-                          <svg
-                            class="w-3.5 h-3.5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
+                      <h4 class="user-name font-black text-base text-white/95 tracking-tight truncate leading-tight mb-1">{review.name || review.customer_name}</h4>
+                      <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1.5 leading-none">
+                          <span
+                            class="text-[10px] text-white/40 font-bold tracking-tight"
+                            >{review.location || review.customer_location || 'Việt Nam'}</span
                           >
-                            <path
-                              fill-rule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
+                          <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
+                          <span
+                            class="text-[9px] text-[#C18F7E] font-black tracking-widest uppercase"
+                            >{labels.label_verified}</span
+                          >
+                          <div
+                            class="verified-badge-mini text-luxury-sakura shrink-0 ml-0.5"
+                          >
+                            <svg
+                              class="w-3.5 h-3.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                      <div class="flex items-center gap-2">
                         <span
-                          class="text-[8px] text-white/30 tracking-[0.2em] font-black font-mono leading-none"
-                          >{review.location}</span
+                          class="text-[10px] text-white/20 font-mono tracking-wider"
+                          >{review.phone || (review.customer_phone ? '0' + review.customer_phone.slice(-9, -3) + '***' : '09x****xxx')}</span
                         >
                       </div>
                       <div class="flex items-center gap-0.5 mt-1.5">

@@ -6,15 +6,14 @@
    */
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
-  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+
   import AddressSelector from '../checkout/AddressSelector.svelte';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte';
-  import { SHOP_CONFIG, OFFER_CONSTANTS, PRIVACY_CONSTANTS } from '$lib/constants/shop';
+  import { SHOP_CONFIG } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { ProductVariant, Product, Voucher } from '$lib/types';
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import Check from "@lucide/svelte/icons/check";
-  import Gift from "@lucide/svelte/icons/gift";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Flame from "@lucide/svelte/icons/flame";
   import Star from "@lucide/svelte/icons/star";
@@ -22,7 +21,6 @@
   import Info from "@lucide/svelte/icons/info";
   import { formatCurrency } from '$lib/utils/format';
   import { fade, fly, scale } from 'svelte/transition';
-  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte';
@@ -44,11 +42,7 @@
   const shopStore = getShopStore();
   const cartStore = getCartStore();
   
-  const product: Product | null = $derived(
-    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct 
-      ? lightLiveEdit.dirtyProduct 
-      : (propProduct || shopStore.product)
-  );
+  const product: Product | null = $derived(propProduct || shopStore.product);
 
   const variants: ProductVariant[] = $derived(product?.variants || []);
   const metadata = $derived((product?.metadata || {}) as Record<string, string | undefined>);
@@ -69,11 +63,18 @@
   );
   const selectedVariant: ProductVariant | null = $derived(variants[selectedIndex] ?? variants[0] ?? null);
 
+  const clean = (s: unknown) => {
+    if (!s) return "";
+    return String(s)
+      .replace(/^(\[OFF\]|\*|\s)+/i, '')
+      .trim();
+  };
+
   const h1: string = $derived(
-    metadata.offer_headline_1 || (product?.name ? product.name.split(' ')[0] : "Siêu ưu đãi")
+    clean(metadata.offer_headline_1) || (product?.name ? product.name.split(' ')[0] : "Siêu ưu đãi")
   );
   const h2: string = $derived(
-    metadata.offer_headline_2 || (product?.name ? product.name.split(' ').slice(1).join(' ') : "độc quyền")
+    clean(metadata.offer_headline_2) || (product?.name ? product.name.split(' ').slice(1).join(' ') : "độc quyền")
   );
 
   const variantImages = $derived(variants.map((v, i) => {
@@ -198,36 +199,40 @@
           <div class="w-1 h-1 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
           <span class="offer-status-label text-[9px] font-bold text-white/90 tracking-tight italic">
             <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> 
-            <EditableWrapper path="metadata.offer_viewers_suffix" type="text" label="SỬA NHÃN" class="inline" as="span">
-              {metadata.offer_viewers_suffix || 'đang xem'}
-            </EditableWrapper>
+            {metadata.offer_viewers_suffix || 'đang xem'}
           </span>
        </div>
     </div>
 
+    {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
     <h3 class="text-3xl font-black text-center italic tracking-tighter leading-tight mb-2">
+      {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]')}
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40">
-        <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">{h1}</EditableWrapper>
+        {h1}
       </span>
+      {/if}
+      
+      {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
       <br/>
+      {/if}
+      
+      {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]')}
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-[#FFB7C5] via-[#E8D5B0] to-white drop-shadow-[0_0_20px_rgba(255,183,197,0.5)]">
-        <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">{h2}</EditableWrapper>
+        {h2}
       </span>
+      {/if}
     </h3>
+    {/if}
 
     <div class="flex items-center justify-center gap-4 mt-2">
         <div class="flex items-center gap-1.5">
            <ShoppingBag class="w-2.5 h-2.5 text-[#FFB7C5]" />
-           <EditableWrapper path="metadata.offer_sales_label" type="text" label="SỬA NHÃN BÁN HÀNG" class="inline" as="span">
-             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{(fomoStore.totalSales || product?.orderCount || 0).toLocaleString()} {metadata.offer_sales_label || 'đã bán'}</span>
-           </EditableWrapper>
+           <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{(fomoStore.totalSales || product?.orderCount || 0).toLocaleString()} {metadata.offer_sales_label || 'đã bán'}</span>
         </div>
         {#if product?.metadata?.reviews_trust_score}
         <div class="flex items-center gap-1.5">
            <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-           <EditableWrapper path="metadata.offer_rating_label" type="text" label="SỬA NHÃN RATING" class="inline" as="span">
-             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{product.metadata.reviews_trust_score.toFixed(1)}/5 ({product.metadata.review_count || 0} đánh giá)</span>
-           </EditableWrapper>
+           <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{product.metadata.reviews_trust_score.toFixed(1)}/5 ({product.metadata.review_count || 0} đánh giá)</span>
         </div>
         {/if}
     </div>
@@ -453,9 +458,7 @@
                 <span class="cta-selection-label text-white text-[11px] font-black italic">Chọn combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="cta-points-label text-[9px] text-[#FFB7C5] font-bold tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20 whitespace-nowrap">Tích +{Math.floor(shopStore.totalAmount / 100000)} điểm</span>
-                   <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
-                     <span class="cta-ship-label text-[10px] text-white/30 font-bold tracking-widest italic">• {metadata.offer_shipping_label || 'Freeship'}</span>
-                   </EditableWrapper>
+                   <span class="cta-ship-label text-[10px] text-white/30 font-bold tracking-widest italic">• {metadata.offer_shipping_label || 'Freeship'}</span>
                 </div>
               </div>
               <div class="flex items-center gap-3 ml-auto">

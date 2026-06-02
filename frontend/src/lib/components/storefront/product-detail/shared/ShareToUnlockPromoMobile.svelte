@@ -16,7 +16,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { 
-    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
+    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti, getProductLikeCount
   } from '$lib/utils/commerce/viral';
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
@@ -179,8 +179,7 @@
   const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
 
   const isLiked = $derived(isMounted ? wishlistStore.isLiked(product.id) : false);
-  const baseLikeCount = $derived(Number(viralSuite?.likes_count || (product.metadata as ProductMetadata)?.likes || shareCount * 12 || 0));
-  const likeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
+  const likeCount = $derived(getProductLikeCount(product, isLiked));
 
   function toggleLike() {
     wishlistStore.toggle(product.id);

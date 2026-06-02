@@ -2,9 +2,6 @@
   import { onMount, tick } from "svelte";
   import { fade, fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import Trash2 from "@lucide/svelte/icons/trash-2";
-  import GripVertical from "@lucide/svelte/icons/grip-vertical";
-  import Plus from "@lucide/svelte/icons/plus";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
@@ -17,31 +14,23 @@
   import Timer from "@lucide/svelte/icons/timer";
   import Calendar from "@lucide/svelte/icons/calendar";
   import Dna from "@lucide/svelte/icons/dna";
-  import PlusCircle from "@lucide/svelte/icons/plus-circle";
   import Flame from "@lucide/svelte/icons/flame";
   import Sun from "@lucide/svelte/icons/sun";
   import Droplets from "@lucide/svelte/icons/droplets";
   import Moon from "@lucide/svelte/icons/moon";
   import CloudMoon from "@lucide/svelte/icons/cloud-moon";
   import ShieldAlert from "@lucide/svelte/icons/shield-alert";
-  import Target from "@lucide/svelte/icons/target";
   import Heart from "@lucide/svelte/icons/heart";
   import Wind from "@lucide/svelte/icons/wind";
   import Shield from "@lucide/svelte/icons/shield";
   import Layers from "@lucide/svelte/icons/layers";
+  import Target from "@lucide/svelte/icons/target";
+  import PlusCircle from "@lucide/svelte/icons/plus-circle";
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
-  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
-  import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
-  import { PUBLIC_G_BY_COUNT } from "$env/static/public";
-
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
-  const product = $derived(
-    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
-      ? lightLiveEdit.dirtyProduct
-      : propProduct || shopStore.product,
-  );
+  const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
   const selectedAreaLabel = $derived(
     answers.find((ans) => ans.q.includes("giải cứu"))?.a || "",
@@ -160,84 +149,6 @@
   });
 
   let currentStep = $state(0);
-  const isEditable = $derived(lightLiveEdit.isEditMode);
-  let draggingIdx = $state<number | null>(null);
-
-  // Lazy-load admin update helper
-  async function updateQuizQuestions(newQuestions: any) {
-    const { liveEditStore } = await import('$lib/state/commerce/liveEdit.svelte');
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
-  }
-
-  async function updateFieldLazy(path: string, value: any) {
-    const { liveEditStore } = await import('$lib/state/commerce/liveEdit.svelte');
-    liveEditStore.updateField(path, value);
-  }
-
-  function addQuestion() {
-    const newQuestion = {
-      id: `q_${Date.now()}`,
-      title: "Câu hỏi mới?",
-      subtitle: "Mô tả ngắn để khách hàng hiểu ngữ cảnh...",
-      options: [
-        {
-          label: "Lựa chọn 1",
-          value: `v1_${Date.now()}`,
-          score: 0,
-          icon: "Circle",
-        },
-        {
-          label: "Lựa chọn 2",
-          value: `v2_${Date.now()}`,
-          score: 0,
-          icon: "Circle",
-        },
-        {
-          label: "Lựa chọn 3",
-          value: `v3_${Date.now()}`,
-          score: 0,
-          icon: "Circle",
-        },
-      ],
-    };
-    const newQuestions = [newQuestion, ...questions];
-    updateQuizQuestions(newQuestions);
-  }
-
-  function handleDragStart(idx: number) {
-    draggingIdx = idx;
-  }
-  function handleDragOver(e: DragEvent, idx: number) {
-    e.preventDefault();
-  }
-  function handleDrop(targetIdx: number) {
-    if (draggingIdx === null || draggingIdx === targetIdx) return;
-    const newQuestions = JSON.parse(JSON.stringify(questions));
-    const [movedItem] = newQuestions.splice(draggingIdx, 1);
-    newQuestions.splice(targetIdx, 0, movedItem);
-    updateQuizQuestions(newQuestions);
-    draggingIdx = null;
-  }
-  function removeQuestion(idx: number) {
-    const newQuestions = questions.filter((_, i) => i !== idx);
-    updateQuizQuestions(newQuestions);
-  }
-  function addOption(qIdx: number) {
-    const newQuestions = JSON.parse(JSON.stringify(questions));
-    newQuestions[qIdx].options.push({
-      label: "Lựa chọn mới",
-      value: `v_${Date.now()}`,
-      score: 0,
-      icon: "Circle",
-    });
-    updateQuizQuestions(newQuestions);
-  }
-  function removeOption(qIdx: number, oIdx: number) {
-    const newQuestions = JSON.parse(JSON.stringify(questions));
-    newQuestions[qIdx].options.splice(oIdx, 1);
-    updateQuizQuestions(newQuestions);
-  }
-
   let answers = $state<Array<{ q: string; a: string }>>([]);
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
@@ -541,16 +452,10 @@
       <h2
         class="text-center text-3xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow"
       >
-        <EditableWrapper
-          path="metadata.diagnostics_headline"
-          type="text"
-          label="Sửa tiêu đề"
-        >
           {@html (
             product?.metadata?.diagnostics_headline ||
             'Chẩn đoán phục hồi <span class="text-blue-500">Sắc tố gốc</span>'
           ).replace("Sắc tố gốc", "<br/>Sắc tố gốc")}
-        </EditableWrapper>
       </h2>
     </div>
   {/if}
@@ -839,156 +744,11 @@
               class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/20 tracking-[0.15em] hover:text-[#FFB7C5] transition-colors"
             >
               <RefreshCw class="w-2.5 h-2.5" />
-              <EditableWrapper
-                path="metadata.quiz_restart_label"
-                label="SỬA CHỮ RESTART"
-              >
                 <span class="sentence-case-target"
                   >{product?.metadata?.quiz_restart_label ||
                     "Thiết lập lại"}</span
                 >
-              </EditableWrapper>
             </button>
-          </div>
-        </div>
-      {:else if isEditable}
-        <div
-          class="edit-mode-container flex-1 flex flex-col min-h-0 relative z-surface animate-reveal py-4"
-        >
-          <div
-            class="flex items-center justify-between mb-6 border-b border-white/5 pb-4"
-          >
-            <div class="flex items-center gap-2">
-              <div
-                class="w-2 h-2 rounded-full bg-[#FFB7C5] animate-pulse"
-              ></div>
-              <h3 class="text-[10px] font-bold text-white tracking-widest">
-                QUIZ DIRECT ENGINE
-              </h3>
-            </div>
-            <button
-              onclick={addQuestion}
-              class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold rounded-lg shadow-xl active:scale-95 transition-all"
-            >
-              <Plus size={12} /> THÊM CÂU
-            </button>
-          </div>
-
-          <div
-            class="flex-1 space-y-6 overflow-y-auto px-1 pb-32 hide-scrollbar relative z-10 touch-pan-y"
-          >
-            {#each questions as question, qIdx (question.id)}
-              <div
-                class="bg-white/[0.02] border border-white/10 rounded-2xl p-4 relative group/q transition-all duration-300 {draggingIdx ===
-                qIdx
-                  ? 'opacity-20 scale-95 border-blue-500/50'
-                  : ''}"
-                draggable="true"
-                ondragstart={() => handleDragStart(qIdx)}
-                ondragover={(e) => handleDragOver(e, qIdx)}
-                ondrop={() => handleDrop(qIdx)}
-                ondragend={() => (draggingIdx = null)}
-              >
-                <div
-                  class="absolute -left-2 top-1/2 -translate-y-1/2 p-2 text-white/20 active:text-blue-400"
-                >
-                  <GripVertical size={16} />
-                </div>
-
-                <button
-                  onclick={() => removeQuestion(qIdx)}
-                  class="absolute -top-2 -right-2 w-6 h-6 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center border border-red-500/20 active:bg-red-500 active:text-white"
-                >
-                  <Trash2 size={10} />
-                </button>
-
-                <div class="pl-4 space-y-4">
-                  <div class="space-y-1">
-                    <label
-                      class="text-[7px] font-bold text-white/30 tracking-widest"
-                      >Câu hỏi</label
-                    >
-                    <input
-                      bind:value={question.title}
-                      class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
-                      oninput={() =>
-                        updateFieldLazy(
-                          `metadata.quiz_questions.${qIdx}.title`,
-                          question.title,
-                        )}
-                    />
-                  </div>
-                  <div class="space-y-1">
-                    <label
-                      class="text-[7px] font-bold text-white/30 tracking-widest"
-                      >Mô tả (Subtitle)</label
-                    >
-                    <input
-                      bind:value={question.subtitle}
-                      class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
-                      oninput={() =>
-                        updateFieldLazy(
-                          `metadata.quiz_questions.${qIdx}.subtitle`,
-                          question.subtitle,
-                        )}
-                    />
-                  </div>
-
-                  <div class="space-y-2 pt-2">
-                    <div class="flex items-center justify-between">
-                      <span
-                        class="text-[7px] font-bold text-[#FFB7C5]/60 tracking-widest"
-                        >Các Lựa chọn</span
-                      >
-                      <button
-                        onclick={() => addOption(qIdx)}
-                        class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded"
-                      >
-                        <PlusCircle size={8} /> THÊM
-                      </button>
-                    </div>
-                    <div class="grid grid-cols-1 gap-2">
-                      {#each question.options as option, oIdx}
-                        <div
-                          class="flex items-center gap-2 p-2 bg-black/20 border border-white/5 rounded-lg"
-                        >
-                          <input
-                            bind:value={option.label}
-                            class="flex-1 bg-transparent text-[10px] font-medium text-white outline-none"
-                            oninput={() =>
-                              updateFieldLazy(
-                                `metadata.quiz_questions.${qIdx}.options.${oIdx}.label`,
-                                option.label,
-                              )}
-                          />
-                          <div
-                            class="flex items-center gap-1 bg-white/5 px-1 py-1 rounded border border-white/5"
-                          >
-                            <Target size={8} class="text-white/20" />
-                            <input
-                              type="number"
-                              bind:value={option.score}
-                              class="w-5 bg-transparent text-[9px] font-bold text-[#FFB7C5] text-center outline-none"
-                              oninput={() =>
-                                updateFieldLazy(
-                                  `metadata.quiz_questions.${qIdx}.options.${oIdx}.score`,
-                                  option.score,
-                                )}
-                            />
-                          </div>
-                          <button
-                            onclick={() => removeOption(qIdx, oIdx)}
-                            class="text-red-500/40 active:text-red-400 p-1"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                        </div>
-                      {/each}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            {/each}
           </div>
         </div>
       {:else}

@@ -31,16 +31,13 @@
 
   import './mobile.css';
 
-  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   const shopStore = getShopStore();
 
   // ⚡ Elite V2.2: $props() MUST be declared before any $derived that references props
   let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
 
-  const isEditMode = $derived(lightLiveEdit.isEditMode);
-
   // Elite V2.2: Reactive switching between live data and edited data
-  const product = $derived((isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : shopStore.product) || propProduct);
+  const product = $derived(shopStore.product || propProduct);
 
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);

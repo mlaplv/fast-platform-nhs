@@ -3,13 +3,12 @@
   import './MobileVideoBanner.css';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { Product } from '$lib/types';
-  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
+
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
 
   let { product: propProduct } = $props<{ product: Product | null }>();
   const shopStore = getShopStore();
-  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
@@ -157,7 +156,6 @@
 
 <div class="video-banner-root">
     {#if videoMode}
-      <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO BANNER" class="w-full h-full z-0">
         {#if videoMode === 'local'}
           <video
             bind:this={videoEl}
@@ -187,7 +185,6 @@
             </div>
           {/key}
         {/if}
-      </EditableWrapper>
     {/if}
 
     <div class="gradient-top"></div>
@@ -196,22 +193,16 @@
     <div class="meta-overlay">
       <div class="content-overlay">
       <h2 class="headline">
-        <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-          {h1}
-        </EditableWrapper>
+        {h1}
         <br/>
         <span class="headline-shift">
-          <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-            {h2}
-          </EditableWrapper>
+          {h2}
         </span>
       </h2>
         
         {#if processedDescription}
           <div class="description tiktok-shadow">
-            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ" as="div">
-              {@html processedDescription}
-            </EditableWrapper>
+            {@html processedDescription}
           </div>
         {/if}
         
@@ -219,21 +210,15 @@
           {#each metrics as metric, i}
             <div class="metric-item">
               <div class="metric-dot"></div>
-              <EditableWrapper path="metadata.hero_metrics[{i}].label" value={metric.label} label="SỬA NHÃN {i+1}" as="span">
-                <span class="metric-label whitespace-nowrap text-sakura-pink">{metric.label}</span>
-              </EditableWrapper>
-              <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
-                <span class="metric-value whitespace-nowrap">{metric.value}</span>
-              </EditableWrapper>
+              <span class="metric-label whitespace-nowrap text-sakura-pink">{metric.label}</span>
+              <span class="metric-value whitespace-nowrap">{metric.value}</span>
             </div>
           {/each}
         </div>
       </div>
 
       <div class="handle-row">
-        <EditableWrapper path="metadata.mobile_handle" label="SỬA HANDLE">
-          <p class="handle tiktok-shadow">{handle}</p>
-        </EditableWrapper>
+        <p class="handle tiktok-shadow">{handle}</p>
       </div>
     </div>
   </div>

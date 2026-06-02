@@ -13,12 +13,6 @@
   import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
 
-  // ── Dynamic Component State (Zero Bundle Overlap) ──────────────────────────
-  // Each component is isolated in its own Vite chunk.
-  // A mobile user NEVER downloads desktop code, and vice versa.
-  // Funnel/Landing is completely separate from product-detail bundles.
-  let activeComponent = $state<Component<any> | null>(null);
-  let activeProps = $state<Record<string, unknown>>({});
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
@@ -118,49 +112,42 @@
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
 
   // ── Elite Code Splitting: Load exactly ONE bundle per user session ──────────
-  // Vite creates separate async chunks for each branch:
-  //   chunk-funnel        → Landing/Viral pages
-  //   chunk-product-desk  → Desktop product detail
-  //   chunk-product-mob   → Mobile product detail
-  //   chunk-list-desk     → Desktop category/search list
-  //   chunk-list-mob      → Mobile category list
-  //   chunk-news-desk     → Desktop news list
-  //   chunk-news-mob      → Mobile news list
-  $effect(() => {
-    // Reactively track pathname, type, and device state
+  const loaderPromise = $derived.by(() => {
     const type = data.type;
     const isMobile = ui.isMobile;
-    const path = page.url.pathname;
 
-    untrack(async () => {
+    return (async () => {
       try {
         if (type === 'product' && productData) {
           if (isFunnel && funnelPageData) {
             // ── Funnel / Landing (isolated chunk) ─────────────────────────────
             const { default: FunnelPage } = await import('$lib/components/storefront/funnel/FunnelManager.svelte');
-            activeComponent = FunnelPage;
-            activeProps = { data: funnelPageData };
+            return { component: FunnelPage, props: { data: funnelPageData } };
           } else if (isMobile) {
             // ── Mobile Product Detail (isolated chunk) ─────────────────────────
             const { default: ProductDetailMobile } = await import(
               '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
             );
-            activeComponent = ProductDetailMobile;
-            activeProps = {
-              product: productData.product,
-              relatedProducts: productData.relatedProducts,
-              reviewStats: productData.reviewStats
+            return {
+              component: ProductDetailMobile,
+              props: {
+                product: productData.product,
+                relatedProducts: productData.relatedProducts,
+                reviewStats: productData.reviewStats
+              }
             };
           } else {
             // ── Desktop Product Detail (isolated chunk) ─────────────────────────
             const { default: ProductDetailDesktop } = await import(
               '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
             );
-            activeComponent = ProductDetailDesktop;
-            activeProps = {
-              product: productData.product,
-              relatedProducts: productData.relatedProducts,
-              reviewStats: productData.reviewStats
+            return {
+              component: ProductDetailDesktop,
+              props: {
+                product: productData.product,
+                relatedProducts: productData.relatedProducts,
+                reviewStats: productData.reviewStats
+              }
             };
           }
         } else if (type === 'news' && newsData) {
@@ -168,48 +155,51 @@
             const { default: NewsListMobile } = await import(
               '$lib/components/storefront/news/NewsListMobile.svelte'
             );
-            activeComponent = NewsListMobile;
-            activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+            return { component: NewsListMobile, props: { newsList: newsData.items, categoryName: newsData.categoryName } };
           } else {
             const { default: NewsListDesktop } = await import(
               '$lib/components/storefront/news/NewsListDesktop.svelte'
             );
-            activeComponent = NewsListDesktop;
-            activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+            return { component: NewsListDesktop, props: { newsList: newsData.items, categoryName: newsData.categoryName } };
           }
         } else if (type === 'category' && categoryData) {
           if (isMobile) {
             const { default: ProductListMobile } = await import(
               '$lib/components/storefront/product/ProductListMobile.svelte'
             );
-            activeComponent = ProductListMobile;
-            activeProps = {
-              products: categoryData.items,
-              categoryName: categoryData.categoryName,
-              categorySlug: categoryData.categorySlug,
-              serverTotal: categoryData.serverTotal,
-              facets: categoryData.facets,
-              category: categoryData.category
+            return {
+              component: ProductListMobile,
+              props: {
+                products: categoryData.items,
+                categoryName: categoryData.categoryName,
+                categorySlug: categoryData.categorySlug,
+                serverTotal: categoryData.serverTotal,
+                facets: categoryData.facets,
+                category: categoryData.category
+              }
             };
           } else {
             const { default: ProductListDesktop } = await import(
               '$lib/components/storefront/product/ProductListDesktop.svelte'
             );
-            activeComponent = ProductListDesktop;
-            activeProps = {
-              products: categoryData.items,
-              categoryName: categoryData.categoryName,
-              categorySlug: categoryData.categorySlug,
-              serverTotal: categoryData.serverTotal,
-              facets: categoryData.facets,
-              category: categoryData.category
+            return {
+              component: ProductListDesktop,
+              props: {
+                products: categoryData.items,
+                categoryName: categoryData.categoryName,
+                categorySlug: categoryData.categorySlug,
+                serverTotal: categoryData.serverTotal,
+                facets: categoryData.facets,
+                category: categoryData.category
+              }
             };
           }
         }
       } catch (e) {
         console.error('[PageRouter] Dynamic component import failed:', e);
       }
-    });
+      return null;
+    })();
   });
 </script>
 
@@ -332,9 +322,13 @@
   {/if}
 {/snippet}
 
-{#if activeComponent}
-  {@const DynamicComponent = activeComponent}
-  <DynamicComponent {...activeProps} />
-{:else}
+{#await loaderPromise}
   {@render Skeleton(data.type)}
-{/if}
+{:then res}
+  {#if res}
+    {@const DynamicComponent = res.component}
+    <DynamicComponent {...res.props} />
+  {:else}
+    {@render Skeleton(data.type)}
+  {/if}
+{/await}

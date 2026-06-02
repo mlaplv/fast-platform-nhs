@@ -7,7 +7,7 @@
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Star from "@lucide/svelte/icons/star";
   import StarHalf from "@lucide/svelte/icons/star-half";
-  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+
   import './MobileHero.css';
   import { resolveMediaUrl, resolveOptimizedImageUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
@@ -20,8 +20,7 @@
   const shopStore = getShopStore();
   const currentVariant = $derived(shopStore.variant);
   
-  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
-  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
@@ -39,8 +38,23 @@
   const flashSaleEnd = $derived(metadata.flash_sale_end ? new Date(metadata.flash_sale_end).getTime() : 0);
   let timerSeconds = $state(0);
   let mounted = $state(false);
+  let scrollerWidth = $state(390);
 
-  onMount(() => { mounted = true; });
+  onMount(() => { 
+    mounted = true; 
+    if (variantScroller) {
+      scrollerWidth = variantScroller.clientWidth || window.innerWidth || 390;
+    }
+    const handleResize = () => {
+      if (variantScroller) {
+        scrollerWidth = variantScroller.clientWidth || window.innerWidth || 390;
+      }
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  });
 
   $effect(() => {
     const updateTimer = () => {
@@ -94,8 +108,7 @@
 
   function syncVariantOnScroll() {
     if (!variantScroller) return;
-    const width = variantScroller.clientWidth || window.innerWidth;
-    const index = Math.round(variantScroller.scrollLeft / width);
+    const index = Math.round(variantScroller.scrollLeft / scrollerWidth);
     if (currentVariant?.tierIndex[0] !== index) {
       shopStore.selectVariantByTier([index]);
     }
@@ -103,8 +116,7 @@
 
   $effect(() => {
     if (variantScroller && currentVariant) {
-      const width = variantScroller.clientWidth || window.innerWidth;
-      const targetX = currentVariant.tierIndex[0] * width;
+      const targetX = currentVariant.tierIndex[0] * scrollerWidth;
       if (Math.abs(variantScroller.scrollLeft - targetX) > 10) {
         variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
       }
@@ -163,23 +175,16 @@
 
       <div class="variant-slide relative">
          <!-- Main Content Image (Elite Adaptive Rendering) -->
-         <EditableWrapper 
-           path="tierVariations[0].mobile_images[{i}]" 
-           type="image" 
-           label="SỬA ẢNH BIẾN THỂ {i+1}"
-           class="w-full h-full"
-         >
-           <img
-             src={resolveOptimizedImageUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''), 600)}
-             alt="{product?.name || "Sản phẩm"} - {opt}"
-             width="390"
-             height="844"
-             class="w-full h-full object-cover select-none"
-             loading={i === 0 ? "eager" : "lazy"}
-             fetchpriority={i === 0 ? "high" : "low"}
-             decoding={i === 0 ? "sync" : "async"}
-           />
-         </EditableWrapper>
+            <img
+              src={resolveOptimizedImageUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''), 600)}
+              alt="{product?.name || "Sản phẩm"} - {opt}"
+              width="390"
+              height="844"
+              class="w-full h-full object-cover select-none"
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchpriority={i === 0 ? "high" : "low"}
+              decoding={i === 0 ? "sync" : "async"}
+            />
 
          <!-- Cinematic Smooth Gradient (Elite 2026 Black-Bottom) -->
          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent pointer-events-none"></div>
@@ -197,7 +202,6 @@
             </div>
 
             <!-- Pricing Row -->
-            <EditableWrapper path="price" label="SỬA GIÁ GỐC" class="block w-full pointer-events-auto">
               <div class="flex items-end gap-3 mt-1 pr-14">
                 {#if v?.discountPrice}
                     <span class="text-3xl font-extrabold text-white tracking-tighter drop-shadow-md">
@@ -212,7 +216,6 @@
                     </span>
                 {/if}
               </div>
-            </EditableWrapper>
 
             <!-- Title & Variant (Elite Dynamic Content) -->
             <div class="mb-4">
@@ -240,11 +243,8 @@
                <span class="text-[11px] font-black text-white/95 tracking-wide drop-shadow-md">{rating}/5</span>
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
-
             <div class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
-              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.short_description` : 'shortDescription'} label="SỬA MÔ TẢ NGẮN" as="div">
-                  {@html getProcessedDescription(v)}
-              </EditableWrapper>
+              {@html getProcessedDescription(v)}
             </div>
             
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
@@ -252,11 +252,9 @@
                 {@const Icon = iconMap[metric.color] || Zap}
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
                     <Icon class="w-3 h-3 text-[#FFB7C5]" />
-                    <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
-                      <span class="metric-value text-[10px] font-bold text-white/90 tracking-tight">
-                        {metric.value}
-                      </span>
-                    </EditableWrapper>
+                    <span class="metric-value text-[10px] font-bold text-white/90 tracking-tight">
+                      {metric.value}
+                    </span>
                 </div>
               {/each}
             </div>
