@@ -8,13 +8,6 @@
   import { browser } from "$app/environment";
 
 
-  // ⚡️ Elite 2026: Static imports of primary desktop funnel sections to guarantee complete SSR coverage and 0ms layout flash
-  import DiagnosticsSection from "$lib/components/client/slug/DiagnosticsSection.svelte";
-  import ScienceBento from "$lib/components/client/slug/ScienceBento.svelte";
-  import VerifiedReviews from "$lib/components/client/slug/VerifiedReviews.svelte";
-  import OfferGrid from "$lib/components/client/slug/OfferGrid.svelte";
-  import EliteLandingFooter from "$lib/components/client/slug/EliteLandingFooter.svelte";
-
   import MobileLandingLayout from "$lib/components/mobile/MobileLandingLayout.svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import ScannerHUD from "$lib/components/storefront/product-detail/shared/ScannerHUD.svelte";
@@ -34,6 +27,32 @@
   let themeMode = $state<"system" | "light" | "dark">("system");
   let isMounted = $state(false);
   let loadJIT = $state(false);
+
+  // Desktop Dynamic JIT Components (Elite V2.2)
+  import type { Component } from "svelte";
+  let DiagnosticsSectionComponent = $state<Component<any> | null>(null);
+  let ScienceBentoComponent = $state<Component<any> | null>(null);
+  let VerifiedReviewsComponent = $state<Component<any> | null>(null);
+  let OfferGridComponent = $state<Component<any> | null>(null);
+  let EliteLandingFooterComponent = $state<Component<any> | null>(null);
+
+  $effect(() => {
+    if (loadJIT) {
+      Promise.all([
+        import("$lib/components/client/slug/DiagnosticsSection.svelte"),
+        import("$lib/components/client/slug/ScienceBento.svelte"),
+        import("$lib/components/client/slug/VerifiedReviews.svelte"),
+        import("$lib/components/client/slug/OfferGrid.svelte"),
+        import("$lib/components/client/slug/EliteLandingFooter.svelte")
+      ]).then(([diagMod, sciMod, revMod, offMod, footMod]) => {
+        DiagnosticsSectionComponent = diagMod.default;
+        ScienceBentoComponent = sciMod.default;
+        VerifiedReviewsComponent = revMod.default;
+        OfferGridComponent = offMod.default;
+        EliteLandingFooterComponent = footMod.default;
+      });
+    }
+  });
 
   // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
   const shopStore = setShopStore();
@@ -326,27 +345,61 @@
         {activeId}
       />
       <HeroBanner {scrollToQuiz} {triggerScan} />
+      <div id="jit-trigger"></div>
 
-      <!-- SECTIONS WITH DIRECT STATIC RENDERING (Elite 2026 Optimization) -->
+      <!-- SECTIONS WITH DYNAMIC JIT RENDERING (Elite 2026 Optimization) -->
       {#if hasQuiz}
         <section id="diagnostics" class="snap-session">
-          <DiagnosticsSection {product} />
+          {#if DiagnosticsSectionComponent}
+            {@const Diagnostics = DiagnosticsSectionComponent}
+            <Diagnostics {product} />
+          {:else}
+            <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
+              <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
+            </div>
+          {/if}
         </section>
       {/if}
 
       <section id="science" class="snap-session">
-        <ScienceBento />
+        {#if ScienceBentoComponent}
+          {@const Science = ScienceBentoComponent}
+          <Science />
+        {:else}
+          <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
+            <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
+          </div>
+        {/if}
       </section>
 
       <section id="reviews" class="snap-session">
-        <VerifiedReviews initialReviews={data.reviews} />
+        {#if VerifiedReviewsComponent}
+          {@const VerifiedReviews = VerifiedReviewsComponent}
+          <VerifiedReviews initialReviews={data.reviews} />
+        {:else}
+          <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
+            <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
+          </div>
+        {/if}
       </section>
 
       <section id="offers" class="snap-session">
-        <OfferGrid onTriggerScan={triggerScan} />
+        {#if OfferGridComponent}
+          {@const OfferGrid = OfferGridComponent}
+          <OfferGrid onTriggerScan={triggerScan} />
+        {:else}
+          <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
+            <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
+          </div>
+        {/if}
       </section>
 
-      <EliteLandingFooter {product} onTriggerScan={triggerScan} />
+      {#if EliteLandingFooterComponent}
+        {@const EliteLandingFooter = EliteLandingFooterComponent}
+        <EliteLandingFooter {product} onTriggerScan={triggerScan} />
+      {:else}
+        <div class="w-full min-h-[200px] bg-[#010101]"></div>
+      {/if}
     {:else}
       <div
         class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white"
