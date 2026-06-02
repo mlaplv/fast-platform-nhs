@@ -4,8 +4,8 @@
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import type { QuizQuestion, Product, ProductMetadata } from "$lib/types";
   import QuizIcon from "./QuizIcon.svelte";
-  import DiagnosticScanner from "./slug/DiagnosticScanner.svelte";
-  import "./slug/LiquidEffects.css";
+  import DiagnosticScanner from "$lib/components/storefront/funnel/desktop/sections/DiagnosticScanner.svelte";
+  import "$lib/components/storefront/funnel/desktop/sections/LiquidEffects.css";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import Plus from "@lucide/svelte/icons/plus";
   import Trash2 from "@lucide/svelte/icons/trash-2";

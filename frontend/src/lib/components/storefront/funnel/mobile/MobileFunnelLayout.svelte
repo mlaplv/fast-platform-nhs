@@ -15,13 +15,13 @@
   let loadJIT = $state(false);
   async function loadScannerHUD() {
     if (!ScannerHUDComponent) {
-      const mod = await import('../storefront/product-detail/shared/ScannerHUD.svelte');
+      const mod = await import('../../product-detail/shared/ScannerHUD.svelte');
       ScannerHUDComponent = mod.default as Component<Record<string, unknown>>;
     }
   }
   async function loadMobileVerificationCenter() {
     if (!MobileVerificationCenterComponent) {
-      const mod = await import('../storefront/product-detail/shared/MobileVerificationCenter.svelte');
+      const mod = await import('../../product-detail/shared/MobileVerificationCenter.svelte');
       MobileVerificationCenterComponent = mod.default as Component<Record<string, unknown>>;
     }
   }
@@ -31,16 +31,16 @@
 
   import './mobile.css';
 
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   const shopStore = getShopStore();
 
   // ⚡ Elite V2.2: $props() MUST be declared before any $derived that references props
   let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
 
-  const isEditMode = $derived(liveEditStore.isEditMode);
+  const isEditMode = $derived(lightLiveEdit.isEditMode);
 
   // Elite V2.2: Reactive switching between live data and edited data
-  const product = $derived((isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product) || propProduct);
+  const product = $derived((isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : shopStore.product) || propProduct);
 
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);

@@ -12,10 +12,10 @@
   import User from "@lucide/svelte/icons/user";
   import Send from "@lucide/svelte/icons/send";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
-  import EditableWrapper from '../../admin/EditableWrapper.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Review } from '$lib/types';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -27,7 +27,7 @@
   let { product: propProduct, initialReviews = [] }: Props = $props();
   const shopStore = getShopStore();
   const ui = getClientUi();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';

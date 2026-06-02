@@ -3,13 +3,13 @@
   import './MobileVideoBanner.css';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { Product } from '$lib/types';
-  import EditableWrapper from '../../admin/EditableWrapper.svelte';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
 
   let { product: propProduct } = $props<{ product: Product | null }>();
   const shopStore = getShopStore();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';

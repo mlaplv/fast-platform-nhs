@@ -8,7 +8,7 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { formatCurrency, formatDate } from "$lib/utils/format";
-  import SuccessMobile from "$lib/components/mobile/sections/SuccessMobile.svelte";
+  import SuccessMobile from "$lib/components/storefront/funnel/mobile/sections/SuccessMobile.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import vnDivisions from "$lib/data/vn_divisions.json";
   import SimpleTiptap from "$lib/components/storefront/ui/SimpleTiptap.svelte";

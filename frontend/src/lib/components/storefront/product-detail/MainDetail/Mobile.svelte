@@ -19,7 +19,7 @@
   import ProductMobileRecommendations from "./modules/ProductMobileRecommendations.svelte";
   import ProductMobileVariantSelector from "./modules/ProductMobileVariantSelector.svelte";
   import MobileBottomNav from "$lib/components/storefront/home/MobileBottomNav.svelte";
-  import BottomSheet from "$lib/components/mobile/BottomSheet.svelte";
+  import BottomSheet from "$lib/components/storefront/funnel/mobile/BottomSheet.svelte";
   import ScannerHUD from "../shared/ScannerHUD.svelte";
   import MobileVerificationCenter from "../shared/MobileVerificationCenter.svelte";
 

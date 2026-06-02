@@ -8,7 +8,7 @@
   import Filter from "@lucide/svelte/icons/filter";
   import type { Product, ProductFacets, Article } from '$lib/types';
 
-  import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
+  import BottomSheet from '$lib/components/storefront/funnel/mobile/BottomSheet.svelte';
   import SmartSearch from '$lib/components/storefront/product/SmartSearch.svelte';
 
   const searchStore = getSearchStore();

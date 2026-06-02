@@ -9,7 +9,7 @@
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import type { PageData } from './$types';
-  import type { PageData as FunnelPageData } from '../../[slug]-funnel/$types';
+  type FunnelPageData = PageData;
   import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
 
@@ -137,7 +137,7 @@
         if (type === 'product' && productData) {
           if (isFunnel && funnelPageData) {
             // ── Funnel / Landing (isolated chunk) ─────────────────────────────
-            const { default: FunnelPage } = await import('../../[slug]-funnel/+page.svelte');
+            const { default: FunnelPage } = await import('$lib/components/storefront/funnel/FunnelManager.svelte');
             activeComponent = FunnelPage;
             activeProps = { data: funnelPageData };
           } else if (isMobile) {

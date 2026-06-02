@@ -2,12 +2,12 @@
   import { onMount } from 'svelte';
   import './EmotionalIncentive.css';
   import { fade, fly } from 'svelte/transition';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
   const shopStore = getShopStore();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
   interface Scenario {

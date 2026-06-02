@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "../client.css";
+
   import { onMount } from "svelte";
   import { setShopStore } from "$lib/state/commerce/shop.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
@@ -8,7 +8,7 @@
   import { browser } from "$app/environment";
 
 
-  import MobileLandingLayout from "$lib/components/mobile/MobileLandingLayout.svelte";
+  import MobileLandingLayout from "./mobile/MobileFunnelLayout.svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import ScannerHUD from "$lib/components/storefront/product-detail/shared/ScannerHUD.svelte";
   import VerificationCenter from "$lib/components/storefront/product-detail/shared/VerificationCenter.svelte";
@@ -17,13 +17,24 @@
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { fade, scale } from "svelte/transition";
 
-  import type { PageData } from "./$types";
+  import type { Product, ReviewStats } from "$lib/types";
+
+  // Static type definition for Elite Funnel Manager
+  interface FunnelData {
+    product: Product;
+    shopInfo?: any;
+    reviewStats?: ReviewStats | null;
+    reviews?: any[];
+    relatedProducts?: any[];
+    unlockedVoucherIds?: string[];
+    isMobile?: boolean;
+  }
 
   // Admin Live Editor (Elite V2.2)
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data }: { data: FunnelData } = $props();
   let themeMode = $state<"system" | "light" | "dark">("system");
   let isMounted = $state(false);
   let loadJIT = $state(false);
@@ -39,11 +50,11 @@
   $effect(() => {
     if (loadJIT) {
       Promise.all([
-        import("$lib/components/client/slug/DiagnosticsSection.svelte"),
-        import("$lib/components/client/slug/ScienceBento.svelte"),
-        import("$lib/components/client/slug/VerifiedReviews.svelte"),
-        import("$lib/components/client/slug/OfferGrid.svelte"),
-        import("$lib/components/client/slug/EliteLandingFooter.svelte")
+        import("./desktop/sections/DiagnosticsSection.svelte"),
+        import("./desktop/sections/ScienceBento.svelte"),
+        import("./desktop/sections/VerifiedReviews.svelte"),
+        import("./desktop/sections/OfferGrid.svelte"),
+        import("./desktop/sections/EliteLandingFooter.svelte")
       ]).then(([diagMod, sciMod, revMod, offMod, footMod]) => {
         DiagnosticsSectionComponent = diagMod.default;
         ScienceBentoComponent = sciMod.default;

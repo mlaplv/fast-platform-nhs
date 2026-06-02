@@ -17,7 +17,7 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { page } from "$app/state";
   import vnDivisions from "$lib/data/vn_divisions.json";
-  import AddressSelector from "$lib/components/mobile/checkout/AddressSelector.svelte";
+  import AddressSelector from "../checkout/AddressSelector.svelte";
   import SimpleTiptap from "$lib/components/storefront/ui/SimpleTiptap.svelte";
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
 

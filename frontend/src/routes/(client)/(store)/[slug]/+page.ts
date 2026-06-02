@@ -100,14 +100,31 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       name: typeof prodData.name === 'string' ? prodData.name.replace(/40gr/g, '40g') : prodData.name
     };
 
-    // Fetch related products & review stats in parallel (does NOT block product render)
-    const [relRes, statsRes] = await Promise.all([
+    const metadata = product.metadata || {};
+    const landingType = metadata.landing_type || 'standard';
+    const isFunnel = landingType !== 'standard';
+
+    // Fetch related products & review stats in parallel
+    const promises: Promise<any>[] = [
       fetch(`/api/v1/client/products/?limit=9`, { signal: AbortSignal.timeout(2000) })
         .catch(e => { console.error('[RELATED PRODUCTS FETCH FAILED]', e); return null; }),
       fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${String(product.id)}`, {
         signal: AbortSignal.timeout(2000)
       }).catch(e => { console.warn('[REVIEW STATS FETCH FAILED]', e); return null; })
-    ]);
+    ];
+
+    if (isFunnel) {
+      promises.push(
+        fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED&limit=20`, {
+          signal: AbortSignal.timeout(2000)
+        }).catch(() => null),
+        fetch(`/api/v1/client/settings/primary`, {
+          signal: AbortSignal.timeout(3000)
+        }).catch(() => null)
+      );
+    }
+
+    const [relRes, statsRes, reviewsRes, settingsRes] = await Promise.all(promises);
 
     let relatedProducts: { id: string }[] = [];
     if (relRes?.ok) {
@@ -122,6 +139,29 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       reviewStats = await statsRes.json() as ReviewStats;
     }
 
+    let reviews: any[] = [];
+    if (reviewsRes && reviewsRes.ok) {
+      const revData = await reviewsRes.json();
+      reviews = revData.items || [];
+    }
+
+    let shopInfo: any = null;
+    if (settingsRes && settingsRes.ok) {
+      shopInfo = await settingsRes.json();
+    }
+
+    let unlockedVoucherIds: string[] = [];
+    if (typeof document !== 'undefined') {
+      unlockedVoucherIds = document.cookie.split(';')
+        .map(c => c.trim())
+        .filter(c => c.startsWith('elite_viral_') && c.includes('='))
+        .filter(c => {
+          const parts = c.split('=');
+          return parts[1] === '1';
+        })
+        .map(c => c.split('=')[0].replace('elite_viral_', ''));
+    }
+
     // NOTE: isMobile intentionally NOT set here.
     // It is resolved server-side in hooks.server.ts (User-Agent) and passed through layout data.
     // Setting it here via window.innerWidth would cause SSR/Hydration mismatch.
@@ -129,7 +169,10 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       type: 'product' as const,
       product,
       reviewStats,
-      relatedProducts
+      relatedProducts,
+      reviews,
+      shopInfo,
+      unlockedVoucherIds
     };
   }
 

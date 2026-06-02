@@ -2,7 +2,6 @@
   import { fade, fly } from 'svelte/transition';
   import { cubicIn, cubicOut } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import Ticket from "@lucide/svelte/icons/ticket";
   import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";

@@ -2,7 +2,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant, Voucher } from '$lib/types';
   import DesktopProductDetailsModal from './DesktopProductDetailsModal.svelte';
@@ -21,7 +21,7 @@
   }
   let { onTriggerScan }: Props = $props();
   
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : shopStore.product);
   const variants = $derived(product?.variants || []);
   const metadata = $derived(product?.metadata || {});
 
@@ -86,22 +86,20 @@
 <section class="offer-section relative contain-layout">
   <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none"></div>
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
-  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] pointer-events-none" style:background-color="var(--luxury-gold)" style:opacity="0.05"></div>
-
-  <div class="container mx-auto px-3 max-w-6xl relative z-surface">
+  <div class="liquid-orb botto    <div class="container mx-auto px-3 max-w-6xl relative z-surface">
     <div class="text-center">
       <h2 class="elite-session-headline mb-4 text-center offer-grid-headline">
-        {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+        {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || lightLiveEdit.isEditMode}
           <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             {h1}
           </EditableWrapper>
         {/if}
 
-        {#if (!(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')) || liveEditStore.isEditMode}
+        {#if (!(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')) || lightLiveEdit.isEditMode}
           <br class="md:hidden"/>
         {/if}
 
-        {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+        {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]') || lightLiveEdit.isEditMode}
           <span class="text-luxury-gold md:ml-3">
              <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
                {h2}
@@ -115,7 +113,7 @@
            <span class="text-[8px] tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
          </EditableWrapper>
          
-         {#if (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')) || liveEditStore.isEditMode}
+         {#if (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')) || lightLiveEdit.isEditMode}
             <div class="h-px w-10 bg-white/5"></div>
          {/if}
 
@@ -123,7 +121,7 @@
            <span class="text-[9px] tracking-[0.3em] font-black text-luxury-sakura">{clean(mark2)}</span>
          </EditableWrapper>
          
-         {#if (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')) || liveEditStore.isEditMode}
+         {#if (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')) || lightLiveEdit.isEditMode}
             <div class="h-px w-10 bg-white/5"></div>
          {/if}
 
@@ -151,7 +149,10 @@
             variantsCount={variants.length}
             {mkt}
             productVouchers={shopStore.productVouchers || []}
-            onOpenVouchers={(id) => liveEditStore.togglePopover(id)}
+            onOpenVouchers={(id) => {
+              if (lightLiveEdit.openPopoverId === id) lightLiveEdit.openPopoverId = null;
+              else lightLiveEdit.openPopoverId = id;
+            }}
             {onTriggerScan}
             onOpenDetails={() => isDetailsOpen = true}
           />

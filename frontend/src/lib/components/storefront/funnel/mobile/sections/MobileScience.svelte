@@ -6,7 +6,7 @@
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import "./MobileScience.css";
-  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
 
   const shopStore = getShopStore();
@@ -15,8 +15,8 @@
     product: import("$lib/types").Product | null;
   }>();
   const product = $derived(
-    liveEditStore.isEditMode && liveEditStore.dirtyProduct
-      ? liveEditStore.dirtyProduct
+    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
+      ? lightLiveEdit.dirtyProduct
       : propProduct || shopStore.product,
   );
   const metadata = $derived(product?.metadata || {});

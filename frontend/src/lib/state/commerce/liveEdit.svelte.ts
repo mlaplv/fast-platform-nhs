@@ -1,19 +1,28 @@
 import { permissionState, getAuthToken } from "../permissions.svelte";
 import type { Product, UpdateProductPayload } from "$lib/types";
 
+import { lightLiveEdit } from "./liveEditState.svelte";
+
 // Elite V2.2: Deep Indexing Types
 type RecordObject = Record<string, unknown>;
 
 class LiveEditStore {
-  isEditMode = $state(false);
   isSaving = $state(false);
   originalProduct = $state<Product | null>(null);
-  dirtyProduct = $state<Product | null>(null);
-  activePath = $state<string | null>(null); 
-  
-  // Elite V2.2: Transient UI Popovers
-  openPopoverId = $state<string | null>(null);
 
+  // Elite V2.2: Getters & Setters delegating to lightLiveEdit to eliminate storefront dependency
+  get isEditMode() { return lightLiveEdit.isEditMode; }
+  set isEditMode(value: boolean) { lightLiveEdit.isEditMode = value; }
+
+  get dirtyProduct() { return lightLiveEdit.dirtyProduct; }
+  set dirtyProduct(value: Product | null) { lightLiveEdit.dirtyProduct = value; }
+
+  get activePath() { return lightLiveEdit.activePath; }
+  set activePath(value: string | null) { lightLiveEdit.activePath = value; }
+
+  get openPopoverId() { return lightLiveEdit.openPopoverId; }
+  set openPopoverId(value: string | null) { lightLiveEdit.openPopoverId = value; }
+  
   // Elite V2.2: Transient HUD State
   notification = $state({
     message: '',
@@ -38,9 +47,65 @@ class LiveEditStore {
     else this.openPopoverId = id;
   }
 
-  // Elite V2.2 Supreme Security: Administrative access strictly derives from RBAC token
+  // Military-Grade Security Suite (Elite V2.2)
+  checkSecurity(): boolean {
+    if (typeof window === 'undefined') return false;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const liveEditParam = urlParams.get('live_edit');
+    const tockenParam = urlParams.get('tocken') || urlParams.get('token');
+
+    // 1. Phải có tham số live_edit=true trong URL hoặc SessionStorage
+    const hasLiveEditSession = liveEditParam === 'true' || sessionStorage.getItem('live_edit') === 'true';
+    if (!hasLiveEditSession) {
+      return false;
+    }
+
+    // 2. Phải có token hành chính hợp lệ
+    const token = tockenParam || getAuthToken();
+    if (!token) {
+      return false;
+    }
+
+    try {
+      // Giải mã JWT kiểm tra tính hợp lệ & quyền hạn
+      const base64Url = token.split(".")[1];
+      if (!base64Url) return false;
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(atob(base64)) as any;
+
+      // Kiểm tra thời hạn chữ ký
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        console.warn("🔒 [MILITARY SECURITY] Token expired.");
+        return false;
+      }
+
+      // Kiểm tra vai trò Admin tối cao
+      const roles = decoded.roles || [];
+      const hasAdminRole = roles.includes("SUPER_ADMIN") || roles.includes("ADMIN");
+      if (!hasAdminRole) {
+        console.warn("🔒 [MILITARY SECURITY] Privileges validation failed.");
+        return false;
+      }
+
+      // Khi xác thực thành công cấp quân đội, ghi nhận phiên & cookie bảo mật
+      sessionStorage.setItem('live_edit', 'true');
+      if (tockenParam) {
+        const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
+        document.cookie = `admin_token=${tockenParam}; path=/; domain=.${rootDomain}; max-age=604800; SameSite=Lax; Secure`;
+        sessionStorage.setItem('admin_token', tockenParam);
+      }
+
+      return true;
+    } catch (e) {
+      console.error("🔒 [MILITARY SECURITY] Decoding / verification error:", e);
+      return false;
+    }
+  }
+
+  // Elite V2.2 Supreme Security: Administrative access strictly derives from RBAC token with military grade check
   get isAdmin() {
-    return permissionState.hasRole("SUPER_ADMIN") || permissionState.hasRole("ADMIN");
+    return this.checkSecurity();
   }
 
   // Computed helper for components
@@ -49,13 +114,18 @@ class LiveEditStore {
   }
 
   init(product: Product) {
-    // Elite V2.2: Initial reference is enough, deep clone only when entering edit mode to save 10s load time
     this.originalProduct = product;
     this.dirtyProduct = product;
     this.isEditMode = false;
   }
 
   toggleEditMode() {
+    if (!this.isAdmin) {
+      this.notify("🔒 Quyền truy cập bị từ chối. Vui lòng xác thực cấp quân đội.", "alert");
+      this.isEditMode = false;
+      return;
+    }
+
     this.isEditMode = !this.isEditMode;
     if (this.isEditMode && this.originalProduct) {
         // Elite V2.2: Deep clone ON DEMAND when edit starts

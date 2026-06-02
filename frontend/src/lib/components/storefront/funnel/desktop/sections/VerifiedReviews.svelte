@@ -10,7 +10,7 @@
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import "./VerifiedReviews.css";
 
-  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
   import { authStore } from "$lib/state/authStore.svelte";
 
   const shopStore = getShopStore();
@@ -22,8 +22,8 @@
   let { initialReviews = [] }: Props = $props();
 
   const product = $derived(
-    liveEditStore.isEditMode && liveEditStore.dirtyProduct
-      ? liveEditStore.dirtyProduct
+    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
+      ? lightLiveEdit.dirtyProduct
       : shopStore.product,
   );
   const metadata = $derived(product?.metadata || {});

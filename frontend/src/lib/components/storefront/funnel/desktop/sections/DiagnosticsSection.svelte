@@ -7,14 +7,14 @@
   import "./DiagnosticsSection.css";
   import "./LiquidEffects.css";
 
-  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
 
   let { product: propProduct } = $props<{ product?: Product }>();
   const shopStore = getShopStore();
 
   const product = $derived(
-    liveEditStore.isEditMode && liveEditStore.dirtyProduct
-      ? liveEditStore.dirtyProduct
+    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
+      ? lightLiveEdit.dirtyProduct
       : propProduct || shopStore.product,
   );
   const metadata = $derived(product?.metadata || {});
@@ -35,7 +35,7 @@
   <div
     class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface"
   >
-    {#if !(product?.metadata?.diagnostics_headline || "").startsWith("[OFF]") || liveEditStore.isEditMode}
+    {#if !(product?.metadata?.diagnostics_headline || "").startsWith("[OFF]") || lightLiveEdit.isEditMode}
       <h3
         id="personalized-care"
         class="elite-session-headline mb-12 text-center diagnostics-headline"
@@ -52,7 +52,7 @@
               "CHẨN ĐOÁN PHỤC HỒI SẮC TỐ GỐC"}
           </EditableWrapper>
         </span>
-        {#if !(product?.metadata?.diagnostics_subtitle || "").startsWith("[OFF]") || liveEditStore.isEditMode}
+        {#if !(product?.metadata?.diagnostics_subtitle || "").startsWith("[OFF]") || lightLiveEdit.isEditMode}
           <span>
             <EditableWrapper
               path="metadata.diagnostics_subtitle"

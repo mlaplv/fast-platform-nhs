@@ -18,9 +18,9 @@
   import { formatCurrency } from "$lib/utils/format";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import { fly, fade } from "svelte/transition";
-  import VerificationCenter from "../storefront/product-detail/shared/VerificationCenter.svelte";
-  import MobileVerificationCenter from "../storefront/product-detail/shared/MobileVerificationCenter.svelte";
-  import ScannerHUD from "../storefront/product-detail/shared/ScannerHUD.svelte";
+  import VerificationCenter from "../../product-detail/shared/VerificationCenter.svelte";
+  import MobileVerificationCenter from "../../product-detail/shared/MobileVerificationCenter.svelte";
+  import ScannerHUD from "../../product-detail/shared/ScannerHUD.svelte";
   import BottomSheet from "./BottomSheet.svelte";
 
   function isJson(str: string) {

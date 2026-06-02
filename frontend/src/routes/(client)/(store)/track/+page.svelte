@@ -3,7 +3,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { apiClient } from '$lib/utils/apiClient';
   import { goto } from '$app/navigation';
-  import TrackMobile from '$lib/components/mobile/sections/TrackMobile.svelte';
+  import TrackMobile from '$lib/components/storefront/funnel/mobile/sections/TrackMobile.svelte';
   import Search from "@lucide/svelte/icons/search";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 

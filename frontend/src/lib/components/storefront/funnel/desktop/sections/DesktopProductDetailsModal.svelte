@@ -6,7 +6,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import { fade, scale } from 'svelte/transition';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
@@ -23,7 +23,7 @@
 
   const shopStore = getShopStore();
   let { active = $bindable(), product: propProduct } = $props();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
 
   function close() { 
     active = false;

@@ -2,7 +2,7 @@
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
-  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import type { Product, ProductVariant, Voucher } from "$lib/types";
   import { SHOP_CONFIG } from "$lib/constants/shop";
@@ -806,7 +806,7 @@
   </div>
 
   <!-- 🌙 VOUCHER BOTTOM SHEET (OUTSIDE CONTENT BOX TO FIX CLIPPING) -->
-  {#if liveEditStore.openPopoverId === variant.id}
+  {#if lightLiveEdit.openPopoverId === variant.id}
     <div
       class="absolute inset-0 z-[100] {isCardActive
         ? 'scale-[1.03] -translate-y-2'
@@ -818,7 +818,7 @@
         {productVouchers}
         voucherSortOrder={shopStore.voucherSortOrder || "none"}
         activeOfferTab={shopStore.activeOfferTab || {}}
-        onClose={() => liveEditStore.togglePopover(null)}
+        onClose={() => lightLiveEdit.openPopoverId = null}
         onToggleSort={() => shopStore.toggleVoucherSort()}
         onVoucherClick={(v) => shopStore.toggleVoucher(v.id)}
         onSetTab={(i, tab) => shopStore.setOfferTab(i, tab)}

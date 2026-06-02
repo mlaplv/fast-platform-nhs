@@ -31,15 +31,15 @@
   import Layers from "@lucide/svelte/icons/layers";
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
-  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import EditableWrapper from "../../admin/EditableWrapper.svelte";
+  import { lightLiveEdit } from "$lib/state/commerce/liveEditState.svelte";
+  import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import { PUBLIC_G_BY_COUNT } from "$env/static/public";
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
   const product = $derived(
-    liveEditStore.isEditMode && liveEditStore.dirtyProduct
-      ? liveEditStore.dirtyProduct
+    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct
+      ? lightLiveEdit.dirtyProduct
       : propProduct || shopStore.product,
   );
   const metadata = $derived(product?.metadata || {});
@@ -160,10 +160,19 @@
   });
 
   let currentStep = $state(0);
-  const isEditable = $derived(
-    liveEditStore.isEditMode && liveEditStore.isAdmin,
-  );
+  const isEditable = $derived(lightLiveEdit.isEditMode);
   let draggingIdx = $state<number | null>(null);
+
+  // Lazy-load admin update helper
+  async function updateQuizQuestions(newQuestions: any) {
+    const { liveEditStore } = await import('$lib/state/commerce/liveEdit.svelte');
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+  }
+
+  async function updateFieldLazy(path: string, value: any) {
+    const { liveEditStore } = await import('$lib/state/commerce/liveEdit.svelte');
+    liveEditStore.updateField(path, value);
+  }
 
   function addQuestion() {
     const newQuestion = {
@@ -192,7 +201,7 @@
       ],
     };
     const newQuestions = [newQuestion, ...questions];
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+    updateQuizQuestions(newQuestions);
   }
 
   function handleDragStart(idx: number) {
@@ -206,12 +215,12 @@
     const newQuestions = JSON.parse(JSON.stringify(questions));
     const [movedItem] = newQuestions.splice(draggingIdx, 1);
     newQuestions.splice(targetIdx, 0, movedItem);
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+    updateQuizQuestions(newQuestions);
     draggingIdx = null;
   }
   function removeQuestion(idx: number) {
     const newQuestions = questions.filter((_, i) => i !== idx);
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+    updateQuizQuestions(newQuestions);
   }
   function addOption(qIdx: number) {
     const newQuestions = JSON.parse(JSON.stringify(questions));
@@ -221,12 +230,12 @@
       score: 0,
       icon: "Circle",
     });
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+    updateQuizQuestions(newQuestions);
   }
   function removeOption(qIdx: number, oIdx: number) {
     const newQuestions = JSON.parse(JSON.stringify(questions));
     newQuestions[qIdx].options.splice(oIdx, 1);
-    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
+    updateQuizQuestions(newQuestions);
   }
 
   let answers = $state<Array<{ q: string; a: string }>>([]);
@@ -903,7 +912,7 @@
                       bind:value={question.title}
                       class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
                       oninput={() =>
-                        liveEditStore.updateField(
+                        updateFieldLazy(
                           `metadata.quiz_questions.${qIdx}.title`,
                           question.title,
                         )}
@@ -918,7 +927,7 @@
                       bind:value={question.subtitle}
                       class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
                       oninput={() =>
-                        liveEditStore.updateField(
+                        updateFieldLazy(
                           `metadata.quiz_questions.${qIdx}.subtitle`,
                           question.subtitle,
                         )}
@@ -947,7 +956,7 @@
                             bind:value={option.label}
                             class="flex-1 bg-transparent text-[10px] font-medium text-white outline-none"
                             oninput={() =>
-                              liveEditStore.updateField(
+                              updateFieldLazy(
                                 `metadata.quiz_questions.${qIdx}.options.${oIdx}.label`,
                                 option.label,
                               )}
@@ -961,7 +970,7 @@
                               bind:value={option.score}
                               class="w-5 bg-transparent text-[9px] font-bold text-[#FFB7C5] text-center outline-none"
                               oninput={() =>
-                                liveEditStore.updateField(
+                                updateFieldLazy(
                                   `metadata.quiz_questions.${qIdx}.options.${oIdx}.score`,
                                   option.score,
                                 )}

@@ -9,7 +9,7 @@
   import Filter from "@lucide/svelte/icons/filter";
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
   import type { Product, ProductFacets, Category, ReviewStats } from '$lib/types';
-  import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
+  import BottomSheet from '$lib/components/storefront/funnel/mobile/BottomSheet.svelte';
   import ProductMobileReviews from '../product-detail/MainDetail/modules/ProductMobileReviews.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
 

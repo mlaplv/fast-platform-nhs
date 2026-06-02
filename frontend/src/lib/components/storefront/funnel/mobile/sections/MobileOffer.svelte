@@ -7,7 +7,7 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import AddressSelector from '$lib/components/mobile/checkout/AddressSelector.svelte';
+  import AddressSelector from '../checkout/AddressSelector.svelte';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte';
   import { SHOP_CONFIG, OFFER_CONSTANTS, PRIVACY_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -22,7 +22,7 @@
   import Info from "@lucide/svelte/icons/info";
   import { formatCurrency } from '$lib/utils/format';
   import { fade, fly, scale } from 'svelte/transition';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte';
@@ -45,8 +45,8 @@
   const cartStore = getCartStore();
   
   const product: Product | null = $derived(
-    liveEditStore.isEditMode && liveEditStore.dirtyProduct 
-      ? liveEditStore.dirtyProduct 
+    lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct 
+      ? lightLiveEdit.dirtyProduct 
       : (propProduct || shopStore.product)
   );
 

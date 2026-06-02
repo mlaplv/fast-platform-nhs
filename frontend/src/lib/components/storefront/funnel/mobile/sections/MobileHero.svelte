@@ -20,8 +20,8 @@
   const shopStore = getShopStore();
   const currentVariant = $derived(shopStore.variant);
   
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
+  const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
