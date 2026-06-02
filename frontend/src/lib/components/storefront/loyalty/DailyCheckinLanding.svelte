@@ -7,6 +7,7 @@
    */
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
+  import { page } from '$app/state';
   import { checkinStore } from '$lib/state/commerce/checkin.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import DailyCheckinModalMobile from './DailyCheckinModalMobile.svelte';
@@ -30,23 +31,30 @@
       const st = checkinStore.status;
       if (st && st.is_event_enabled === false) return;
 
+      // Elite V2.2: Only auto-open on Homepage to prevent LCP degradation and UX intrusion on product/category landing pages
+      const isHomepage = page.url.pathname === '/' || page.url.pathname === '/home';
+      if (!isHomepage) return;
+
       if (authStore.isAuthenticated) {
         if (st && !st.is_checked_in_today && !userDismissed && !isDismissed) {
-          setTimeout(() => { if (!userDismissed) checkinStore.openPopup(); }, 1500);
+          setTimeout(() => { if (!userDismissed) checkinStore.openPopup(); }, 5000);
         }
       } else {
         if (!isDismissed) {
           setTimeout(() => {
             if (!userDismissed) checkinStore.openPopup();
-          }, 1500);
+          }, 5000);
         }
       }
     }).catch(() => {
       // Fallback if fetch fails for guests
+      const isHomepage = page.url.pathname === '/' || page.url.pathname === '/home';
+      if (!isHomepage) return;
+
       if (!isDismissed) {
         setTimeout(() => {
           if (!userDismissed) checkinStore.openPopup();
-        }, 1500);
+        }, 5000);
       }
     });
 
