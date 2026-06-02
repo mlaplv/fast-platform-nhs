@@ -126,83 +126,90 @@
   //   chunk-list-mob      → Mobile category list
   //   chunk-news-desk     → Desktop news list
   //   chunk-news-mob      → Mobile news list
-  onMount(async () => {
-    try {
-      if (data.type === 'product' && productData) {
-        if (isFunnel && funnelPageData) {
-          // ── Funnel / Landing (isolated chunk) ─────────────────────────────
-          const { default: FunnelPage } = await import('../../[slug]-funnel/+page.svelte');
-          activeComponent = FunnelPage;
-          activeProps = { data: funnelPageData };
-        } else if (data.isMobile) {
-          // ── Mobile Product Detail (isolated chunk) ─────────────────────────
-          const { default: ProductDetailMobile } = await import(
-            '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
-          );
-          activeComponent = ProductDetailMobile;
-          activeProps = {
-            product: productData.product,
-            relatedProducts: productData.relatedProducts,
-            reviewStats: productData.reviewStats
-          };
-        } else {
-          // ── Desktop Product Detail (isolated chunk) ─────────────────────────
-          const { default: ProductDetailDesktop } = await import(
-            '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
-          );
-          activeComponent = ProductDetailDesktop;
-          activeProps = {
-            product: productData.product,
-            relatedProducts: productData.relatedProducts,
-            reviewStats: productData.reviewStats
-          };
+  $effect(() => {
+    // Reactively track pathname, type, and device state
+    const type = data.type;
+    const isMobile = ui.isMobile;
+    const path = $page.url.pathname;
+
+    untrack(async () => {
+      try {
+        if (type === 'product' && productData) {
+          if (isFunnel && funnelPageData) {
+            // ── Funnel / Landing (isolated chunk) ─────────────────────────────
+            const { default: FunnelPage } = await import('../../[slug]-funnel/+page.svelte');
+            activeComponent = FunnelPage;
+            activeProps = { data: funnelPageData };
+          } else if (isMobile) {
+            // ── Mobile Product Detail (isolated chunk) ─────────────────────────
+            const { default: ProductDetailMobile } = await import(
+              '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
+            );
+            activeComponent = ProductDetailMobile;
+            activeProps = {
+              product: productData.product,
+              relatedProducts: productData.relatedProducts,
+              reviewStats: productData.reviewStats
+            };
+          } else {
+            // ── Desktop Product Detail (isolated chunk) ─────────────────────────
+            const { default: ProductDetailDesktop } = await import(
+              '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
+            );
+            activeComponent = ProductDetailDesktop;
+            activeProps = {
+              product: productData.product,
+              relatedProducts: productData.relatedProducts,
+              reviewStats: productData.reviewStats
+            };
+          }
+        } else if (type === 'news' && newsData) {
+          if (isMobile) {
+            const { default: NewsListMobile } = await import(
+              '$lib/components/storefront/news/NewsListMobile.svelte'
+            );
+            activeComponent = NewsListMobile;
+            activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+          } else {
+            const { default: NewsListDesktop } = await import(
+              '$lib/components/storefront/news/NewsListDesktop.svelte'
+            );
+            activeComponent = NewsListDesktop;
+            activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
+          }
+        } else if (type === 'category' && categoryData) {
+          if (isMobile) {
+            const { default: ProductListMobile } = await import(
+              '$lib/components/storefront/product/ProductListMobile.svelte'
+            );
+            activeComponent = ProductListMobile;
+            activeProps = {
+              products: categoryData.items,
+              categoryName: categoryData.categoryName,
+              categorySlug: categoryData.categorySlug,
+              serverTotal: categoryData.serverTotal,
+              facets: categoryData.facets,
+              category: categoryData.category
+            };
+          } else {
+            const { default: ProductListDesktop } = await import(
+              '$lib/components/storefront/product/ProductListDesktop.svelte'
+            );
+            activeComponent = ProductListDesktop;
+            activeProps = {
+              products: categoryData.items,
+              categoryName: categoryData.categoryName,
+              categorySlug: categoryData.categorySlug,
+              serverTotal: categoryData.serverTotal,
+              facets: categoryData.facets,
+              category: categoryData.category
+            };
+          }
         }
-      } else if (data.type === 'news' && newsData) {
-        if (data.isMobile) {
-          const { default: NewsListMobile } = await import(
-            '$lib/components/storefront/news/NewsListMobile.svelte'
-          );
-          activeComponent = NewsListMobile;
-          activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
-        } else {
-          const { default: NewsListDesktop } = await import(
-            '$lib/components/storefront/news/NewsListDesktop.svelte'
-          );
-          activeComponent = NewsListDesktop;
-          activeProps = { newsList: newsData.items, categoryName: newsData.categoryName };
-        }
-      } else if (data.type === 'category' && categoryData) {
-        if (data.isMobile) {
-          const { default: ProductListMobile } = await import(
-            '$lib/components/storefront/product/ProductListMobile.svelte'
-          );
-          activeComponent = ProductListMobile;
-          activeProps = {
-            products: categoryData.items,
-            categoryName: categoryData.categoryName,
-            categorySlug: categoryData.categorySlug,
-            serverTotal: categoryData.serverTotal,
-            facets: categoryData.facets,
-            category: categoryData.category
-          };
-        } else {
-          const { default: ProductListDesktop } = await import(
-            '$lib/components/storefront/product/ProductListDesktop.svelte'
-          );
-          activeComponent = ProductListDesktop;
-          activeProps = {
-            products: categoryData.items,
-            categoryName: categoryData.categoryName,
-            categorySlug: categoryData.categorySlug,
-            serverTotal: categoryData.serverTotal,
-            facets: categoryData.facets,
-            category: categoryData.category
-          };
-        }
+      } catch (e) {
+        console.error('[PageRouter] Dynamic component import failed:', e);
       }
-    } catch (e) {
-      console.error('[PageRouter] Dynamic component import failed:', e);
-    }
+    });
   });
 </script>
 

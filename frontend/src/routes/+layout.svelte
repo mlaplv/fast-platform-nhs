@@ -77,6 +77,58 @@
     setCartStore();
   }
 
+  // Elite V2.2: Svelte 5 Navigation Traffic Cop & Dynamic Imports
+  let navigationEpoch = $state(0);
+
+  $effect(() => {
+    // Reactively track pathname changes
+    const path = page.url.pathname;
+    
+    // Increment Epoch on each navigation
+    navigationEpoch++;
+    const myEpoch = navigationEpoch;
+
+    untrack(async () => {
+      if (isAdmin) return;
+
+      try {
+        let chatMod, searchMod;
+
+        if (ui?.isMobile) {
+          [chatMod, searchMod] = await Promise.all([
+            import("$lib/components/client/support/SupportChatMobile.svelte"),
+            import("$lib/components/storefront/product/SmartSearch.svelte")
+          ]);
+        } else {
+          chatMod = await import("$lib/components/client/support/SupportChatDesktop.svelte");
+        }
+
+        // CHỐT CHẶN TRAFFIC COP: Bỏ qua render nếu người dùng đã chuyển trang khác
+        if (myEpoch !== navigationEpoch) return;
+
+        chatComponent = chatMod?.default || null;
+        searchComponent = searchMod?.default || null;
+      } catch (e) {
+        console.warn("[Traffic-Cop Component Load Interrupted]", e);
+      }
+    });
+  });
+
+  // Elite V2.2: Neural Advisor Persona Initialization (Svelte 5 Runes-based Auto-cleanup)
+  $effect(() => {
+    const agentName = data.agentName;
+    const path = page.url.pathname; // Reactively track navigation to reset timer
+    if (isAdmin) return;
+
+    const myEpoch = navigationEpoch;
+    const timer = setTimeout(() => {
+      if (myEpoch !== navigationEpoch) return;
+      supportAgent.init(agentName);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  });
+
   onMount(() => {
     isMounted = true;
 
@@ -96,38 +148,8 @@
       });
     }
 
-    // Elite V2.2: Non-overlapping Dynamic Imports for Device Separation
-    if (!isAdmin) {
-      (async () => {
-        try {
-          if (ui?.isMobile) {
-            const [chatMod, searchMod] = await Promise.all([
-              import("$lib/components/client/support/SupportChatMobile.svelte"),
-              import("$lib/components/storefront/product/SmartSearch.svelte")
-            ]);
-            chatComponent = chatMod.default;
-            searchComponent = searchMod.default;
-          } else {
-            const chatMod = await import("$lib/components/client/support/SupportChatDesktop.svelte");
-            chatComponent = chatMod.default;
-          }
-        } catch (e) {
-          console.error("[SYSTEM FAULT] Dynamic layout component import failed:", e);
-        }
-      })();
-    }
-
     // Elite V2.2: Global Identity Handshake
     permissionState.handshake();
-
-    // Elite V2.2: Neural Advisor Persona Initialization
-    // Optimized: Defer initialization to 3 seconds post-mount to keep initial page load <1s
-    let initTimer: ReturnType<typeof setTimeout> | null = null;
-    if (!isAdmin) {
-      initTimer = setTimeout(() => {
-        supportAgent.init(data.agentName);
-      }, 3000);
-    }
 
     // Elite V3.5: Google Ads Click Protection (Real-time biometric & Canary detection)
     let adsCleanup: (() => void) | null = null;
@@ -306,14 +328,12 @@
     if (ui) {
       const observerCleanup = ui.initObservers();
       return () => {
-        if (initTimer) clearTimeout(initTimer);
         if (adsCleanup) adsCleanup();
         if (observerCleanup) observerCleanup();
       };
     }
 
     return () => {
-      if (initTimer) clearTimeout(initTimer);
       if (adsCleanup) adsCleanup();
     };
   });
