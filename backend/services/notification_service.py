@@ -18,29 +18,43 @@ class NotificationService:
         SECURITY: SYSTEM_ type notifications are strictly admin-only and never
         returned to end clients regardless of user_id linkage.
         """
+        from sqlalchemy.orm import selectinload
+        
+        is_staff = False
+        user = None
+
+        if user_email:
+            stmt = select(User).options(selectinload(User.roles)).where(User.email == user_email)
+            user = (await db_session.execute(stmt)).scalar_one_or_none()
+            if not user:
+                raise NotAuthorizedException("User context not found")
+            
+            user_roles = [r.code for r in getattr(user, "roles", [])]
+            is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
+
         # Build query conditions
         if not user_email:
             conditions = [Notification.user_id == None]
         else:
-            user_repo = UserRepository(session=db_session)
-            user = await user_repo.get_one_or_none(email=user_email)
-            if not user:
-                raise NotAuthorizedException("User context not found")
-
+            # Sếp's administrative portal always includes admin notifications
             conditions = [
                 or_(
                     Notification.user_id == str(user.id),
+                    Notification.user_id == "user_admin",
                     Notification.user_id == None
                 )
             ]
 
         # SECURITY FILTER: Never expose SYSTEM_ alerts to end clients.
         # System alerts (DB pool, AI latency, order anomaly) are infra-internal.
-        from sqlalchemy import not_
-        system_filter = not_(Notification.type.like("SYSTEM_%"))
+        filters = [*conditions]
+        if not is_staff:
+            from sqlalchemy import not_
+            system_filter = not_(Notification.type.like("SYSTEM_%"))
+            filters.append(system_filter)
 
         # 1. Total Count (Zero-Hydration)
-        count_stmt = select(func.count(Notification.id)).where(*conditions, system_filter)
+        count_stmt = select(func.count(Notification.id)).where(*filters)
         total = await db_session.scalar(count_stmt) or 0
 
         # 2. Results (R76: Scalar Projection)
@@ -49,9 +63,9 @@ class NotificationService:
                 Notification.id, Notification.type, Notification.message,
                 Notification.is_read, Notification.created_at, Notification.user_id
             )
-            .where(*conditions, system_filter)
+            .where(*filters)
             .order_by(Notification.created_at.desc())
-            .limit(20)
+            .limit(200 if is_staff else 20)
         )
 
         res = await db_session.execute(stmt)

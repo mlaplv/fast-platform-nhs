@@ -684,7 +684,31 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # 4. Persistence
         await self._save_history(db, session_id, request.message, safe_reply, final_intent, request.product_slug, dna.customer_name or request.customer_name, ctx.lead_data.customer_phone if ctx.lead_data else None)
-        await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+        
+        # Elite V2.2: Clean raw system prompts from events to prevent leaking developer instructions in notifications thưa sếp
+        def clean_prompt_message(msg: str) -> str:
+            if not msg:
+                return ""
+            msg_lower = msg.lower()
+            if "[system_consult]" in msg:
+                return "Tư vấn chuyên sâu về sản phẩm"
+            if "[system_skin_barrier]" in msg:
+                return "Đánh giá loại da và độ phù hợp sản phẩm"
+            if "[system_checkin]" in msg:
+                return "Thực hiện điểm danh hàng ngày"
+            if any(k in msg_lower for k in ["vui lòng đóng vai", "bạn là helen", "system prompt", "chỉ thị:", "prompt:", "khung hướng dẫn:"]):
+                return "Yêu cầu tư vấn thông minh"
+            if len(msg) > 200 and any(k in msg_lower for k in ["skin_profile", "loại da", "chăm sóc da", "phân tích"]):
+                return "Gửi hồ sơ phân tích da và yêu cầu tư vấn"
+            return msg
+
+        clean_msg = clean_prompt_message(request.message)
+
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "role": "user",
+            "message": clean_msg
+        })
         await db.flush()
         
         return SupportResponse(ok=True, reply=safe_reply, intent=final_intent, session_id=session_id, product_info=p_info, status="DONE", ui_metadata=ctx.ui_metadata, processed_order_id=ctx.processed_order_id)
@@ -896,13 +920,6 @@ class SupportAgentOperative(BaseAgentOperative):
                 await xohi_memory.client.sadd("support:unread_sessions", session_id)
             except Exception as re:
                 logger.error(f"[SupportAgent] Failed to mark unread in Redis Set: {re}")
-
-        # Emit support inbox update to trigger admin bell immediately thưa sếp!
-        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
-            "session_id": session_id,
-            "message": request.message,
-            "role": "user"
-        })
 
         # ══════════════════════════════════════════════════════════════════════
         # OPTION 1: Chat trực tiếp trong box — tắt Helen, báo Admin Inbox

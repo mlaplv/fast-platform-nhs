@@ -43,10 +43,21 @@
     }
   });
 
+  // CNS V86.5: Debounce refetching to collapse rapid backend events thưa sếp
+  let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+  function debouncedRefresh(forceSelect: boolean = false) {
+    if (refreshTimeout) clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(() => {
+      loadSessions();
+      if (forceSelect && selectedSessionId) {
+        selectSession(selectedSessionId);
+      }
+    }, 250);
+  }
+
   $effect(() => {
     if (nanobot.supportRefreshToggle > 0) {
-      loadSessions();
-      if (selectedSessionId) selectSession(selectedSessionId);
+      debouncedRefresh(true);
     }
   });
 
@@ -54,7 +65,7 @@
   $effect(() => {
     const _search = searchTerm;
     const _filter = activeFilter;
-    loadSessions();
+    debouncedRefresh(false);
   });
 
   async function loadSessions() {

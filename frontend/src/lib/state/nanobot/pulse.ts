@@ -345,21 +345,39 @@ export function createPulseManager(
           if (discipline === "interrupt") ui.showToast(message, "error", 7000);
           else if (discipline === "patient") ui.showToast(message, "warning", 7000);
 
+          // R03/V2.2: Optimize and shorten spoken text based on signal_type
+          let speakText = message;
+          const lowerMsg = message.toLowerCase();
+          const sType = (signal_type || "").toUpperCase();
+
+          if (sType === "CHAT") {
+            speakText = "Có khách chat";
+          } else if (sType === "ORDER" || sType === "ORDER_CREATED") {
+            speakText = "Có đơn hàng";
+          } else if (sType === "ORDER_CANCEL" || sType === "ORDER_CANCELLED") {
+            speakText = "Khách hủy đơn";
+          } else if (sType === "CONTENT_CREATE") {
+            speakText = "Bài viết đã hoàn thành";
+          } else if (sType === "SECURITY") {
+            speakText = "Hệ thống: cảnh báo bảo mật";
+          } else if (lowerMsg.includes("lỗi") || lowerMsg.includes("fail") || lowerMsg.includes("error")) {
+            speakText = "Hệ thống: lỗi";
+          }
+
           if (discipline === "interrupt") {
             import("$lib/vui").then(({ vuiController, vuiState }) => {
-              vuiController.interruptSpeech(); vuiState.setActive(true);
-              vuiState.setPhase("idle"); vuiController.speak(message);
+              vuiController.interruptSpeech(); 
+              vuiState.setActive(true);
+              vuiState.setPhase("idle"); 
+              vuiController.speak(speakText);
             }).catch(() => {});
           } else if (discipline === "patient") {
-            import("$lib/vui").then(({ vuiController, vuiState }) => {
-              vuiState.setActive(true); vuiState.setPhase("idle");
-              vuiController.playNotificationPing();
-              setTimeout(() => vuiController.speak(message), 800);
+            import("$lib/vui").then(({ vuiState, vuiController }) => {
+              vuiState.setActive(true); 
+              vuiState.setPhase("idle");
+              // Delay speak slightly after the initial bell ping
+              setTimeout(() => vuiController.speak(speakText), 600);
             }).catch(() => {});
-          } else if (discipline === "ping") {
-             import("$lib/vui").then(({ vuiController }) => {
-               vuiController.playNotificationPing();
-             }).catch(() => {});
           }
         } else if (eventName === "CAMPAIGN_PURGED") {
           interface PurgeEventPayload { campaign_id: string; type?: string; action?: string; user_id?: string }
@@ -393,29 +411,12 @@ export function createPulseManager(
            const updatePayload = payload as { session_id: string; message?: string; role?: string };
            if (state && typeof state.supportRefreshToggle !== 'undefined') {
              state.supportRefreshToggle++;
-             // Signal a silent, premium successful update
-             ui.showToast("Hộp thư Helen vừa được cập nhật 🟢", "info", 2000);
-            
-            // 🔈 REAL-TIME TACTICAL AUDIO: "Ting" sound for the Boss (Elite V2.2)
-            import("$lib/vui").then(({ vuiController }) => {
-              vuiController.playNotificationPing();
-            }).catch(() => {});
-          }
-
-          // [CNS V92.5] Push notifications to Bell on client chat
-          if (updatePayload && updatePayload.role === 'user') {
-            if (typeof notification.addPendingSignal === "function") {
-              notification.addPendingSignal({
-                id: `chat-${updatePayload.session_id}-${Date.now()}`,
-                message: `Khách mới nhắn tin: "${updatePayload.message || 'Tin nhắn mới'}"`,
-                severity: "ACTION",
-                isRead: false,
-                payload: { session_id: updatePayload.session_id },
-                signal_type: "CHAT"
-              });
-            }
-          }
-        }
+             // Signal a silent, premium successful update only if it's an actual user message
+             if (updatePayload && updatePayload.role === "user") {
+               ui.showToast("Có tin nhắn mới từ khách hàng 💬", "info", 3000);
+             }
+           }
+         }
       } catch (err) {
         // Fallback error
       }

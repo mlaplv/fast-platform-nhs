@@ -66,6 +66,15 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "manage ctv": "CTV_MANAGEMENT",
   "mở ctv": "CTV_MANAGEMENT",
   "quản lý ctv": "CTV_MANAGEMENT",
+  "manage signals": "NOTIFICATION_MANAGEMENT",
+  "mở tín hiệu": "NOTIFICATION_MANAGEMENT",
+  "tín hiệu": "NOTIFICATION_MANAGEMENT",
+  "mở chuông": "NOTIFICATION_MANAGEMENT",
+  "chuông": "NOTIFICATION_MANAGEMENT",
+  "notification": "NOTIFICATION_MANAGEMENT",
+  "mở thông báo": "NOTIFICATION_MANAGEMENT",
+  "thông báo": "NOTIFICATION_MANAGEMENT",
+  "quản lý thông báo": "NOTIFICATION_MANAGEMENT",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -94,6 +103,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_brain: "BRAIN_MANAGEMENT",
   show_voucher_management: "VOUCHER_MANAGEMENT",
   show_ctv_management: "CTV_MANAGEMENT",
+  show_notification_management: "NOTIFICATION_MANAGEMENT",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -117,4 +127,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   BRAIN_MANAGEMENT: "HELEN BRAIN — QUẢN TRỊ TRI THỨC",
   VOUCHER_MANAGEMENT: "Quản lý Voucher & Khuyến mãi",
   CTV_MANAGEMENT: "Quản lý Hệ thống Liên kết (CTV)",
+  NOTIFICATION_MANAGEMENT: "Quản trị Tín hiệu & Thông báo",
 };

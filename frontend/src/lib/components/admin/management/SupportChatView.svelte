@@ -45,7 +45,7 @@
 
   $effect(() => {
     if (session && chatScrollRef) {
-      setTimeout(() => { chatScrollRef?.scrollTo({ top: chatScrollRef.scrollHeight, behavior: "smooth" }); }, 50);
+      setTimeout(() => { chatScrollRef?.scrollTo({ top: chatScrollRef.scrollHeight, behavior: "auto" }); }, 50);
     }
   });
 

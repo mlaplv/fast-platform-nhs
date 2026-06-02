@@ -20,6 +20,7 @@
   import NotificationList from "../../widgets/NotificationList.svelte";
   import VoiceSettings from "../../management/VoiceSettings.svelte";
   import ContentFactory from "../../management/ContentFactory.svelte";
+  import NotificationManagement from "../../management/NotificationManagement.svelte";
   import ContentReviewWidget from "../../widgets/ContentReviewWidget.svelte";
   import SystemSettings from "../../management/SystemSettings.svelte";
 
@@ -33,6 +34,7 @@
     ORDER_MANAGEMENT: OrderManagement as Component<BaseWidgetProps>,
     NEWS_MANAGEMENT: NewsManagement as Component<BaseWidgetProps>,
     NOTIFICATION_LIST: NotificationList as Component<BaseWidgetProps>,
+    NOTIFICATION_MANAGEMENT: NotificationManagement as Component<BaseWidgetProps>,
     VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
     CAMPAIGNS: ContentFactory as unknown as Component<BaseWidgetProps>,
     CONTENT_REVIEW: ContentReviewWidget as unknown as Component<BaseWidgetProps>,
@@ -48,6 +50,7 @@
     ORDER_MANAGEMENT: "Đơn hàng",
     NEWS_MANAGEMENT: "Bài viết",
     VOICE_SETTINGS: "Voice Settings",
+    NOTIFICATION_MANAGEMENT: "Quản trị tín hiệu",
     CAMPAIGNS: "Chiến dịch",
     CONTENT_REVIEW: "Duyệt bài",
     SYSTEM_SETTINGS: "Cấu hình hệ thống",

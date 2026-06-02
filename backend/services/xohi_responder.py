@@ -19,6 +19,16 @@ class XoHiResponder:
     async def handle_order_created(self, payload: Dict[str, object]):
         """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
         order_id = str(payload.get("id", ""))
+        
+        # Redis-based Global Deduplication Gate for ORDER_CREATED (SETNX 10s)
+        from backend.services.xohi_memory import xohi_memory
+        if order_id and xohi_memory._use_redis and xohi_memory.client:
+            dedup_key = f"dedup:order_created:{order_id}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=10, nx=True)
+            if not is_new:
+                logger.info(f"[XoHiResponder] Duplicate ORDER_CREATED ignored: {order_id}")
+                return
+
         ip = str(payload.get("ip", "unknown"))
         ua = str(payload.get("user_agent", "unknown"))
         tenant_id = str(payload.get("tenant_id", "default"))
@@ -81,6 +91,16 @@ class XoHiResponder:
     async def handle_order_cancelled(self, payload: Dict[str, object]):
         """Callback for ORDER_CANCELLED event."""
         order_id = str(payload.get("id", ""))
+        
+        # Redis-based Global Deduplication Gate for ORDER_CANCELLED (SETNX 10s)
+        from backend.services.xohi_memory import xohi_memory
+        if order_id and xohi_memory._use_redis and xohi_memory.client:
+            dedup_key = f"dedup:order_cancelled:{order_id}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=10, nx=True)
+            if not is_new:
+                logger.info(f"[XoHiResponder] Duplicate ORDER_CANCELLED ignored: {order_id}")
+                return
+
         reason = str(payload.get("reason", "Không rõ lý do"))
         tenant_id = str(payload.get("tenant_id", "default"))
         msg = f"Đơn hàng {order_id[:8]} đã bị HỦY bởi khách hàng. Lý do: {reason}"
@@ -119,6 +139,16 @@ class XoHiResponder:
         user_id = payload.get("user_id")
         step = payload.get("step")
         status = payload.get("status")
+        
+        # Redis-based Global Deduplication Gate for CONTENT_STEP_COMPLETED (SETNX 10s)
+        from backend.services.xohi_memory import xohi_memory
+        if campaign_id and step is not None and xohi_memory._use_redis and xohi_memory.client:
+            dedup_key = f"dedup:content_step:{campaign_id}:{step}:{status}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=10, nx=True)
+            if not is_new:
+                logger.info(f"[XoHiResponder] Duplicate CONTENT_STEP_COMPLETED ignored: {campaign_id}:{step}:{status}")
+                return
+
         tenant_id = payload.get("tenant_id", "default")
 
         msg = f"[Content] Hoàn thành Bước {step}. Đang chờ sếp duyệt."
@@ -165,8 +195,24 @@ class XoHiResponder:
                     )
                 await session.commit()
                 logger.info(f"[XoHiResponder] UPSERT Step {step} for campaign {campaign_id}")
+                
+                # Elite V2.2: Dispatch Creative Studio status to Central Nervous System (SSE + DB)
+                from backend.schemas.signal import SignalSchema, SignalSeverity
+                from backend.services.signal_center import signal_center
+                
+                await signal_center.dispatch(
+                    user_id="user_admin",
+                    signal=SignalSchema(
+                        message=msg,
+                        severity=SignalSeverity.ACTION,
+                        signal_type="CONTENT_CREATE",
+                        payload={"campaign_id": campaign_id, "step": step, "status": status},
+                        persist=True
+                    ),
+                    tenant_id=tenant_id
+                )
         except Exception as e:
-            logger.error(f"[XoHiResponder] Content log persistence failed: {e}")
+            logger.error(f"[XoHiResponder] Content log persistence/signal dispatch failed: {e}")
 
     async def handle_content_progress(self, payload: Dict[str, object]):
         """Callback for CONTENT_PROGRESS event. Progress is ephemeral — no DB write."""
@@ -253,11 +299,42 @@ class XoHiResponder:
                 return
 
             session_id = payload.get("session_id")
-            message = payload.get("message", "")
+            raw_message = str(payload.get("message", ""))
+            
+            # Bulletproof prompt instruction stripping for safety (Elite V2.2) thưa sếp
+            def clean_prompt_message(msg: str) -> str:
+                if not msg:
+                    return ""
+                msg_lower = msg.lower()
+                if "[system_consult]" in msg:
+                    return "Tư vấn chuyên sâu về sản phẩm"
+                if "[system_skin_barrier]" in msg:
+                    return "Đánh giá loại da và độ phù hợp sản phẩm"
+                if "[system_checkin]" in msg:
+                    return "Thực hiện điểm danh hàng ngày"
+                if any(k in msg_lower for k in ["vui lòng đóng vai", "bạn là helen", "system prompt", "chỉ thị:", "prompt:", "khung hướng dẫn:"]):
+                    return "Yêu cầu tư vấn thông minh"
+                if len(msg) > 200 and any(k in msg_lower for k in ["skin_profile", "loại da", "chăm sóc da", "phân tích"]):
+                    return "Gửi hồ sơ phân tích da và yêu cầu tư vấn"
+                return msg
+
+            message = clean_prompt_message(raw_message)
             
             # Skip empty or revoked messages
             if not message or payload.get("is_revoked"):
                 return
+
+            # Redis-based Global Deduplication Gate (SETNX with 10s TTL)
+            from backend.services.xohi_memory import xohi_memory
+            if xohi_memory._use_redis and xohi_memory.client:
+                import hashlib
+                payload_str = f"support_inbox:{session_id}:{message}"
+                msg_hash = hashlib.md5(payload_str.encode("utf-8")).hexdigest()
+                dedup_key = f"dedup:support_inbox:{msg_hash}"
+                is_new = await xohi_memory.client.set(dedup_key, "1", ex=10, nx=True)
+                if not is_new:
+                    logger.info(f"[XoHiResponder] Duplicate support inbox update event ignored: {session_id}")
+                    return
                 
             # Formatting high-quality, professional HTML messages
             telegram_msg = (
@@ -272,8 +349,25 @@ class XoHiResponder:
             from backend.services.telegram_service import telegram_service
             # Offload Telegram dispatch entirely into background task
             asyncio.create_task(telegram_service.send_alert(telegram_msg))
+
+            # Elite V2.2: Dispatch signal to Central Nervous System (SSE + DB)
+            from backend.schemas.signal import SignalSchema, SignalSeverity
+            from backend.services.signal_center import signal_center
+            
+            asyncio.create_task(
+                signal_center.dispatch(
+                    user_id="user_admin",
+                    signal=SignalSchema(
+                        message=f"💬 Khách chat mới (Session: {session_id[:8]}): {message}",
+                        severity=SignalSeverity.ACTION,
+                        signal_type="CHAT",
+                        payload={"session_id": session_id, "message": message},
+                        persist=True
+                    )
+                )
+            )
         except Exception as e:
-            logger.error(f"❌ [XoHiResponder] Telegram chat alert forwarding failed: {e}")
+            logger.error(f"❌ [XoHiResponder] Telegram chat/signal alert forwarding failed: {e}")
 
 
 # Initialize and subscribe

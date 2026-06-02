@@ -26,20 +26,17 @@
     
     if (type === "ORDER" || type === "ORDER_CANCEL") {
       const orderId = payload.order_id || note.id;
-      nanobot.activeWidget = "ORDER_MANAGEMENT";
-      nanobot.currentData = { order_id: orderId };
-      nanobot.showUniversalModal();
+      nanobot.openWidget("ORDER_MANAGEMENT", { order_id: orderId } as unknown as import("$lib/state/types").CampaignData);
     } else if (type === "URGENT_SUPPORT") {
       const phone = payload.phone || "";
-      nanobot.activeWidget = "SUPPORT_INBOX";
-      nanobot.supportSearchTerm = phone;
-      nanobot.currentData = { session_id: "" };
-      nanobot.showUniversalModal();
+      nanobot.setSupportSearchTerm(phone);
+      nanobot.openWidget("SUPPORT_INBOX", { session_id: "" } as unknown as import("$lib/state/types").CampaignData);
     } else if (type === "CHAT" || type === "SUPPORT_INBOX" || note.id.startsWith("chat-")) {
       const sessionId = payload.session_id || note.id.split("-")[1] || "";
-      nanobot.activeWidget = "SUPPORT_INBOX";
-      nanobot.currentData = { session_id: sessionId };
-      nanobot.showUniversalModal();
+      nanobot.openWidget("SUPPORT_INBOX", { session_id: sessionId } as unknown as import("$lib/state/types").CampaignData);
+    } else if (type === "CONTENT_CREATE") {
+      const campaignId = payload.campaign_id || note.id;
+      nanobot.openWidget("CAMPAIGNS", { campaign_id: campaignId } as unknown as import("$lib/state/types").CampaignData);
     }
   }
 
@@ -152,19 +149,30 @@
         {/each}
       </div>
 
-      <button
-        onclick={() => {
-          if (nanobot.activityLogs.length > 0) {
-            nanobot.showFullLog(
-              nanobot.activityLogs[nanobot.activityLogs.length - 1],
-            );
-          }
-          nanobot.toggleHudPopup("NOTIFICATIONS");
-        }}
-        class="w-full py-3 bg-white/5 text-[9px] font-mono text-[#00FFFF] tracking-[widest] hover:bg-[#00FFFF]/10 transition-all border-t border-white/5"
-      >
-        View Full System Audit
-      </button>
+      <div class="flex border-t border-white/5">
+        <button
+          onclick={() => {
+            if (nanobot.activityLogs.length > 0) {
+              nanobot.showFullLog(
+                nanobot.activityLogs[nanobot.activityLogs.length - 1],
+              );
+            }
+            nanobot.toggleHudPopup("NOTIFICATIONS");
+          }}
+          class="flex-1 py-3 bg-white/5 text-[9px] font-mono text-gray-400 hover:text-white tracking-[widest] hover:bg-white/[0.08] transition-all border-r border-white/5"
+        >
+          System Audit
+        </button>
+        <button
+          onclick={() => {
+            nanobot.openWidget("NOTIFICATION_MANAGEMENT");
+            nanobot.toggleHudPopup("NOTIFICATIONS");
+          }}
+          class="flex-1 py-3 bg-white/5 text-[9px] font-mono text-[#00FFFF] tracking-[widest] hover:bg-[#00FFFF]/10 transition-all"
+        >
+          Manage Signals
+        </button>
+      </div>
     </div>
   {/if}
 </div>

@@ -105,9 +105,8 @@ class ClientPulseController(Controller):
             try:
                 while True:
                     try:
-                        # R88: Heartbeat/Listen Loop with SSE Protocol logic.
-                        # Elite V3.5: Non-polling block wait (5.0s timeout) to eliminate CPU cycle waste (0.5s sleep polling)
-                        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=5.0)
+                        # Elite V3.5: Stable Async Polling to prevent CPU loop and Redis timeout exceptions
+                        message = await pubsub.get_message(ignore_subscribe_messages=True)
                         
                         if message and message['type'] == 'message':
                             logger.info(f"[ClientPulse] Received event from Redis for {session_id}: {message['data']}")
@@ -123,11 +122,11 @@ class ClientPulseController(Controller):
                             yield f"event: {event_name}\n".encode("utf-8")
                             yield f"retry: 3000\n".encode("utf-8")
                             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
-                            
-                            # Elite V2.2 Fix: Do NOT close connection on DONE to prevent auto-recovering loops.
-                            # The stream must stay alive to listen for `SUPPORT_INBOX_UPDATE` (Admin replies).
+                        else:
+                            # Explicit yield to prevent tight loop
+                            await asyncio.sleep(0.5)
                         
-                        # Heartbeat validation after active message wait
+                        # Heartbeat validation
                         current_time = asyncio.get_event_loop().time()
                         if current_time - last_ping_time > 15.0:
                             yield b": ping\n\n"

@@ -22,6 +22,7 @@
   import OrderManagement from "../management/OrderManagement.svelte";
   import NewsManagement from "../management/NewsManagement.svelte";
   import NotificationList from "../widgets/NotificationList.svelte";
+  import NotificationManagement from "../management/NotificationManagement.svelte";
   import VoiceSettings from "../management/VoiceSettings.svelte";
   import ContentFactory from "../management/ContentFactory.svelte";
   import ContentReviewWidget from "../widgets/ContentReviewWidget.svelte";
@@ -55,6 +56,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
     ORDER_MANAGEMENT: OrderManagement,
     NEWS_MANAGEMENT: NewsManagement,
     NOTIFICATION_LIST: NotificationList,
+    NOTIFICATION_MANAGEMENT: NotificationManagement,
     VOICE_SETTINGS: VoiceSettings,
     CAMPAIGNS: ContentFactory,
     CONTENT_REVIEW: ContentReviewWidget,
@@ -83,6 +85,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
     ORDER_MANAGEMENT: "ORDER MANAGEMENT",
     NEWS_MANAGEMENT: "NEWS MANAGEMENT",
     NOTIFICATION_LIST: "NOTIFICATIONS",
+    NOTIFICATION_MANAGEMENT: "SIGNAL MANAGEMENT HUB",
     VOICE_SETTINGS: "VOICE SETTINGS",
     CAMPAIGNS: "CONTENT FACTORY",
     CONTENT_REVIEW: "TRÌNH DUYỆT BÀI VIẾT",
@@ -146,7 +149,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
       style="z-index: {Z_INDEX_ADMIN.SURFACE};"
     >
       <!-- Header -->
-      {#if !['CONTENT_REVIEW', 'ADS_PROTECTION'].includes(nanobot.activeWidget)}
+      {#if !['CONTENT_REVIEW', 'ADS_PROTECTION', 'NOTIFICATION_MANAGEMENT'].includes(nanobot.activeWidget)}
       <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
@@ -241,7 +244,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'NOTIFICATION_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

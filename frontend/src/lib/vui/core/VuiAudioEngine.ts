@@ -234,11 +234,23 @@ export class VuiAudioEngine {
    /**
     * playNotificationPing: Professional stealth alert sound
     */
-   playNotificationPing() {
-     if (!this.hasUserInteracted || !this.audioCtx) return;
-     
+   async playNotificationPing() {
+     if (typeof window === 'undefined') return;
+
+     // Attempt to warm and unlock AudioContext if user has interacted
+     if (!this.audioCtx && this.hasUserInteracted) {
+       await this.unlock();
+     }
+
+     if (!this.audioCtx) return;
+
      try {
        const ctx = this.audioCtx;
+       if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+         await ctx.resume().catch(() => {});
+       }
+
+       // Final safe exit if still blocked by browser policy
        if (ctx.state === 'suspended') return;
 
        const osc = ctx.createOscillator();
@@ -254,7 +266,9 @@ export class VuiAudioEngine {
        
        osc.start();
        osc.stop(ctx.currentTime + 0.4);
-     } catch(e) { /* silent fail */ }
+     } catch(e) {
+       console.warn("[VuiAudioEngine] playNotificationPing failed:", e);
+     }
    }
 
   /**

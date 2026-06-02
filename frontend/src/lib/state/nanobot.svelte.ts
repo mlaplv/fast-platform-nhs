@@ -3,7 +3,7 @@ import { NANOBOT_KEY } from "./context_keys";
 import { apiClient } from "$lib/utils/apiClient";
 import { createChatState } from "./chat.svelte";
 import { goto } from "$app/navigation";
-import { createNotificationState } from "./notification.svelte";
+import { getNotificationState } from "./notification.svelte";
 import { createVaultState } from "./vault.svelte";
 import { createVoiceState } from "./voice.svelte";
 import { createUiState } from "./ui.svelte";
@@ -37,7 +37,7 @@ export function createNanobotState() {
   const ui = createUiState();
   const voice = createVoiceState(log.addLog);
   const chat = createChatState(log.addLog, ui.showToast);
-  const notification = createNotificationState();
+  const notification = getNotificationState();
   const vault = createVaultState(log.addLog);
   const training = createTrainingState(voice);
 

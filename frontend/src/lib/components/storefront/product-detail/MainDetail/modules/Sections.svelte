@@ -104,11 +104,11 @@
     </div>
 
     <div
-      class="flex items-stretch bg-gray-50/50 border border-gray-100 divide-x divide-gray-100 rounded-none mb-6 overflow-hidden"
+      class="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-100 border border-gray-100 rounded-none mb-6 overflow-hidden w-full max-w-full"
     >
       {#if productInfo.brand}
         <div
-          class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all group/spec cursor-default"
+          class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all group/spec cursor-default"
         >
           <span
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
@@ -138,7 +138,7 @@
       {/if}
       {#if productInfo.origin}
         <div
-          class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
+          class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
         >
           <span
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
@@ -153,7 +153,7 @@
       {/if}
       {#if productInfo.weight}
         <div
-          class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
+          class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
         >
           <span
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
@@ -167,7 +167,7 @@
         </div>
       {/if}
       <div
-        class="flex-[1.5] px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
+        class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
       >
         <span
           class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
@@ -206,7 +206,7 @@
       <!-- THÔNG SỐ KỸ THUẬT KHÁC (Hợp nhất vào 1 hàng) -->
       {#each visibleAttributes as [key, value]}
         <div
-          class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
+          class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
         >
           <span
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] uppercase mb-2 flex items-center gap-2"
