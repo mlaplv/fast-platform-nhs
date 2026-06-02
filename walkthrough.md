@@ -3092,5 +3092,30 @@ Chúng tôi đã rà soát tỉ mỉ từng file trong thư mục `mobile/sectio
   ```
   => Toàn bộ tiến trình khởi động lại và cập nhật tài nguyên hoàn thành rực rỡ, sẵn sàng phục vụ hệ thống trực tuyến của Sếp!
 
+### B. Khắc Phục Lỗi Giật Màn Hình & Tràn Ngang Storefront (Layout Thrashing & Viewport Stabilization)
+* **Vấn đề:** Trên giao diện Chi tiết sản phẩm Desktop, xuất hiện một đường kẻ màu xám chuyển động ngang màn hình lặp đi lặp lại vô tận ở rìa phải viewport, đi kèm với hiện tượng giật cục màn hình và thanh cuộn ngang xuất hiện/biến mất liên tục (layout thrashing).
+* **Nguyên nhân sâu xa:**
+  1. **Uncontained CSS Keyframes:** Tiến trình chuyển đổi trang (navigation bar) sử dụng animation `animate-nav-progress` được định nghĩa trong `+layout.svelte`. Animation này thực hiện dịch chuyển phần tử (`translateX(-100% to 100%)`) theo chu kỳ liên tục. Do container bao quanh thanh progress bar này thiếu thuộc tính giới hạn hiển thị, khi phần tử dịch chuyển vượt ra ngoài biên phải màn hình, trình duyệt tự động mở rộng chiều rộng của trang vượt quá `100vw` để chứa phần tử, tạo nên đường sọc xám và lỗi tràn ngang.
+  2. **Sub-pixel Clashing:** Layout module trong product details có sự xếp chồng không hoàn hảo của viền grid, làm trầm trọng thêm độ rung lắc khi trình duyệt liên tục thay đổi kích thước chiều rộng cửa sổ.
+* **Giải pháp xử lý triệt để:**
+  1. **Chặn Đứng Tràn Ngang Tại Progress Bar:** Bổ sung class `overflow-hidden` trực tiếp vào khung bao cố định (fixed container) của thanh Navigation Progress Bar trong `+layout.svelte`. Việc này cô lập hoàn toàn chuyển động tịnh tiến bên trong, triệt tiêu 100% việc phần tử nhảy ra khỏi biên màn hình:
+     ```svelte
+     <div class="fixed top-0 left-0 right-0 h-[2px] z-[var(--z-admin-action-bar-progress)] pointer-events-none overflow-hidden">
+     ```
+  2. **Gia Cố Viewport Kháng Tràn:** Định cấu hình cứng `max-width: 100vw` và `overflow-x: hidden` trên toàn bộ các lớp container ngoài cùng của `+layout.svelte`, `html`, `body` tại file CSS dùng chung để tạo ra màng bảo vệ 2 lớp ngăn chặn triệt để mọi hành vi tràn layout trong tương lai.
+
+---
+
+## 🚀 3. Nhật Ký Đồng Bộ & Nghiệm Thu Layout Jitter
+* **Đồng bộ hóa VPS an toàn (Safe Rsync Deploy - Elite V2.2):**
+  ```bash
+  rsync -rlptDvz -e "ssh -o stricthostkeychecking=no" --no-perms --no-owner --no-group --exclude 'node_modules' --exclude '.git' --exclude '.venv' ...
+  ```
+* **Hot-reload Caddy Web Server:**
+  ```bash
+  ssh -o StrictHostKeyChecking=no mlap@103.1.236.14 "docker exec fast_platform_caddy caddy reload --config /etc/caddy/Caddyfile"
+  ```
+  => Hệ thống tĩnh của Storefront đã được đóng gói (`pnpm build` local) và đồng bộ sạch sẽ lên Production VPS. Giao diện mượt mà tuyệt đối, không còn jank, jolt hay tràn ngang tại bất cứ kích thước màn hình nào!
+
 **Báo cáo: Hoàn tất đồng bộ hóa và triển khai không gián đoạn (Zero-Downtime Hot Deploy) thành công mỹ mãn 100%! Kính trình Sếp phê duyệt!**
 

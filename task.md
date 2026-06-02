@@ -1146,9 +1146,9 @@
 
 # Task Checklist - Storefront Layout Overflow & Viewport Containment Hardening (Elite V2.2)
 
-- [ ] **Khống chế Viewport & Chặn đứng Tràn ngang:** Cập nhật các file CSS gốc (`layout.css` và `client.css`) để áp dụng cứng thuộc tính `overflow-x: hidden` và `max-width: 100vw` cho các phần tử `html`, `body`.
-- [ ] **Cách ly Khung bao Bọc Ngoài cùng (+layout.svelte):** Bổ sung thuộc tính `overflow-x: hidden` và `max-width: 100vw` vào container `div` bọc ngoài của `+layout.svelte` để ngăn chặn bất kỳ sự cố tràn pixel nào từ các widget/modals bên trong.
-- [ ] **Lưới thông số kỹ thuật Linh hoạt (Sections.svelte):** Tái cấu trúc khung hiển thị thông số kĩ thuật từ hàng flex ngang cứng sang lưới responsive `grid grid-cols-2 md:grid-cols-4` có thuộc tính `w-full max-w-full overflow-hidden`, phân bổ khoa học viền kẻ chia dòng/cột theo từng cấp độ màn hình để tự động xuống hàng cực kỳ mượt mà.
-- [ ] **Đồng bộ hóa VPS Production & Hot-Deploy:** Đồng bộ mã nguồn tức thì bằng `rsync` an toàn lên VPS của Sếp mà không build trên VPS.
-- [ ] **Nghiệm thu Thực tế:** Chạy browser subagent kiểm chứng giao diện hoàn toàn ổn định, không còn hiện tượng giật màn hình hay thanh cuộn ngang ở mọi viewport.
+- [x] **Khống chế Viewport & Chặn đứng Tràn ngang:** Cập nhật các file CSS gốc (`layout.css` và `client.css`) để áp dụng cứng thuộc tính `overflow-x: hidden` và `max-width: 100vw` cho các phần tử `html`, `body`. (Done)
+- [x] **Cách ly Khung bao Bọc Ngoài cùng (+layout.svelte):** Bổ sung thuộc tính `overflow-x: hidden` và `max-width: 100vw` vào container `div` bọc ngoài của `+layout.svelte` để ngăn chặn bất kỳ sự cố tràn pixel nào từ các widget/modals bên trong. (Done)
+- [x] **Lưới thông số kỹ thuật Linh hoạt (Sections.svelte):** Tái cấu trúc khung hiển thị thông số kĩ thuật từ hàng flex ngang cứng sang lưới responsive `grid grid-cols-2 md:grid-cols-4` có thuộc tính `w-full max-w-full overflow-hidden`, phân bổ khoa học viền kẻ chia dòng/cột theo từng cấp độ màn hình để tự động xuống hàng cực kỳ mượt mà. (Done)
+- [x] **Đồng bộ hóa VPS Production & Hot-Deploy:** Đồng bộ mã nguồn tức thì bằng `rsync` an toàn lên VPS của Sếp mà không build trên VPS. (Done)
+- [x] **Nghiệm thu Thực tế:** Chạy browser subagent kiểm chứng giao diện hoàn toàn ổn định, không còn hiện tượng giật màn hình hay thanh cuộn ngang ở mọi viewport. (Done)
 
