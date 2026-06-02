@@ -4,6 +4,11 @@
 - [x] Xử lý triệt để điểm dị thường 1: Xóa bỏ hoàn toàn các file báo cáo Lighthouse cũ và nháp trong thư mục để tránh rò rỉ thông tin hệ thống. (Done)
 - [x] Xử lý triệt để điểm dị thường 2: Sửa đổi công thức lỗi toán học gia tốc chuột `dy*dx` -> `dy*dy` tại dòng 174 trong `+layout.svelte`. (Done)
 - [x] Lập kế hoạch chi tiết tích hợp giải pháp "Traffic Cop problem" nâng cấp SvelteKit 5 Runes trong file `docs/PERFORMANCE_OPTIMIZATION_PLAN.md`. (Done)
+- [x] Phase 1: Trì hoãn tài nguyên & On-Demand Bootstrapping - Lazy load ort.min.js trong BehaviorEngine và VuiVadEngine, trì hoãn GTM/GA/Pixel sang requestIdleCallback trong app.html. (Done)
+- [ ] Phase 2: Svelte 5 Traffic Cop Router & Layout Refactor. (Pending)
+- [ ] Phase 3: Cấu hình Edge Preload và Cache Immutable tại Caddyfile. (Pending)
+- [ ] Phase 4: Svelte 5 Snippets Skeleton & Aspect-ratio triệt tiêu CLS. (Pending)
+
 
 
 # Task Checklist - Restoring Support System Connectivity

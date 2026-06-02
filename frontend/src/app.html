@@ -137,21 +137,29 @@
         injectGSC(seo.google_search_console_id);
         injectFBPixel(seo.facebook_pixel_id);
       }
-      /* 1. Zero-latency: try sessionStorage first */
-      try{
-        var raw=sessionStorage.getItem(CACHE_KEY);
-        if(raw){applyTrackers(JSON.parse(raw).seo_analytics);}
-      }catch(e){}
-      /* 2. Async fallback: fetch fresh config & cache it */
-      try{
-        fetch('/api/v1/client/settings/primary',{cache:'no-store'})
-          .then(function(r){return r.ok?r.json():null;})
-          .then(function(d){
-            if(!d)return;
-            try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch(e){}
-            applyTrackers(d.seo_analytics);
-          }).catch(function(){});
-      }catch(e){}
+      function runTracking() {
+        /* 1. Zero-latency: try sessionStorage first */
+        try{
+          var raw=sessionStorage.getItem(CACHE_KEY);
+          if(raw){applyTrackers(JSON.parse(raw).seo_analytics);}
+        }catch(e){}
+        /* 2. Async fallback: fetch fresh config & cache it */
+        try{
+          fetch('/api/v1/client/settings/primary',{cache:'no-store'})
+            .then(function(r){return r.ok?r.json():null;})
+            .then(function(d){
+              if(!d)return;
+              try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch(e){}
+              applyTrackers(d.seo_analytics);
+            }).catch(function(){});
+        }catch(e){}
+      }
+
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(runTracking);
+      } else {
+        setTimeout(runTracking, 1500);
+      }
     })();</script>
     <!-- End Dynamic Analytics Loader -->
     <meta charset="utf-8" />
@@ -164,7 +172,6 @@
     
     <!-- [Elite V3.0] Universal AI Core -->
     <!-- We load this as a global script to bypass Vite's module redirection bugs -->
-    <script src="/wasm/ort.min.js" defer></script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta

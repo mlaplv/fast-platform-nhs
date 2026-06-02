@@ -11,8 +11,34 @@ export class BehaviorEngine {
         if (this.initialized) return;
         
         // [Elite V3.0] SSR Stealth: Guarding against server-side execution
-        if (typeof window === 'undefined' || !window.ort) return;
+        if (typeof window === 'undefined') return;
+
+        // [Elite V2.2] Lazy Load AI Core (ort.min.js)
+        if (!window.ort) {
+            console.log("🛡️ [BehaviorEngine] Loading AI Core (ort.min.js) dynamically...");
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = '/wasm/ort.min.js';
+                    script.async = true;
+                    script.onload = () => {
+                        console.log("🛡️ [BehaviorEngine] AI Core loaded successfully!");
+                        resolve();
+                    };
+                    script.onerror = (e) => {
+                        reject(new Error("Failed to load script"));
+                    };
+                    document.head.appendChild(script);
+                });
+            } catch (err) {
+                console.warn("🛡️ [BehaviorEngine] Failed to load dynamic AI Core. Falling back to rules.", err);
+                this.initialized = true;
+                return;
+            }
+        }
+        
         const ort = window.ort;
+        if (!ort) return;
 
         // [Elite V3.0] Rule-based Fallback if no model is provided
         if (!modelPath) {

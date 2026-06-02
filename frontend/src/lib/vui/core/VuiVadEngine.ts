@@ -45,21 +45,38 @@ export class VuiVadEngine {
           };
         }
         const customWindow = window as unknown as CustomWindow;
-        if (typeof window !== 'undefined' && customWindow.ort) {
-            const ort = customWindow.ort;
-            const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
-            const wasmBase = `${apiBase}/wasm`;
-            
-            ort.env.wasm.wasmPaths = {
-                'ort-wasm-simd-threaded.wasm': `${wasmBase}/ort-wasm-simd-threaded.wasm`,
-                'ort-wasm-simd-threaded.jsep.wasm': `${wasmBase}/ort-wasm-simd-threaded.jsep.wasm`,
-                'ort-wasm-simd.wasm': `${wasmBase}/ort-wasm-simd.wasm`,
-                'ort-wasm.wasm': `${wasmBase}/ort-wasm.wasm`,
-                'ort-wasm-simd-threaded.jsep.mjs': `${wasmBase}/ort-wasm-simd-threaded.jsep.mjs`,
-                'ort-wasm-simd-threaded.mjs': `${wasmBase}/ort-wasm-simd-threaded.mjs`,
-            };
-            ort.env.wasm.numThreads = 1;
-            ort.env.wasm.proxy = false;
+        if (typeof window !== 'undefined') {
+            if (!customWindow.ort) {
+                console.log("[VUI] Loading AI Core (ort.min.js) dynamically for VAD...");
+                try {
+                    await new Promise<void>((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = '/wasm/ort.min.js';
+                        script.async = true;
+                        script.onload = () => resolve();
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                } catch (e) {
+                    console.warn("[VUI] Dynamic load of ort.min.js failed:", e);
+                }
+            }
+            if (customWindow.ort) {
+                const ort = customWindow.ort;
+                const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
+                const wasmBase = `${apiBase}/wasm`;
+                
+                ort.env.wasm.wasmPaths = {
+                    'ort-wasm-simd-threaded.wasm': `${wasmBase}/ort-wasm-simd-threaded.wasm`,
+                    'ort-wasm-simd-threaded.jsep.wasm': `${wasmBase}/ort-wasm-simd-threaded.jsep.wasm`,
+                    'ort-wasm-simd.wasm': `${wasmBase}/ort-wasm-simd.wasm`,
+                    'ort-wasm.wasm': `${wasmBase}/ort-wasm.wasm`,
+                    'ort-wasm-simd-threaded.jsep.mjs': `${wasmBase}/ort-wasm-simd-threaded.jsep.mjs`,
+                    'ort-wasm-simd-threaded.mjs': `${wasmBase}/ort-wasm-simd-threaded.mjs`,
+                };
+                ort.env.wasm.numThreads = 1;
+                ort.env.wasm.proxy = false;
+            }
         }
     }
     

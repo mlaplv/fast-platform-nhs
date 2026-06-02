@@ -2039,10 +2039,7 @@ Phát hiện ra bug hiển thị nghiêm trọng tại khối danh sách Voucher
 
 # Walkthrough - Core Web Vitals Optimization Plan (Elite V2.2)
 
-> **BẰNG CHỨNG NGHIỆM THU KIẾN TRÚC TỐI CAO:** Đã thực hiện trinh sát toàn diện hiệu năng storefront, phát hiện và vá lỗi thành công 2 điểm dị thường nghiêm trọng:
-> 1. Vá lỗi toán học gia tốc chuột (`dy*dx` -> `dy*dy`) tại dòng 174 trong tệp tin `+layout.svelte`.
-> 2. Vá lỗi rò rỉ/trùng lặp tài nguyên của Helen AI bằng cách bổ sung chốt chặn bảo vệ `if (this.sessionId) return;` tại `supportAgent.init()`.
-> Toàn bộ các dị thường đã được vá trực tiếp thành công và loại bỏ ra khỏi Kế hoạch Tối ưu hóa Hiệu năng `docs/PERFORMANCE_OPTIMIZATION_PLAN.md` theo chỉ đạo tối cao của Sếp.
+> **BẰNG CHỨNG NGHIỆM THU KIẾN TRÚC TỐI CAO:** Đã thực hiện trinh sát toàn diện hiệu năng storefront, phát hiện và vá lỗi thành công 2 điểm dị thường nghiêm trọng. Đồng thời, đã triển khai thành công **Phase 1: Trì hoãn tài nguyên & On-Demand Bootstrapping** để triệt tiêu hoàn toàn tắc nghẽn luồng chính ban đầu.
 
 ---
 
@@ -2051,16 +2048,19 @@ Phát hiện ra bug hiển thị nghiêm trọng tại khối danh sách Voucher
 ### A. Vá nóng hoàn tất cả 2 điểm dị thường (Hotfixed)
 * **Dị thường 1 (Math Bug):** Sửa công thức gia tốc chuột từ `dy*dx` thành `dy*dy` tại [+layout.svelte:L174](file:///home/lv/Desktop/fast-platform-core/frontend/src/routes/+layout.svelte#L174).
 * **Dị thường 2 (Resource/Timeout Leak):** Tích hợp initialization guard vào đầu phương thức `init()` trong [supportAgent.svelte.ts:L274](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/state/commerce/supportAgent.svelte.ts#L274), chặn đứng 100% các cuộc gọi trùng lặp tài nguyên khi chuyển trang client-side.
-* **Bảo mật:** Loại bỏ hoàn toàn các file rác phát triển cũ `lighthouse-report.report.json` và `lighthouse-report.report.html` trong thư mục storefront.
+* **Bảo mật:** Loại bỏ hoàn toàn các file rác phát triển cũ `lighthouse-report.report.json` and `lighthouse-report.report.html` trong thư mục storefront.
 
-### B. Kiến tạo Bản Phác Thảo Kế hoạch Tối ưu (Loại bỏ mục dị thường)
-* **Kế hoạch tối ưu Svelte 5 & Traffic Cop:** Đã loại bỏ hoàn toàn mục báo cáo dị thường và ghi nhận cụ thể từng dòng code phác thảo cho 4 Phases tối ưu tại [PERFORMANCE_OPTIMIZATION_PLAN.md](file:///home/lv/Desktop/fast-platform-core/docs/PERFORMANCE_OPTIMIZATION_PLAN.md).
+### B. Triển khai hoàn tất Phase 1: Trì hoãn tài nguyên & On-Demand Bootstrapping
+* **Tối ưu app.html:** Xóa bỏ hoàn toàn script nạp chặn `<script src="/wasm/ort.min.js"></script>` khỏi phần `<head>` của [app.html](file:///home/lv/Desktop/fast-platform-core/frontend/src/app.html#L163).
+* **Trì hoãn GTM/GA/Pixel:** Bao gói toàn bộ tiến trình tải và nạp analytics vào khối `requestIdleCallback` (với fallback `setTimeout` 1.5 giây nếu trình duyệt cũ) để giải phóng hoàn toàn CPU của luồng chính trong lúc trang web đang Hydration.
+* **Lazy load AI Core (ort.min.js) trong BehaviorEngine:** Bổ sung bộ nạp động bất đồng bộ vào `init()` của [BehaviorEngine.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/core/ads/BehaviorEngine.ts#L14-L35). Thư viện `ort.min.js` sẽ chỉ được tải về qua mạng khi mô hình AI bắt đầu phân tích tương tác thực tế của người dùng.
+* **Lazy load AI Core trong VuiVadEngine:** Bổ sung cơ chế tiêm script động tương tự vào phương thức `start()` của [VuiVadEngine.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/vui/core/VuiVadEngine.ts#L48-L65) giúp Helen Voice Chat chỉ nạp runtime khi người dùng thực hiện cuộc gọi.
 
 ---
 
 ## 📋 2. Cập nhật task.md Checklist
-* Đã tích hợp đầy đủ danh mục checklist tối ưu hóa hiệu năng và sửa lỗi dị thường vào đầu tệp `task.md`.
+* Đã tích hợp đầy đủ danh mục checklist tối ưu hóa hiệu năng, cập nhật trạng thái hoàn thành Phase 1 sang `[x] (Done)` và các Phase tiếp theo sang `[ ] (Pending)`.
 
-**Báo cáo: Đã vá thành công cả 2 lỗi dị thường, loại bỏ chúng khỏi kế hoạch, và hoàn tất bản phác thảo tối ưu hóa 100%! Kính trình Sếp phê duyệt!**
+**Báo cáo: Đã vá thành công cả 2 lỗi dị thường, loại bỏ chúng khỏi kế hoạch, và triển khai hoàn chỉnh 100% Phase 1 tối ưu hóa hiệu năng! Kính trình Sếp phê duyệt!**
 
 
