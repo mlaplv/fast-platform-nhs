@@ -89,7 +89,7 @@
       </div>
       <button
         id="btn-verify-product"
-        class="flex flex-col items-end group/sku cursor-pointer hover:scale-105 transition-transform bg-transparent border-none p-0"
+        class="flex flex-col items-end group/sku cursor-pointer bg-transparent border-none p-0"
         onclick={triggerScan}
       >
         <span
@@ -113,16 +113,16 @@
           <span
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
           >
-            <div class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></div>
-            Thương hiệu
-          </span>
-          <a
-            href="/search?q={encodeURIComponent(productInfo.brand)}"
+          <div class="w-1 h-1 rounded-full bg-amber-400"></div>
+          Thương hiệu
+        </span>
+        <a
+          href="/search?q={encodeURIComponent(productInfo.brand)}"
             class="text-[14px] font-black text-[#ee4d2d] hover:underline flex items-center gap-1.5 tracking-tight"
           >
             {productInfo.brand}
             <svg
-              class="w-3.5 h-3.5 opacity-0 group-hover/spec:opacity-100 transition-all translate-x-[-5px] group-hover/spec:translate-x-0"
+              class="w-3.5 h-3.5 opacity-0 group-hover/spec:opacity-100 group-hover/spec:translate-x-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -223,7 +223,7 @@
             >
               {value}
               <div
-                class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"
+                class="w-1.5 h-1.5 bg-green-500 rounded-full"
               ></div>
             </button>
           {:else}
@@ -260,7 +260,7 @@
                   class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-none hover:bg-white hover:shadow-xl hover:shadow-[#ee4d2d]/5 transition-all group/ing"
                 >
                   <div
-                    class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-none flex items-center justify-center text-[18px] group-hover/ing:scale-110 transition-transform shadow-sm"
+                    class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-none flex items-center justify-center text-[18px] shadow-sm"
                   >
                     {ing.icon || getIngredientIcon(ing.name)}
                   </div>
@@ -489,7 +489,7 @@
             </button>
 
             {#if activeFaq === i}
-              <div class="px-4 pb-4 animate-[fadeIn_0.3s_ease-out]">
+              <div class="px-4 pb-4">
                 <p
                   class="text-[14px] text-gray-600 leading-relaxed w-full border-t border-gray-100 pt-3"
                 >

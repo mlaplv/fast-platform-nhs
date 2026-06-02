@@ -541,10 +541,8 @@
     <div class="stu-desktop-root" class:stu-compact={compact}>
       {#if step === 'idle' || step === 'error'}
         <div class="stu-view-bar group">
-          <div class="glass-shimmer"></div>
           <div class="stp-one-line">
             <div class="stp-icon-box">
-              <div class="gift-pulse"></div>
               <Gift size={18} />
             </div>
             <div class="stp-msg">
@@ -720,24 +718,6 @@
     box-shadow: none;
   }
 
-  .glass-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.4),
-      transparent
-    );
-    transform: translateX(-100%);
-    animation: shimmer 3s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    50%, 100% { transform: translateX(100%); }
-  }
-
   .stp-one-line { display: flex; align-items: center; gap: 12px; padding: 0; min-height: 0; flex-wrap: wrap; }
   
   .stp-icon-box { 
@@ -749,21 +729,6 @@
     width: 24px;
     height: 24px;
     background: transparent;
-  }
-
-  .gift-pulse {
-    position: absolute;
-    inset: 0;
-    background: #ee4d2d;
-    border-radius: 10px;
-    opacity: 0.2;
-    animation: icon-pulse 2s infinite;
-  }
-
-  @keyframes icon-pulse {
-    0% { transform: scale(1); opacity: 0.2; }
-    50% { transform: scale(1.1); opacity: 0; }
-    100% { transform: scale(1); opacity: 0; }
   }
 
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }

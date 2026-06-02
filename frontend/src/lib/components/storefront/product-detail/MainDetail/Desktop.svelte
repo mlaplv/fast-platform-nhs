@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { untrack } from "svelte";
   import { goto } from "$app/navigation";
 
   // Types
@@ -8,12 +8,9 @@
   // State & Stores
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
-  import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
   import { authStore } from "$lib/state/authStore.svelte";
 
   // Utils
-  import { resolveMediaUrl } from "$lib/state/utils";
-  import { formatCurrency } from "$lib/utils/format";
   import { processProductVouchers } from "$lib/utils/commerce/voucher";
 
   // Components
@@ -95,6 +92,23 @@
 
   let selectedIndices = $state<number[]>([]);
 
+  // Elite V2.2: O(1) Variant Activity Index Map — prebuilt once per product change
+  // Eliminates O(N×M) .find()/.some() per option in Info.svelte
+  const variantActivityMap = $derived.by(() => {
+    const map = new Map<string, boolean>();
+    const rawVariants = product.variants || [];
+    for (const v of rawVariants) {
+      const idxs = v.tierIndex || v.tier_index || [];
+      const isActive = v.attributes?.is_active !== false;
+      for (let tIdx = 0; tIdx < idxs.length; tIdx++) {
+        const key = `${tIdx}:${idxs[tIdx]}`;
+        if (isActive) map.set(key, true);
+        else if (!map.has(key)) map.set(key, false);
+      }
+    }
+    return map;
+  });
+
   // Synchronize indices synchronously before paint to prevent layout shifts
   $effect.pre(() => {
     const _id = product.id; // track product transitions
@@ -111,22 +125,7 @@
     }
   });
   let quantity = $state(1);
-  let loadBelowFold = $state(false);
-
-  onMount(() => {
-    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
-    if (typeof window !== "undefined") {
-      if ("requestIdleCallback" in window) {
-        requestIdleCallback(() => {
-          loadBelowFold = true;
-        });
-      } else {
-        setTimeout(() => {
-          loadBelowFold = true;
-        }, 200);
-      }
-    }
-  });
+  // Pre-rendered for maximum SEO & instantaneous Above-the-fold paint
 
   const currentVariant = $derived<ProductVariant | undefined>(
     pVariants.find((v) => {
@@ -139,22 +138,56 @@
     }),
   );
 
-  const effectiveTier = $derived.by(() => {
-    const comboVariants = pVariants.filter(
-      (cv) => cv.attributes && cv.attributes.combo_qty,
-    );
-    if (comboVariants.length === 0) return currentVariant;
-    const sortedTiers = [...comboVariants].sort(
-      (a, b) =>
-        Number(b.attributes?.combo_qty || 0) -
-        Number(a.attributes?.combo_qty || 0),
-    );
-    return (
-      sortedTiers.find(
-        (t) => Number(t.attributes?.combo_qty || 0) <= quantity,
-      ) || currentVariant
-    );
+  // Elite V2.2 Memoized Static Range Calculation
+  const priceRange = $derived.by(() => {
+    if (pVariants.length === 0) return null;
+    const prices = pVariants
+      .map((v) => Number(v.price))
+      .filter((p) => !isNaN(p));
+    const discountPrices = pVariants
+      .map((v) => v.discountPrice || v.discount_price)
+      .filter((p) => p != null && !isNaN(Number(p)))
+      .map((p) => Number(p));
+
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+    const minDiscount =
+      discountPrices.length > 0 ? Math.min(...discountPrices) : undefined;
+    const maxDiscount =
+      discountPrices.length > 0 ? Math.max(...discountPrices) : undefined;
+
+    const formatRange = (min: number, max: number) =>
+      min === max
+        ? min.toLocaleString("vi-VN")
+        : `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")}`;
+
+    return {
+      price: formatRange(minPrice, maxPrice),
+      discountPrice:
+        minDiscount !== undefined && maxDiscount !== undefined
+          ? formatRange(minDiscount, maxDiscount)
+          : undefined,
+    };
   });
+
+  const sortedComboVariants = $derived(
+    pVariants
+      .filter((cv) => cv.attributes && cv.attributes.combo_qty)
+      .sort(
+        (a, b) =>
+          Number(b.attributes?.combo_qty || 0) -
+          Number(a.attributes?.combo_qty || 0),
+      )
+  );
+
+  const effectiveTier = $derived(
+    sortedComboVariants.length > 0
+      ? (sortedComboVariants.find(
+          (t) => Number(t.attributes?.combo_qty || 0) <= quantity,
+        ) || currentVariant)
+      : currentVariant
+  );
 
   const effectiveUnitPrice = $derived.by(() => {
     const v = effectiveTier;
@@ -172,38 +205,7 @@
         discountPrice: effectiveUnitPrice,
       };
     }
-    // Min max range if not selected
-    if (pVariants.length > 0) {
-      const prices = pVariants
-        .map((v) => Number(v.price))
-        .filter((p) => !isNaN(p));
-      const discountPrices = pVariants
-        .map((v) => v.discountPrice || v.discount_price)
-        .filter((p) => p != null && !isNaN(Number(p)))
-        .map((p) => Number(p));
-
-      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-
-      const minDiscount =
-        discountPrices.length > 0 ? Math.min(...discountPrices) : undefined;
-      const maxDiscount =
-        discountPrices.length > 0 ? Math.max(...discountPrices) : undefined;
-
-      const formatRange = (min: number, max: number) =>
-        min === max
-          ? min.toLocaleString("vi-VN")
-          : `${min.toLocaleString("vi-VN")} - ${max.toLocaleString("vi-VN")}`;
-
-      return {
-        price: formatRange(minPrice, maxPrice),
-        discountPrice:
-          minDiscount !== undefined && maxDiscount !== undefined
-            ? formatRange(minDiscount, maxDiscount)
-            : undefined,
-      };
-    }
-
+    if (priceRange) return priceRange;
     return {
       price: product.price,
       discountPrice: product.discountPrice || product.discount_price,
@@ -379,20 +381,26 @@
     }
   }
 
+  // Elite V2.2: Flash Sale Timer — only create interval when sale is genuinely active
   $effect(() => {
-    if (!flashSaleEnd) {
+    if (!flashSaleEnd || flashSaleEnd <= Date.now()) {
       timeLeft = { hours: 0, minutes: 0, seconds: 0 };
       return;
     }
 
-    function updateCountdown() {
+    const updateCountdown = () => {
       const diff = Math.max(0, flashSaleEnd! - Date.now());
+      if (diff === 0) {
+        timeLeft = { hours: 0, minutes: 0, seconds: 0 };
+        clearInterval(timer);
+        return;
+      }
       timeLeft = {
         hours: Math.floor(diff / 3600000),
         minutes: Math.floor((diff % 3600000) / 60000),
         seconds: Math.floor((diff % 60000) / 1000),
       };
-    }
+    };
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
@@ -466,6 +474,25 @@
   );
   const activeGifts = $derived(effectiveTier?.attributes?.gifts || []);
 
+  // Elite Performance V2.2: Intersection Observer Sentinel for Below-the-fold dynamic modules
+  let dynamicSection = $state<HTMLElement | null>(null);
+  let shouldRenderDynamic = $state(false);
+
+  $effect(() => {
+    if (!dynamicSection) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          shouldRenderDynamic = true;
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" } // Load 300px before scrolling into view to guarantee seamless zero-wait UX
+    );
+    observer.observe(dynamicSection);
+    return () => observer.disconnect();
+  });
+
   // SGE Shield V1.0: Deterministic DOM Entropy (Product Detail)
   const wrapperTags = ["div", "article", "section", "main"];
   const seedLength = $derived(product?.name ? product.name.length : 10);
@@ -504,7 +531,7 @@
       <div class="relative shrink-0">
         <button
           onclick={triggerVerify}
-          class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none"
+          class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:opacity-90 drop-shadow-md bg-transparent border-none p-0 focus:outline-none"
         >
           <img
             src={product?.metadata?.verified_badge_url ||
@@ -545,6 +572,7 @@
           {isFlashSaleActive}
           {timeLeft}
           {isViralUnlocked}
+          {variantActivityMap}
           onToggleVoucher={toggleVoucher}
           onSelectOption={selectOption}
           onQuantityChange={handleQuantityChange}
@@ -582,21 +610,17 @@
   />
 
   <!-- BELOW THE FOLD DYNAMIC SECTIONS -->
-  {#if loadBelowFold}
-    <!-- REVIEWS SECTION -->
-    <ProductReviews {product} />
+  <div bind:this={dynamicSection} class="w-full min-h-[1px]">
+    {#if shouldRenderDynamic}
+      <!-- REVIEWS SECTION -->
+      <ProductReviews {product} />
 
-    <!-- RELATED PRODUCTS -->
-    <div class="max-w-[1200px] mx-auto mt-0 mb-12">
-      <RelatedProducts {product} initialProducts={relatedProducts} />
-    </div>
-  {:else}
-    <!-- Empty placeholders to eliminate CLS and maintain vertical layout rhythm during load -->
-    <div class="max-w-[1200px] mx-auto mt-8 h-[200px] bg-white border border-gray-100 flex flex-col items-center justify-center text-gray-300 gap-2">
-      <div class="w-10 h-10 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-      <span class="text-[11px] font-black tracking-widest uppercase">Đang tải đánh giá và gợi ý...</span>
-    </div>
-  {/if}
+      <!-- RELATED PRODUCTS -->
+      <div class="max-w-[1200px] mx-auto mt-0 mb-12">
+        <RelatedProducts {product} initialProducts={relatedProducts} />
+      </div>
+    {/if}
+  </div>
 </svelte:element>
 
 <style>

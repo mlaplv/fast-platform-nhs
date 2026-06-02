@@ -139,7 +139,7 @@
       <img 
         src={resolveOptimizedImageUrl(currentImage, 800)} 
         alt={product.name} 
-        class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-150 bg-white" 
+        class="w-full h-full object-contain bg-white" 
         loading="eager"
         fetchpriority="high"
         decoding="sync"
@@ -164,7 +164,7 @@
       {@const isActive = activeImageIndex === i}
       <button 
         type="button"
-        class="aspect-square border-2 cursor-pointer transition-all duration-300 rounded-lg overflow-hidden relative group {isActive ? 'border-[#ffaa00] scale-105 shadow-lg z-10' : 'border-transparent opacity-70 hover:opacity-100 hover:border-[#ffaa00]/50'} bg-gray-50 p-0"
+        class="aspect-square border-2 cursor-pointer rounded-lg overflow-hidden relative group {isActive ? 'border-[#ffaa00] shadow-sm z-10' : 'border-transparent opacity-70 hover:opacity-100 hover:border-[#ffaa00]/50'} bg-gray-50 p-0"
         onclick={() => { activeImageIndex = i; overrideImageIndex = i; }}
         aria-label="Xem ảnh {i + 1}"
       >
@@ -208,12 +208,4 @@
   </div>
 </div>
 
-<style>
-  /* Custom glass effect for high-end desktop experience */
-  button :global(video) {
-    transition: transform 0.5s ease;
-  }
-  button:hover :global(video) {
-    transform: scale(1.1);
-  }
-</style>
+

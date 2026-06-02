@@ -48,6 +48,7 @@
     isFlashSaleActive: boolean;
     timeLeft: { hours: number; minutes: number; seconds: number };
     isViralUnlocked: boolean;
+    variantActivityMap: Map<string, boolean>;
     // Callbacks
     onToggleVoucher: (id: string) => void;
     onSelectOption: (tIdx: number, oIdx: number) => void;
@@ -75,6 +76,7 @@
     isFlashSaleActive,
     timeLeft,
     isViralUnlocked,
+    variantActivityMap,
     onToggleVoucher,
     onSelectOption,
     onQuantityChange,
@@ -84,20 +86,9 @@
     onTriggerViralFly,
   }: Props = $props();
 
-  // Helper to check if a specific option is active
+  // Elite V2.2: O(1) Option Activity Lookup via prebuilt index map from parent
   function isOptionActive(tIdx: number, oIdx: number): boolean {
-    const rawVariants = product.variants || [];
-    if (variations.length === 1) {
-      const v = rawVariants.find((x) => {
-        const idxs = x.tierIndex || x.tier_index || [];
-        return idxs[0] === oIdx;
-      });
-      return v?.attributes?.is_active !== false;
-    }
-    return rawVariants.some((x) => {
-      const idxs = x.tierIndex || x.tier_index || [];
-      return idxs[tIdx] === oIdx && x.attributes?.is_active !== false;
-    });
+    return variantActivityMap.get(`${tIdx}:${oIdx}`) !== false;
   }
 
   const soldStr = $derived(
@@ -238,7 +229,7 @@
               >Helen</span
             >
             <div
-              class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"
+              class="w-0.5 h-0.5 bg-blue-400 rounded-full"
             ></div>
           </div>
         </div>
@@ -256,7 +247,7 @@
       <div class="flex flex-col items-end">
         <div class="flex items-center gap-2 mb-1">
           <div
-            class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse shadow-[0_0_8px_#ee4d2d]"
+            class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full shadow-[0_0_8px_#ee4d2d]"
           ></div>
           <span
             class="text-[10px] font-black text-gray-500 tracking-[0.2em] opacity-80"
@@ -356,7 +347,7 @@
     <div class="flex flex-wrap gap-2.5 items-center">
       <!-- 1. Giao Nhanh 2h -->
       <div class="flex items-center gap-1.5 bg-rose-500/[0.04] border border-rose-500/10 rounded-md py-1 px-2.5 hover:bg-rose-500/[0.08] transition-all duration-200 cursor-default">
-        <svg class="w-3.5 h-3.5 text-rose-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
         <span class="text-[12px] font-black text-rose-600 uppercase tracking-wider">Giao nhanh 2h</span>
@@ -479,7 +470,7 @@
           <span
             class="text-[11px] font-bold text-[#ee4d2d] flex items-center gap-1"
           >
-            <span class="w-1 h-1 bg-[#ee4d2d] rounded-full animate-ping"></span>
+            <span class="w-1 h-1 bg-[#ee4d2d] rounded-full"></span>
             Hàng hiếm, chỉ còn {currentStock} bộ trong kho
           </span>
         {:else}
@@ -528,7 +519,7 @@
                     style="text-decoration: none;"
                   >
                     <div
-                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm relative"
+                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 shadow-sm relative"
                     >
                       {#if gift.image}
                         <img
@@ -569,7 +560,7 @@
                     class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm"
                   >
                     <div
-                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm"
+                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 shadow-sm"
                     >
                       {#if gift.image}
                         <img

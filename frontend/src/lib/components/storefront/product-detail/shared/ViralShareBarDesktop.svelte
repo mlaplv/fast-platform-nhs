@@ -205,18 +205,18 @@
     <!-- Social & Like Row -->
     <div class="flex items-center justify-between">
       {#if isMounted && !hideLikes}
-        <button onclick={handleLike} class="flex items-center gap-1.5 group/like hover:scale-105 transition-all">
-          <Heart size={18} class="transition-transform group-hover/like:scale-110 {isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}" />
+        <button onclick={handleLike} class="flex items-center gap-1.5 group/like">
+          <Heart size={18} class="{isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}" />
           <span class="text-xs font-bold {isLiked ? 'text-rose-600' : 'text-slate-500'}">{formatViralCount(localLikeCount)}</span>
         </button>
         <div class="w-[1px] h-4 bg-slate-200 mx-2"></div>
       {/if}
       
-      <button onclick={() => share('facebook')} class="text-slate-400 hover:text-[#1877f2] transition-colors hover:scale-110" aria-label="Share Facebook"><Facebook size={18} class="fill-current" /></button>
-      <button onclick={() => share('zalo')} class="text-slate-400 hover:text-[#0068ff] transition-colors hover:scale-110 font-black text-xs" aria-label="Share Zalo">Zalo</button>
-      <button onclick={() => share('x')} class="text-slate-400 hover:text-black transition-colors hover:scale-110" aria-label="Share X"><Twitter size={18} class="fill-current" /></button>
-      <button onclick={() => share('instagram')} class="text-slate-400 hover:text-[#e4405f] transition-colors hover:scale-110" aria-label="Share Instagram"><Instagram size={18} /></button>
-      <button onclick={() => share('telegram')} class="text-slate-400 hover:text-[#229ed9] transition-colors hover:scale-110" aria-label="Share Telegram"><Send size={18} /></button>
+      <button onclick={() => share('facebook')} class="text-slate-400 hover:text-[#1877f2]" aria-label="Share Facebook"><Facebook size={18} class="fill-current" /></button>
+      <button onclick={() => share('zalo')} class="text-slate-400 hover:text-[#0068ff] font-black text-xs" aria-label="Share Zalo">Zalo</button>
+      <button onclick={() => share('x')} class="text-slate-400 hover:text-black" aria-label="Share X"><Twitter size={18} class="fill-current" /></button>
+      <button onclick={() => share('instagram')} class="text-slate-400 hover:text-[#e4405f]" aria-label="Share Instagram"><Instagram size={18} /></button>
+      <button onclick={() => share('telegram')} class="text-slate-400 hover:text-[#229ed9]" aria-label="Share Telegram"><Send size={18} /></button>
       
       {#if isCtv}
         <div class="relative">
@@ -224,12 +224,12 @@
             onmouseenter={() => showCtvPopover = true}
             onmouseleave={() => showCtvPopover = false}
             onclick={(e) => copyCtvLink(e)}
-            class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-luxury-copper text-stone-950 hover:from-amber-600 hover:to-amber-500 hover:scale-105 transition-all rounded-lg font-black text-[9px] tracking-wider uppercase shrink-0 flex items-center gap-1 shadow-sm shadow-luxury-copper/20 relative overflow-hidden group" 
+            class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-luxury-copper text-stone-950 rounded-lg font-black text-[9px] tracking-wider uppercase shrink-0 flex items-center gap-1 shadow-sm shadow-luxury-copper/20 relative overflow-hidden" 
             aria-label="Copy CTV"
           >
             <!-- Continuous shimmering light sweep -->
-            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
-            <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV - {activeRatePercent}
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full"></div>
+            <Zap size={10} class="fill-stone-950 text-stone-950" /> Kênh CTV - {activeRatePercent}
           </button>
 
           <!-- Premium Popover Tooltip -->
@@ -237,7 +237,7 @@
             <div 
               onmouseenter={() => showCtvPopover = true}
               onmouseleave={() => showCtvPopover = false}
-              class="absolute bottom-full right-0 mb-3 w-56 bg-stone-950/95 border border-stone-850 backdrop-blur-xl rounded-xl p-4 shadow-[0_15px_40px_rgba(0,0,0,0.5)] z-[99] flex flex-col items-center text-center gap-2.5 transition-all duration-300 animate-slide-up"
+              class="absolute bottom-full right-0 mb-3 w-56 bg-stone-950/95 border border-stone-850 backdrop-blur-xl rounded-xl p-4 shadow-[0_15px_40px_rgba(0,0,0,0.5)] z-[99] flex flex-col items-center text-center gap-2.5"
             >
               <!-- Downward pointing chevron tip -->
               <div class="absolute top-full right-6 -mt-[1px] w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-stone-950/95"></div>
@@ -274,7 +274,7 @@
         </div>
       {/if}
 
-      <button onclick={copyLink} class="text-slate-400 hover:text-slate-900 transition-colors hover:scale-110" aria-label="Copy Link"><Copy size={18} /></button>
+      <button onclick={copyLink} class="text-slate-400 hover:text-slate-900" aria-label="Copy Link"><Copy size={18} /></button>
     </div>
  
     <!-- Progress: only render client-side to avoid hydration mismatch -->
@@ -285,9 +285,9 @@
             <div class="flex items-center gap-2">
               <div class="flex items-center gap-1.5">
                 {#if isCampaignLoading}
-                  <Zap size={12} class="text-blue-500 animate-pulse fill-blue-500/20" />
+                  <Zap size={12} class="text-blue-500 fill-blue-500/20" />
                 {:else}
-                  <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
                 {/if}
               </div>
               <span class="text-[11px] {isCampaignLoading ? 'text-blue-500 font-bold' : 'text-slate-500'} line-clamp-1">
@@ -308,8 +308,8 @@
                 class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
                 style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
               >
-                <!-- Liquid light sweep animation -->
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
+                <!-- Liquid light sweep animation removed for static display -->
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
               </div>
               <!-- Glowing neon active beacon at the progress tip -->
               <div 
@@ -317,7 +317,6 @@
                 style="left: {shareProgress}%"
               >
                 <span class="relative flex h-3.5 w-3.5">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 shadow-[0_0_8px_#ff2d55]"></span>
                 </span>
               </div>
