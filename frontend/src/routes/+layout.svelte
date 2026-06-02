@@ -83,9 +83,11 @@
     // Reactively track pathname changes
     const path = page.url.pathname;
     
-    // Increment Epoch on each navigation
-    navigationEpoch++;
-    const myEpoch = navigationEpoch;
+    // Increment Epoch on each navigation (untracked to prevent infinite Svelte 5 reactivity loops)
+    const myEpoch = untrack(() => {
+      navigationEpoch++;
+      return navigationEpoch;
+    });
 
     untrack(async () => {
       if (isAdmin) return;
