@@ -17,24 +17,10 @@
 
   onMount(() => {
     loyaltyStore.fetchLoyalty();
-    if (authStore.isAuthenticated) {
-      checkinStore.fetchStatus();
-    }
+    checkinStore.fetchStatus();
   });
 
-  const PREVIEW_DAYS = [
-    { day: 1, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 2, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 3, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 4, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 5, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 6, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 7, reward: 20000, is_completed: false, is_today: false, is_bonus: true },
-  ];
-
-  const displayDays = $derived(
-    checkinStore.status?.days?.length ? checkinStore.status.days : PREVIEW_DAYS
-  );
+  const displayDays = $derived(checkinStore.status?.days ?? []);
   const isCheckedIn = $derived(checkinStore.status?.is_checked_in_today ?? false);
   const completedCount = $derived(displayDays.filter(d => d.is_completed).length);
   
@@ -274,7 +260,7 @@
                     </div>
                     <p class="text-[13px] text-stone-600 font-medium">1 {loyaltyStore.data?.point_unit ?? "điểm"} = 10,000đ chiết khấu</p>
                     <p class="text-[10px] text-stone-400 italic font-medium leading-relaxed">
-                        Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng.
+                        Chính sách bảo vệ biên lợi nhuận: Áp dụng tối đa 1% giá trị mỗi đơn hàng.
                     </p>
                 </div>
             </div>

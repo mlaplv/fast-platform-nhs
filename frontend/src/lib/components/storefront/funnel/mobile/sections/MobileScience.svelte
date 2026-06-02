@@ -16,29 +16,41 @@
   const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
-  const headline = $derived(metadata.science_headline || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?");
-  const subheadline = $derived(metadata.science_subheadline || "Đột phá công thức hàng đầu từ Nhật Bản.");
-  const showSubheadline = $derived(!!metadata.science_subheadline);
+  const clean = (s: unknown) => {
+    if (!s) return "";
+    return String(s)
+      .replace(/^(\[OFF\]|\*|\s|-)+/i, '')
+      .trim();
+  };
+
+  const headline = $derived(clean(metadata.science_headline) || "TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?");
+  const subheadline = $derived(clean(metadata.science_subheadline) || "Đột phá công thức hàng đầu từ Nhật Bản.");
+  const showSubheadline = $derived(!!metadata.science_subheadline && !metadata.science_subheadline.startsWith('[OFF]'));
+
 
   const claims = $derived([
-    metadata.science_claims?.[0] || {
+    metadata.science_claims?.[0] ? {
+      label: clean(metadata.science_claims[0].label),
+      content: clean(metadata.science_claims[0].content),
+    } : {
       label: "CƠ CHẾ PHÁ VỠ HẮC SẮC TỐ",
       content:
         "Ức chế mạnh mẽ quá trình sản sinh Melanin tối màu nhờ tinh chất Hoa Anh Đào (Sakura) và Vitamin C. Đánh bật các gốc thâm sạm từ sâu bên trong, nâng tone rạng rỡ vùng da xỉn màu.",
     },
-    metadata.science_claims?.[1] || {
+    metadata.science_claims?.[1] ? {
+      label: clean(metadata.science_claims[1].label),
+      content: clean(metadata.science_claims[1].content),
+    } : {
       label: "AN TOÀN // LÀNH TÍNH CHUẨN NHẬT",
       content:
         'Chiết xuất dược liệu sinh học thân thiện với những vùng da mỏng manh nhất. Cam kết "3 KHÔNG": Không cồn, không Paraben, không hóa chất lột tẩy.',
     },
   ]);
-  const stats = $derived(
-    metadata.science_stats || {
-      value: "3",
-      unit: "S",
-      label: "THẨM THẤU TÀNG HÌNH",
-    },
-  );
+  const stats = $derived({
+    value: clean(metadata.science_stats?.value) || "3",
+    unit: clean(metadata.science_stats?.unit) || "S",
+    label: clean(metadata.science_stats?.label) || "THẨM THẤU TÀNG HÌNH",
+  });
 
   const tech = $derived([
     {

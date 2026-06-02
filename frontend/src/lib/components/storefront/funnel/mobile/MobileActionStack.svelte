@@ -59,7 +59,7 @@
   >
     <div class="relative flex items-center justify-center">
       {#if !isCheckedIn}
-        <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff9900] rounded-full border-2 border-black animate-pulse z-10"></div>
+        <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff9900] rounded-full animate-pulse z-10"></div>
         <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🎁</span>
       {:else}
         <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🪙</span>
@@ -99,7 +99,7 @@
     aria-label="Tra cứu chính hãng"
   >
     <div class="relative">
-      <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black animate-pulse z-10"></div>
+      <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse z-10"></div>
       <svg class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 7V5a2 2 0 0 1 2-2h2" />
         <path d="M17 3h2a2 2 0 0 1 2 2v2" />

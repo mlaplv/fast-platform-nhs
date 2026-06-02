@@ -29,7 +29,10 @@ def main():
         "backend/services/viral_share_service.py",
         "backend/controllers/client/viral.py",
         "frontend/src/lib/components/storefront/product-detail/shared/ShareToUnlock.svelte",
-        "frontend/src/lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte"
+        "frontend/src/lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte",
+        "frontend/src/lib/components/storefront/loyalty/DailyCheckinLanding.svelte",
+        "frontend/src/lib/components/storefront/loyalty/DailyCheckinModalDesktop.svelte",
+        "frontend/src/lib/components/storefront/loyalty/DailyCheckinModalMobile.svelte"
     ]
     
     print("\n🚀 Uploading core files...")

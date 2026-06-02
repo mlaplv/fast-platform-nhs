@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
+  import { browser } from '$app/environment';
   import { checkinStore } from '$lib/state/commerce/checkin.svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -16,16 +17,7 @@
 
   const COLORS = ['#FFD700', '#FF6B35', '#FFA500', '#FFE066', '#FFFBE7'];
 
-  // Preview days cho guest — dùng VNĐ để đồng bộ với API (API trả về VNĐ sẵn)
-  const PREVIEW_DAYS = [
-    { day: 1, reward: 10000, is_completed: false, is_today: true,  is_bonus: false },
-    { day: 2, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 3, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 4, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 5, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 6, reward: 10000, is_completed: false, is_today: false, is_bonus: false },
-    { day: 7, reward: 20000, is_completed: false, is_today: false, is_bonus: true  },
-  ];
+
 
   let products = $state<any[]>([]);
   let isLoadingProducts = $state(true);
@@ -161,7 +153,8 @@
       );
       
       // Auto-save dismissal date so it won't pop up again today
-      localStorage.setItem('osmo:storefront:daily_checkin_dismissed_date', new Date().toDateString());
+      dontShowToday = true;
+      localStorage.setItem('osmo:storefront:daily_checkin_dismissed_date', getVnDateString());
       
       // Auto-close (thu nhỏ thành icon) after animations finish
       setTimeout(() => {
@@ -181,10 +174,7 @@
     }
   }
 
-  // Dùng preview nếu chưa có data từ API (guest hoặc đang load)
-  let displayDays = $derived(
-    checkinStore.status?.days?.length ? checkinStore.status.days : PREVIEW_DAYS
-  );
+  let displayDays = $derived(checkinStore.status?.days ?? []);
   let isCheckedIn  = $derived(checkinStore.status?.is_checked_in_today ?? false);
   let todayReward  = $derived(checkinStore.status?.today_reward ?? 10000);
   let balance      = $derived(loyaltyStore.data?.available_points ?? 0);
@@ -223,22 +213,32 @@
     return '';
   }
 
-  let dontShowToday = $state(false);
+  function getVnDateString(): string {
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utcMs + 7 * 3600000);
+    const y = vnTime.getFullYear();
+    const m = String(vnTime.getMonth() + 1).padStart(2, '0');
+    const d = String(vnTime.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 
-  function handleToggleDontShow(e: Event) {
-    const checked = (e.target as HTMLInputElement).checked;
-    dontShowToday = checked;
-    if (checked) {
-      localStorage.setItem('osmo:storefront:daily_checkin_dismissed_date', new Date().toDateString());
+  let dontShowToday = $state(
+    browser && localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date') === getVnDateString()
+  );
+
+  // Elite V2.2: Reactive synchronization of dontShowToday with localStorage using Svelte 5 runes
+  $effect(() => {
+    if (dontShowToday) {
+      localStorage.setItem('osmo:storefront:daily_checkin_dismissed_date', getVnDateString());
     } else {
       localStorage.removeItem('osmo:storefront:daily_checkin_dismissed_date');
     }
-  }
+  });
 
   onMount(() => {
     countdownText = calcCountdown();
     countdownInterval = setInterval(() => { countdownText = calcCountdown(); }, 1000);
-    dontShowToday = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date') === new Date().toDateString();
     loadProducts();
     if (authStore.isAuthenticated) {
       checkinStore.fetchStatus();
@@ -474,20 +474,17 @@
         </button>
       {/if}
 
-      <!-- Opt-out option checkbox below CTA -->
-      {#if !isCheckedIn}
-        <div class="flex items-center justify-center gap-1.5 mt-4 select-none">
-          <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors text-[12px] font-semibold">
-            <input
-              type="checkbox"
-              checked={dontShowToday}
-              onchange={handleToggleDontShow}
-              class="rounded border-gray-300 bg-gray-50 text-[#ff9900] focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5 cursor-pointer"
-            />
-            <span>Không hiển thị lại hôm nay</span>
-          </label>
-        </div>
-      {/if}
+      <!-- Opt-out option checkbox below CTA (Always visible to ensure UI consistency and prevent layout confusion) -->
+      <div class="flex items-center justify-center gap-1.5 mt-4 select-none">
+        <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors text-[12px] font-semibold">
+          <input
+            type="checkbox"
+            bind:checked={dontShowToday}
+            class="rounded border-gray-300 bg-gray-50 text-[#ff9900] focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5 cursor-pointer"
+          />
+          <span>Không hiển thị lại hôm nay</span>
+        </label>
+      </div>
     </div>
 
     <!-- TIẾT KIỆM THÊM VỚI TIỀN THƯỞNG (Shopping Recommendations) -->

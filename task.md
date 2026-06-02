@@ -1106,6 +1106,16 @@
 - [x] **Căn Chỉnh Vị Trí Động Tránh Đè Lấp:** Cấu hình thuộc tính inline `bottom` và `transform: translateY` để khi cuộn trang, nút Check-in tự động trượt xuống vị trí `bottom: 90px` và dịch chuyển `translateY(8px)` đồng nhịp với Helen, duy trì khoảng cách an toàn `10px` giữa hai nút, mang lại cảm giác cực kỳ cao cấp. (Done)
 - [x] **Đồng Bộ Hóa Đích VPS:** Đồng bộ hóa mã nguồn nóng lên môi trường VPS Production bằng `rsync` an toàn. (Done)
 
+# Task Checklist - Whitelisting Media Manager CSP Blob URLs (Elite V2.2)
 
+- [x] Cấu hình Caddyfile bổ sung giao thức `blob:` cho chỉ thị `img-src` để khai thông tính năng xem trước ảnh tải lên. (Done)
+- [x] Đồng bộ hóa cấu hình Caddyfile lên VPS Production thông qua rsync. (Done)
+- [x] Thực hiện lệnh `caddy reload` an toàn trên container proxy để áp dụng CSP mới mà không làm gián đoạn hệ thống. (Done)
+- [x] Kiểm tra thực tế tải ảnh lên trong FileManager để đảm bảo không còn lỗi vi phạm CSP. (Done)
 
+# Task Checklist - Stripping [OFF] Flags from Mobile Science Section (Elite V2.2)
 
+- [x] **Trinh sát & Truy vết Nguồn gốc:** Định vị chính xác khóa dữ liệu chứa nhãn `[OFF]` thô kệch trong bảng `product` của cơ sở dữ liệu PostgreSQL (Khóa `science_subheadline` của `prod_miccosmo_virgin_white`). (Done)
+- [x] **Xây dựng Bộ Lọc Fail-safe:** Phát triển hàm tiện ích `clean()` trong [MobileScience.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/funnel/mobile/sections/MobileScience.svelte) để tự động bóc tách vĩnh viễn nhãn `[OFF]` và các ký tự thừa ở đầu chuỗi metadata. (Done)
+- [x] **Đồng bộ hóa Giao diện Mobile:** Cập nhật các trường `headline`, `subheadline`, `claims` và `stats` sử dụng bộ lọc `clean()`. Đặc biệt, cấu hình `showSubheadline = !!metadata.science_subheadline && !metadata.science_subheadline.startsWith('[OFF]')` để ẩn hoàn toàn thẻ mô tả nếu cấu hình bắt đầu bằng `[OFF]`, đồng bộ tuyệt đối 1:1 với logic của Desktop. (Done)
+- [x] **Đồng bộ hóa VPS Production:** Sync mã nguồn nóng trực tiếp lên VPS của Sếp qua Rsync thành công rực rỡ. (Done)

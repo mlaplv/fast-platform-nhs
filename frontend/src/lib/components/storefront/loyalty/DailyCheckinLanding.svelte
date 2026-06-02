@@ -42,10 +42,24 @@
   });
 
 
+  function getVnDateString(): string {
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const vnTime = new Date(utcMs + 7 * 3600000);
+    const y = vnTime.getFullYear();
+    const m = String(vnTime.getMonth() + 1).padStart(2, '0');
+    const d = String(vnTime.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   // Elite V2.2: Svelte 5 Reactive Route Guard and Popup Auto-trigger
   // Triggers reactively when navigating to the homepage, respecting dismissal and authentication state.
   $effect(() => {
+    // Read reactive variables synchronously to register them as Svelte 5 dependencies
     const currentPathname = page.url.pathname;
+    const isAuthenticated = authStore.isAuthenticated;
+    const st = checkinStore.status;
+
     const isHomepage = currentPathname === '/' || currentPathname === '/home';
     if (!isHomepage) {
       userDismissed = false; // Reset dismissal when navigating away from the homepage
@@ -53,20 +67,19 @@
     }
 
     const dismissedDate = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date');
-    const isDismissed = dismissedDate === new Date().toDateString();
+    const isDismissed = dismissedDate === getVnDateString();
     if (isDismissed || userDismissed) return;
 
-    checkinStore.fetchStatus().then(() => {
-      const st = checkinStore.status;
-      if (st && st.is_event_enabled === false) return;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
 
-      // Ensure we are still on the homepage after API fetch
-      if (page.url.pathname !== currentPathname) return;
+    const runAutoPopup = (statusData: typeof checkinStore.status) => {
+      if (statusData && statusData.is_event_enabled === false) return;
+      if (page.url.pathname !== currentPathname || userDismissed) return;
 
-      if (authStore.isAuthenticated) {
+      if (isAuthenticated) {
         // If logged in, only show if they haven't checked in today yet
-        if (st && !st.is_checked_in_today && !userDismissed) {
-          setTimeout(() => {
+        if (statusData && !statusData.is_checked_in_today) {
+          timerId = setTimeout(() => {
             if (!userDismissed && page.url.pathname === currentPathname) {
               checkinStore.openPopup();
             }
@@ -74,25 +87,34 @@
         }
       } else {
         // Guest user fallback
-        if (!userDismissed) {
-          setTimeout(() => {
-            if (!userDismissed && page.url.pathname === currentPathname) {
-              checkinStore.openPopup();
-            }
-          }, 1500); // 1.5s as per design spec
-        }
+        timerId = setTimeout(() => {
+          if (!userDismissed && page.url.pathname === currentPathname) {
+            checkinStore.openPopup();
+          }
+        }, 1500); // 1.5s as per design spec
       }
-    }).catch(() => {
-      // Fallback if API fails
-      if (page.url.pathname !== currentPathname) return;
-      if (!userDismissed) {
-        setTimeout(() => {
+    };
+
+    if (st) {
+      runAutoPopup(st);
+    } else if (!checkinStore.loading) {
+      checkinStore.fetchStatus().then(() => {
+        runAutoPopup(checkinStore.status);
+      }).catch(() => {
+        // Fallback if API fails
+        if (page.url.pathname !== currentPathname || userDismissed) return;
+        timerId = setTimeout(() => {
           if (!userDismissed && page.url.pathname === currentPathname) {
             checkinStore.openPopup();
           }
         }, 1500);
-      }
-    });
+      });
+    }
+
+    // Cleanup: Clear active timers when route or authentication state changes, or on component unmount
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
   });
 
   // Auto-reopen reward center modal immediately after successful login
