@@ -819,7 +819,6 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-    will-change: backdrop-filter, background, opacity;
     box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
   }
 

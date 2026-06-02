@@ -693,7 +693,6 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transition: backdrop-filter 0.3s ease;
-    will-change: transform, opacity;
   }
 
   .pause-animations.apple-glass-dark-mobile {
