@@ -91,10 +91,16 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		@immutable path /_app/immutable/*
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
 
+		# Match central WASM and third-party libraries that never change (Elite V2.2)
+		@thirdparty_immutable path /wasm/* /vad/*
+		header @thirdparty_immutable Cache-Control "public, max-age=31536000, immutable"
+
 		# Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
 		@cacheable {
 			path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json
 			not path /index.html
+			not path /wasm/*
+			not path /vad/*
 		}
 		header @cacheable Cache-Control "public, max-age=31536000"
 
