@@ -206,50 +206,71 @@
     }
   }
 
-  // Elite V2.2: Focus and Scroll Manager (Completely Decoupled)
+  // Elite V2.2: Unified UX State Monitor (Focus & Scroll Manager)
   let previouslyOpen = $state(false);
 
   $effect(() => {
-    if (supportAgent.isOpen && !previouslyOpen) {
-      previouslyOpen = true;
-      // Focus input exactly once when the chat is opened to avoid disruptive focus hijacking
-      setTimeout(() => {
-        if (inputElement) {
-          inputElement.focus({ preventScroll: true });
-        }
-      }, 200);
+    const { isOpen, isTyping, messages } = supportAgent;
 
-      // Initial scroll to bottom
-      setTimeout(() => {
-        if (chatContainer) {
-          chatContainer.scrollTo({
-            top: chatContainer.scrollHeight,
-            behavior: "instant",
-          });
-        }
-      }, 150);
-    } else if (!supportAgent.isOpen) {
+    if (isOpen && inputElement) {
+      // 1. Handle auto-focus: Only focus on initial open to prevent continuous keyboard hijacking
+      if (!previouslyOpen) {
+        previouslyOpen = true;
+        inputElement.focus({ preventScroll: true });
+      }
+
+      // 2. Handle scrolling
+      if (messages.length > 0) {
+        scrollToNewestMessage();
+      } else {
+        // Initial open: Immediate anchor to bottom
+        setTimeout(() => {
+          if (chatContainer) {
+            chatContainer.scrollTo({
+              top: chatContainer.scrollHeight,
+              behavior: "instant",
+            });
+          }
+        }, 150);
+      }
+    } else if (!isOpen) {
       previouslyOpen = false;
-    }
-  });
-
-  // Automatically scroll to bottom when a new message arrives
-  $effect(() => {
-    const msgCount = supportAgent.messages.length;
-    if (supportAgent.isOpen && msgCount > 0) {
-      scrollToNewestMessage();
     }
   });
 
   async function scrollToNewestMessage() {
     await tick();
     if (!chatContainer) return;
-    
-    // Direct, absolute scroll containment: will NEVER affect viewport/main-body scroll thưa sếp
-    chatContainer.scrollTo({
-      top: chatContainer.scrollHeight,
-      behavior: "instant",
-    });
+
+    const messageElements = chatContainer.querySelectorAll(
+      ".message-bubble-container",
+    );
+    const lastMessageEl = messageElements[messageElements.length - 1] as HTMLElement;
+
+    if (lastMessageEl) {
+      const role = lastMessageEl.getAttribute("data-role");
+      if (role === "assistant") {
+        // Calculate relative top position of the assistant bubble to align it with a safe padding thưa sếp
+        const containerRect = chatContainer.getBoundingClientRect();
+        const bubbleRect = lastMessageEl.getBoundingClientRect();
+        const relativeTop = bubbleRect.top - containerRect.top + chatContainer.scrollTop;
+
+        chatContainer.scrollTo({
+          top: relativeTop - 12,
+          behavior: "instant",
+        });
+      } else {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    } else {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }
 </script>
 
