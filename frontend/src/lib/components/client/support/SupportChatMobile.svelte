@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ComponentType, SvelteComponent } from "svelte";
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { fly } from "svelte/transition";
   import Send from "@lucide/svelte/icons/send";
   import X from "@lucide/svelte/icons/x";
@@ -140,27 +140,33 @@
   let previouslyOpen = $state(false);
 
   $effect(() => {
-    const { isOpen, isTyping, messages } = supportAgent;
+    const isOpen = supportAgent.isOpen;
+    const msgCount = supportAgent.messages.length;
 
     if (isOpen && inputElement) {
       // 1. Handle auto-focus: Only focus on initial open to prevent continuous keyboard hijacking
       if (!previouslyOpen) {
         previouslyOpen = true;
-        inputElement.focus({ preventScroll: true });
+        untrack(() => {
+          inputElement.focus({ preventScroll: true });
+        });
       }
 
-      if (messages.length > 0) {
-        scrollToNewestMessage();
-      } else {
-        setTimeout(() => {
-          if (chatContainer) {
-            chatContainer.scrollTo({
-              top: chatContainer.scrollHeight,
-              behavior: "instant",
-            });
-          }
-        }, 150);
-      }
+      // 2. Handle scrolling thưa sếp
+      untrack(() => {
+        if (msgCount > 0) {
+          scrollToNewestMessage();
+        } else {
+          setTimeout(() => {
+            if (chatContainer) {
+              chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: "instant",
+              });
+            }
+          }, 150);
+        }
+      });
     } else if (!isOpen) {
       previouslyOpen = false;
     }
