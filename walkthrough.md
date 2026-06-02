@@ -2088,11 +2088,23 @@ Phát hiện ra bug hiển thị nghiêm trọng tại khối danh sách Voucher
 * **Làm sạch Code kép:** Loại bỏ toàn bộ việc sử dụng cú pháp `$page` tiền tố, tối ưu hóa các biểu thức reactive `const siteUrl = $derived(page.url.origin)` và `const path = page.url.pathname` trở nên siêu tốc, mượt mà và an toàn 100% trước hydration mismatch.
 * **Đồng bộ hóa VPS Production thành công:** Thực hiện rsync tệp chi tiết `+page.svelte` đã hiện đại hóa trực tiếp lên remote server `/opt/fast-platform/` trơn tru!
 
+### H. Khắc phục triệt để lỗi vô tận Svelte 5 Reactivity Loop (`effect_update_depth_exceeded`)
+* **Nguyên nhân cốt lõi:** Lệnh `navigationEpoch++` (vừa đọc vừa ghi) nằm trực tiếp bên trong biểu thức phản ứng của `$effect` tại [+layout.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/routes/+layout.svelte#L87) khiến Svelte 5 tự động đăng ký `navigationEpoch` làm một dependency reactive. Khi epoch tăng lên, effect tự kích hoạt chạy lại vô tận cho đến khi crash.
+* **Giải pháp khắc phục triệt để:** Đưa toàn bộ hành vi cộng dồn và trả về giá trị của `navigationEpoch++` vào hàm bao `untrack()`:
+  ```typescript
+  const myEpoch = untrack(() => {
+    navigationEpoch++;
+    return navigationEpoch;
+  });
+  ```
+  Điều này cô lập hoàn toàn biến `navigationEpoch` khỏi danh sách dependency tracking của Svelte, đảm bảo `$effect` chỉ chạy DUY NHẤT một lần khi địa chỉ URL `page.url.pathname` thay đổi.
+* **Đồng bộ hóa VPS Production thành công:** Đã rsync tệp layout gốc cực kỳ chuẩn xác lên VPS của Sếp (`mlap@103.1.236.14:/opt/fast-platform/`) thành công tuyệt đối!
+
 ---
 
 ## 📋 2. Cập nhật task.md Checklist
-* Đã cập nhật trạng thái hoàn thành toàn diện 4/4 Phases, cô lập tài nguyên, và làm sạch 100% code kép sang `[x] (Done)`.
+* Đã cập nhật trạng thái hoàn thành toàn diện 4/4 Phases, cô lập tài nguyên, làm sạch code kép và vá lỗi bảo mật/reactivity loops sang `[x] (Done)`.
 
-**Báo cáo: Đã tối ưu hóa, tách biệt tài nguyên, làm sạch hoàn toàn code kép và nâng cấp 100% sang Svelte 5 native page state rune thành công tuyệt đối! Hệ thống siêu sạch bóng và tối ưu vượt trội! Kính trình Sếp phê duyệt!**
+**Báo cáo: Đã tối ưu hóa toàn diện, vá triệt để lỗi đệ quy vô hạn 'effect_update_depth_exceeded' bằng untrack() thông minh, đồng bộ thành công lên Production VPS. Hệ thống siêu ổn định và tối ưu vượt trội! Kính trình Sếp phê duyệt!**
 
 
