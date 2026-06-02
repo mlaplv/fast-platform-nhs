@@ -418,14 +418,17 @@
     <SupportAgentFAB isMobile={ui?.isMobile || false} />
     {#if ui?.isMobile}
       {#if chatComponent}
-        <svelte:component this={chatComponent} productSlug={page.params.slug} />
+        {@const Chat = chatComponent}
+        <Chat productSlug={page.params.slug} />
       {/if}
       {#if searchComponent}
-        <svelte:component this={searchComponent} variant="mobile-overlay" />
+        {@const Search = searchComponent}
+        <Search variant="mobile-overlay" />
       {/if}
     {:else}
       {#if chatComponent}
-        <svelte:component this={chatComponent} productSlug={page.params.slug} />
+        {@const Chat = chatComponent}
+        <Chat productSlug={page.params.slug} />
       {/if}
     {/if}
   {/if}

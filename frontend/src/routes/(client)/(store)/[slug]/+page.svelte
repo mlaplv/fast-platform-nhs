@@ -299,13 +299,42 @@
   />
 {/if}
 
+{#snippet Skeleton(type: string)}
+  {#if type === 'product'}
+    <!-- Luxury Product Details Skeleton -->
+    <div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-2 gap-12 animate-pulse mt-[5vh]" style="width: 100%;">
+      <!-- Left Column: Image Skeleton with Aspect-Ratio matching exactly to avoid CLS -->
+      <div class="w-full aspect-square rounded-2xl bg-stone-200 dark:bg-stone-800 flex items-center justify-center">
+        <svg class="w-12 h-12 text-stone-300 dark:text-stone-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <!-- Right Column: Details Skeleton matching typography layout -->
+      <div class="flex flex-col gap-6 py-4">
+        <div class="h-4 w-1/4 bg-stone-200 dark:bg-stone-800 rounded-full"></div>
+        <div class="h-8 w-3/4 bg-stone-200 dark:bg-stone-800 rounded-lg"></div>
+        <div class="h-6 w-1/3 bg-stone-200 dark:bg-stone-800 rounded-full mt-2"></div>
+        <div class="h-20 w-full bg-stone-200 dark:bg-stone-800 rounded-xl mt-4"></div>
+        <div class="h-12 w-full bg-stone-200 dark:bg-stone-800 rounded-xl mt-8"></div>
+      </div>
+    </div>
+  {:else}
+    <!-- Grid/List Page Skeleton with Aspect-Ratio matching exactly to avoid CLS -->
+    <div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse mt-[5vh]" style="width: 100%;">
+      {#each Array(4) as _}
+        <div class="flex flex-col gap-4">
+          <div class="w-full aspect-[3/4] rounded-2xl bg-stone-200 dark:bg-stone-800"></div>
+          <div class="h-4 w-2/3 bg-stone-200 dark:bg-stone-800 rounded-full"></div>
+          <div class="h-4 w-1/3 bg-stone-200 dark:bg-stone-800 rounded-full"></div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+{/snippet}
+
 {#if activeComponent}
   {@const DynamicComponent = activeComponent}
   <DynamicComponent {...activeProps} />
 {:else}
-  <!-- Elite 2026: Zero-CLS Luxury Skeleton Placeholders to prevent UI flashes during lazy bundle load -->
-  <div class="flex flex-col items-center justify-center gap-3 transition-colors duration-300 {isFunnel ? 'min-h-screen bg-[#020202] text-stone-400' : 'min-h-[88vh] bg-gradient-to-br from-[#faf8f5] to-[#f2e6d8] text-stone-600'}" style="width: 100%;">
-    <div class="w-8 h-8 rounded-full border-2 animate-spin {isFunnel ? 'border-stone-800' : 'border-stone-200'}" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-    <span class="text-[9px] font-black tracking-widest uppercase {isFunnel ? 'text-stone-500/80' : 'text-stone-600/70'}">Đang tải giao diện...</span>
-  </div>
+  {@render Skeleton(data.type)}
 {/if}
