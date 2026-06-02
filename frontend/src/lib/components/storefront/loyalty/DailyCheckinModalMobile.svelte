@@ -718,7 +718,7 @@
 
 <!-- Confetti Canvas/Overlay -->
 {#if showConfetti}
-  <div class="absolute inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
     {#each particles as p}
       <div class="absolute w-1.5 h-1.5 rounded-sm animate-confetti"
         style="left:{p.x}%;top:{p.y}%;background:{p.color};animation-delay:{p.delay}ms;"
@@ -729,7 +729,7 @@
 
 <!-- Golden Coins Flying Animation -->
 {#if flyingCoins.length > 0}
-  <div class="absolute inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
     {#each flyingCoins as coin (coin.id)}
       <div
         class="absolute w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#E5A93C] border border-white flex items-center justify-center shadow-lg animate-coin-fly"

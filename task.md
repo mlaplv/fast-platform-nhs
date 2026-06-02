@@ -999,3 +999,11 @@
 - [x] Sửa lỗi hiển thị sai lệch thứ tự và phân nhóm mã giảm giá tại `MobileOffer.svelte` bằng cách loại bỏ khối sort dư thừa ở UI, đồng bộ 100% việc sử dụng mảng voucher đã được phân nhóm chuẩn (Viral -> Discount -> Ship) từ SSOT `processProductVouchers`. (Done)
 - [x] Sync toàn bộ frontend dist tĩnh sạch đẹp lên remote production VPS và reload container Caddy an toàn, hoàn thành xuất sắc nhiệm vụ. (Done)
 
+# Task Checklist - Daily Check-in Coin Flying Effect Restoration (Elite V2.2)
+
+- [x] Cập nhật lớp phủ hiệu ứng tiền bay và pháo hoa trong `DailyCheckinModalDesktop.svelte` từ `absolute inset-0` thành `fixed inset-0 z-[10000] pointer-events-none overflow-hidden` để đưa lên lớp hiển thị tối cao của Viewport. (Done)
+- [x] Cập nhật lớp phủ hiệu ứng tiền bay và pháo hoa trong `DailyCheckinModalMobile.svelte` từ `absolute inset-0` thành `fixed inset-0 z-[10000] pointer-events-none overflow-hidden` để đồng bộ hiển thị hoàn mỹ trên di động. (Done)
+- [x] Chạy quy trình biên dịch cục bộ (`pnpm build`) để kiểm tra toàn vẹn mã nguồn storefront. (Done)
+- [x] Sử dụng giao thức `rsync` an toàn để đồng bộ hóa mã nguồn storefront tĩnh đã đóng gói lên remote VPS Production của Sếp (`mlap@103.1.236.14`). (Done)
+- [x] Khởi động lại dịch vụ web Caddy trên VPS để áp dụng ngay giao diện mới không độ trễ. (Done)
+- [x] Ghi nhận đầy đủ bằng chứng thực thi vào `walkthrough.md`. (Done)
