@@ -271,6 +271,7 @@ class SupportAgentState {
      * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
     async init(envAgentName?: string) {
+        if (this.sessionId) return;
         // Elite V2.2 (R03): Secure Cookie Initialization
         try {
             const res = await apiClient.get<{ ok: boolean; session_id?: string }>("/api/v1/client/support/init", { withCredentials: true });

@@ -171,7 +171,7 @@
             if (dt > 0) {
               const dx = e.clientX - lastMouseX;
               const dy = e.clientY - lastMouseY;
-              const v = Math.sqrt(dx*dx + dy*dx) / dt;
+              const v = Math.sqrt(dx*dx + dy*dy) / dt;
               if (v > mouseAcceleration) mouseAcceleration = v;
             }
           }

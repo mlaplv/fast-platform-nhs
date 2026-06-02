@@ -1,4 +1,13 @@
+# Task Checklist - Optimizing Core Web Vitals (Elite V2.2)
+
+- [x] Phân tích chuyên sâu nguyên nhân gây trì trệ 3s đầu và đề xuất 4 phương án xử lý chi tiết trong file `docs/LIGHTHOUSE_PERFORMANCE_REPORT.md`. (Done)
+- [x] Xử lý triệt để điểm dị thường 1: Xóa bỏ hoàn toàn các file báo cáo Lighthouse cũ và nháp trong thư mục để tránh rò rỉ thông tin hệ thống. (Done)
+- [x] Xử lý triệt để điểm dị thường 2: Sửa đổi công thức lỗi toán học gia tốc chuột `dy*dx` -> `dy*dy` tại dòng 174 trong `+layout.svelte`. (Done)
+- [x] Lập kế hoạch chi tiết tích hợp giải pháp "Traffic Cop problem" nâng cấp SvelteKit 5 Runes trong file `docs/PERFORMANCE_OPTIMIZATION_PLAN.md`. (Done)
+
+
 # Task Checklist - Restoring Support System Connectivity
+
 
 # Task Checklist - Hardening Viral Sharing Security (Elite V2.2)
 
