@@ -1243,3 +1243,15 @@
 - [x] **Hotpatch Production minified bundle on VPS:** Cập nhật file bundle `Cu6plpcm.js` trên môi trường VPS để áp dụng các thay đổi trong logic merge của `fetchNotifications` (t6) và `fetchTrashNotifications` (t7). (Done)
 - [x] **Đồng bộ hóa VPS & Tái khởi động:** Đồng bộ source code frontend tĩnh mới và khởi động lại hai container `fast_platform_api` và `fast_platform_worker_high` để đảm bảo hoạt động đồng nhất. (Done)
 - [x] **Nghiệm thu thực tế:** Sử dụng browser subagent để truy cập Admin panel và kiểm chứng tính chính xác của dữ liệu thông báo, cam kết không còn x2 hiển thị hay jitter. (Done)
+
+# Task Checklist - Optimizing Helen Support Flow (Elite V2.2)
+
+- [x] **Refactor `[system_consult]` path for dynamic product metadata:** Query `ProductBase.product_metadata` directly from the database inside `_chat_internal` to dynamically retrieve key ingredients/ingredients instead of hardcoded strings, and support a robust fallback parser. (Done)
+- [x] **Eliminate repetitive product name duplication:** Replaced the second product name interpolation in the benefit section header with `"sản phẩm"` to avoid redundant name outputs. (Done)
+- [x] **Integrate triple-asterisk sanitizer in response output:** Added a clean-up pattern in `_sanitize_response` to strip triple-asterisk (`***`) markdown artifacts and format them properly. (Done)
+- [x] **Execute self-healing database migrations locally:** Ran `alembic upgrade head` and successfully completed all schema transitions. (Done)
+- [x] **Deploy to production VPS:** Synchronized all updated source files (`ac3afa60b038_auto_uuid_v7_defaults.py` and `support_agent.py`) via rsync to the VPS `mlap@103.1.236.14:/opt/fast-platform/`. (Done)
+- [x] **Fix 're' variable shadowing inside `_chat_internal`:** Changed the exception variable in Redis set unread unhandled block from `re` to `exc` to prevent Python from treating the global regex module `re` as an unbound local variable. (Done)
+- [x] **Fix 'SupportIntent' inline import shadowing inside `support.py`:** Removed inline imports of `SupportIntent` inside controller block to prevent `UnboundLocalError` when execution enters the fallback except block. (Done)
+- [x] **Fix semantic mislabeling — "Lợi ích" vs "Thành phần":** Refactored `_chat_internal` and `_fetch_product_context` to prioritize `featured_ingredients` (icon+name+benefit) from DB over raw `ingredients` (chemical names). Section label dynamically switches between "Công dụng nổi bật" and "Thành phần nổi bật" based on data source. (Done)
+- [x] **Strip bold markdown `**` from fast-path replies:** Removed all `**...**` bold markers from the synchronous DB-first `[system_consult]` template to prevent raw markdown artifacts leaking into the chat UI. (Done)

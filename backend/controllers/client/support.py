@@ -258,7 +258,6 @@ class SupportController(Controller):
                     elapsed = now - float(last_time_val)
                     if elapsed < 1.5:
                         logger.warning(f"🛡️ [Anti-Spam] Session {session_id} click rate limit exceeded: {elapsed:.2f}s")
-                        from backend.schemas.support import SupportIntent
                         return Response(
                             content=SupportResponse(
                                 ok=False,
@@ -276,7 +275,6 @@ class SupportController(Controller):
                 last_hash = await redis.get(hash_key)
                 if last_hash and last_hash == msg_hash:
                     logger.warning(f"🛡️ [Anti-Spam] Duplicate question blocked for Session {session_id}")
-                    from backend.schemas.support import SupportIntent
                     return Response(
                         content=SupportResponse(
                            ok=False,

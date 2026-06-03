@@ -174,12 +174,23 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         if p_row.discount_price: ctx += f"Giá khuyến mãi: {p_row.discount_price} VND\n"
         ctx += f"Tồn kho thực tế: {p_row.stock or 0} sản phẩm\n"
 
-        # Elite V2.2: Structured Context Injection for Ingredients
+        # Elite V2.6: Structured Context Injection for Ingredients & Benefits
         ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
 
         if p_row.product_metadata:
             meta = p_row.product_metadata
-            if "key_ingredients" in meta and isinstance(meta["key_ingredients"], list):
+            # Priority 0: featured_ingredients (icon + name + benefit) — richest source
+            fi_list = meta.get("featured_ingredients")
+            if isinstance(fi_list, list) and fi_list:
+                for fi in fi_list:
+                    fi_name = fi.get("name", "")
+                    fi_benefit = fi.get("benefit", "")
+                    if fi_name:
+                        fi_name_safe = re.sub(r'<[^>]+>', ' ', str(fi_name))[:80].strip()
+                        fi_benefit_safe = re.sub(r'<[^>]+>', ' ', str(fi_benefit))[:200].strip()
+                        ctx += f"- {fi_name_safe}: {fi_benefit_safe}\n"
+            # Priority 1: key_ingredients (name + description)
+            elif "key_ingredients" in meta and isinstance(meta["key_ingredients"], list):
                 for ki in meta["key_ingredients"]:
                     k_name = ki.get("name", "")
                     k_desc = ki.get("description", "")
@@ -406,6 +417,8 @@ def _sanitize_response(text: str) -> str:
             return _SAFE_FALLBACK_REPLY
     # 5. Elite V2.2 Constitution: Hard-filter "nhau thai" -> "Placenta"
     clean = re.sub(r"[Nn]hau\s+[Tt]hai", "Placenta", clean)
+    # 6. Elite V2.2: Strip triple asterisks (formatting artifacts) to double asterisks
+    clean = re.sub(r"\*{3,}", "**", clean)
     return clean.strip()
 
 class SupportAgentOperative(BaseAgentOperative):
@@ -954,8 +967,8 @@ class SupportAgentOperative(BaseAgentOperative):
         if xohi_memory._use_redis and xohi_memory.client:
             try:
                 await xohi_memory.client.sadd("support:unread_sessions", session_id)
-            except Exception as re:
-                logger.error(f"[SupportAgent] Failed to mark unread in Redis Set: {re}")
+            except Exception as exc:
+                logger.error(f"[SupportAgent] Failed to mark unread in Redis Set: {exc}")
 
         # ══════════════════════════════════════════════════════════════════════
         # OPTION 1: Chat trực tiếp trong box — tắt Helen, báo Admin Inbox
@@ -1050,21 +1063,85 @@ class SupportAgentOperative(BaseAgentOperative):
             p_name = p_info.name
             price_display = p_info.price_display or f"{int(p_info.price):,}đ".replace(",", ".")
             
+            # Fetch product_metadata directly from DB using SQLAlchemy 2.0 to inject dynamic properties (Elite V2.2)
+            from backend.database.models import ProductBase
+            from sqlalchemy import select
+            stmt = select(ProductBase.product_metadata).where(
+                ProductBase.id == p_info.id,
+                ProductBase.deleted_at.is_(None)
+            )
+            meta_res = await db.execute(stmt)
+            product_meta = meta_res.scalar_one_or_none() or {}
+
+            # Extract benefits & ingredients from product_metadata (Elite V2.6 Priority Chain)
+            benefit_lines: list[str] = []
+            section_label = "Công dụng nổi bật của sản phẩm:"
+            if isinstance(product_meta, dict):
+                # Priority 0: featured_ingredients — richest source (icon + name + benefit)
+                fi_list = product_meta.get("featured_ingredients")
+                if isinstance(fi_list, list) and fi_list:
+                    for fi in fi_list:
+                        fi_icon = fi.get("icon", "🧬")
+                        fi_name = fi.get("name", "")
+                        fi_benefit = fi.get("benefit", "")
+                        if fi_name:
+                            fi_name_safe = re.sub(r'<[^>]+>', ' ', str(fi_name))[:80].strip()
+                            fi_benefit_safe = re.sub(r'<[^>]+>', ' ', str(fi_benefit))[:200].strip()
+                            if fi_benefit_safe:
+                                benefit_lines.append(f"{fi_icon} {fi_benefit_safe}")
+                            else:
+                                benefit_lines.append(f"{fi_icon} {fi_name_safe}")
+
+                # Priority 1: key_ingredients (name + description)
+                if not benefit_lines:
+                    ki_list = product_meta.get("key_ingredients")
+                    if isinstance(ki_list, list):
+                        for ki in ki_list:
+                            k_name = ki.get("name")
+                            k_desc = ki.get("description")
+                            if k_name:
+                                k_name_safe = re.sub(r'<[^>]+>', ' ', str(k_name))[:80].strip()
+                                k_desc_safe = re.sub(r'<[^>]+>', ' ', str(k_desc))[:200].strip() if k_desc else ""
+                                if k_desc_safe:
+                                    benefit_lines.append(f"🧬 {k_desc_safe}")
+                                else:
+                                    benefit_lines.append(f"🧬 {k_name_safe}")
+
+                # Priority 2: raw ingredients string — label as "Thành phần" NOT "Lợi ích"
+                if not benefit_lines:
+                    ingredients_str = product_meta.get("ingredients")
+                    if isinstance(ingredients_str, str) and ingredients_str.strip():
+                        section_label = "Thành phần nổi bật:"
+                        clean_ings = re.sub(r'<[^>]+>', ' ', ingredients_str).strip()
+                        ings = [i.strip() for i in re.split(r'[,;]', clean_ings) if i.strip()]
+                        for ing in ings[:4]:
+                            benefit_lines.append(f"🧬 {ing}")
+
+            # Priority 3: Fallback to parsing ctx_text lines under headers
+            if not benefit_lines and ctx_text:
+                in_ing_section = False
+                for line in ctx_text.split("\n"):
+                    line_strip = line.strip()
+                    if "[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]" in line_strip or "[BẢNG THÀNH PHẦN CHI TIẾT]" in line_strip:
+                        in_ing_section = True
+                        continue
+                    if in_ing_section and line_strip.startswith("["):
+                        in_ing_section = False
+                    if in_ing_section and line_strip:
+                        cleaned = line_strip.lstrip("- ").strip()
+                        if cleaned:
+                            benefit_lines.append(f"🧬 {cleaned}")
+
             # Button 1: "Tư vấn" / `[system_consult]`
             if "[system_consult]" in msg_norm:
-                # Extract ingredients & vouchers
-                ing_lines = []
-                for line in ctx_text.split("\n"):
-                    if any(x in line for x in ["- THÀNH PHẦN NỔI BẬT", "- BẢNG THÀNH PHẦN", "🧬", "Thành phần"]):
-                        ing_lines.append(line.strip())
-                ing_text = "\n".join(ing_lines[:4]) if ing_lines else "🧬 Chiết xuất thảo dược tự nhiên chuẩn Nhật Bản."
+                benefit_text = "\n".join(benefit_lines[:4]) if benefit_lines else "🧬 Chiết xuất thảo dược tự nhiên chuẩn Nhật Bản."
                 
                 db_first_reply = (
-                    f"Dạ Helen chào Anh/Chị! Rất vui được tư vấn liệu trình chăm sóc da hoàn hảo với **{p_name}** ạ! ✨\n\n"
-                    f"🌸 **Lợi ích nổi bật của {p_name}:**\n"
-                    f"{ing_text}\n\n"
-                    f"💰 **Giá ưu đãi độc quyền:** **{price_display}**\n\n"
-                    f"💬 Để nhận quà tặng độc quyền kèm đơn hàng hôm nay, **Anh/Chị nhắn ngay Số Điện Thoại + Địa Chỉ** để Helen lên đơn giao tận nơi nhé! 🌸"
+                    f"Dạ Helen chào Anh/Chị! Rất vui được tư vấn liệu trình chăm sóc da hoàn hảo với {p_name} ạ! ✨\n\n"
+                    f"🌸 {section_label}\n"
+                    f"{benefit_text}\n\n"
+                    f"💰 Giá ưu đãi độc quyền: {price_display}\n\n"
+                    f"💬 Để nhận quà tặng độc quyền kèm đơn hàng hôm nay, Anh/Chị nhắn ngay Số Điện Thoại + Địa Chỉ để Helen lên đơn giao tận nơi nhé! 🌸"
                 )
                 db_first_intent = SupportIntent.PRODUCT_QUERY
             
@@ -1098,16 +1175,11 @@ class SupportAgentOperative(BaseAgentOperative):
 
             # Button 4: "Công dụng" / contains "công dụng" or "thành phần"
             elif "công dụng" in msg_norm or "thành phần" in msg_norm:
-                ing_lines = []
-                if ctx_text:
-                    for line in ctx_text.split("\n"):
-                        if any(x in line for x in ["- THÀNH PHẦN NỔI BẬT", "- BẢNG THÀNH PHẦN", "🧬", "Thành phần"]):
-                            ing_lines.append(line.strip())
-                ing_text = "\n".join(ing_lines[:6]) if ing_lines else "🧬 Chứa các dưỡng chất tự nhiên cao cấp củng cố hàng rào bảo vệ da, giúp da căng bóng, mịn màng và trắng sáng khỏe mạnh."
+                benefit_text_4 = "\n".join(benefit_lines[:6]) if benefit_lines else "🧬 Chứa các dưỡng chất tự nhiên cao cấp củng cố hàng rào bảo vệ da, giúp da căng bóng, mịn màng và trắng sáng khỏe mạnh."
                 
                 db_first_reply = (
-                    f"Dạ gửi Anh/Chị thông tin chi tiết về thành phần & công dụng của **{p_name}** ạ! ✨\n\n"
-                    f"{ing_text}\n\n"
+                    f"Dạ gửi Anh/Chị thông tin chi tiết về thành phần & công dụng của {p_name} ạ! ✨\n\n"
+                    f"{benefit_text_4}\n\n"
                     f"Anh/Chị nhắn lại tình trạng da hiện tại (da khô, dầu, mụn...) để Helen hướng dẫn cách sử dụng đạt hiệu quả tốt nhất nhé! 🌸"
                 )
                 db_first_intent = SupportIntent.PRODUCT_QUERY
