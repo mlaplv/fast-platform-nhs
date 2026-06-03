@@ -20,6 +20,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Coins from "@lucide/svelte/icons/coins";
+  import Bell from "@lucide/svelte/icons/bell";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 
@@ -154,7 +155,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy" | "loyalty";
+  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy" | "loyalty" | "notification_retention";
 
   interface TabDefinition {
     id: TabId;
@@ -173,7 +174,8 @@
     { id: "helen", label: "Helen AI", icon: Sparkles },
     { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
     { id: "entropy", label: "SGE Shield", icon: ShieldCheck },
-    { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins }
+    { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins },
+    { id: "notification_retention", label: "Lưu trữ thông báo", icon: Bell }
   ];
 
   // Loyalty Config State
@@ -183,6 +185,12 @@
     is_active: true,
     start_date: "" as string | null,
     end_date: "" as string | null
+  });
+
+  // Notification Retention State
+  let notificationRetention = $state({
+    soft_delete_days: 7,
+    hard_delete_days: 14
   });
 
   onMount(async () => {
@@ -201,6 +209,15 @@
           is_active: checkinRes.is_active !== undefined ? checkinRes.is_active : true,
           start_date: checkinRes.start_date || "",
           end_date: checkinRes.end_date || ""
+        };
+      }
+
+      // Load notification retention config
+      const retentionRes = await apiClient.get<any>("/api/v1/settings/notification-retention");
+      if (retentionRes) {
+        notificationRetention = {
+          soft_delete_days: retentionRes.soft_delete_days !== undefined ? retentionRes.soft_delete_days : 7,
+          hard_delete_days: retentionRes.hard_delete_days !== undefined ? retentionRes.hard_delete_days : 14
         };
       }
     } catch (e) {
@@ -222,6 +239,12 @@
           end_date: loyaltyConfig.end_date || null
         });
         nanobot.showToast("Cấu hình điểm danh hàng ngày đã được lưu.", "success");
+      } else if (activeTab === 'notification_retention') {
+        await apiClient.post("/api/v1/settings/notification-retention", {
+          soft_delete_days: notificationRetention.soft_delete_days,
+          hard_delete_days: notificationRetention.hard_delete_days
+        });
+        nanobot.showToast("Cấu hình lưu trữ thông báo đã được lưu.", "success");
       } else {
         await apiClient.post("/api/v1/settings/general", settings);
         nanobot.showToast("Cấu hình hệ thống đã được lưu.", "success");
@@ -977,6 +1000,52 @@
                         </div>
                       </div>
                     {/each}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {:else if activeTab === 'notification_retention'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-cyan-400 tracking-[0.2em] flex items-center gap-2">
+                <Bell size={16} /> Cấu hình Lưu trữ & Dọn dẹp Thông báo
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8">
+                <div class="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4">
+                  <p class="text-[11px] text-zinc-300 leading-relaxed font-mono">
+                    <span class="text-cyan-400 font-bold">LIFECYCLE POLICY:</span> Hệ thống tự động quét và dọn dẹp các thông báo cũ định kỳ hàng ngày lúc 04:00 sáng.
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Soft Delete Days -->
+                  <div class="space-y-1">
+                    <label for="soft_delete_days" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Số ngày xóa mềm (Soft Delete)</label>
+                    <input 
+                      id="soft_delete_days" 
+                      type="number" 
+                      bind:value={notificationRetention.soft_delete_days} 
+                      min="1" 
+                      max="365"
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="7"
+                    />
+                    <p class="text-[9px] text-zinc-600 mt-1 italic">Thông báo cũ hơn số ngày này sẽ được chuyển vào mục lưu trữ (ẩn khỏi danh sách hiển thị thông thường).</p>
+                  </div>
+
+                  <!-- Hard Delete Days -->
+                  <div class="space-y-1">
+                    <label for="hard_delete_days" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Số ngày xóa cứng (Hard Delete)</label>
+                    <input 
+                      id="hard_delete_days" 
+                      type="number" 
+                      bind:value={notificationRetention.hard_delete_days} 
+                      min="1" 
+                      max="365"
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="14"
+                    />
+                    <p class="text-[9px] text-zinc-600 mt-1 italic">Thông báo đã xóa mềm cũ hơn số ngày này sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu để giải phóng dung lượng.</p>
                   </div>
                 </div>
               </div>

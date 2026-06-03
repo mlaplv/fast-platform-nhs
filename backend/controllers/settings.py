@@ -123,6 +123,49 @@ class SettingsController(Controller):
         await db_session.commit()
         return res
 
+    @get("/notification-retention")
+    async def get_notification_retention(self, db_session: "AsyncSession") -> dict:
+        """Fetch notification retention configuration."""
+        from backend.database.models.system import SystemSetting
+        stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
+        setting = (await db_session.execute(stmt)).scalar_one_or_none()
+        if not setting or not isinstance(setting.value, dict):
+            return {"soft_delete_days": 7, "hard_delete_days": 14}
+        return {
+            "soft_delete_days": setting.value.get("soft_delete_days", 7),
+            "hard_delete_days": setting.value.get("hard_delete_days", 14)
+        }
+
+    @post("/notification-retention")
+    async def update_notification_retention(
+        self, db_session: "AsyncSession", data: dict
+    ) -> SuccessResponse:
+        """Update notification retention configuration."""
+        from backend.database.models.system import SystemSetting
+        
+        soft_days = int(data.get("soft_delete_days", 7))
+        hard_days = int(data.get("hard_delete_days", 14))
+        
+        stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
+        res = await db_session.execute(stmt)
+        setting = res.scalar_one_or_none()
+        
+        if not setting:
+            setting = SystemSetting(key="notification_retention", value={})
+            db_session.add(setting)
+            
+        setting.value = {
+            "soft_delete_days": soft_days,
+            "hard_delete_days": hard_days
+        }
+        await db_session.commit()
+        
+        # Invalidate/Sync to Redis if needed for job performance
+        from backend.services.xohi_memory import xohi_memory
+        await xohi_memory.client.set("system:notification_retention", json.dumps(setting.value))
+        
+        return SuccessResponse(ok=True, id="notification_retention")
+
     @get("/loyalty-checkin")
     async def get_loyalty_checkin_config(self, db_session: "AsyncSession") -> dict:
         """Fetch daily check-in configuration."""

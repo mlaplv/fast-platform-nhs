@@ -3,15 +3,18 @@ import type { Notification } from "./types";
 import { authStore } from "./authStore.svelte";
 import { permissionState } from "./permissions.svelte";
 import { vuiController } from "$lib/vui";
+import { isAdminDomain } from "./nanobot/env";
 
 export function createNotificationState() {
   const state = $state({
     notifications: [] as Notification[],
     isLoading: false,
     hasInit: false,
+    nextCursor: null as string | null,
+    hasMore: false,
   });
 
-  async function fetchNotifications() {
+  async function fetchNotifications(reset: boolean = true) {
     // CNS V92: Auth guard — admin panel uses osmo:auth:user_info (authStore purges legacy keys on login)
     // authStore.svelte.ts line 84-86: removes admin_token & access_token → must check user_info key
     const hasAdminToken = typeof window !== 'undefined' &&
@@ -21,6 +24,8 @@ export function createNotificationState() {
     if (!hasAuth) {
       state.notifications = [];
       state.hasInit = false;
+      state.nextCursor = null;
+      state.hasMore = false;
       return;
     }
     // Prevent overlapping requests
@@ -28,48 +33,101 @@ export function createNotificationState() {
 
     state.isLoading = true;
     try {
-      const res = await apiClient.get<{ data: Notification[], total: number }>(
-        "/api/v1/notifications/",
-      );
-      
-      const parsedData = (res.data || []).map((note: Record<string, any>) => {
-        let msg = (note.message || "") as string;
-        let payload: Record<string, unknown> = {};
-        if (msg.includes(" |metadata:")) {
-          const parts = msg.split(" |metadata:");
-          msg = parts[0];
-          try {
-            payload = JSON.parse(parts[1]);
-          } catch (e) {
-            console.error("Failed to parse metadata", e);
+      let parsedData: Notification[] = [];
+      if (isAdminDomain()) {
+        const cursor = reset ? null : state.nextCursor;
+        const url = cursor
+          ? `/api/v1/notifications/paginated?cursor=${encodeURIComponent(cursor)}&limit=20`
+          : `/api/v1/notifications/paginated?limit=20`;
+        const res = await apiClient.get<{ data: any[], next_cursor: string | null, has_more: boolean }>(url);
+        
+        parsedData = (res.data || []).map((note: Record<string, any>) => {
+          let msg = (note.message || "") as string;
+          let payload: Record<string, unknown> = {};
+          if (msg.includes(" |metadata:")) {
+            const parts = msg.split(" |metadata:");
+            msg = parts[0];
+            try {
+              payload = JSON.parse(parts[1]);
+            } catch (e) {
+              console.error("Failed to parse metadata", e);
+            }
           }
-        }
-        // CNS V92: Normalize API camelCase → snake_case (Pydantic alias sends createdAt, type expects created_at)
-        return {
-          id: note.id as string,
-          type: (note.type || "INFO") as string,
-          message: msg,
-          isRead: !!(note.isRead ?? note.is_read),
-          created_at: (note.createdAt || note.created_at || new Date().toISOString()) as string,
-          payload,
-          signal_type: note.signal_type as string | undefined,
-        } satisfies Notification;
-      });
+          // CNS V92: Normalize API camelCase → snake_case (Pydantic alias sends createdAt, type expects created_at)
+          return {
+            id: note.id as string,
+            type: (note.type || "INFO") as string,
+            message: msg,
+            isRead: !!(note.isRead ?? note.is_read),
+            created_at: (note.createdAt || note.created_at || new Date().toISOString()) as string,
+            payload,
+            signal_type: note.signal_type as string | undefined,
+          } satisfies Notification;
+        });
+        
+        state.nextCursor = res.next_cursor || null;
+        state.hasMore = !!res.has_more;
+      } else {
+        // Client side simple fetch
+        const res = await apiClient.get<{ data: any[] }>("/api/v1/client/notifications");
+        parsedData = (res.data || []).map((note: Record<string, any>) => {
+          let msg = (note.message || "") as string;
+          let payload: Record<string, unknown> = {};
+          if (msg.includes(" |metadata:")) {
+            const parts = msg.split(" |metadata:");
+            msg = parts[0];
+            try {
+              payload = JSON.parse(parts[1]);
+            } catch (e) {
+              console.error("Failed to parse metadata", e);
+            }
+          }
+          return {
+            id: note.id as string,
+            type: (note.type || "INFO") as string,
+            message: msg,
+            isRead: !!(note.isRead ?? note.is_read),
+            created_at: (note.createdAt || note.created_at || new Date().toISOString()) as string,
+            payload,
+            signal_type: note.signal_type as string | undefined,
+          } satisfies Notification;
+        });
+        state.nextCursor = null;
+        state.hasMore = false;
+      }
 
-      // CNS V91: MERGE strategy — preserve SSE-added items not yet persisted to DB
-      // DB is source of truth for old data; SSE adds real-time items with fresh IDs
-      const dbIds = new Set(parsedData.map((n: Notification) => n.id));
-      const sseOnly = state.notifications.filter(n => !dbIds.has(n.id));
-      state.notifications = [...sseOnly, ...parsedData].slice(0, 200);
+      if (reset) {
+        // CNS V91: MERGE strategy — preserve SSE-added items not yet persisted to DB
+        const dbIds = new Set(parsedData.map((n: Notification) => n.id));
+        const sseOnly = state.notifications.filter(n => !dbIds.has(n.id) && n.id.startsWith("sse-"));
+        state.notifications = [...sseOnly, ...parsedData].slice(0, 200);
+      } else {
+        // Merge and deduplicate for pagination loading
+        const existingIds = new Set(state.notifications.map(n => n.id));
+        const uniqueNew = parsedData.filter(n => !existingIds.has(n.id));
+        state.notifications = [...state.notifications, ...uniqueNew];
+      }
       state.hasInit = true;
     } catch (e: unknown) {
-      // CNS V91: On error — do NOT wipe existing state (preserve SSE-added notifications)
+      // CNS V91: On error — do NOT wipe existing state
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status !== 409) {
         console.error("[NotificationState] fetch failed — keeping existing state", e);
       }
-      // state.notifications intentionally NOT cleared on error
     } finally {
       state.isLoading = false;
+    }
+  }
+
+  async function markNotificationAsRead(id: string) {
+    try {
+      const endpoint = isAdminDomain()
+        ? `/api/v1/notifications/${id}/read`
+        : `/api/v1/client/notifications/${id}/read`;
+      await apiClient.patch(endpoint, {});
+      const note = state.notifications.find((n) => n.id === id);
+      if (note) note.isRead = true;
+    } catch (e: unknown) {
+      console.error("Failed to mark notification as read", e);
     }
   }
 
@@ -117,6 +175,15 @@ export function createNotificationState() {
     get unreadCount() {
       return state.notifications.filter((n) => !n.isRead).length;
     },
+    get isLoading() {
+      return state.isLoading;
+    },
+    get nextCursor() {
+      return state.nextCursor;
+    },
+    get hasMore() {
+      return state.hasMore;
+    },
     setNotifications: (val: Notification[]) => {
       state.notifications = val;
     },
@@ -129,7 +196,7 @@ export function createNotificationState() {
       }
 
       const notif: Notification = {
-        id: signal.id,
+        id: signal.id.startsWith("sse-") ? signal.id : `sse-${signal.id}`,
         message: signal.message,
         isRead: signal.isRead,
         type: signal.signal_type || signal.severity,

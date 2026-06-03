@@ -1203,3 +1203,12 @@
 - [x] **Tích hợp State Quản lý Hàng Loạt tại Frontend:** Bổ sung các phương thức `bulkDeleteNotifications` và `clearNotifications` trong source code `notification.svelte.ts` và hotpatch trực tiếp vào file compiled chunk `U1VHYwQw.js`. (Done)
 - [x] **Thiết kế Bộ Công Cụ Multi-Select & Clear UI:** Thiết kế thanh công cụ Premium Action Toolbar với các tuỳ chọn "Chọn tất cả", "Hủy chọn", "Xóa đã chọn", "Dọn sạch Tab này", "Dọn sạch Tất cả" và hộp kiểm Checkbox tại từng dòng thông báo. (Done)
 - [x] **Đồng bộ hóa VPS & Khởi động lại Dịch vụ:** Rsync mã nguồn hoàn chỉnh lên VPS, restart container `fast_platform_api` và reload proxy Caddy an toàn. (Done)
+
+# Task Checklist - Cursor Pagination & System Settings Interface (Elite V2.2)
+
+- [x] **Đăng ký endpoint cấu hình lưu trữ thông báo:** Cập nhật `SettingsController` trong `backend/controllers/settings.py` để thêm endpoint GET/POST `/notification-retention` cấu hình số ngày xóa mềm và xóa cứng thông báo. (Done)
+- [x] **Tối ưu hóa tác vụ dọn dẹp chạy nền:** Cập nhật `cleanup_old_notifications` trong `backend/infra/jobs.py` để sử dụng cấu hình lưu trữ từ Redis cache (với fallback cơ sở dữ liệu), đồng thời thực hiện xóa cứng trong database theo từng block 5000 dòng để giải phóng table lock và tối ưu hiệu năng ghi. (Done)
+- [x] **Cải tiến state thông báo với phân trang cursor:** Sửa đổi `notification.svelte.ts` để lưu trữ thêm `nextCursor` và `hasMore`, hỗ trợ truy xuất phân trang qua endpoint `/api/v1/notifications/paginated` khi ở Admin domain. (Done)
+- [x] **Tích hợp nút Tải thêm thông báo vào UI quản trị:** Cập nhật giao diện `NotificationManagement.svelte` để render nút "Tải thêm thông báo" nếu `hasMore` là true, liên kết mượt mà với state manager. (Done)
+- [x] **Xây dựng tab cấu hình thời gian lưu trữ trong System Settings:** Tích hợp tab cấu hình "Lưu trữ thông báo" vào giao diện `SystemSettings.svelte` để Admin có thể thiết lập số ngày xóa mềm (mặc định 7) và xóa cứng (mặc định 14) rồi lưu trực tiếp vào database & đồng bộ sang Redis cache. (Done)
+- [x] **Đồng bộ mã nguồn lên Production VPS:** Thực hiện đồng bộ hóa thông qua rsync lên VPS mlap@103.1.236.14 thành công, đảm bảo tính năng chạy ổn định ngay lập tức. (Done)

@@ -143,9 +143,9 @@ async def generate_review_kg_job(ctx: Dict[str, object], review_id: str) -> None
 async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
     """
     Elite V2.2: Retention Policy Enforcement for Notifications.
-    1. Loads configuration from system_settings (default: 7 days soft delete, 14 days hard delete).
+    1. Loads configuration from Redis cache (fallback to system_settings / default: 7 days soft delete, 14 days hard delete).
     2. Performs soft delete for notifications older than soft_delete_days.
-    3. Performs hard delete for soft-deleted notifications older than hard_delete_days.
+    3. Performs hard delete for soft-deleted notifications older than hard_delete_days in chunks of 5000.
     """
     logger.info("[Cleanup Notifications] Starting execution...")
     
@@ -154,15 +154,33 @@ async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
     session_maker = alchemy_config.create_session_maker()
     async with session_maker() as db:
         try:
-            # Query configuration
-            stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
-            setting = (await db.execute(stmt)).scalar_one_or_none()
-            
             soft_days = 7
             hard_days = 14
-            if setting and isinstance(setting.value, dict):
-                soft_days = int(setting.value.get("soft_delete_days", 7))
-                hard_days = int(setting.value.get("hard_delete_days", 14))
+            
+            try:
+                from backend.services.xohi_memory import xohi_memory
+                import json
+                cached = await xohi_memory.client.get("system:notification_retention")
+                if cached:
+                    config = json.loads(cached)
+                    soft_days = int(config.get("soft_delete_days", 7))
+                    hard_days = int(config.get("hard_delete_days", 14))
+                    logger.info("[Cleanup Notifications] Loaded retention policy from Redis cache.")
+                else:
+                    stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
+                    setting = (await db.execute(stmt)).scalar_one_or_none()
+                    if setting and isinstance(setting.value, dict):
+                        soft_days = int(setting.value.get("soft_delete_days", 7))
+                        hard_days = int(setting.value.get("hard_delete_days", 14))
+                        await xohi_memory.client.set("system:notification_retention", json.dumps(setting.value))
+            except Exception as e:
+                logger.warning(f"[Cleanup Notifications] Failed to read settings from Redis, falling back to DB/Defaults: {e}")
+                from sqlalchemy import select
+                stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
+                setting = (await db.execute(stmt)).scalar_one_or_none()
+                if setting and isinstance(setting.value, dict):
+                    soft_days = int(setting.value.get("soft_delete_days", 7))
+                    hard_days = int(setting.value.get("hard_delete_days", 14))
                 
             logger.info(f"[Cleanup Notifications] Retention configuration: soft={soft_days} days, hard={hard_days} days.")
             
@@ -178,21 +196,31 @@ async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
                 .values(deleted_at=now)
             )
             soft_res = await db.execute(soft_stmt)
-            
-            # Step 2: Hard Delete (Purge soft-deleted notifications older than hard_cutoff)
-            hard_stmt = (
-                delete(Notification)
-                .where(Notification.deleted_at != None)
-                .where(Notification.deleted_at < hard_cutoff)
-            )
-            hard_res = await db.execute(hard_stmt)
-            
             await db.commit()
+            
+            # Step 2: Hard Delete (Purge soft-deleted notifications older than hard_cutoff in chunks to release locks)
+            from sqlalchemy import select
+            total_hard_deleted = 0
+            while True:
+                subq = (
+                    select(Notification.id)
+                    .where(Notification.deleted_at != None)
+                    .where(Notification.deleted_at < hard_cutoff)
+                    .limit(5000)
+                    .scalar_subquery()
+                )
+                hard_stmt = delete(Notification).where(Notification.id.in_(subq))
+                hard_res = await db.execute(hard_stmt)
+                count = hard_res.rowcount
+                total_hard_deleted += count
+                await db.commit()
+                if count < 5000:
+                    break
             
             logger.info(
                 f"[Cleanup Notifications] Process completed. "
                 f"Soft-deleted: {soft_res.rowcount} notifications. "
-                f"Hard-deleted: {hard_res.rowcount} notifications."
+                f"Hard-deleted: {total_hard_deleted} notifications."
             )
         except Exception as e:
             logger.error(f"[Cleanup Notifications] Failed during cleanup execution: {e}")

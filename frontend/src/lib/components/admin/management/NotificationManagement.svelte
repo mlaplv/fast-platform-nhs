@@ -344,6 +344,27 @@
         <p class="text-gray-600 text-xs mt-1">Không tìm thấy thông báo hoặc tín hiệu nào phù hợp với bộ lọc.</p>
       </div>
     {/each}
+
+    {#if notificationState.hasMore}
+      <div class="flex justify-center pt-4 pb-2">
+        <button
+          onclick={() => notificationState.fetchNotifications(false)}
+          disabled={notificationState.isLoading}
+          class="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/30 text-xs font-bold tracking-widest text-zinc-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+        >
+          {#if notificationState.isLoading}
+            <svg class="animate-spin h-3 w-3 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Đang tải...</span>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Tải thêm thông báo</span>
+          {/if}
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- Detail Dialog / Modal Drawer -->
