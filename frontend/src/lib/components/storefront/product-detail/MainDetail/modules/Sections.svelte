@@ -324,11 +324,11 @@
 
                 {#if !isIngredientsExpanded}
                   <div
-                    class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50/98 via-gray-50/80 to-transparent flex items-end justify-center pb-3.5 z-10"
+                    class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50 from-50% to-transparent flex items-end justify-center pb-0 z-10"
                   >
                     <button
                       type="button"
-                      class="flex items-center gap-1 text-gray-400 font-sans hover:text-teal-600 transition-colors"
+                      class="flex items-center gap-1 text-gray-500 font-sans hover:text-teal-600 transition-colors mb-2"
                       onclick={() => (isIngredientsExpanded = true)}
                     >
                       <span class="text-[11px] font-medium"

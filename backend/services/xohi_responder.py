@@ -400,14 +400,22 @@ class XoHiResponder:
             msg = str(payload.get("message", ""))
             alert_type = str(payload.get("signal_type", "SYSTEM")).upper()
             
-            # Format high-quality, professional HTML messages
+            site_name = "FAST-PLATFORM"
+            if xohi_memory._use_redis and xohi_memory.client:
+                try:
+                    import json
+                    cached = await xohi_memory.client.get("system:settings:primary_config")
+                    if cached:
+                        config_data = json.loads(cached)
+                        site_name = str(config_data.get("basic_info", {}).get("site_name", site_name)).upper()
+                except Exception:
+                    pass
+
+            # Format high-quality, concise HTML messages
             status_icon = "🚨" if severity == "CRITICAL" else "🔔"
             telegram_msg = (
-                f"{status_icon} <b>[FAST-PLATFORM ALERTS - {alert_type}]</b>\n"
-                f"────────────────\n"
-                f"{msg}\n"
-                f"────────────────\n"
-                f"🕒 <i>Time: {payload.get('timestamp')}</i>"
+                f"{status_icon} <b>[{site_name} - {alert_type}]</b>\n"
+                f"{msg}"
             )
             
             from backend.services.telegram_service import telegram_service

@@ -343,9 +343,9 @@
 
           {#if !isIngredientsExpanded}
             <div
-              class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1"
+              class="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-gray-50 from-50% to-transparent flex items-end justify-center pb-0"
             >
-              <div class="flex items-center gap-1 text-gray-400 font-sans">
+              <div class="flex items-center gap-1 text-gray-500 font-sans mb-1.5">
                 <span class="text-[11px] font-medium">Xem thêm phân nhóm</span>
                 <ChevronDown size={12} />
               </div>
@@ -375,9 +375,9 @@
           </p>
           {#if !isIngredientsExpanded}
             <div
-              class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1"
+              class="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-gray-50 from-50% to-transparent flex items-end justify-center pb-0"
             >
-              <div class="flex items-center gap-1 text-gray-400 font-sans">
+              <div class="flex items-center gap-1 text-gray-500 font-sans mb-1.5">
                 <span class="text-[11px] font-medium">Xem thêm</span>
                 <ChevronDown size={12} />
               </div>
