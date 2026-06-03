@@ -12,7 +12,15 @@ export function createNotificationState() {
     hasInit: false,
     nextCursor: null as string | null,
     hasMore: false,
+    
+    // Trash Bin State
+    trashNotifications: [] as Notification[],
+    isTrashLoading: false,
+    trashHasInit: false,
+    trashNextCursor: null as string | null,
+    trashHasMore: false,
   });
+
 
   async function fetchNotifications(reset: boolean = true) {
     // CNS V92: Auth guard — admin panel uses osmo:auth:user_info (authStore purges legacy keys on login)
@@ -219,7 +227,111 @@ export function createNotificationState() {
     markNotificationAsRead,
     bulkDeleteNotifications,
     clearNotifications,
+    
+    // Trash Bin Methods and Getters
+    get trashNotifications() {
+      return state.trashNotifications;
+    },
+    get isTrashLoading() {
+      return state.isTrashLoading;
+    },
+    get trashNextCursor() {
+      return state.trashNextCursor;
+    },
+    get trashHasMore() {
+      return state.trashHasMore;
+    },
+    get trashHasInit() {
+      return state.trashHasInit;
+    },
+    fetchTrashNotifications: async (reset: boolean = true) => {
+      const hasAdminToken = typeof window !== 'undefined' &&
+        !!(localStorage.getItem('osmo:auth:user_info'));
+      const hasAuth = authStore.isAuthenticated || hasAdminToken || !!permissionState.user;
+
+      if (!hasAuth) {
+        state.trashNotifications = [];
+        state.trashHasInit = false;
+        state.trashNextCursor = null;
+        state.trashHasMore = false;
+        return;
+      }
+      if (state.isTrashLoading) return;
+
+      state.isTrashLoading = true;
+      try {
+        if (isAdminDomain()) {
+          const cursor = reset ? null : state.trashNextCursor;
+          const url = cursor
+            ? `/api/v1/notifications/trash?cursor=${encodeURIComponent(cursor)}&limit=20`
+            : `/api/v1/notifications/trash?limit=20`;
+          const res = await apiClient.get<{ data: any[], next_cursor: string | null, has_more: boolean }>(url);
+          
+          const parsedData = (res.data || []).map((note: Record<string, any>) => {
+            let msg = (note.message || "") as string;
+            let payload: Record<string, unknown> = {};
+            if (msg.includes(" |metadata:")) {
+              const parts = msg.split(" |metadata:");
+              msg = parts[0];
+              try {
+                payload = JSON.parse(parts[1]);
+              } catch (e) {
+                console.error("Failed to parse metadata", e);
+              }
+            }
+            return {
+              id: note.id as string,
+              type: (note.type || "INFO") as string,
+              message: msg,
+              isRead: !!(note.isRead ?? note.is_read),
+              created_at: (note.createdAt || note.created_at || new Date().toISOString()) as string,
+              payload,
+              signal_type: note.signal_type as string | undefined,
+            } satisfies Notification;
+          });
+
+          state.trashNextCursor = res.next_cursor || null;
+          state.trashHasMore = !!res.has_more;
+
+          if (reset) {
+            state.trashNotifications = parsedData;
+          } else {
+            const existingIds = new Set(state.trashNotifications.map(n => n.id));
+            const uniqueNew = parsedData.filter(n => !existingIds.has(n.id));
+            state.trashNotifications = [...state.trashNotifications, ...uniqueNew];
+          }
+          state.trashHasInit = true;
+        }
+      } catch (e: unknown) {
+        console.error("[NotificationState] fetch trash failed", e);
+      } finally {
+        state.isTrashLoading = false;
+      }
+    },
+    restoreNotifications: async (ids: string[]) => {
+      try {
+        await apiClient.post("/api/v1/notifications/trash/restore", { ids });
+        state.trashNotifications = state.trashNotifications.filter((n) => !ids.includes(n.id));
+        // Reload active notifications
+        await fetchNotifications(true);
+      } catch (e: unknown) {
+        console.error("Failed to restore notifications", e);
+      }
+    },
+    hardDeleteNotifications: async (ids: string[]) => {
+      try {
+        await apiClient.post("/api/v1/notifications/trash/hard-delete", { ids });
+        if (ids.length === 0) {
+          state.trashNotifications = [];
+        } else {
+          state.trashNotifications = state.trashNotifications.filter((n) => !ids.includes(n.id));
+        }
+      } catch (e: unknown) {
+        console.error("Failed to hard delete notifications", e);
+      }
+    }
   };
+
 }
 // CNS V88.3: Ultimate Global Singleton Instance
 // Using a simple object reference to ensure 100% same instance across all imports

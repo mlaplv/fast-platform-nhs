@@ -1212,3 +1212,19 @@
 - [x] **Tích hợp nút Tải thêm thông báo vào UI quản trị:** Cập nhật giao diện `NotificationManagement.svelte` để render nút "Tải thêm thông báo" nếu `hasMore` là true, liên kết mượt mà với state manager. (Done)
 - [x] **Xây dựng tab cấu hình thời gian lưu trữ trong System Settings:** Tích hợp tab cấu hình "Lưu trữ thông báo" vào giao diện `SystemSettings.svelte` để Admin có thể thiết lập số ngày xóa mềm (mặc định 7) và xóa cứng (mặc định 14) rồi lưu trực tiếp vào database & đồng bộ sang Redis cache. (Done)
 - [x] **Đồng bộ mã nguồn lên Production VPS:** Thực hiện đồng bộ hóa thông qua rsync lên VPS mlap@103.1.236.14 thành công, đảm bảo tính năng chạy ổn định ngay lập tức. (Done)
+
+# Task Checklist - Fixing Font Preload Warnings (Elite V2.2)
+
+- [x] **Loại bỏ preload font cứng tại app.html:** Xóa bỏ thẻ preload font toàn cục trong `frontend/src/app.html`. (Done)
+- [x] **Tích hợp preload font có điều kiện:** Di chuyển các thẻ preload font vào khối `<svelte:head>` trong `frontend/src/routes/+layout.svelte` khi `isAdmin` là `false`. (Done)
+- [x] **Thống nhất định nghĩa `@font-face`:** Nhập `fonts.css` vào tệp CSS chung `frontend/src/routes/layout.css` để bảo đảm font hoạt động bình thường trên Trang chủ và Admin. (Done)
+- [x] **Dọn dẹp import trùng lặp:** Loại bỏ import `fonts.css` tại `frontend/src/routes/(client)/+layout.svelte`. (Done)
+- [x] **Đồng bộ hóa VPS & Khởi động lại dịch vụ:** Thực hiện rsync toàn bộ thay đổi lên VPS Production và kiểm tra tính ổn định. (Done)
+
+# Task Checklist - Notification Trash Bin Integration (Elite V2.2)
+
+- [x] **Xây dựng API Thùng rác tại Backend:** Cấu trúc các endpoint `/trash`, `/trash/restore`, và `/trash/hard-delete` trong `NotificationController` và các hàm xử lý tương ứng trong `NotificationService` để truy vấn thông báo đã xóa mềm, khôi phục lại trạng thái, và xóa cứng tối ưu theo từng batch tránh lock DB. (Done)
+- [x] **Cập nhật State Thao tác Thùng rác tại Frontend:** Tích hợp state lưu trữ, cơ chế phân trang cursor riêng cho Thùng rác (`trashNotifications`, `trashNextCursor`, `trashHasMore`), và các phương thức `fetchTrashNotifications`, `restoreNotifications`, `hardDeleteNotifications` vào `notification.svelte.ts`. (Done)
+- [x] **Tích hợp Tab Thùng rác và Bộ lọc UI:** Cập nhật giao diện `NotificationManagement.svelte` với Tab "Thùng rác", hỗ trợ hiển thị danh sách các thông báo đã xóa mềm, nút phân trang "Tải thêm", và hệ thống action bar riêng biệt cho phép Chọn tất cả, Khôi phục hàng loạt, Xóa vĩnh viễn hàng loạt, hoặc Dọn sạch hoàn toàn thùng rác theo cơ chế chia phần (chunked). (Done)
+- [x] **Đồng bộ mã nguồn lên Production VPS:** Chuyển giao toàn bộ code backend/frontend đã thay đổi lên máy chủ Production và khởi động lại dịch vụ Caddy & API Docker container để áp dụng ngay lập tức. (Done)
+

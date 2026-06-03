@@ -218,4 +218,136 @@ class NotificationService:
         await db_session.execute(stmt)
         return SuccessResponse(ok=True)
 
+    @staticmethod
+    async def get_trash_notifications_paginated(
+        db_session: AsyncSession,
+        user_email: Optional[str],
+        cursor: Optional[str] = None,
+        limit: int = 20
+    ) -> NotificationCursorPaginatedResponse:
+        """Fetch soft-deleted notifications using cursor pagination (Trash Bin)."""
+        from sqlalchemy.orm import selectinload
+        import base64
+        from datetime import datetime
+        
+        is_staff = False
+        user = None
+
+        if user_email:
+            stmt = select(User).options(selectinload(User.roles)).where(User.email == user_email)
+            user = (await db_session.execute(stmt)).scalar_one_or_none()
+            if not user:
+                raise NotAuthorizedException("User context not found")
+            
+            user_roles = [r.code for r in getattr(user, "roles", [])]
+            is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
+
+        if not is_staff:
+            raise NotAuthorizedException("Clearance level insufficient to access Trash Bin")
+
+        # Build query conditions for soft-deleted notifications
+        conditions = [
+            or_(
+                Notification.user_id == str(user.id),
+                Notification.user_id == "user_admin",
+                Notification.user_id == None
+            )
+        ]
+
+        filters = [*conditions, Notification.deleted_at != None]
+
+        # Cursor decoding
+        cursor_created_at = None
+        cursor_id = None
+        if cursor:
+            try:
+                decoded = base64.b64decode(cursor.encode("utf-8")).decode("utf-8")
+                parts = decoded.split("|")
+                if len(parts) == 2:
+                    cursor_created_at = datetime.fromisoformat(parts[0])
+                    cursor_id = parts[1]
+            except Exception:
+                logger.warning(f"Malformed cursor received in trash query: {cursor}")
+
+        # Apply cursor conditions
+        if cursor_created_at and cursor_id:
+            filters.append(
+                or_(
+                    Notification.created_at < cursor_created_at,
+                    and_(
+                        Notification.created_at == cursor_created_at,
+                        Notification.id < cursor_id
+                    )
+                )
+            )
+
+        # Fetch limit + 1 items to determine if next page exists
+        stmt = (
+            select(
+                Notification.id, Notification.type, Notification.message,
+                Notification.is_read, Notification.created_at, Notification.user_id
+            )
+            .where(*filters)
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(limit + 1)
+        )
+
+        res = await db_session.execute(stmt)
+        rows = list(res)
+        
+        has_more = len(rows) > limit
+        items_to_return = rows[:limit] if has_more else rows
+        
+        data = [NotificationResponse.model_validate(row._mapping) for row in items_to_return]
+        
+        next_cursor = None
+        if has_more and items_to_return:
+            last_item = items_to_return[-1]._mapping
+            raw_cursor = f"{last_item['created_at'].isoformat()}|{last_item['id']}"
+            next_cursor = base64.b64encode(raw_cursor.encode("utf-8")).decode("utf-8")
+
+        return NotificationCursorPaginatedResponse(data=data, next_cursor=next_cursor, has_more=has_more)
+
+    @staticmethod
+    async def restore_notifications(db_session: AsyncSession, notification_ids: List[str]) -> SuccessResponse:
+        """Khôi phục thông báo từ thùng rác (set deleted_at = None)"""
+        stmt = (
+            update(Notification)
+            .where(Notification.id.in_(notification_ids))
+            .values(deleted_at=None)
+        )
+        await db_session.execute(stmt)
+        return SuccessResponse(ok=True)
+
+    @staticmethod
+    async def hard_delete_trash(db_session: AsyncSession, notification_ids: Optional[List[str]] = None, chunk_size: int = 500) -> SuccessResponse:
+        """Xoá vĩnh viễn (hard delete) thông báo trong thùng rác theo từng phần (batch/chunk) để tránh lock DB."""
+        from sqlalchemy import delete
+        
+        if notification_ids:
+            # Chunked deletion for specified IDs
+            for i in range(0, len(notification_ids), chunk_size):
+                chunk = notification_ids[i:i + chunk_size]
+                stmt = delete(Notification).where(Notification.id.in_(chunk))
+                await db_session.execute(stmt)
+                await db_session.commit()
+        else:
+            # Chunked deletion for ALL soft-deleted notifications
+            while True:
+                subq = (
+                    select(Notification.id)
+                    .where(Notification.deleted_at != None)
+                    .limit(chunk_size)
+                    .scalar_subquery()
+                )
+                stmt = delete(Notification).where(Notification.id.in_(subq))
+                res = await db_session.execute(stmt)
+                count = res.rowcount
+                await db_session.commit()
+                if count < chunk_size:
+                    break
+                    
+        return SuccessResponse(ok=True)
+
 notification_service = NotificationService()
+

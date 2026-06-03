@@ -3,7 +3,7 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { fade, slide } from "svelte/transition";
   import XohiLogo from "../XohiLogo.svelte";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   
   const notificationState = getNotificationState();
   const nanobot = useNanobot();
@@ -12,10 +12,62 @@
     notificationState.fetchNotifications();
   });
 
-  let activeFilter = $state<"ALL" | "ORDER" | "CHAT" | "SECURITY" | "URGENT">("ALL");
+  let activeFilter = $state<"ALL" | "ORDER" | "CHAT" | "SECURITY" | "URGENT" | "TRASH">("ALL");
   let searchQuery = $state("");
   let selectedNotification = $state<any | null>(null);
   let selectedIds = $state<string[]>([]);
+
+  $effect(() => {
+    const filter = activeFilter;
+    untrack(() => {
+      if (filter === "TRASH") {
+        notificationState.fetchTrashNotifications(true);
+        selectedIds = [];
+      }
+    });
+  });
+
+  async function handleBulkRestore() {
+    if (selectedIds.length === 0) return;
+    const confirmed = await nanobot.showConfirm({
+      title: "KHÔI PHỤC THÔNG BÁO",
+      message: `Khôi phục ${selectedIds.length} thông báo đã chọn?`,
+      confirmLabel: "KHÔI PHỤC",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
+      await (notificationState as any).restoreNotifications(selectedIds);
+      selectedIds = [];
+    }
+  }
+
+  async function handleBulkHardDelete() {
+    if (selectedIds.length === 0) return;
+    const confirmed = await nanobot.showConfirm({
+      title: "XÓA VĨNH VIỄN",
+      message: `Xoá vĩnh viễn ${selectedIds.length} thông báo đã chọn? Hợp đồng này không thể hoàn tác.`,
+      confirmLabel: "XÓA VĨNH VIỄN",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
+      await (notificationState as any).hardDeleteNotifications(selectedIds);
+      selectedIds = [];
+    }
+  }
+
+  async function handleEmptyTrash() {
+    const confirmed = await nanobot.showConfirm({
+      title: "DỌN SẠCH THÙNG RÁC",
+      message: "Dọn sạch VĨNH VIỄN toàn bộ thông báo trong thùng rác? Hệ thống sẽ thực thi xóa theo từng phần để tối ưu tài nguyên.",
+      confirmLabel: "DỌN SẠCH",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
+      await (notificationState as any).hardDeleteNotifications([]);
+      selectedIds = [];
+    }
+  }
+
 
   function toggleSelectAll() {
     if (selectedIds.length === filteredNotifications.length) {
@@ -36,7 +88,13 @@
 
   async function handleBulkDelete() {
     if (selectedIds.length === 0) return;
-    if (confirm(`Xoá mềm ${selectedIds.length} thông báo đã chọn?`)) {
+    const confirmed = await nanobot.showConfirm({
+      title: "XÓA TẠM THỜI",
+      message: `Xoá mềm ${selectedIds.length} thông báo đã chọn?`,
+      confirmLabel: "XÓA MỀM",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
       await (notificationState as any).bulkDeleteNotifications(selectedIds);
       selectedIds = [];
     }
@@ -44,14 +102,26 @@
 
   async function handleClearCurrentTab() {
     const filterLabel = activeFilter === "ALL" ? "tất cả" : `tab ${activeFilter}`;
-    if (confirm(`Dọn sạch ${filterLabel} thông báo trong database?`)) {
+    const confirmed = await nanobot.showConfirm({
+      title: "DỌN SẠCH TAB",
+      message: `Dọn sạch ${filterLabel} thông báo trong database?`,
+      confirmLabel: "DỌN SẠCH",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
       await (notificationState as any).clearNotifications(activeFilter);
       selectedIds = [];
     }
   }
 
   async function handleClearAllTabs() {
-    if (confirm("Dọn sạch TẤT CẢ thông báo ở mọi tab trong database?")) {
+    const confirmed = await nanobot.showConfirm({
+      title: "DỌN SẠCH TẤT CẢ",
+      message: "Dọn sạch TẤT CẢ thông báo ở mọi tab trong database?",
+      confirmLabel: "DỌN SẠCH",
+      cancelLabel: "HỦY"
+    });
+    if (confirmed) {
       await (notificationState as any).clearNotifications("ALL");
       selectedIds = [];
     }
@@ -59,6 +129,18 @@
 
   // Elite V2.2 Runes-based reactivity
   const filteredNotifications = $derived.by(() => {
+    if (activeFilter === "TRASH") {
+      let list = notificationState.trashNotifications;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        list = list.filter(n => 
+          (n.message || "").toLowerCase().includes(q) || 
+          (n.type || "").toLowerCase().includes(q)
+        );
+      }
+      return list;
+    }
+
     let list = notificationState.notifications;
 
     // Apply severity/type filters
@@ -227,6 +309,13 @@
       >
         Khẩn cấp
       </button>
+      <button 
+        onclick={() => activeFilter = "TRASH"}
+        class="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all duration-300 {activeFilter === 'TRASH' ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-transparent border-white/5 hover:bg-white/5 text-gray-400'}"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        Thùng rác
+      </button>
     </div>
 
     <!-- Search Input -->
@@ -245,49 +334,95 @@
 
   <!-- Multi-select & Clears Action Toolbar -->
   <div class="px-6 py-3 bg-white/[0.02] border-b border-white/5 flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <button 
-        onclick={toggleSelectAll}
-        class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 hover:bg-white/5 transition-all text-gray-300 flex items-center gap-2"
-      >
-        <div class="w-3.5 h-3.5 rounded border flex items-center justify-center transition-all {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'bg-cyan-500 border-cyan-500 text-black' : 'border-white/20 bg-transparent'}">
-          {#if selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0}
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          {/if}
-        </div>
-        {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'Hủy chọn' : 'Chọn tất cả'}
-      </button>
+    {#if activeFilter === "TRASH"}
+      <div class="flex items-center gap-3">
+        <button 
+          onclick={toggleSelectAll}
+          class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 hover:bg-white/5 transition-all text-gray-300 flex items-center gap-2"
+        >
+          <div class="w-3.5 h-3.5 rounded border flex items-center justify-center transition-all {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'bg-cyan-500 border-cyan-500 text-black' : 'border-white/20 bg-transparent'}">
+            {#if selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            {/if}
+          </div>
+          {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'Hủy chọn' : 'Chọn tất cả'}
+        </button>
 
-      {#if selectedIds.length > 0}
-        <span class="text-xs text-cyan-400 font-mono">Đã chọn {selectedIds.length}</span>
+        {#if selectedIds.length > 0}
+          <span class="text-xs text-cyan-400 font-mono">Đã chọn {selectedIds.length}</span>
+          
+          <button 
+            onclick={handleBulkRestore}
+            class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 transition-all flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5"/></svg>
+            Khôi phục
+          </button>
+
+          <button 
+            onclick={handleBulkHardDelete}
+            class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-all flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>
+            Xóa vĩnh viễn
+          </button>
+        {/if}
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button 
+          onclick={handleEmptyTrash}
+          class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 transition-all flex items-center gap-1.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Dọn sạch Thùng rác (Phần)
+        </button>
+      </div>
+    {:else}
+      <div class="flex items-center gap-3">
+        <button 
+          onclick={toggleSelectAll}
+          class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 hover:bg-white/5 transition-all text-gray-300 flex items-center gap-2"
+        >
+          <div class="w-3.5 h-3.5 rounded border flex items-center justify-center transition-all {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'bg-cyan-500 border-cyan-500 text-black' : 'border-white/20 bg-transparent'}">
+            {#if selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            {/if}
+          </div>
+          {selectedIds.length === filteredNotifications.length && filteredNotifications.length > 0 ? 'Hủy chọn' : 'Chọn tất cả'}
+        </button>
+
+        {#if selectedIds.length > 0}
+          <span class="text-xs text-cyan-400 font-mono">Đã chọn {selectedIds.length}</span>
+          
+          <button 
+            onclick={handleBulkDelete}
+            class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-all flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>
+            Xóa đã chọn
+          </button>
+        {/if}
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button 
+          onclick={handleClearCurrentTab}
+          class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 transition-all flex items-center gap-1.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Dọn sạch Tab này
+        </button>
         
         <button 
-          onclick={handleBulkDelete}
-          class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-all flex items-center gap-1.5"
+          onclick={handleClearAllTabs}
+          class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 transition-all flex items-center gap-1.5"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>
-          Xóa đã chọn
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Dọn sạch Tất cả
         </button>
-      {/if}
-    </div>
-
-    <div class="flex items-center gap-2">
-      <button 
-        onclick={handleClearCurrentTab}
-        class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 transition-all flex items-center gap-1.5"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-        Dọn sạch Tab này
-      </button>
-      
-      <button 
-        onclick={handleClearAllTabs}
-        class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 transition-all flex items-center gap-1.5"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        Dọn sạch Tất cả
-      </button>
-    </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Notification List -->
@@ -345,25 +480,48 @@
       </div>
     {/each}
 
-    {#if notificationState.hasMore}
-      <div class="flex justify-center pt-4 pb-2">
-        <button
-          onclick={() => notificationState.fetchNotifications(false)}
-          disabled={notificationState.isLoading}
-          class="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/30 text-xs font-bold tracking-widest text-zinc-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
-        >
-          {#if notificationState.isLoading}
-            <svg class="animate-spin h-3 w-3 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Đang tải...</span>
-          {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            <span>Tải thêm thông báo</span>
-          {/if}
-        </button>
-      </div>
+    {#if activeFilter === "TRASH"}
+      {#if notificationState.trashHasMore}
+        <div class="flex justify-center pt-4 pb-2">
+          <button
+            onclick={() => notificationState.fetchTrashNotifications(false)}
+            disabled={notificationState.isTrashLoading}
+            class="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/30 text-xs font-bold tracking-widest text-zinc-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {#if notificationState.isTrashLoading}
+              <svg class="animate-spin h-3 w-3 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Đang tải...</span>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Tải thêm thông báo đã xóa</span>
+            {/if}
+          </button>
+        </div>
+      {/if}
+    {:else}
+      {#if notificationState.hasMore}
+        <div class="flex justify-center pt-4 pb-2">
+          <button
+            onclick={() => notificationState.fetchNotifications(false)}
+            disabled={notificationState.isLoading}
+            class="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-cyan-500/30 text-xs font-bold tracking-widest text-zinc-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {#if notificationState.isLoading}
+              <svg class="animate-spin h-3 w-3 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Đang tải...</span>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Tải thêm thông báo</span>
+            {/if}
+          </button>
+        </div>
+      {/if}
     {/if}
   </div>
 

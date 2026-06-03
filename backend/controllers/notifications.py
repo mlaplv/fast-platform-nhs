@@ -62,3 +62,35 @@ class NotificationController(Controller):
         res = await notification_service.clear_notifications(db_session, filter_type)
         await db_session.commit()
         return res
+
+    @get("/trash")
+    async def get_trash_notifications(
+        self,
+        db_session: "AsyncSession",
+        request: Request,
+        cursor: Optional[str] = None,
+        limit: int = 20
+    ) -> NotificationCursorPaginatedResponse:
+        """Lấy danh sách thông báo đã bị xoá mềm (Thùng rác)"""
+        user_state = getattr(request.state, "user", {})
+        user_email = user_state.get("sub")
+        return await notification_service.get_trash_notifications_paginated(db_session, user_email, cursor, limit)
+
+    @post("/trash/restore")
+    async def restore_notifications(self, db_session: "AsyncSession", data: dict) -> SuccessResponse:
+        """Khôi phục các thông báo đã bị xoá mềm từ thùng rác"""
+        ids = data.get("ids", [])
+        if not ids:
+            return SuccessResponse(ok=True)
+        res = await notification_service.restore_notifications(db_session, ids)
+        await db_session.commit()
+        return res
+
+    @post("/trash/hard-delete")
+    async def hard_delete_notifications(self, db_session: "AsyncSession", data: dict) -> SuccessResponse:
+        """Xoá cứng (vĩnh viễn) các thông báo trong thùng rác theo từng phần"""
+        ids = data.get("ids", [])
+        res = await notification_service.hard_delete_trash(db_session, ids if ids else None)
+        await db_session.commit()
+        return res
+

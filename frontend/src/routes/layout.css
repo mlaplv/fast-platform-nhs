@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../lib/styles/fonts.css";
 
 /* 🚀 ELITE V2.2: TYPOGRAPHY (Inter - The Tech Standard) */
 html,

@@ -394,6 +394,9 @@
     <meta property="og:locale" content="vi_VN" />
   {:else}
     <meta name="theme-color" content={isFunnel ? '#020202' : '#f5f5f5'} />
+    <!-- Preload critical local web fonts to eliminate render-blocking delay -->
+    <link rel="preload" href="/fonts/be-vietnam-pro-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="/fonts/be-vietnam-pro-700-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
   {/if}
 
   <link rel="icon" href="/favicon.svg" />
