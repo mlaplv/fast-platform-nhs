@@ -252,6 +252,26 @@
     );
     scrollToNewestMessage();
   }
+
+  let touchStartY = 0;
+  let touchEndY = 0;
+
+  function handleTouchStart(e: TouchEvent) {
+    touchStartY = e.touches[0].clientY;
+    touchEndY = e.touches[0].clientY;
+  }
+
+  function handleTouchMove(e: TouchEvent) {
+    touchEndY = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd() {
+    if (touchEndY > touchStartY + 40) {
+      closeChat();
+    }
+    touchStartY = 0;
+    touchEndY = 0;
+  }
 </script>
 
 {#if supportAgent.isOpen}
@@ -267,7 +287,7 @@
 
   <!-- Bottom Sheet (Liquid Glass - Viral 2026) -->
   <div
-    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile helen-box-v2 overflow-hidden {isInputFocused
+    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile overflow-hidden rounded-t-[5px] {isInputFocused
       ? 'pause-animations'
       : ''}"
     style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh;"
@@ -284,34 +304,39 @@
     <div
       class="absolute top-10 left-8 w-1.5 h-1.5 bg-white/30 blur-[1px] rounded-full pointer-events-none z-0"
     ></div>
-    <!-- iOS Style Drag Handle -->
-    <div
-      class="absolute top-0 left-0 right-0 h-12 flex justify-center items-start pt-[18px] z-20 pointer-events-none"
+    <!-- iOS Style Drag Handle - Interactive -->
+    <button
+      class="absolute top-0 left-0 right-0 h-10 flex justify-center items-start pt-[10px] z-30 w-full active:bg-white/5 transition-colors border-none outline-none"
+      onclick={closeChat}
+      ontouchstart={handleTouchStart}
+      ontouchmove={handleTouchMove}
+      ontouchend={handleTouchEnd}
+      aria-label="Chạm hoặc kéo xuống để đóng chat"
     >
-      <div class="w-14 h-[6px] bg-white/20 rounded-full"></div>
-    </div>
+      <div class="w-10 h-[4px] bg-white/30 rounded-full pointer-events-none"></div>
+    </button>
 
     <header
-      class="flex-shrink-0 pt-[40px] px-4 pb-3 flex items-center justify-between relative z-20 bg-transparent"
+      class="flex-shrink-0 pt-[20px] px-4 pb-2 flex items-center justify-between relative z-20 bg-transparent"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
         <div class="relative">
           <div
-            class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(255,183,197,0.4)] border border-white/20 overflow-hidden"
+            class="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(255,183,197,0.4)] border border-white/20 overflow-hidden"
           >
-            <HelenIcon size={56} color="#FFB7C5" isPaused={isInputFocused} />
+            <HelenIcon size={40} color="#FFB7C5" isPaused={isInputFocused} />
           </div>
           <div
-            class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"
+            class="absolute bottom-0 right-0 w-3 h-3 bg-[#FFB7C5] rounded-full ring-[2px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"
           ></div>
         </div>
         <div>
           <h3
-            class="font-black text-white tracking-[-0.02em] leading-tight text-[21px] flex items-center gap-3"
+            class="font-black text-white tracking-[-0.02em] leading-tight text-[17px] flex items-center gap-2"
           >
             {supportAgent.config.agentName}
             <div
-              class="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md"
+              class="flex items-center gap-1 px-1.5 py-0.5 bg-white/5 border border-white/10 rounded-md"
             >
               <Lock size={10} class="text-white/30" />
               <span class="text-[8px] text-white/40 font-black tracking-widest"
@@ -319,12 +344,12 @@
               >
             </div>
           </h3>
-          <div class="flex items-center gap-2 mt-1">
+          <div class="flex items-center gap-1.5 mt-0.5">
             <div
               class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"
             ></div>
             <p
-              class="text-[11px] text-[#FFB7C5] font-black tracking-[0.3em] opacity-90"
+              class="text-[10px] text-[#FFB7C5] font-black tracking-[0.2em] opacity-90"
             >
               {supportAgent.helenEnabled
                 ? "Đang hoạt động"
@@ -332,14 +357,6 @@
             </p>
           </div>
         </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <button
-          onclick={closeChat}
-          class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 active:bg-white/15 text-white/80 transition-all border border-white/5 backdrop-blur-3xl"
-        >
-          <X size={24} />
-        </button>
       </div>
     </header>
     <!-- Header fade-out edge: xuyên thấu khi chat cuộn sát mép -->
@@ -727,25 +744,7 @@
     overscroll-behavior: contain;
   }
 
-  .helen-box-v2 {
-    border-radius: 40px 40px 0 0;
-    animation: mobile-morph 10s infinite alternate ease-in-out;
-  }
 
-  @keyframes mobile-morph {
-    0% {
-      border-radius: 48px 48px 0 0;
-    }
-    33% {
-      border-radius: 64px 32px 0 0;
-    }
-    66% {
-      border-radius: 40px 60px 0 0;
-    }
-    100% {
-      border-radius: 48px 48px 0 0;
-    }
-  }
 
   .safe-area-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom, 24px) + 8px);

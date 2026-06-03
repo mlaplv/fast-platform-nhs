@@ -246,7 +246,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         total_count = base_count + (p_row.order_count or 0)
         
         ctx += "\n[BẢO CHỨNG UY TÍN & FOMO]:\n"
-        ctx += f"- Xuất xứ: Chính hãng {origin} (Nhà máy {brand})\n"
+        ctx += f"- Xuất xứ: {origin}\n"
         ctx += f"- Độ HOT: Đã bán {total_count} sản phẩm trong tháng.\n"
         if p_row.stock and p_row.stock < 10:
             ctx += f"- Tồn kho cảnh báo: Chỉ còn đúng {p_row.stock} sản phẩm (Rất khan hiếm).\n"

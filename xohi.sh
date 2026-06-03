@@ -684,7 +684,7 @@ function setup_vps() {
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then return 1; fi
 
     # Phase 1: OS Update & Security
-    echo -e "${CYAN}-> [1/5] Cập nhật OS & Cài đặt Bảo mật (UFW + Fail2Ban)...${NC}"
+    echo -e "${CYAN}-> [1/6] Cập nhật OS & Cài đặt Bảo mật (UFW + Fail2Ban)...${NC}"
     sudo apt-get update -y && sudo apt-get upgrade -y
     sudo apt-get install -y ufw fail2ban unattended-upgrades curl git htop
     
@@ -697,7 +697,7 @@ function setup_vps() {
     echo "y" | sudo ufw enable
 
     # Phase 2: Performance Tuning (Swap + Limits)
-    echo -e "${CYAN}-> [2/5] Tối ưu hiệu năng cho Xeon/4GB RAM (Alpha Performance Suite)...${NC}"
+    echo -e "${CYAN}-> [2/6] Tối ưu hiệu năng cho Xeon/4GB RAM (Alpha Performance Suite)...${NC}"
     # 2.1: Network Concurrency (TCP BBR for smooth AI streaming)
     if ! grep -q "bbr" /etc/sysctl.conf; then
         echo -e "${YELLOW}   ↳ Kích hoạt Google TCP BBR (Smooth Reaction)...${NC}"
@@ -742,7 +742,7 @@ function setup_vps() {
     fi
 
     # Phase 3: Docker Elite (Latest Engine)
-    echo -e "${CYAN}-> [3/5] Cài đặt Docker Elite (Engine + Compose Plugin)...${NC}"
+    echo -e "${CYAN}-> [3/6] Cài đặt Docker Elite (Engine + Compose Plugin)...${NC}"
     if ! command -v docker &> /dev/null; then
         curl -fsSL https://get.docker.com -o get-docker.sh
         sudo sh get-docker.sh
@@ -751,7 +751,7 @@ function setup_vps() {
     sudo apt-get install -y docker-compose-plugin
 
     # Phase 4: Binary Injection (UV + PNPM)
-    echo -e "${CYAN}-> [4/5] Cài đặt Đồ nghề Build (UV 3.14 + Node 22 PNPM)...${NC}"
+    echo -e "${CYAN}-> [4/6] Cài đặt Đồ nghề Build (UV 3.14 + Node 22 PNPM)...${NC}"
     if ! command -v uv &> /dev/null; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
@@ -762,7 +762,7 @@ function setup_vps() {
     fi
 
     # Phase 5: Final Lockdown check
-    echo -e "${CYAN}-> [5/5] Kích hoạt Pháo đài tuần tra...${NC}"
+    echo -e "${CYAN}-> [5/6] Kích hoạt Pháo đài tuần tra...${NC}"
     sudo systemctl enable fail2ban
     sudo systemctl restart fail2ban
     
@@ -990,7 +990,7 @@ function total_garbage_clean() {
     echo -e "${CYAN}[CLEAN] Đang tiến hành dọn rác toàn diện (Cache, Logs & Old Packages)...${NC}"
 
     # 1. Truncate Docker logs
-    echo -e "${YELLOW}-> [1/5] Đang giải phóng bộ nhớ logs Docker...${NC}"
+    echo -e "${YELLOW}-> [1/6] Đang giải phóng bộ nhớ logs Docker...${NC}"
     if sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
         echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker!${NC}"
     else
@@ -999,41 +999,82 @@ function total_garbage_clean() {
 
     # 2. Clean UV cache inside container
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
-        echo -e "${YELLOW}-> [2/5] Đang xóa bộ nhớ đệm UV Cache trong container...${NC}"
+        echo -e "${YELLOW}-> [2/6] Đang xóa bộ nhớ đệm UV Cache trong container...${NC}"
         docker exec -i fast_platform_api uv cache clean 2>/dev/null || true
         echo -e "${GREEN}   ✔ Đã xóa sạch UV Cache inside container!${NC}"
     fi
 
     # 3. Clean local host UV cache
     if command -v uv &> /dev/null; then
-        echo -e "${YELLOW}-> [3/5] Đang xóa bộ nhớ đệm UV Cache cục bộ...${NC}"
+        echo -e "${YELLOW}-> [3/6] Đang xóa bộ nhớ đệm UV Cache cục bộ...${NC}"
         uv cache clean 2>/dev/null || true
     fi
 
     # 4. Prune unused Docker builds & caches
-    echo -e "${YELLOW}-> [4/5] Đang dọn dẹp Docker rác (Dangling images, build caches)...${NC}"
+    echo -e "${YELLOW}-> [4/6] Đang dọn dẹp Docker rác (Dangling images, build caches)...${NC}"
     docker system prune -f 2>/dev/null || true
     docker builder prune -f 2>/dev/null || true
     echo -e "${GREEN}   ✔ Đã giải phóng toàn bộ tài nguyên Docker dư thừa!${NC}"
 
     # 5. Clean local system temp logs & caches
-    echo -e "${YELLOW}-> [5/5] Đang làm sạch logs hệ thống cục bộ...${NC}"
+    echo -e "${YELLOW}-> [5/6] Đang làm sạch logs hệ thống cục bộ...${NC}"
     sudo rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
     sudo find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
     
-    echo -e "${GREEN}[SUCCESS] Đã hoàn tất dọn dẹp hệ thống siêu sạch!${NC}"
+    # 6. Flush Redis & Force Client Reset Cache
+    echo -e "${YELLOW}-> [6/6] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
+        docker exec fast_platform_redis redis-cli flushall || true
+    fi
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        docker exec fast_platform_api /opt/venv/bin/python3 -c "import asyncio; from backend.services.event_bus import event_bus; asyncio.run(event_bus.emit('SYSTEM_SIGNAL', {'action': 'FORCE_RELOAD'}))" 2>/dev/null || true
+    fi
+
+    echo -e "${GREEN}[SUCCESS] Đã hoàn tất dọn dẹp hệ thống siêu sạch và ép reset client!${NC}"
     df -h /
+    
+    view_logs
     
     if [ "$NO_WAIT" = false ]; then
         read -p "Nhấn Enter để quay lại menu..."
     fi
 }
 
-# Handle direct command-line arguments (e.g. ./xohi.sh dondep)
+function restart_backend_services() {
+    local NO_WAIT=false
+    if [[ "$1" == "--no-wait" ]]; then
+        NO_WAIT=true
+    fi
+
+    echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend & Gateway (api + worker_high + caddy)...${NC}"
+    docker compose stop api worker_high caddy
+    docker compose rm -f api worker_high caddy
+    
+    # [Elite V2.2] Purge pycache cũ trực tiếp trên host trước khi up (tránh Double Restart làm treo lock DB)
+    echo -e "${YELLOW}[PYCACHE] Đang xóa sạch pycache cũ trên Host...${NC}"
+    find backend -name "*.pyc" -delete 2>/dev/null || true
+    find backend -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+    
+    docker compose up -d api worker_high caddy
+    echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, Caddy) sạch sẽ!${NC}"
+    echo -e "${CYAN}--- Trạng thái hoạt động mới nhất ---${NC}"
+    docker compose logs --tail 15 api worker_high
+    echo -e "${GREEN}✔ Khởi chạy hoàn tất! Hệ thống đã trực tuyến ổn định.${NC}"
+    
+    if [ "$NO_WAIT" = false ]; then
+        read -p "Nhấn Enter để quay lại menu..."
+    fi
+}
+
+# Handle direct command-line arguments (e.g. ./xohi.sh clean)
 if [[ -n "$1" ]]; then
     case "$1" in
-        dondep|dọn_dẹp|dondep_docker|dondep-docker)
+        clean|dondep|dọn_dẹp|dondep_docker|dondep-docker)
             total_garbage_clean --no-wait
+            exit 0
+            ;;
+        reset|restart|8)
+            restart_backend_services --no-wait
             exit 0
             ;;
         dist-ro|caddy-ro|update-ro|ro)
@@ -1120,21 +1161,7 @@ while true; do
             clean_backups
             ;;
         8)
-            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend & Gateway (api + worker_high + caddy)...${NC}"
-            docker compose stop api worker_high caddy
-            docker compose rm -f api worker_high caddy
-            
-            # [Elite V2.2] Purge pycache cũ trực tiếp trên host trước khi up (tránh Double Restart làm treo lock DB)
-            echo -e "${YELLOW}[PYCACHE] Đang xóa sạch pycache cũ trên Host...${NC}"
-            find backend -name "*.pyc" -delete 2>/dev/null || true
-            find backend -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-            
-            docker compose up -d api worker_high caddy
-            echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, Caddy) sạch sẽ!${NC}"
-            echo -e "${CYAN}--- Trạng thái hoạt động mới nhất ---${NC}"
-            docker compose logs --tail 15 api worker_high
-            echo -e "${GREEN}✔ Khởi chạy hoàn tất! Hệ thống đã trực tuyến ổn định.${NC}"
-            read -p "Nhấn Enter để quay lại menu..."
+            restart_backend_services
             ;;
         9)
             update_ai_model

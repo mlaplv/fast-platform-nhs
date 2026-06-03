@@ -346,16 +346,16 @@
     <span class="w-[70px] shrink-0 text-[14px] text-gray-500">Vận chuyển</span>
     <div class="flex flex-wrap gap-2.5 items-center">
       <!-- 1. Giao Nhanh 2h -->
-      <div class="flex items-center gap-1.5 bg-rose-500/[0.04] border border-rose-500/10 rounded-md py-1 px-2.5 hover:bg-rose-500/[0.08] transition-all duration-200 group/gn relative cursor-default">
+      <div class="flex items-center gap-1.5 bg-rose-500/[0.04] border border-rose-500/10 rounded-md py-1 px-2.5 hover:bg-rose-500/[0.08] transition-all duration-200 group relative cursor-default">
         <svg class="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
         <span class="text-[12px] font-black text-rose-600 uppercase tracking-wider">Giao nhanh 2h</span>
         
         <!-- Elegant, micro-copy tooltip on hover -->
-        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-medium rounded-lg shadow-xl opacity-0 translate-y-1 pointer-events-none group-hover/gn:opacity-100 group-hover/gn:translate-y-0 transition-all duration-300 z-50 text-center whitespace-nowrap">
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 p-2 bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-medium rounded-lg shadow-xl opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-50 text-center">
           <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900/95"></div>
-          Chỉ áp dụng trong khu vực nội thành
+          Áp dụng giao trong nội thành
         </div>
       </div>
 

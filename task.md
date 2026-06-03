@@ -12,3 +12,15 @@ Fix the layout overlapping issue on the Mobile Storefront where the "Xem thêm p
 - [x] Synced to production (Pending `rsync`)
 - [x] Also fixed the same overlap issue in `Sections.svelte` which was used in the desktop/tablet view.
 - [x] Removed unused font preload links from `routes/+layout.svelte` to resolve the 'preloaded but not used' looping warnings.
+- [x] Optimized `SupportChatMobile.svelte` header:
+  - Reduced border-radius to 5px (removed `helen-box-v2` animation).
+  - Made header more compact by reducing avatar size (`w-10 h-10`), text sizes, and paddings.
+  - Removed the explicit 'X' close button.
+  - Pulled the header closer to the top edge.
+- [x] Made the drag handle interactive in `SupportChatMobile.svelte`:
+  - Removed `pointer-events-none` and replaced it with a `<button>`.
+  - Bound `onclick` to `closeChat()`.
+  - Added swipe-down logic (`ontouchstart`, `ontouchmove`, `ontouchend`) to allow closing by dragging down.
+- [x] Fixed `support_agent.py` to omit `(Nhà máy Chưa cập nhật)` in product context if the brand is missing.
+- [x] Removed `(Nhà máy ...)` logic completely from `support_agent.py` as requested.
+- [x] Removed the hardcoded prefix "Chính hãng" from the product origin info in `support_agent.py`.
