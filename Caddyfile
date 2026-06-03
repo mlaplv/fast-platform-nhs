@@ -87,8 +87,14 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	handle @frontend_host {
 		root * /app/frontend/dist
 
-		# Match immutable assets compiled by SvelteKit
-		@immutable path /_app/immutable/*
+
+		# Match immutable assets compiled by SvelteKit (exclude hotpatched chunk)
+		@immutable {
+			path /_app/immutable/*
+			not path /_app/immutable/chunks/*7ktzR5dC*.js
+			not path /_app/immutable/chunks/*U1VHYwQw*.js
+			not path /_app/immutable/chunks/*C-Cf-Tae*.js
+		}
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
 
 		# Match central WASM and third-party libraries that never change (Elite V2.2)
@@ -101,6 +107,9 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 			not path /index.html
 			not path /wasm/*
 			not path /vad/*
+			not path /_app/immutable/chunks/*7ktzR5dC*.js
+			not path /_app/immutable/chunks/*U1VHYwQw*.js
+			not path /_app/immutable/chunks/*C-Cf-Tae*.js
 		}
 		header @cacheable Cache-Control "public, max-age=31536000"
 

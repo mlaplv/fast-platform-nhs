@@ -123,7 +123,8 @@ class XoHiResponder:
                         message=msg,
                         severity=SignalSeverity.ACTION,
                         signal_type="ORDER_CANCEL",
-                        payload={"order_id": order_id, "reason": reason}
+                        payload={"order_id": order_id, "reason": reason},
+                        persist=True
                     ),
                     db_session=session,
                     tenant_id=tenant_id
@@ -132,6 +133,122 @@ class XoHiResponder:
             except Exception as e:
                 await session.rollback()
                 logger.error(f"[XoHiResponder] Order Cancellation log failed: {e}")
+
+    async def handle_order_updated(self, payload: Dict[str, object]):
+        """Callback for ORDER_UPDATED — kết quả chuyển trạng thái đơn hàng bởi admin."""
+        order_id = str(payload.get("id", ""))
+        new_status = str(payload.get("status", "")).upper()
+        tenant_id = str(payload.get("tenant_id", "default"))
+
+        if not order_id or not new_status:
+            return
+
+        # Dedup: tránh emit trùng lặp trong 5s
+        if xohi_memory._use_redis and xohi_memory.client:
+            dedup_key = f"dedup:order_updated:{order_id}:{new_status}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=5, nx=True)
+            if not is_new:
+                return
+
+        _STATUS_LABEL: dict[str, str] = {
+            "PENDING": "Chờ xác nhận",
+            "CONFIRMED": "Đã xác nhận",
+            "PACKED": "Đóng gói xong",
+            "SHIPPING": "Đang giao",
+            "DELIVERED": "Giao thành công ✅",
+            "CANCELLED": "Hủy đơn",
+            "RETURNED": "Hoàn trả",
+        }
+        label = _STATUS_LABEL.get(new_status, new_status)
+        msg = f"📦 Đơn {order_id[:8]} chuyển trạng thái → {label}"
+
+        from backend.schemas.signal import SignalSchema, SignalSeverity
+        from backend.services.signal_center import signal_center
+
+        await signal_center.dispatch(
+            user_id="user_admin",
+            signal=SignalSchema(
+                message=msg,
+                severity=SignalSeverity.ACTION,
+                signal_type="ORDER",
+                payload={"order_id": order_id, "status": new_status},
+                persist=True
+            ),
+            tenant_id=tenant_id
+        )
+        logger.info(f"[XoHiResponder] Handled ORDER_UPDATED: {order_id} → {new_status}")
+
+    async def handle_order_planning_updated(self, payload: Dict[str, object]):
+        """Callback for ORDER_PLANNING_UPDATED — admin cập nhật kế hoạch giao hàng."""
+        order_id = str(payload.get("id", ""))
+        assigned_to = str(payload.get("assigned_to") or "Chưa phân công")
+        priority = str(payload.get("priority") or "NORMAL").upper()
+        tenant_id = str(payload.get("tenant_id", "default"))
+
+        if not order_id:
+            return
+
+        # Dedup 5s
+        if xohi_memory._use_redis and xohi_memory.client:
+            dedup_key = f"dedup:order_planning:{order_id}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=5, nx=True)
+            if not is_new:
+                return
+
+        msg = f"🗓️ Kế hoạch giao hàng đơn {order_id[:8]} đã cập nhật. Giao cho: {assigned_to} | Ưu tiên: {priority}"
+
+        from backend.schemas.signal import SignalSchema, SignalSeverity
+        from backend.services.signal_center import signal_center
+
+        await signal_center.dispatch(
+            user_id="user_admin",
+            signal=SignalSchema(
+                message=msg,
+                severity=SignalSeverity.ACTION,
+                signal_type="ORDER",
+                payload={"order_id": order_id, "assigned_to": assigned_to, "priority": priority},
+                persist=False  # Kế hoạch nội bộ — không cần lưu vào Notification Hub
+            ),
+            tenant_id=tenant_id
+        )
+        logger.info(f"[XoHiResponder] Handled ORDER_PLANNING_UPDATED: {order_id}")
+
+    async def handle_security_audit(self, payload: Dict[str, object]):
+        """
+        Callback for SECURITY_AUDIT — cảnh báo tấn công / truy cập bất thường.
+        Severity CRITICAL — luôn persist + Telegram ngay lập tức.
+        """
+        audit_type = str(payload.get("type", "SECURITY")).upper()
+        raw_msg = str(payload.get("message", "")).strip()
+        user_id = str(payload.get("user_id", "unknown"))
+
+        if not raw_msg:
+            return
+
+        # Dedup 30s — chặn flood alert cùng 1 loại
+        if xohi_memory._use_redis and xohi_memory.client:
+            import hashlib
+            dedup_key = f"dedup:security_audit:{hashlib.md5(raw_msg.encode()).hexdigest()[:12]}"
+            is_new = await xohi_memory.client.set(dedup_key, "1", ex=30, nx=True)
+            if not is_new:
+                return
+
+        msg = f"🛡️ [BẢO MẬT - {audit_type}] {raw_msg}"
+
+        from backend.schemas.signal import SignalSchema, SignalSeverity
+        from backend.services.signal_center import signal_center
+
+        await signal_center.dispatch(
+            user_id="user_admin",
+            signal=SignalSchema(
+                message=msg,
+                severity=SignalSeverity.CRITICAL,
+                signal_type="SECURITY",
+                payload={"audit_type": audit_type, "actor_user_id": user_id},
+                persist=True
+            )
+        )
+        logger.warning(f"[XoHiResponder] SECURITY_AUDIT dispatched: {audit_type} | actor={user_id}")
 
     async def handle_content_step_completed(self, payload: Dict[str, object]):
         """Callback for CONTENT_STEP_COMPLETED event."""
@@ -270,6 +387,16 @@ class XoHiResponder:
             if severity not in ["CRITICAL", "ACTION"]:
                 return  # Noise-gate: Bypassed INFO/PROGRESS noise in Telegram channel
 
+            # ── Dedup Gate: SYSTEM_SIGNAL đi qua cả local queue lẫn Redis bridge
+            # notification_id là duy nhất mỗi signal → dùng làm dedup key (30s TTL)
+            notification_id = str(payload.get("notification_id", ""))
+            if notification_id and xohi_memory._use_redis and xohi_memory.client:
+                dedup_key = f"dedup:system_signal:{notification_id}"
+                is_new = await xohi_memory.client.set(dedup_key, "1", ex=30, nx=True)
+                if not is_new:
+                    logger.debug(f"[XoHiResponder] Duplicate SYSTEM_SIGNAL skipped: {notification_id}")
+                    return
+
             msg = str(payload.get("message", ""))
             alert_type = str(payload.get("signal_type", "SYSTEM")).upper()
             
@@ -290,84 +417,63 @@ class XoHiResponder:
             logger.error(f"❌ [XoHiResponder] Telegram alert forwarding failed: {e}")
 
     async def handle_support_inbox_update(self, payload: Dict[str, object]):
-        """Subscriber callback to route client chat messages to Telegram (Elite V2.2)."""
+        """
+        Callback cho SUPPORT_INBOX_UPDATE — luồng thống nhất duy nhất.
+
+        Payload đến từ support_agent._emit_inbox_update() đã được:
+          - Chuẩn hóa qua _sanitize_for_notification() (không bao giờ raw prompt)
+          - Đầy đủ trường: session_id, role='user', message
+
+        Luồng xử lý tại đây:
+          1. Gate: chỉ xử lý role='user'
+          2. Dedup Redis SETNX 10s
+          3. signal_center.dispatch() → DB persist + SSE emit + Telegram (qua SYSTEM_SIGNAL)
+        """
         try:
-            from datetime import datetime, timezone
-            # We only alert on USER messages to avoid mirroring bot/admin replies back to Telegram
             role = payload.get("role")
             if role != "user":
                 return
 
-            session_id = payload.get("session_id")
-            raw_message = str(payload.get("message", ""))
-            
-            # Bulletproof prompt instruction stripping for safety (Elite V2.2) thưa sếp
-            def clean_prompt_message(msg: str) -> str:
-                if not msg:
-                    return ""
-                msg_lower = msg.lower()
-                if "[system_consult]" in msg:
-                    return "Tư vấn chuyên sâu về sản phẩm"
-                if "[system_skin_barrier]" in msg:
-                    return "Đánh giá loại da và độ phù hợp sản phẩm"
-                if "[system_checkin]" in msg:
-                    return "Thực hiện điểm danh hàng ngày"
-                if any(k in msg_lower for k in ["vui lòng đóng vai", "bạn là helen", "system prompt", "chỉ thị:", "prompt:", "khung hướng dẫn:"]):
-                    return "Yêu cầu tư vấn thông minh"
-                if len(msg) > 200 and any(k in msg_lower for k in ["skin_profile", "loại da", "chăm sóc da", "phân tích"]):
-                    return "Gửi hồ sơ phân tích da và yêu cầu tư vấn"
-                return msg
+            session_id = str(payload.get("session_id", ""))
+            # Message đã được sanitize từ _emit_inbox_update — dùng trực tiếp
+            message = str(payload.get("message", "")).strip()
 
-            message = clean_prompt_message(raw_message)
-            
-            # Skip empty or revoked messages
+            # Bỏ qua tin rỗng hoặc đã thu hồi
             if not message or payload.get("is_revoked"):
                 return
 
-            # Redis-based Global Deduplication Gate (SETNX with 10s TTL)
+            # Redis-based Global Deduplication Gate (SETNX 10s TTL)
             from backend.services.xohi_memory import xohi_memory
             if xohi_memory._use_redis and xohi_memory.client:
                 import hashlib
-                payload_str = f"support_inbox:{session_id}:{message}"
-                msg_hash = hashlib.md5(payload_str.encode("utf-8")).hexdigest()
-                dedup_key = f"dedup:support_inbox:{msg_hash}"
+                dedup_key = f"dedup:support_inbox:{hashlib.md5(f'{session_id}:{message}'.encode()).hexdigest()}"
                 is_new = await xohi_memory.client.set(dedup_key, "1", ex=10, nx=True)
                 if not is_new:
-                    logger.info(f"[XoHiResponder] Duplicate support inbox update event ignored: {session_id}")
+                    logger.info(f"[XoHiResponder] Duplicate SUPPORT_INBOX_UPDATE ignored: {session_id}")
                     return
-                
-            # Formatting high-quality, professional HTML messages
-            telegram_msg = (
-                f"💬 <b>[HỘI THOẠI MỚI - KHÁCH CHAT]</b>\n"
-                f"────────────────\n"
-                f"👤 <b>Session:</b> <code>{session_id[:8]}</code>\n"
-                f"💬 <b>Message:</b> {message}\n"
-                f"────────────────\n"
-                f"🕒 <i>Time: {datetime.now(timezone.utc).isoformat()}</i>"
-            )
-            
-            from backend.services.telegram_service import telegram_service
-            # Offload Telegram dispatch entirely into background task
-            asyncio.create_task(telegram_service.send_alert(telegram_msg))
 
-            # Elite V2.2: Dispatch signal to Central Nervous System (SSE + DB)
+            # ── LUỒNG DUY NHẤT ──────────────────────────────────────────────
+            # signal_center.dispatch() xử lý đồng thời:
+            #   Phase 1 → DB persist vào bảng notifications (Notification Hub + Chuông)
+            #   Phase 2 → event_bus.emit("SYSTEM_SIGNAL") → SSE live pulse
+            #             → handle_system_signal() → Telegram (1 lần duy nhất)
+            # ────────────────────────────────────────────────────────────────
             from backend.schemas.signal import SignalSchema, SignalSeverity
             from backend.services.signal_center import signal_center
-            
-            asyncio.create_task(
-                signal_center.dispatch(
-                    user_id="user_admin",
-                    signal=SignalSchema(
-                        message=f"💬 Khách chat mới (Session: {session_id[:8]}): {message}",
-                        severity=SignalSeverity.ACTION,
-                        signal_type="CHAT",
-                        payload={"session_id": session_id, "message": message},
-                        persist=True
-                    )
+
+            await signal_center.dispatch(
+                user_id="user_admin",
+                signal=SignalSchema(
+                    message=f"💬 Khách chat [{session_id[:8]}]: {message}",
+                    severity=SignalSeverity.ACTION,
+                    signal_type="CHAT",
+                    payload={"session_id": session_id, "message": message},
+                    persist=True
                 )
             )
         except Exception as e:
-            logger.error(f"❌ [XoHiResponder] Telegram chat/signal alert forwarding failed: {e}")
+            logger.error(f"❌ [XoHiResponder] handle_support_inbox_update failed: {e}")
+
 
 
 # Initialize and subscribe
@@ -377,6 +483,9 @@ def setup_subscriptions():
     """Register all proactive sensors."""
     event_bus.subscribe("ORDER_CREATED", xohi_responder.handle_order_created)
     event_bus.subscribe("ORDER_CANCELLED", xohi_responder.handle_order_cancelled)
+    event_bus.subscribe("ORDER_UPDATED", xohi_responder.handle_order_updated)
+    event_bus.subscribe("ORDER_PLANNING_UPDATED", xohi_responder.handle_order_planning_updated)
+    event_bus.subscribe("SECURITY_AUDIT", xohi_responder.handle_security_audit)
     event_bus.subscribe("CONTENT_STEP_COMPLETED", xohi_responder.handle_content_step_completed)
     event_bus.subscribe("CONTENT_PROGRESS", xohi_responder.handle_content_progress)
     event_bus.subscribe("MEDIA_UPLOADED", xohi_responder.handle_media_uploaded)

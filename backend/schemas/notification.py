@@ -23,3 +23,11 @@ class NotificationListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[NotificationResponse]
     total: int
+
+
+class NotificationCursorPaginatedResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    data: List[NotificationResponse]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
+

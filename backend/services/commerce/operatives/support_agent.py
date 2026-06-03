@@ -274,6 +274,51 @@ _SYSTEM_LEAK_PATTERNS: list[re.Pattern[str]] = [
 ]
 _SAFE_FALLBACK_REPLY = "Dạ Helen rất xin lỗi, em vừa gặp sự cố nhỏ trong xử lý. Anh/Chị thông cảm thử lại sau nhé! 🌸"
 
+# ═══════════════════════════════════════════════════════════════
+# NOTIFICATION SANITIZER — Elite V2.2 Security Gate
+# Điểm lọc duy nhất trước khi tin nhắn đi vào hệ thống thông báo.
+# TUYỆT ĐỐI KHÔNG để lọt raw system prompt / developer instructions.
+# ═══════════════════════════════════════════════════════════════
+_NOTIFY_LABEL_MAP: dict[str, str] = {
+    "[system_consult]": "Tư vấn sản phẩm",
+    "[system_skin_barrier]": "Kiểm tra độ phù hợp da",
+    "[system_checkin]": "Thực hiện điểm danh",
+    "[system_follow_up_trigger]": "(Nhắc nhở chăm sóc tự động)",
+    "[chat_inbox]": "Yêu cầu kết nối tư vấn trực tiếp",
+}
+
+def _sanitize_for_notification(raw_msg: str) -> str:
+    """
+    Chuẩn hóa tin nhắn khách hàng để hiển thị an toàn trong
+    Notification Hub, SSE pulse và Telegram.
+    Quy tắc:
+      - Token hệ thống [system_*] → nhãn thân thiện tiếng Việt
+      - Tin nhắn > 120 ký tự → cắt ngắn + "..."
+      - Mọi chỉ thị prompt kỹ thuật → thay bằng nhãn trung lập
+    """
+    if not raw_msg or not raw_msg.strip():
+        return "Tin nhắn mới"
+    msg = raw_msg.strip()
+    msg_lower = msg.lower()
+    # Map token nội bộ → nhãn thân thiện
+    for token, label in _NOTIFY_LABEL_MAP.items():
+        if token in msg_lower:
+            return label
+    # Chặn prompt injection / chỉ thị kỹ thuật rò rỉ
+    _leak_keywords = [
+        "vui lòng đóng vai", "bạn là helen", "system prompt",
+        "chỉ thị:", "prompt:", "khung hướng dẫn:", "[system_"
+    ]
+    if any(k in msg_lower for k in _leak_keywords):
+        return "Yêu cầu tư vấn"
+    if len(msg) > 200 and any(k in msg_lower for k in ["skin_profile", "loại da", "chăm sóc da", "phân tích"]):
+        return "Gửi hồ sơ phân tích da và yêu cầu tư vấn"
+    # Giới hạn độ dài hiển thị
+    if len(msg) > 120:
+        msg = msg[:117] + "..."
+    return msg
+
+
 def _validate_grounding(reply: str, ctx: SupportContext) -> str:
     """
     Advanced Anti-Hallucination & Anti-Delusion Grounding Shield (Elite V3.5).
@@ -409,6 +454,20 @@ class SupportAgentOperative(BaseAgentOperative):
         except Exception as exc:
             logger.warning("[SupportAgent] Saving failed: %s", exc)
             await db.rollback()
+
+    async def _emit_inbox_update(self, session_id: str, raw_msg: str) -> None:
+        """
+        Điểm emit DUY NHẤT cho sự kiện SUPPORT_INBOX_UPDATE.
+        Luôn chuẩn hóa tin nhắn qua _sanitize_for_notification() trước khi phát.
+        Đảm bảo payload đầy đủ: session_id + role + message (đã sạch).
+        """
+        safe_msg = _sanitize_for_notification(raw_msg)
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "role": "user",
+            "message": safe_msg,
+        })
+
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         try:
@@ -684,31 +743,8 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # 4. Persistence
         await self._save_history(db, session_id, request.message, safe_reply, final_intent, request.product_slug, dna.customer_name or request.customer_name, ctx.lead_data.customer_phone if ctx.lead_data else None)
-        
-        # Elite V2.2: Clean raw system prompts from events to prevent leaking developer instructions in notifications thưa sếp
-        def clean_prompt_message(msg: str) -> str:
-            if not msg:
-                return ""
-            msg_lower = msg.lower()
-            if "[system_consult]" in msg:
-                return "Tư vấn chuyên sâu về sản phẩm"
-            if "[system_skin_barrier]" in msg:
-                return "Đánh giá loại da và độ phù hợp sản phẩm"
-            if "[system_checkin]" in msg:
-                return "Thực hiện điểm danh hàng ngày"
-            if any(k in msg_lower for k in ["vui lòng đóng vai", "bạn là helen", "system prompt", "chỉ thị:", "prompt:", "khung hướng dẫn:"]):
-                return "Yêu cầu tư vấn thông minh"
-            if len(msg) > 200 and any(k in msg_lower for k in ["skin_profile", "loại da", "chăm sóc da", "phân tích"]):
-                return "Gửi hồ sơ phân tích da và yêu cầu tư vấn"
-            return msg
-
-        clean_msg = clean_prompt_message(request.message)
-
-        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
-            "session_id": session_id,
-            "role": "user",
-            "message": clean_msg
-        })
+        # Unified emit — _emit_inbox_update luôn sanitize qua _sanitize_for_notification()
+        await self._emit_inbox_update(session_id, request.message)
         await db.flush()
         
         return SupportResponse(ok=True, reply=safe_reply, intent=final_intent, session_id=session_id, product_info=p_info, status="DONE", ui_metadata=ctx.ui_metadata, processed_order_id=ctx.processed_order_id)
@@ -929,7 +965,7 @@ class SupportAgentOperative(BaseAgentOperative):
             # Set TAKEOVER: AI silenced — Human operator takes over
             await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
             # Emit event to Admin Inbox so operator sees the session immediately
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             reply_text = (
                 "Dạ vâng ạ! Helen đã mời chuyên viên tư vấn trực tiếp vào cuộc trò chuyện này. "
                 "Anh/Chị vui lòng chờ trong giây lát — chuyên viên sẽ phản hồi ngay tại đây ạ! 🤝\n\n"
@@ -956,7 +992,8 @@ class SupportAgentOperative(BaseAgentOperative):
             task.add_done_callback(self._background_tasks.discard)
 
             await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
+
             reply_text = (
                 "Dạ vâng ạ! Helen đã mở kết nối Zalo OA cho Anh/Chị và thông báo cho chuyên viên tư vấn. "
                 "Chuyên viên sẽ theo dõi và có thể tiếp tục hỗ trợ ngay tại đây ạ! 💙\n\n"
@@ -983,7 +1020,7 @@ class SupportAgentOperative(BaseAgentOperative):
             offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
             reply_text = offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi Quý khách qua Zalo OA. Vui lòng để lại lời nhắn ạ. 🌸"
             await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             await db.flush()
             return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
         
@@ -993,7 +1030,7 @@ class SupportAgentOperative(BaseAgentOperative):
             # 1. Save customer's message to database history
             await self._save_history(db, session_id, request.message, None, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
             # 2. Emit event so that Admin Inbox dashboard gets the new message instantly!
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             await db.flush()
             # 3. Return TAKEOVER status so frontend doesn't render any automatic assistant reply thưa sếp!
             return SupportResponse(ok=True, reply="", intent=SupportIntent.UNKNOWN, session_id=session_id, status="TAKEOVER")
@@ -1078,9 +1115,9 @@ class SupportAgentOperative(BaseAgentOperative):
         if db_first_reply:
             safe_reply = _sanitize_response(db_first_reply)
             await self._save_history(db, session_id, request.message, safe_reply, db_first_intent, request.product_slug, c_name, request.customer_phone)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             await db.flush()
-            logger.info(f"⚡ [DB-First Synchronous Gateway Bypass] Handled {request.message} in <20ms")
+            logger.info(f"⚡ [DB-First Synchronous Gateway Bypass] Handled {request.message[:40]} in <20ms")
             return SupportResponse(ok=True, reply=safe_reply, intent=db_first_intent, session_id=session_id, product_info=p_info, status="DONE")
         # ══════════════════════════════════════════════════════════════════════
 
@@ -1094,7 +1131,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 "cứ nhắn Helen nhé! ✨"
             )
             await self._save_history(db, session_id, request.message, greeting_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             await db.flush()
             return SupportResponse(ok=True, reply=greeting_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
 
@@ -1129,7 +1166,7 @@ class SupportAgentOperative(BaseAgentOperative):
         if any(kw in msg_norm for kw in ["giá", "bao nhiêu"]) and p_info and not request.cart_items:
             final_reply = f"Dạ liệu trình **{p_info.name}** giá từ **{p_info.price_display}** ạ. 🌸"
             await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug, customer_name)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.PRICE_QUERY, session_id=session_id, status="DONE")
         
         is_address = any(kw in msg_norm for kw in ["địa chỉ", "ở đâu"])
@@ -1140,7 +1177,7 @@ class SupportAgentOperative(BaseAgentOperative):
             ci = json.loads(raw_cfg).get("contact_info", {})
             final_reply = f"Dạ địa chỉ: **{ci.get('address')}** ạ. 🌸" if is_address else f"Hotline: **{ci.get('hotline')}** ạ. 🌸"
             await self._save_history(db, session_id, request.message, final_reply, SupportIntent.POLICY_QUERY, request.product_slug, customer_name)
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await self._emit_inbox_update(session_id, request.message)
             return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.POLICY_QUERY, session_id=session_id, status="DONE")
         return None
 

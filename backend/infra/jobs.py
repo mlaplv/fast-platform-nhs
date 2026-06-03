@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, List, Optional, Union
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 from backend.database.alchemy_config import alchemy_config
 from backend.database.models.system import UnifiedAgentTask
 
@@ -138,3 +138,63 @@ async def generate_review_kg_job(ctx: Dict[str, object], review_id: str) -> None
         except Exception as e:
             logger.error(f"🧬 [Review KG Job] Failed to generate Knowledge Graph: {e}")
             await db.rollback()
+
+
+async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
+    """
+    Elite V2.2: Retention Policy Enforcement for Notifications.
+    1. Loads configuration from system_settings (default: 7 days soft delete, 14 days hard delete).
+    2. Performs soft delete for notifications older than soft_delete_days.
+    3. Performs hard delete for soft-deleted notifications older than hard_delete_days.
+    """
+    logger.info("[Cleanup Notifications] Starting execution...")
+    
+    from backend.database.models.system import SystemSetting, Notification
+    
+    session_maker = alchemy_config.create_session_maker()
+    async with session_maker() as db:
+        try:
+            # Query configuration
+            stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
+            setting = (await db.execute(stmt)).scalar_one_or_none()
+            
+            soft_days = 7
+            hard_days = 14
+            if setting and isinstance(setting.value, dict):
+                soft_days = int(setting.value.get("soft_delete_days", 7))
+                hard_days = int(setting.value.get("hard_delete_days", 14))
+                
+            logger.info(f"[Cleanup Notifications] Retention configuration: soft={soft_days} days, hard={hard_days} days.")
+            
+            now = datetime.now(timezone.utc)
+            soft_cutoff = now - timedelta(days=soft_days)
+            hard_cutoff = now - timedelta(days=hard_days)
+            
+            # Step 1: Soft Delete (Set deleted_at for active notifications older than soft_cutoff)
+            soft_stmt = (
+                update(Notification)
+                .where(Notification.deleted_at == None)
+                .where(Notification.created_at < soft_cutoff)
+                .values(deleted_at=now)
+            )
+            soft_res = await db.execute(soft_stmt)
+            
+            # Step 2: Hard Delete (Purge soft-deleted notifications older than hard_cutoff)
+            hard_stmt = (
+                delete(Notification)
+                .where(Notification.deleted_at != None)
+                .where(Notification.deleted_at < hard_cutoff)
+            )
+            hard_res = await db.execute(hard_stmt)
+            
+            await db.commit()
+            
+            logger.info(
+                f"[Cleanup Notifications] Process completed. "
+                f"Soft-deleted: {soft_res.rowcount} notifications. "
+                f"Hard-deleted: {hard_res.rowcount} notifications."
+            )
+        except Exception as e:
+            logger.error(f"[Cleanup Notifications] Failed during cleanup execution: {e}")
+            await db.rollback()
+

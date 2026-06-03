@@ -584,11 +584,14 @@ class SupportAgentState {
     ) {
         if (!text.trim() || this.isTyping) return;
 
-        // Elite V3.5: Client-side duplicate message check thưa sếp!
+        // Elite V3.6: Client-side duplicate message check — 30s window only (không block vĩnh viễn)
         const lastUserMsg = this.messages.filter(m => m.role === "user").slice(-1)[0];
         const normalizedInput = (displayText !== undefined ? displayText.trim() : text.trim()).toLowerCase();
-        if (lastUserMsg && lastUserMsg.content.trim().toLowerCase() === normalizedInput) {
-             console.warn("🛡️ [Client-Spam] Prevented duplicate message trigger: ", text);
+        const isDuplicateWithinWindow = lastUserMsg
+            && lastUserMsg.content.trim().toLowerCase() === normalizedInput
+            && (new Date().getTime() - lastUserMsg.timestamp.getTime() < 30000);
+        if (isDuplicateWithinWindow) {
+             console.warn("🛡️ [Client-Spam] Prevented duplicate message trigger (within 30s): ", text);
              return;
         }
 

@@ -1172,3 +1172,34 @@
 - [x] **Xóa Empty CSS Block trong Gallery.svelte:** Loại bỏ `<style>` chứa rule rỗng `button :global(video) {}` không có tác dụng. (Done)
 - [x] **Rsync Production Deploy:** Đồng bộ `Desktop.svelte`, `Info.svelte`, `Gallery.svelte` lên VPS `mlap@103.1.236.14` thành công. (Done)
 
+
+# Task Checklist - Restoring Notification Pipeline Reliability (Elite V2.2)
+
+- [x] **Tăng cấu hình Connection Pool trong AlchemyConfig:** Điều chỉnh `pool_size` lên `20` và `max_overflow` lên `10` trong `backend/database/alchemy_config.py` để mở rộng dung lượng hồ chứa kết nối dưới tải cao. *(HOLD — tài nguyên, không phải lỗi code)*
+- [x] **Phát hiện lỗi gốc InputGuard chặn [SYSTEM_FOLLOW_UP_TRIGGER]:** Log worker xác nhận 100%: `[InputGuard] Injection attempt detected | Input: [SYSTEM_FOLLOW_UP_TRIGGER]`. (Done — confirmed)
+- [x] **Phát hiện lỗi gốc bare emit thiếu payload:** Tất cả 9 điểm emit trong `support_agent.py` chỉ gửi `{"session_id"}` — thiếu `role` và `message` → `handle_support_inbox_update` thoát ngay tại `role != "user"`. (Done — confirmed)
+- [x] **Thêm `_sanitize_for_notification()` — Bộ lọc tập trung duy nhất:** Hàm module-level chuẩn hóa tất cả token hệ thống (`[system_*]`) thành nhãn tiếng Việt thân thiện, chặn mọi chỉ thị kỹ thuật rò rỉ, cắt ngắn tin nhắn >120 ký tự. (Done)
+- [x] **Thêm `_emit_inbox_update()` — Điểm emit DUY NHẤT:** Method trong class `SupportAgentOperative` luôn gọi `_sanitize_for_notification()` trước, đảm bảo payload đầy đủ `role + message` trước khi phát sự kiện. (Done)
+- [x] **Thay thế toàn bộ 10 bare emit trong `support_agent.py`:** chat_inbox, zalo_oa, helen_off, takeover, DB-first fast-path, greeting, price query, address/hotline, process_brain_logic — đều dùng `self._emit_inbox_update()`. (Done)
+- [x] **Đơn giản hóa `handle_support_inbox_update` trong `xohi_responder.py`:** Xóa `clean_prompt_message` inline thừa (đã được sanitize upstream), xóa direct Telegram call gây double-ping, chỉ giữ dedup Redis + `signal_center.dispatch()` — 1 luồng duy nhất → DB + SSE + Telegram. (Done)
+- [x] **Đồng bộ và khởi động lại hệ thống:** Rsync + restart containers. (Done)
+
+# Task Checklist - Fixing Notification Hub & Red Bell (Elite V2.2)
+
+- [x] **Trinh sát toàn bộ luồng Signal:** event_bus.py → signal_center.dispatch() → SSE pulse.ts → notification.svelte.ts → NotificationHud (Done)
+- [x] **Xác nhận DB có data:** 14 notifications, user_id=user_admin, deleted_at=NULL — pipeline backend hoàn toàn đúng (Done)
+- [x] **Xác nhận API trả về đúng:** HTTP 200, 14 records, isRead+createdAt camelCase — schema OK (Done)
+- [x] **Root Cause xác nhận:** `authStore.svelte.ts` line 84-86 xóa `admin_token` & `access_token` khi login. `notification.svelte.ts` vẫn check 2 key cũ → `hasAuth=false` → early return → `state.notifications=[]` mãi mãi (Done)
+- [x] **Fix:** `notification.svelte.ts` — đổi auth guard từ `admin_token`/`access_token` sang `osmo:auth:user_info` (key duy nhất còn tồn tại sau khi authStore login) (Done)
+- [x] **Rsync 1 file lên production VPS:** `notification.svelte.ts` đã sync thành công (Done)
+- [x] **Fix #2 — Field mismatch `createdAt` vs `created_at`:** API backend (Pydantic alias) trả `createdAt`, `Notification` type và `NotificationManagement.svelte` dùng `created_at` → `formatTime()` trả về `""`. Fix: normalize trong `parsedData.map()` với `created_at: note.createdAt || note.created_at`. Rsync lên production. (Done)
+- [x] **Fix #3 — Hotpatch dist compiled JS:** Source rsync không đủ vì admin panel chạy từ `dist/`. Patch trực tiếp `7ktzR5dC.js` trong `/opt/fast-platform/frontend/dist/_app/immutable/chunks/` — thay `admin_token||access_token` → `osmo:auth:user_info` trong compiled auth guard. Backup `.bak` đã tạo. (Done)
+- [x] **Fix #4 — Bust browser immutable cache:** Đổi tên file patch thành `7ktzR5dC_p.js`, update 21 JS files tham chiếu. Browser chưa cache tên mới → tải lại file đã patch. 2 patch: (1) auth key đúng (2) không xóa state khi auth fail. (Done)
+- [x] **Fix #5 — Support Admin Auth & Soft Delete Filtering:** Imported permissionState in notification.svelte.ts and added `permissionState.user` check to `hasAuth` to correctly allow admin panel notifications fetching. Added `Notification.deleted_at == None` to query filters in backend `NotificationService.get_notifications` to ignore soft-deleted records. Excluded all variants of `7ktzR5dC` chunk in Caddyfile from immutable caching to prevent caching issues. Patched production `7ktzR5dC_p.js` / `7ktzR5dC.js` on VPS and successfully synced all changes via rsync. (Done)
+
+# Task Checklist - Multi-Select & Database Clearance Toolset (Elite V2.2)
+
+- [x] **Cài đặt API Hàng Loạt & Dọn Dẹp tại Backend:** Bổ sung các endpoint `@post("/bulk-delete")` và `@post("/clear")` trong `NotificationController`, thực thi logic soft-delete an toàn qua SQLAlchemy. (Done)
+- [x] **Tích hợp State Quản lý Hàng Loạt tại Frontend:** Bổ sung các phương thức `bulkDeleteNotifications` và `clearNotifications` trong source code `notification.svelte.ts` và hotpatch trực tiếp vào file compiled chunk `U1VHYwQw.js`. (Done)
+- [x] **Thiết kế Bộ Công Cụ Multi-Select & Clear UI:** Thiết kế thanh công cụ Premium Action Toolbar với các tuỳ chọn "Chọn tất cả", "Hủy chọn", "Xóa đã chọn", "Dọn sạch Tab này", "Dọn sạch Tất cả" và hộp kiểm Checkbox tại từng dòng thông báo. (Done)
+- [x] **Đồng bộ hóa VPS & Khởi động lại Dịch vụ:** Rsync mã nguồn hoàn chỉnh lên VPS, restart container `fast_platform_api` và reload proxy Caddy an toàn. (Done)

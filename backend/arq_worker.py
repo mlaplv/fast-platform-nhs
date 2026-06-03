@@ -18,7 +18,7 @@ import backend.services.xohi.creative_studio.operatives.plagiarism_cop
 import backend.services.xohi.creative_studio.operatives.seo_analyzer
 import backend.services.xohi.creative_studio.operatives.ai_inspector
 import backend.services.xohi.creative_studio.operatives.content_enricher
-from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job
+from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications
 logger = logging.getLogger("arq.worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
@@ -433,7 +433,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -445,20 +445,22 @@ class WorkerSettings:
 class WorkerHighSettings(WorkerSettings):
     """Priority Worker for Helen (Client Support)."""
     queue_name = "high"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 15
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [
         # Schedule self-learning scan at 2:00 AM every day
         cron(helen_self_learning_job, hour=2, minute=0),
         # Schedule cleanup at 3:00 AM every day
-        cron(cleanup_old_tasks, hour=3, minute=0)
+        cron(cleanup_old_tasks, hour=3, minute=0),
+        # Schedule notification retention cleanup at 4:00 AM every day
+        cron(cleanup_old_notifications, hour=4, minute=0)
     ]
 

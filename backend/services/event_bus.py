@@ -115,13 +115,15 @@ class InternalBus:
         # ─── INDEPENDENT block: always publish to admin:pulse regardless of above ───
         # CRITICAL FIX: was `elif` before — meaning admin never got SUPPORT_INBOX_UPDATE
         # when a session_id was present (which is always the case for chat events).
+        # V91: _origin='local' tag → _redis_listener will NOT re-queue these locally
+        #      (prevents double subscriber processing + double SSE broadcast)
         if event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
             async def _bg_bridge_admin(p_load: dict, e_name: str):
                 try:
                     from backend.services.xohi_memory import xohi_memory
                     import json
                     if xohi_memory._use_redis and xohi_memory.client:
-                        str_payload = json.dumps({"event": e_name, "payload": p_load}, ensure_ascii=False)
+                        str_payload = json.dumps({"event": e_name, "payload": p_load, "_origin": "local"}, ensure_ascii=False)
                         await asyncio.wait_for(
                             xohi_memory.client.publish("admin:pulse", str_payload),
                             timeout=2.0
@@ -215,6 +217,14 @@ class InternalBus:
                     try:
                         data: Dict[str, object] = json.loads(message['data'])
                         event_name: str = str(data.get("event", ""))
+                        origin: str = str(data.get("_origin", ""))
+
+                        # V91: Skip events that originated from THIS container (already in local queue)
+                        # Only process events from OTHER containers (arq workers, etc.)
+                        if origin == "local":
+                            logger.debug(f"[EventBus] Skipping local-origin Redis event: {event_name}")
+                            continue
+
                         # Elite V2.2: Safe payload extraction without type: ignore
                         raw_payload = data.get("payload")
                         if event_name and isinstance(raw_payload, dict):
