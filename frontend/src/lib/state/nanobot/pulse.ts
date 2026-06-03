@@ -411,10 +411,6 @@ export function createPulseManager(
            const updatePayload = payload as { session_id: string; message?: string; role?: string };
            if (state && typeof state.supportRefreshToggle !== 'undefined') {
              state.supportRefreshToggle++;
-             // Signal a silent, premium successful update only if it's an actual user message
-             if (updatePayload && updatePayload.role === "user") {
-               ui.showToast("Có tin nhắn mới từ khách hàng 💬", "info", 3000);
-             }
            }
          }
       } catch (err) {

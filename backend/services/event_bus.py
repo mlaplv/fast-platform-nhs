@@ -3,7 +3,7 @@ import os
 import logging
 import time
 import json
-from typing import Callable, Union, Dict, List, AsyncGenerator
+from typing import Callable, Union, Dict, List, AsyncGenerator, Optional
 from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 
@@ -36,6 +36,8 @@ class InternalBus:
             cls._instance.queue: Optional[asyncio.Queue] = None
             cls._instance._worker_task: Union[asyncio.Task, None] = None
             cls._instance._redis_task: Union[asyncio.Task, None] = None
+            import uuid
+            cls._instance.bus_id = str(uuid.uuid4())
         return cls._instance
 
     def subscribe(self, event_name: str, callback: Callable) -> None:
@@ -123,7 +125,7 @@ class InternalBus:
                     from backend.services.xohi_memory import xohi_memory
                     import json
                     if xohi_memory._use_redis and xohi_memory.client:
-                        str_payload = json.dumps({"event": e_name, "payload": p_load, "_origin": "local"}, ensure_ascii=False)
+                        str_payload = json.dumps({"event": e_name, "payload": p_load, "_origin": self.bus_id}, ensure_ascii=False)
                         await asyncio.wait_for(
                             xohi_memory.client.publish("admin:pulse", str_payload),
                             timeout=2.0
@@ -221,8 +223,8 @@ class InternalBus:
 
                         # V91: Skip events that originated from THIS container (already in local queue)
                         # Only process events from OTHER containers (arq workers, etc.)
-                        if origin == "local":
-                            logger.debug(f"[EventBus] Skipping local-origin Redis event: {event_name}")
+                        if origin == self.bus_id:
+                            logger.debug(f"[EventBus] Skipping self-origin Redis event: {event_name}")
                             continue
 
                         # Elite V2.2: Safe payload extraction without type: ignore

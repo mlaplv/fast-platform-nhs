@@ -106,13 +106,19 @@ export function createNotificationState() {
 
       if (reset) {
         // CNS V91: MERGE strategy — preserve SSE-added items not yet persisted to DB
-        const dbIds = new Set(parsedData.map((n: Notification) => n.id));
-        const sseOnly = state.notifications.filter(n => !dbIds.has(n.id) && n.id.startsWith("sse-"));
+        const dbIds = new Set(parsedData.map((n: Notification) => n.id.startsWith("sse-") ? n.id.slice(4) : n.id));
+        const sseOnly = state.notifications.filter(n => {
+          const rawId = n.id.startsWith("sse-") ? n.id.slice(4) : n.id;
+          return !dbIds.has(rawId) && n.id.startsWith("sse-");
+        });
         state.notifications = [...sseOnly, ...parsedData].slice(0, 200);
       } else {
         // Merge and deduplicate for pagination loading
-        const existingIds = new Set(state.notifications.map(n => n.id));
-        const uniqueNew = parsedData.filter(n => !existingIds.has(n.id));
+        const existingIds = new Set(state.notifications.map(n => n.id.startsWith("sse-") ? n.id.slice(4) : n.id));
+        const uniqueNew = parsedData.filter(n => {
+          const rawId = n.id.startsWith("sse-") ? n.id.slice(4) : n.id;
+          return !existingIds.has(rawId);
+        });
         state.notifications = [...state.notifications, ...uniqueNew];
       }
       state.hasInit = true;
@@ -128,9 +134,10 @@ export function createNotificationState() {
 
   async function markNotificationAsRead(id: string) {
     try {
+      const rawId = id.startsWith("sse-") ? id.slice(4) : id;
       const endpoint = isAdminDomain()
-        ? `/api/v1/notifications/${id}/read`
-        : `/api/v1/client/notifications/${id}/read`;
+        ? `/api/v1/notifications/${rawId}/read`
+        : `/api/v1/client/notifications/${rawId}/read`;
       await apiClient.patch(endpoint, {});
       const note = state.notifications.find((n) => n.id === id);
       if (note) note.isRead = true;
@@ -141,7 +148,8 @@ export function createNotificationState() {
 
   async function bulkDeleteNotifications(ids: string[]) {
     try {
-      await apiClient.post("/api/v1/notifications/bulk-delete", { ids });
+      const rawIds = ids.map(id => id.startsWith("sse-") ? id.slice(4) : id);
+      await apiClient.post("/api/v1/notifications/bulk-delete", { ids: rawIds });
       state.notifications = state.notifications.filter((n) => !ids.includes(n.id));
     } catch (e: unknown) {
       console.error("Failed to bulk delete notifications", e);
@@ -198,13 +206,18 @@ export function createNotificationState() {
     // CNS V91: Real-time Bell sync — add from SSE, dedup by ID, no API round-trip
     addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, any>; signal_type?: string }): boolean => {
       // Dedup gate: skip if this notification_id already in state (double SSE delivery)
-      if (signal.id && state.notifications.some(n => n.id === signal.id)) {
+      const targetId = signal.id.startsWith("sse-") ? signal.id : `sse-${signal.id}`;
+      const rawId = signal.id.startsWith("sse-") ? signal.id.slice(4) : signal.id;
+      if (signal.id && state.notifications.some(n => {
+        const nRawId = n.id.startsWith("sse-") ? n.id.slice(4) : n.id;
+        return n.id === signal.id || nRawId === rawId || n.id === targetId;
+      })) {
         console.debug(`[NotificationState] Skipped duplicate signal: ${signal.id}`);
         return false;
       }
 
       const notif: Notification = {
-        id: signal.id.startsWith("sse-") ? signal.id : `sse-${signal.id}`,
+        id: targetId,
         message: signal.message,
         isRead: signal.isRead,
         type: signal.signal_type || signal.severity,
@@ -296,8 +309,11 @@ export function createNotificationState() {
           if (reset) {
             state.trashNotifications = parsedData;
           } else {
-            const existingIds = new Set(state.trashNotifications.map(n => n.id));
-            const uniqueNew = parsedData.filter(n => !existingIds.has(n.id));
+            const existingIds = new Set(state.trashNotifications.map(n => n.id.startsWith("sse-") ? n.id.slice(4) : n.id));
+            const uniqueNew = parsedData.filter(n => {
+              const rawId = n.id.startsWith("sse-") ? n.id.slice(4) : n.id;
+              return !existingIds.has(rawId);
+            });
             state.trashNotifications = [...state.trashNotifications, ...uniqueNew];
           }
           state.trashHasInit = true;
@@ -310,7 +326,8 @@ export function createNotificationState() {
     },
     restoreNotifications: async (ids: string[]) => {
       try {
-        await apiClient.post("/api/v1/notifications/trash/restore", { ids });
+        const rawIds = ids.map(id => id.startsWith("sse-") ? id.slice(4) : id);
+        await apiClient.post("/api/v1/notifications/trash/restore", { ids: rawIds });
         state.trashNotifications = state.trashNotifications.filter((n) => !ids.includes(n.id));
         // Reload active notifications
         await fetchNotifications(true);
@@ -320,7 +337,8 @@ export function createNotificationState() {
     },
     hardDeleteNotifications: async (ids: string[]) => {
       try {
-        await apiClient.post("/api/v1/notifications/trash/hard-delete", { ids });
+        const rawIds = ids.map(id => id.startsWith("sse-") ? id.slice(4) : id);
+        await apiClient.post("/api/v1/notifications/trash/hard-delete", { ids: rawIds });
         if (ids.length === 0) {
           state.trashNotifications = [];
         } else {

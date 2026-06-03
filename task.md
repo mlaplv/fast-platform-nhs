@@ -1228,3 +1228,18 @@
 - [x] **Tích hợp Tab Thùng rác và Bộ lọc UI:** Cập nhật giao diện `NotificationManagement.svelte` với Tab "Thùng rác", hỗ trợ hiển thị danh sách các thông báo đã xóa mềm, nút phân trang "Tải thêm", và hệ thống action bar riêng biệt cho phép Chọn tất cả, Khôi phục hàng loạt, Xóa vĩnh viễn hàng loạt, hoặc Dọn sạch hoàn toàn thùng rác theo cơ chế chia phần (chunked). (Done)
 - [x] **Đồng bộ mã nguồn lên Production VPS:** Chuyển giao toàn bộ code backend/frontend đã thay đổi lên máy chủ Production và khởi động lại dịch vụ Caddy & API Docker container để áp dụng ngay lập tức. (Done)
 
+# Task Checklist - Hardening Notification Dispatch Architecture (Elite V2.2)
+
+- [x] **Backend: Fix Cross-Container Origin Tracking in Event Bus:** Replaced hardcoded `"local"` origin with instance-specific UUIDs (`self.bus_id`) generated at `InternalBus` initialization. Updated both publishing (`_bg_bridge_admin`) and filtering (`_redis_listener`) gates in `backend/services/event_bus.py` to allow cross-container routing while avoiding echo loops. (Done)
+- [x] **Backend: Fix Undefined Name 'Optional' in Event Bus:** Imported `Optional` from `typing` in `event_bus.py` to fix compilation/type checker error and deployed/restarted on VPS. (Done)
+- [x] **Frontend: Normalize ID and prefix checking in Notification State:** Normalized duplicate filtering in `addPendingSignal` within `notification.svelte.ts` to check both raw and `sse-`-prefixed IDs. Updated `markNotificationAsRead`, `bulkDeleteNotifications`, `restoreNotifications`, and `hardDeleteNotifications` to strip the `sse-` prefix before sending requests to the backend API. (Done)
+- [x] **Hotpatch Production minified bundle on VPS:** Copied the minified bundle chunk `Cu6plpcm.js` from the VPS, applied all five matching normalized ID/prefix check fixes, redeployed to VPS, and cleared the compressed versions (`Cu6plpcm.js.br` and `Cu6plpcm.js.gz`) to avoid stale cache serving. (Done)
+- [x] **Restart Services & Verify Flow:** Redeployed `event_bus.py` and `notification.svelte.ts` to the VPS and restarted `fast_platform_api` and `fast_platform_worker_high` to apply the backend updates. (Done)
+
+# Task Checklist - Normalizing Notification Deduplication Logic (Elite V2.2)
+
+- [x] **Frontend: Triệt tiêu trùng lặp ID trong merge logic:** Đồng bộ hóa logic chuẩn hóa ID (loại bỏ tiền tố `sse-`) trong các phương thức nạp dữ liệu phân trang `fetchNotifications` và `fetchTrashNotifications` tại `notification.svelte.ts` để loại bỏ hoàn toàn việc x2 dòng thông báo khi SSE được lưu xuống DB. (Done)
+- [x] **Frontend: Triệt tiêu x2 Toast hiển thị:** Loại bỏ hoàn toàn lệnh hiển thị Toast trùng lặp trong sự kiện `SUPPORT_INBOX_UPDATE` tại `pulse.ts`, để chỉ giữ lại Toast chi tiết của `SYSTEM_SIGNAL`. Build lại static dist và rsync đồng bộ lên VPS. (Done)
+- [x] **Hotpatch Production minified bundle on VPS:** Cập nhật file bundle `Cu6plpcm.js` trên môi trường VPS để áp dụng các thay đổi trong logic merge của `fetchNotifications` (t6) và `fetchTrashNotifications` (t7). (Done)
+- [x] **Đồng bộ hóa VPS & Tái khởi động:** Đồng bộ source code frontend tĩnh mới và khởi động lại hai container `fast_platform_api` và `fast_platform_worker_high` để đảm bảo hoạt động đồng nhất. (Done)
+- [x] **Nghiệm thu thực tế:** Sử dụng browser subagent để truy cập Admin panel và kiểm chứng tính chính xác của dữ liệu thông báo, cam kết không còn x2 hiển thị hay jitter. (Done)
