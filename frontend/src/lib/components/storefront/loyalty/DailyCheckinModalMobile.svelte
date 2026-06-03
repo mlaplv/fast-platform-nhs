@@ -146,7 +146,9 @@
       triggerCoinExplosion();
       spawnConfetti();
       const earnedVnd = checkinStore.status?.today_reward ?? 10000; // đã là VNĐ từ API
-      const totalToday = checkinStore.status?.total_checkin_today ?? 569;
+      const rawToday = checkinStore.status?.total_checkin_today ?? 0;
+      const gOffset = parseInt(import.meta.env.PUBLIC_G_BY_COUNT || '569', 10);
+      const totalToday = rawToday + gOffset;
       getClientUi().showToast(
         `🎉 Tuyệt vời! Bạn cùng ${totalToday.toLocaleString('vi-VN')} người khác đã điểm danh hôm nay! (+${fmtVnd(earnedVnd)} đã được cộng vào ví)`,
         'success'

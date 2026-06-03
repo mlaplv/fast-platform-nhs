@@ -205,6 +205,19 @@ export function createNotificationState() {
     },
     // CNS V91: Real-time Bell sync — add from SSE, dedup by ID, no API round-trip
     addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, any>; signal_type?: string }): boolean => {
+      // SECURITY FILTER: Block internal system/security signals on client (storefront) domain.
+      // These are admin-only signals that should never appear in a customer's notification bell.
+      if (!isAdminDomain()) {
+        const sigType = (signal.signal_type || signal.severity || '').toUpperCase();
+        if (
+          sigType.startsWith('SYSTEM') ||
+          sigType.startsWith('SECURITY') ||
+          sigType.startsWith('ANOMALY')
+        ) {
+          console.debug(`[NotificationState] Blocked system signal on client domain: ${sigType}`);
+          return false;
+        }
+      }
       // Dedup gate: skip if this notification_id already in state (double SSE delivery)
       const targetId = signal.id.startsWith("sse-") ? signal.id : `sse-${signal.id}`;
       const rawId = signal.id.startsWith("sse-") ? signal.id.slice(4) : signal.id;

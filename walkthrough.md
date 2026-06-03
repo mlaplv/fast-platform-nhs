@@ -14,3 +14,16 @@ File: `frontend/src/lib/components/storefront/product-detail/MainDetail/modules/
 ## 3. Verification & Deployment
 - The structural CSS changes ensure that no matter how long the ingredient list is, the "View more" text always rests on a solid background and cannot be overlapped by white tags.
 - Pending execution of `rsync` to synchronize the changes to the production VPS `mlap@103.1.236.14`.
+
+## 4. Modal Optimization for Mobile (Full Width & Bottom Sheet style)
+### 4.1 Issue
+When viewing the landing page on mobile, the modal `DesktopProductDetailsModal.svelte` had fixed desktop padding `p-6` around it and bo-tron 4 goc `rounded-[32px]`, creating ugly gaps/leakage on both sides.
+
+### 4.2 Fix
+File: `frontend/src/lib/components/storefront/funnel/desktop/sections/DesktopProductDetailsModal.svelte`
+- Updated outer layout of the portal to shift from centered dialog on desktop (`items-center p-6 md:p-12`) to a bottom-docked panel on mobile (`items-end p-0 md:p-12`).
+- Replaced fixed border-radius and borders with dynamic responsive classes: `border-t md:border border-white/10 rounded-t-[24px] md:rounded-[32px] rounded-b-none md:rounded-b-[32px]`.
+- Enforced full width (`w-full`) and set height constraints to `h-[85vh]` / `max-h-[85vh]` on mobile to allow clean internal scrolling.
+- Reduced inner padding on mobile viewport to `px-6 py-6` (from `px-10 py-8`) to prevent squeezing the text.
+- Standardized close button location on mobile to `right-4 top-4`.
+

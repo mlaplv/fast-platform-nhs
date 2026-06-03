@@ -5,7 +5,7 @@
   import Info from "@lucide/svelte/icons/info";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
-  import { fade, scale } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
   import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
@@ -31,42 +31,36 @@
 </script>
 
 {#if active}
-<div use:portal class="desktop-product-details-modal fixed inset-0 flex items-center justify-center p-6 md:p-12" style:z-index={Z_INDEX_CLIENT.MODAL}>
-  <!-- Backdrop -->
-  <button
-    transition:fade={{ duration: 300 }}
-    type="button"
-    class="absolute inset-0 bg-black/60 backdrop-blur-md border-none outline-none cursor-default"
-    onclick={close}
-    aria-label="Đóng overlay"
-  ></button>
-
-  <!-- Modal Content -->
-  <div
-    transition:scale={{ duration: 400, start: 0.95, opacity: 0 }}
-    class="relative w-full max-w-5xl h-fit max-h-[90vh] bg-[#0a0a0a] text-white border border-white/10 rounded-[32px] shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
-    role="dialog"
-    aria-modal="true"
-  >
-    <!-- Close Button -->
-    <button 
-      onclick={close} 
-      class="absolute right-6 top-6 w-10 h-10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/5 transition-all rounded-full" style="z-index: var(--z-content);"
-      aria-label="Đóng"
-    >
-      <X class="w-6 h-6" strokeWidth={1.5} />
-    </button>
-
-    <!-- Header -->
-    <div class="px-10 pt-10 pb-6 border-b border-white/5 bg-[#0a0a0a] shrink-0">
+<div 
+  use:portal 
+  transition:fade={{ duration: 300 }}
+  class="desktop-product-details-modal fixed inset-0 w-full h-full bg-[#0a0a0a] text-white flex flex-col" 
+  style:z-index={Z_INDEX_CLIENT.MODAL}
+  role="dialog"
+  aria-modal="true"
+>
+  <!-- Header -->
+  <div class="w-full border-b border-white/5 bg-[#0a0a0a] shrink-0">
+    <div class="max-w-5xl mx-auto w-full px-6 md:px-10 pt-8 md:pt-10 pb-5 md:pb-6 flex items-center justify-between">
       <h2 class="text-[14px] font-black tracking-[0.3em] italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 flex items-center gap-3">
         <Info class="w-5 h-5 text-emerald-400" />
         Thông tin chi tiết sản phẩm
       </h2>
+      
+      <!-- Close Button in Header -->
+      <button 
+        onclick={close} 
+        class="w-10 h-10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/5 transition-all rounded-full"
+        aria-label="Đóng"
+      >
+        <X class="w-6 h-6" strokeWidth={1.5} />
+      </button>
     </div>
+  </div>
 
-    <!-- Scrollable Description Body -->
-    <div class="px-10 py-8 overflow-y-auto custom-scrollbar flex-1 elite-prose">
+  <!-- Scrollable Description Body -->
+  <div class="w-full overflow-y-auto custom-scrollbar flex-1">
+    <div class="max-w-5xl mx-auto w-full px-6 md:px-10 py-6 md:py-8 elite-prose">
       {#if product?.description}
         <EditableWrapper path="description" type="html" label="SỬA MÔ TẢ CHI TIẾT">
           <div class="elite-prose-container">
@@ -85,12 +79,14 @@
         </div>
       {/if}
     </div>
+  </div>
 
-    <!-- Footer -->
-    <div class="px-10 py-6 border-t border-white/5 bg-[#0a0a0a] flex items-center justify-between">
+  <!-- Footer -->
+  <div class="w-full border-t border-white/5 bg-[#0a0a0a] shrink-0">
+    <div class="max-w-5xl mx-auto w-full px-6 md:px-10 py-5 md:py-6 flex items-center justify-between">
       <div class="flex items-center gap-3 text-[10px] font-bold text-white/30 tracking-[0.3em] italic">
         <ShieldCheck class="w-4 h-4 text-blue-500/80" />
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng Elite</span>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng</span>
       </div>
       <button 
         onclick={close}

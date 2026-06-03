@@ -24,3 +24,10 @@ Fix the layout overlapping issue on the Mobile Storefront where the "Xem thêm p
 - [x] Fixed `support_agent.py` to omit `(Nhà máy Chưa cập nhật)` in product context if the brand is missing.
 - [x] Removed `(Nhà máy ...)` logic completely from `support_agent.py` as requested.
 - [x] Removed the hardcoded prefix "Chính hãng" from the product origin info in `support_agent.py`.
+- [x] Optimized `DesktopProductDetailsModal.svelte` for mobile/responsive viewports:
+  - Made modal bottom-aligned (`items-end`) and full-width (`p-0`, `w-full`) on mobile.
+  - Adjusted modal height to `h-[85vh]` and `max-h-[85vh]` on mobile to support internal scroll.
+  - Adjusted border-radius to `rounded-t-[24px] rounded-b-none` and border to `border-t border-white/10` on mobile.
+  - Optimized internal content paddings for mobile: `px-6 pt-8 pb-5` for header, `px-6 py-6` for body/footer.
+  - Adjusted close button spacing to `right-4 top-4` on mobile.
+

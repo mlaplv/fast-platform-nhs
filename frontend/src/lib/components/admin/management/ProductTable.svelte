@@ -341,11 +341,12 @@
               <ExternalLink size={14} />
             </a>
             <a
-              href="/{product.slug}-funnel?live_edit=true&token={getAuthToken()}"
-              target="_blank"
-              class="p-2 text-[#00FFFF] hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-[#00FFFF]/20 hover:border-[#00FFFF]/40 shadow-sm"
-              title="Edit Live (Supper Admin Only)"
-              onclick={(e: MouseEvent) => e.stopPropagation()}
+              href={getAuthToken() ? `/${product.slug}-funnel?live_edit=true&token=${getAuthToken()}` : '#'}
+              target={getAuthToken() ? "_blank" : undefined}
+              aria-disabled={!getAuthToken()}
+              class="p-2 transition-colors rounded-xl md:bg-black/40 bg-white/5 border shadow-sm {getAuthToken() ? 'text-[#00FFFF] hover:text-white border-[#00FFFF]/20 hover:border-[#00FFFF]/40' : 'text-white/20 border-white/5 cursor-not-allowed'}"
+              title={getAuthToken() ? "Edit Live (Supper Admin Only)" : "Chưa xác thực — vui lòng đăng nhập lại"}
+              onclick={(e: MouseEvent) => { e.stopPropagation(); if (!getAuthToken()) e.preventDefault(); }}
             >
               <Sparkles size={14} />
             </a>
