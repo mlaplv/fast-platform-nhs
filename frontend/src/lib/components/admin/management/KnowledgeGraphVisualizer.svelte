@@ -57,7 +57,7 @@
                 font: {
                     size: 14,
                     color: '#ffffff',
-                    face: 'Be Vietnam Pro',
+                    face: 'system-ui',
                     strokeWidth: 2,
                     strokeColor: '#000000'
                 },
@@ -73,7 +73,7 @@
                 font: {
                     size: 11,
                     color: 'rgba(255, 255, 255, 0.6)',
-                    face: 'Be Vietnam Pro',
+                    face: 'system-ui',
                     align: 'middle',
                     background: 'rgba(0, 0, 0, 0.5)'
                 },

@@ -1,64 +1,10 @@
 /* 
-  ELITE V2.2: PURE TYPOGRAPHY ENGINE
-  Standardized on Be Vietnam Pro. Local-First, Zero-Bloat.
+  ELITE V2.3: ZERO-FONT TYPOGRAPHY ENGINE
+  System font stack — instant render, zero network font requests.
+  Matching Shopee/Lazada/Tiki pattern for maximum FCP performance.
 */
 
-/* --- Be Vietnam Pro (Regular 400) --- */
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/be-vietnam-pro-vn.woff2') format('woff2');
-  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
-}
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/be-vietnam-pro-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* --- Be Vietnam Pro (Bold 700) --- */
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/be-vietnam-pro-700-vn.woff2') format('woff2');
-  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
-}
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/be-vietnam-pro-700-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* --- Be Vietnam Pro (Italic 400) --- */
-/* font-display: optional = skip italic if not loaded in first render window (not LCP-critical) */
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: italic;
-  font-weight: 400;
-  font-display: optional;
-  src: url('/fonts/be-vietnam-pro-vn-italic.woff2') format('woff2');
-  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
-}
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  font-style: italic;
-  font-weight: 400;
-  font-display: optional;
-  src: url('/fonts/be-vietnam-pro-latin-italic.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* --- JetBrains Mono (Technical) --- */
+/* --- JetBrains Mono (Technical/Code Only) --- */
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;

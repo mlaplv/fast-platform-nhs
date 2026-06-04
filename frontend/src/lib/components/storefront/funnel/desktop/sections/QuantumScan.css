@@ -93,7 +93,7 @@
 
   /* 5. Analysis Text Animation */
   .analysis-text {
-    font-family: 'Be Vietnam Pro', sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.2em;

@@ -319,7 +319,7 @@
 
 <style>
   .font-sans {
-    font-family: "Be Vietnam Pro", "Be Vietnam Pro", sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;

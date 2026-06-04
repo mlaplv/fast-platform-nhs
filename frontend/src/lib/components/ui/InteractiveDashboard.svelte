@@ -152,7 +152,7 @@
 <style lang="postcss">
   /* PREMIUM VIRAL 2026 STYLES */
   .interactive-dashboard-wrapper {
-    font-family: 'Be Vietnam Pro', 'Be Vietnam Pro', -apple-system, sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #fff;
     display: flex;
     flex-direction: column;

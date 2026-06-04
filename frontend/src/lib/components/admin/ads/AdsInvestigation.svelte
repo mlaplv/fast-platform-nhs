@@ -27,7 +27,7 @@
   });
 </script>
 
-<div class="flex flex-col h-full gap-8 font-sans" in:fade style="font-family: 'Be Vietnam Pro', sans-serif;">
+<div class="flex flex-col h-full gap-8 font-sans" in:fade style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
    <!-- INVESTIGATION HEADER -->
    <div class="bg-white/[0.02] border border-white/5 rounded-none p-8 flex justify-between items-center shadow-2xl relative group overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-1000 pointer-events-none"></div>

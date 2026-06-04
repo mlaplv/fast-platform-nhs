@@ -681,7 +681,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    font-family: 'Be Vietnam Pro', 'Be Vietnam Pro', system-ui, sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     z-index: 1200;
   }
 

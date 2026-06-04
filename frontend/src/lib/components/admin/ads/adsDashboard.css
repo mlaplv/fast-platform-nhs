@@ -12,7 +12,7 @@
   --surface: rgba(10, 10, 10, 0.8);
   --border: rgba(255, 255, 255, 0.05);
   --radius: 2px;
-  --font-main: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-main: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .ads-industrial-hud {

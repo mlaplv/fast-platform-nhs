@@ -170,7 +170,7 @@
     padding: 0 4px;
     line-height: 1;
     border: 1.5px solid #fff;
-    font-family: 'Be Vietnam Pro', sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 </style>
 

@@ -93,7 +93,7 @@
     isLeaching?: boolean;
   } = $props();
 
-  const FONTS = ['Be Vietnam Pro', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
+  const FONTS = ['System UI', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
   const COLORS = [
     '#ffffff', '#000000', '#64748b', '#94a3b8', '#cbd5e1', 
     '#ef4444', '#f87171', '#fca5a5', 
@@ -218,7 +218,7 @@
   const active = $derived.by(() => {
     updateTick;
     if (!editor) return {
-       format: 'p', font: 'Be Vietnam Pro', bold: false, italic: false, underline: false,
+       format: 'p', font: 'system-ui', bold: false, italic: false, underline: false,
        strike: false, blockquote: false, code: false, color: 'white'
     };
 
@@ -226,7 +226,7 @@
       format: editor.isActive('heading', { level: 1 }) ? 'h1' :
               editor.isActive('heading', { level: 2 }) ? 'h2' :
               editor.isActive('heading', { level: 3 }) ? 'h3' : 'p',
-      font: editor.getAttributes('textStyle').fontFamily || 'Be Vietnam Pro',
+      font: editor.getAttributes('textStyle').fontFamily || 'system-ui',
       bold: editor.isActive('bold'),
       italic: editor.isActive('italic'),
       underline: editor.isActive('underline'),

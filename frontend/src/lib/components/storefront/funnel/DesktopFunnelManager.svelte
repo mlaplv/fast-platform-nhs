@@ -451,7 +451,7 @@
     antialiased: true;
     overflow-x: hidden;
     min-height: 100vh;
-    font-family: "Be Vietnam Pro", sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-color: #010101;
     color: var(--text-base);
   }

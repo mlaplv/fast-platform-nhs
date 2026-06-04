@@ -61,7 +61,7 @@
   --text-base: #FFFFFF;
 
   /* Elite V2.2 Typo Logic */
-  --font-main: 'Be Vietnam Pro',
+  --font-main: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
   system-ui,
   -apple-system,
   sans-serif;
