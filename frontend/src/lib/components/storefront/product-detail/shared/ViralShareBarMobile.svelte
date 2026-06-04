@@ -468,11 +468,11 @@
         </button>
       {/if}
 
-      <button class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-lg focus:outline-none" onclick={triggerVerify}>
+      <button aria-label="Chứng nhận" class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-lg focus:outline-none" onclick={triggerVerify}>
         <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
       </button>
   
-      <button class="flex flex-col items-center gap-1 drop-shadow-lg active:scale-90 transition-transform" onclick={handleLike}>
+      <button aria-label="Thích" class="flex flex-col items-center gap-1 drop-shadow-lg active:scale-90 transition-transform" onclick={handleLike}>
         <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-white/30 border border-white/50'}">
            <Heart size={20} class={isLiked ? 'fill-white text-white' : 'text-white drop-shadow-md'} />
         </div>
@@ -480,10 +480,10 @@
       </button>
   
       <div class="flex flex-col gap-3">
-        <button class="active:scale-90 transition-transform" onclick={() => share('facebook')}>
+        <button aria-label="Chia sẻ Facebook" class="active:scale-90 transition-transform" onclick={() => share('facebook')}>
           <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Facebook size={18} class="fill-white text-white drop-shadow-md" /></div>
         </button>
-        <button class="active:scale-90 transition-transform" onclick={() => share('zalo')}>
+        <button aria-label="Chia sẻ Zalo" class="active:scale-90 transition-transform" onclick={() => share('zalo')}>
           <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><span class="text-[10px] font-black italic text-white drop-shadow-md tracking-tighter">Zalo</span></div>
         </button>
         
@@ -528,7 +528,7 @@
           </button>
         {/if}
  
-        <button class="active:scale-90 transition-transform" onclick={copyLink}>
+        <button aria-label="Sao chép liên kết" class="active:scale-90 transition-transform" onclick={copyLink}>
           <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Copy size={16} class="text-white drop-shadow-md" /></div>
         </button>
       </div>

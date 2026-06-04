@@ -389,7 +389,7 @@
   <section class="info-content">
     <!-- Vouchers -->
     <div class="vouchers-outer">
-      {#if !isAtStart}<button class="scroll-btn prev" onclick={() => scrollVouchers('prev')}><ChevronLeft size={14} /></button>{/if}
+      {#if !isAtStart}<button class="scroll-btn prev" aria-label="Cuộn trái" onclick={() => scrollVouchers('prev')}><ChevronLeft size={14} /></button>{/if}
       <div class="vouchers-container">
         <div class="vouchers-list" bind:this={vouchersListRef} bind:clientWidth={vouchersWidth} onscroll={handleVoucherScroll}>
           {#each vouchers as v}
@@ -411,7 +411,7 @@
           {/each}
         </div>
       </div>
-      {#if !isAtEnd}<button class="scroll-btn next" onclick={() => scrollVouchers('next')}><ChevronRight size={14} /></button>{/if}
+      {#if !isAtEnd}<button class="scroll-btn next" aria-label="Cuộn phải" onclick={() => scrollVouchers('next')}><ChevronRight size={14} /></button>{/if}
     </div>
 
     <!-- Title & Stats -->

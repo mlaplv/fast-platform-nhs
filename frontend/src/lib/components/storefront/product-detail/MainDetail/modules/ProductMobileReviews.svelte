@@ -185,6 +185,7 @@
         <div class="review-date-mini">{new Date(review.created_at).toLocaleDateString('vi-VN')}</div>
         <div class="ml-auto flex items-center gap-3 relative">
           <button 
+            aria-label="Tùy chọn đánh giá"
             onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
             class="text-gray-300 hover:text-gray-600 transition-colors">
             <MoreHorizontal size={16} />
