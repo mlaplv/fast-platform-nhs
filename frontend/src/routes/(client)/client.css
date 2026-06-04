@@ -141,11 +141,11 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #010101;
+  background-color: var(--bg-canvas);
 }
 
 .client-layout {
-  background-color: #010101 !important;
+  background-color: var(--bg-canvas) !important;
   color: var(--text-base);
   font-family: var(--font-main);
   min-height: 100vh;

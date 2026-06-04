@@ -48,6 +48,16 @@
     });
   });
 
+  // Elite V2.2: Automatic app-ready trigger for static routes (not home page and not product detail)
+  $effect(() => {
+    const routeId = page.route?.id;
+    if (routeId && routeId !== '/' && !routeId.includes('[slug]')) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('app-ready'));
+      }
+    }
+  });
+
   // Elite V2.2: Stable Admin Tenant Detection (SvelteKit-Native $app/state Page Rune)
   const isAdmin = $derived(
     data?.tenant === 'admin' || 
@@ -133,6 +143,34 @@
 
   onMount(() => {
     isMounted = true;
+
+    // Elite V2.2: Safety cleanup for initial loader & app skeleton
+    const hideSkeleton = () => {
+      if (typeof document !== 'undefined') {
+        const loader = document.getElementById('initial-loader');
+        const skeleton = document.getElementById('app-skeleton');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => {
+            if (loader.parentNode) loader.remove();
+          }, 500);
+        }
+        if (skeleton) {
+          skeleton.style.opacity = '0';
+          setTimeout(() => {
+            if (skeleton.parentNode) skeleton.remove();
+          }, 500);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      (window as any).__hideSkeleton = hideSkeleton;
+      window.addEventListener('app-ready', hideSkeleton);
+    }
+
+    const fallbackTimer = setTimeout(hideSkeleton, 3000);
+
 
     // Elite V2.2: Lazy Defer Daily Check-in component by 3 seconds to protect initial hydration TBT/LCP
     if (!isAdmin) {
@@ -341,11 +379,19 @@
       return () => {
         if (adsCleanup) adsCleanup();
         if (observerCleanup) observerCleanup();
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('app-ready', hideSkeleton);
+        }
+        clearTimeout(fallbackTimer);
       };
     }
 
     return () => {
       if (adsCleanup) adsCleanup();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app-ready', hideSkeleton);
+      }
+      clearTimeout(fallbackTimer);
     };
   });
 
@@ -375,6 +421,15 @@
     page.data?.product?.metadata?.landing_type && 
     page.data.product.metadata.landing_type !== 'standard'
   );
+
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const bg = isAdmin ? '#020202' : (isFunnel ? '#020202' : '#fafafa');
+        localStorage.setItem('last_bg_color', bg);
+      } catch (e) {}
+    }
+  });
 </script>
 
 <svelte:head>

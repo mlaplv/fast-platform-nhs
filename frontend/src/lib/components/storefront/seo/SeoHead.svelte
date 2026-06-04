@@ -71,17 +71,17 @@
     const dbSiteName = page.data.shopInfo?.basic_info?.site_name;
     if (dbSiteName) return dbSiteName;
 
-    // 2. Prioritize dynamic siteName passed as prop, unless it's a hardcoded placeholder
-    const isHardcodedPlaceholder = (val: string) => {
-      const v = val.toLowerCase().trim();
-      return v === "osmo" || v === "osmo elite" || v === "smartshop" || v === "";
-    };
-    if (siteName && !isHardcodedPlaceholder(siteName)) {
+    // 2. Prioritize dynamic siteName passed as prop
+    if (siteName && siteName.trim()) {
       return siteName;
     }
 
-    // 3. Fallback to default
-    return "osmo Elite";
+    // 3. Fallback to dynamic domain hostname split
+    if (page.url.hostname) {
+      const name = page.url.hostname.split('.')[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return "SmartShop";
   });
   
   const resolvedSiteTitle = $derived(
@@ -89,7 +89,7 @@
       ? (page.data.shopInfo.basic_info.slogan
           ? `${page.data.shopInfo.basic_info.site_name} | ${page.data.shopInfo.basic_info.slogan}`
           : page.data.shopInfo.basic_info.site_name)
-      : "osmo Elite"
+      : resolvedSiteName
   );
 
   const seoOrigin = $derived.by(() => {
@@ -97,14 +97,14 @@
     if (dbDomain) {
       return dbDomain.startsWith("http") ? dbDomain : `https://${dbDomain}`;
     }
-    return page.url.origin || "https://osmo.vn";
+    return page.url.origin;
   });
 
   // Elite V2.2: Self-Healing Dynamic Title (Auto-appends " | Site Name" if not present)
   const finalTitle = $derived.by(() => {
     const isPlaceholder = (val: string) => {
       const v = val.toLowerCase().trim();
-      return v === "osmo elite" || v === "osmo elite việt nam" || v === "smartshop" || v === "osmo" || v === "";
+      return v === "" || v === "smartshop";
     };
 
     let baseTitle = title;
@@ -171,11 +171,12 @@
   const resolvedBrand = $derived.by(() => {
     if (productData?.brand) {
       const b = productData.brand.toLowerCase().trim();
-      if (b !== "osmo" && b !== "smartshop") {
+      if (b && b !== "smartshop") {
         return productData.brand;
       }
     }
-    return resolvedSiteName.split(".")[0] || "Osmo";
+    const fallbackBrand = resolvedSiteName.split(".")[0];
+    return fallbackBrand.charAt(0).toUpperCase() + fallbackBrand.slice(1);
   });
 
   // ── ELITE V2.2: SEO Auditor (Dev Intelligence & Production Live Verification) ────

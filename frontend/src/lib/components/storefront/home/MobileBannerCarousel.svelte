@@ -25,26 +25,35 @@
   
   let currentIndex = $state(0);
   let carouselRef: HTMLElement | undefined = $state();
+  // Cache slide width to avoid forced reflow in scroll/interval handlers
+  let slideWidth = $state(0);
 
   // Autoplay Logic (Elite 2026 Smooth Transition)
   onMount(() => {
     if (!browser || homeBanners.length <= 1) return;
 
+    // ResizeObserver: update slideWidth cache, zero forced reflow
+    const ro = new ResizeObserver((entries) => {
+      slideWidth = entries[0]?.contentRect.width ?? 0;
+    });
+    if (carouselRef) {
+      ro.observe(carouselRef);
+      slideWidth = carouselRef.clientWidth;
+    }
+
     const interval = setInterval(() => {
-      if (!carouselRef) return;
+      if (!carouselRef || slideWidth === 0) return;
       const next = (currentIndex + 1) % homeBanners.length;
-      const scrollLeft = next * carouselRef.offsetWidth;
-      carouselRef.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+      carouselRef.scrollTo({ left: next * slideWidth, behavior: 'smooth' });
     }, 4000);
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); ro.disconnect(); };
   });
 
   function handleScroll(e: Event) {
-    if (!carouselRef) return;
+    if (slideWidth === 0) return;
     const scrollLeft = (e.target as HTMLElement).scrollLeft;
-    const width = carouselRef.offsetWidth;
-    currentIndex = Math.round(scrollLeft / width);
+    currentIndex = Math.round(scrollLeft / slideWidth);
   }
 
   function getProductLink(url?: string) {

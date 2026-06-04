@@ -38,7 +38,7 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	# Elite V2.2: Dynamic Rendering for SPA SEO (Social Preview & Bot hydration)
 	# Intercepts crawlers requesting storefront pages and routes them to python pre-renderer
 	@social_bots {
-		header_regexp User-Agent (?i)(facebookexternalhit|facebot|zalobot|twitterbot|slackbot|googlebot|bingbot)
+		header_regexp User-Agent (?i)(googlebot|googleother|google-extended|inspectiontool|chrome-lighthouse|lighthouse|adsbot|mediapartners-google|bingbot|facebookexternalhit|facebot|zalobot|twitterbot|slackbot|yandex|baiduspider|coccocbot|ahrefsbot|semrushbot|dotbot|screaming\s+frog|pinterest)
 		host {$APP_DOMAIN}
 		not path /api/* /sitemap.xml /google-merchant.xml* /ws/* /uploads/* /v65_assets/* /avatars/*
 	}

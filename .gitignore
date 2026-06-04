@@ -14,7 +14,7 @@ certs/caddy/pki/
 # 2. Rác thư viện & Môi trường
 backend/cache/
 node_modules/
-static/
+/static/
 frontend/static/video   
 .pnpm-store/
 .venv/

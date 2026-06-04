@@ -45,8 +45,14 @@
                 homeComponent = homeMod.default;
                 footerComponent = footerMod.default;
             }
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('app-ready'));
+            }
         } catch (e) {
             console.error("[SYSTEM FAULT] Dynamic storefront components failed to load:", e);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('app-ready'));
+            }
         }
     });
 

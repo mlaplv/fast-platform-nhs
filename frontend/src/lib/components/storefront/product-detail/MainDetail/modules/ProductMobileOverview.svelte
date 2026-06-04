@@ -161,7 +161,8 @@
       if (typeof idx === 'number' && idx >= 0 && idx < displayImages.length) {
         activeImageIndex = idx;
         if (carouselRef) {
-          const width = carouselRef.offsetWidth || carouselRef.clientWidth;
+          // Use clientWidth — does NOT trigger forced reflow
+          const width = carouselRef.clientWidth;
           if (width > 0) {
             carouselRef.scrollTo({
               left: idx * width,
@@ -261,7 +262,8 @@
   function handleCarouselScroll(e: Event) {
     if (!carouselRef) return;
     const scrollLeft = (e.target as HTMLElement).scrollLeft;
-    const width = carouselRef.offsetWidth;
+    // clientWidth: reads box model cache, does NOT trigger forced reflow
+    const width = carouselRef.clientWidth;
     activeImageIndex = Math.round(scrollLeft / width);
   }
 

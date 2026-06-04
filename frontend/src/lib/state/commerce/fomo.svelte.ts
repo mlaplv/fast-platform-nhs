@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/public';
  * ELITE V2.2: ActivityItem Schema
  */
 export interface ActivityItem {
-    type: 'ORDER' | 'VISITORS' | 'TRENDING' | 'URGENCY';
+    type: 'ORDER' | 'VISITORS' | 'TRENDING' | 'URGENCY' | 'VOUCHER' | 'PURCHASES';
     name?: string;
     action?: string;
     msg?: string;
@@ -113,10 +113,10 @@ export class FomoStore {
                 this.isActivityVisible = false;
                 this.currentIndex = (this.currentIndex + 1) % this.activities.length;
 
-                // Randomized gap (10s - 20s) - Tightened for better viral effect
-                const gap = 10000 + Math.random() * 10000;
+                // Randomized gap (5s - 10s) - High-energy TikTok live style
+                const gap = 5000 + Math.random() * 5000;
                 this._cycleTimeout = setTimeout(run, gap);
-            }, 6000);
+            }, 4500);
         };
 
         // Elite V2.2: First run starts after 2 seconds to allow layout to settle

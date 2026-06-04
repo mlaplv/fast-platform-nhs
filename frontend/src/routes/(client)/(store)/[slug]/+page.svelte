@@ -111,51 +111,57 @@
   const newsData = $derived(data.type === 'news' ? (data as unknown as NewsPageData) : null);
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
 
-  // ── Elite Code Splitting: Load exactly ONE bundle per user session ──────────
-  const loaderPromise = $derived.by(() => {
+  // ── Elite Code Splitting: State-based router to prevent page-transition flicker ──────────
+  let activeComponent = $state<any>(null);
+  let activeProps = $state<any>(null);
+  let currentComponentKey = $state<string>('');
+
+  $effect(() => {
     const type = data.type;
     const isMobile = ui.isMobile;
+    const funnel = isFunnel;
+    const key = `${type}-${isMobile ? 'mobile' : 'desktop'}-${funnel ? 'funnel' : 'standard'}`;
 
-    return (async () => {
+    async function load() {
       try {
+        let component: any = null;
+        let props: any = null;
+
         if (type === 'product' && productData) {
-          if (isFunnel && funnelPageData) {
+          if (funnel && funnelPageData) {
             if (isMobile) {
               const { default: MobileFunnelPage } = await import(
                 '$lib/components/storefront/funnel/MobileFunnelManager.svelte'
               );
-              return { component: MobileFunnelPage, props: { data: funnelPageData } };
+              component = MobileFunnelPage;
             } else {
               const { default: DesktopFunnelPage } = await import(
                 '$lib/components/storefront/funnel/DesktopFunnelManager.svelte'
               );
-              return { component: DesktopFunnelPage, props: { data: funnelPageData } };
+              component = DesktopFunnelPage;
             }
+            props = { data: funnelPageData };
           } else if (isMobile) {
             // ── Mobile Product Detail (isolated chunk) ─────────────────────────
             const { default: ProductDetailMobile } = await import(
               '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
             );
-            return {
-              component: ProductDetailMobile,
-              props: {
-                product: productData.product,
-                relatedProducts: productData.relatedProducts,
-                reviewStats: productData.reviewStats
-              }
+            component = ProductDetailMobile;
+            props = {
+              product: productData.product,
+              relatedProducts: productData.relatedProducts,
+              reviewStats: productData.reviewStats
             };
           } else {
             // ── Desktop Product Detail (isolated chunk) ─────────────────────────
             const { default: ProductDetailDesktop } = await import(
               '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
             );
-            return {
-              component: ProductDetailDesktop,
-              props: {
-                product: productData.product,
-                relatedProducts: productData.relatedProducts,
-                reviewStats: productData.reviewStats
-              }
+            component = ProductDetailDesktop;
+            props = {
+              product: productData.product,
+              relatedProducts: productData.relatedProducts,
+              reviewStats: productData.reviewStats
             };
           }
         } else if (type === 'news' && newsData) {
@@ -163,51 +169,61 @@
             const { default: NewsListMobile } = await import(
               '$lib/components/storefront/news/NewsListMobile.svelte'
             );
-            return { component: NewsListMobile, props: { newsList: newsData.items, categoryName: newsData.categoryName } };
+            component = NewsListMobile;
           } else {
             const { default: NewsListDesktop } = await import(
               '$lib/components/storefront/news/NewsListDesktop.svelte'
             );
-            return { component: NewsListDesktop, props: { newsList: newsData.items, categoryName: newsData.categoryName } };
+            component = NewsListDesktop;
           }
+          props = { newsList: newsData.items, categoryName: newsData.categoryName };
         } else if (type === 'category' && categoryData) {
           if (isMobile) {
             const { default: ProductListMobile } = await import(
               '$lib/components/storefront/product/ProductListMobile.svelte'
             );
-            return {
-              component: ProductListMobile,
-              props: {
-                products: categoryData.items,
-                categoryName: categoryData.categoryName,
-                categorySlug: categoryData.categorySlug,
-                serverTotal: categoryData.serverTotal,
-                facets: categoryData.facets,
-                category: categoryData.category
-              }
-            };
+            component = ProductListMobile;
           } else {
             const { default: ProductListDesktop } = await import(
               '$lib/components/storefront/product/ProductListDesktop.svelte'
             );
-            return {
-              component: ProductListDesktop,
-              props: {
-                products: categoryData.items,
-                categoryName: categoryData.categoryName,
-                categorySlug: categoryData.categorySlug,
-                serverTotal: categoryData.serverTotal,
-                facets: categoryData.facets,
-                category: categoryData.category
-              }
-            };
+            component = ProductListDesktop;
           }
+          props = {
+            products: categoryData.items,
+            categoryName: categoryData.categoryName,
+            categorySlug: categoryData.categorySlug,
+            serverTotal: categoryData.serverTotal,
+            facets: categoryData.facets,
+            category: categoryData.category
+          };
+        }
+
+        if (currentComponentKey === key && activeComponent === component) {
+          // Keep component mounted, update props synchronously to eliminate flicker
+          activeProps = props;
+        } else {
+          // Different layout or first mount, reset component to trigger skeleton
+          activeComponent = null;
+          activeProps = null;
+          currentComponentKey = key;
+          await new Promise((r) => setTimeout(r, 0));
+          activeComponent = component;
+          activeProps = props;
+        }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('app-ready'));
         }
       } catch (e) {
         console.error('[PageRouter] Dynamic component import failed:', e);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('app-ready'));
+        }
       }
-      return null;
-    })();
+    }
+
+    load();
   });
 </script>
 
@@ -330,13 +346,8 @@
   {/if}
 {/snippet}
 
-{#await loaderPromise}
+{#if activeComponent && activeProps}
+  <svelte:component this={activeComponent} {...activeProps} />
+{:else}
   {@render Skeleton(data.type)}
-{:then res}
-  {#if res}
-    {@const DynamicComponent = res.component}
-    <DynamicComponent {...res.props} />
-  {:else}
-    {@render Skeleton(data.type)}
-  {/if}
-{/await}
+{/if}

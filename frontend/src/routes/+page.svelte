@@ -37,6 +37,9 @@
             if (data.tenant === 'admin') {
                 const mod = await loadAdmin();
                 activeComponent = mod.default;
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('app-ready'));
+                }
             } else {
                 const mod = await loadStorefront();
                 activeComponent = mod.default;
@@ -44,6 +47,7 @@
         } catch (err) {
             console.error("[SYSTEM FAULT] DYNAMIC_LOAD_FAILED:", err);
             if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('app-ready'));
                 console.warn("[RECOVER] Chunk loading failed. Reloading page to force synchronization...");
                 window.location.reload();
             }
@@ -93,7 +97,7 @@
     {/if}
 </svelte:head>
 
-<div class="page-container md:h-auto md:overflow-visible h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">
+<div class="page-container md:h-auto md:overflow-visible h-dvh overflow-x-hidden overflow-y-auto {data.tenant === 'admin' ? 'bg-[#020202]' : 'bg-[#fafafa]'}">
     {#if activeComponent}
         <div in:fade={{ duration: 300 }} class="flex-1 flex flex-col">
             <svelte:component
@@ -104,7 +108,7 @@
         </div>
     {:else}
         <!-- Luxury Storefront/Admin Loading State (Elite V2.2) -->
-        <div class="fixed inset-0 flex items-center justify-center bg-[#020202] z-[var(--z-modal-overlay)]">
+        <div class="fixed inset-0 flex items-center justify-center {data.tenant === 'admin' ? 'bg-[#020202] text-[#00FFFF]' : 'bg-[#fafafa] text-[#C5A25D]'} z-[var(--z-modal-overlay)]">
             <div class="relative flex flex-col items-center gap-6">
                 {#if data.tenant === 'admin'}
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>

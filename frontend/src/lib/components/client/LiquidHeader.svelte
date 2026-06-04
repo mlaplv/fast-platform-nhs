@@ -46,9 +46,12 @@
     if (!browser || !id) return;
     const el = navElements[id];
     if (!el) return;
-    highlighterPos.set({
-      left: el.offsetLeft,
-      width: el.offsetWidth
+    // Batch layout reads inside rAF to avoid forced reflow during style invalidation
+    requestAnimationFrame(() => {
+      highlighterPos.set({
+        left: el.offsetLeft,
+        width: el.offsetWidth
+      });
     });
   };
 

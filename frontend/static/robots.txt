@@ -1,0 +1,26 @@
+# ------------------------------------------------------------------------------
+# FAST PLATFORM — ELITE V2.2 ROBOTS.TXT
+# Domain: osmo.vn & admin.osmo.vn
+# ------------------------------------------------------------------------------
+
+User-agent: *
+# Disallow paths that deplete crawl budget or contain transactional data
+Disallow: /checkout/
+Disallow: /checkout*
+Disallow: /cart
+Disallow: /track
+Disallow: /track*
+Disallow: /search
+Disallow: /search*
+
+# Disallow admin panels and API gateways
+Disallow: /admin/
+Disallow: /admin*
+Disallow: /api/
+Disallow: /ws/
+
+# Allow all public routes and assets
+Allow: /
+
+# XML Sitemap Link for search indexing
+Sitemap: https://osmo.vn/sitemap.xml

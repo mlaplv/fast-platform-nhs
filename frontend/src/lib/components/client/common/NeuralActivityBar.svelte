@@ -3,9 +3,6 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
-  import Users from "@lucide/svelte/icons/users";
-  import Zap from "@lucide/svelte/icons/zap";
   import { onDestroy } from 'svelte';
   import { browser } from '$app/environment';
 
@@ -21,178 +18,77 @@
 
 {#if shouldShow}
   <div
-    class="neural-activity-root fixed pointer-events-none"
+    class="tiktok-fomo-root fixed pointer-events-none"
     style="z-index: var(--z-fomo, 9999);"
-    in:fly={{ x: -20, duration: 800, easing: cubicOut }}
-    out:fade={{ duration: 400 }}
+    in:fly={{ x: -20, duration: 600, easing: cubicOut }}
+    out:fade={{ duration: 300 }}
   >
-    <div class="neural-bar-v2">
-      <!-- Neural Aura Glow -->
-      <div class="neural-glow"></div>
-      
-      <div class="neural-inner">
-        <!-- Live Status Pulse -->
-        <div class="neural-status">
-          <div class="status-dot"></div>
-        </div>
-
-        <!-- Activity Icon -->
-        <div class="neural-icon-wrap">
-          {#if fomoStore.currentActivity.type === 'ORDER'}
-            <ShoppingBag class="w-2.5 h-2.5 text-[#C18F7E]" />
-          {:else if fomoStore.currentActivity.type === 'VISITORS'}
-            <Users class="w-2.5 h-2.5 text-emerald-400" />
-          {:else}
-            <Zap class="w-2.5 h-2.5 text-purple-400" />
-          {/if}
-        </div>
-
-        <!-- Single Line Content -->
-        <div class="neural-text-line">
-          {#if fomoStore.currentActivity.type === 'ORDER'}
-            <span class="user-name">{fomoStore.currentActivity.name}</span>
-            <span class="action-text">{fomoStore.currentActivity.action}</span>
-          {:else}
-            <span class="action-text">{fomoStore.currentActivity.msg}</span>
-          {/if}
-          
-          <span class="time-tag">• vừa xong</span>
-        </div>
+    <div class="tiktok-fomo-pill">
+      <span class="live-dot"></span>
+      <div class="tiktok-fomo-text">
+        {#if fomoStore.currentActivity.type === 'ORDER'}
+          <span class="user-name">{fomoStore.currentActivity.name}</span>
+          <span class="action-text">{fomoStore.currentActivity.action}</span>
+        {:else}
+          <span class="action-text">{fomoStore.currentActivity.msg}</span>
+        {/if}
       </div>
     </div>
   </div>
 {/if}
 
 <style>
-  .neural-activity-root {
-    bottom: 24px;
-    left: 20px;
+  .tiktok-fomo-root {
+    bottom: 220px;
+    left: 12px;
   }
 
-  .neural-bar-v2 {
-    position: relative;
-    padding: 1px;
-    border-radius: 100px;
-    background: linear-gradient(135deg, rgba(193, 143, 126, 0.3), rgba(255, 255, 255, 0.05));
-    overflow: hidden;
-  }
-
-  .neural-inner {
+  .tiktok-fomo-pill {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px 6px 10px;
-    background: rgba(10, 10, 11, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 100px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(18, 18, 20, 0.78);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 9999px;
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   }
 
-  .neural-status {
-    position: relative;
-    width: 6px;
-    height: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .status-dot {
-    width: 4px;
-    height: 4px;
+  .live-dot {
+    width: 5px;
+    height: 5px;
     background: #10b981;
     border-radius: 50%;
-    box-shadow: 0 0 10px #10b981;
-    animation: pulse-dot 2s infinite;
+    box-shadow: 0 0 6px #10b981;
+    animation: live-pulse 2s infinite;
   }
 
-  @keyframes pulse-dot {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 15px #10b981; }
-    100% { transform: scale(0.95); opacity: 0.8; }
+  @keyframes live-pulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 8px #10b981; }
+    100% { transform: scale(0.9); opacity: 0.8; }
   }
 
-  .neural-icon-wrap {
-    width: 20px;
-    height: 20px;
+  .tiktok-fomo-text {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-    border: 0.5px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .neural-text-line {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    gap: 4px;
     white-space: nowrap;
   }
 
   .user-name {
     font-size: 11px;
-    font-weight: 800;
-    color: #C18F7E;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
     letter-spacing: -0.01em;
   }
 
   .action-text {
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.95);
     letter-spacing: -0.01em;
-  }
-
-  .time-tag {
-    font-size: 9px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
-    letter-spacing: 0.02em;
-  }
-
-  .neural-glow {
-    position: absolute;
-    inset: -10px;
-    background: radial-gradient(circle at 20% 50%, rgba(193, 143, 126, 0.15), transparent 60%);
-    pointer-events: none;
-    animation: glow-move 4s infinite alternate;
-  }
-
-  @keyframes glow-move {
-    from { opacity: 0.3; transform: translateX(-10%); }
-    to { opacity: 0.6; transform: translateX(10%); }
-  }
-
-  @media (max-width: 768px) {
-    .neural-activity-root {
-      left: 12px;
-      right: auto;
-      bottom: 220px; /* Vị trí "Viral Floating" tối ưu - cao hẳn khỏi vùng thao tác tay và các nút giỏ hàng */
-    }
-    .neural-bar-v2 {
-      padding: 0.5px;
-      border-radius: 20px; /* Bo tròn Pill-shape cực mạnh kiểu TikTok Shop */
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.1);
-    }
-    .neural-inner {
-      padding: 5px 12px 5px 8px;
-      border-radius: 20px;
-      background: rgba(18, 18, 20, 0.98);
-      backdrop-filter: blur(20px);
-    }
-    .user-name {
-        font-size: 10px;
-        color: #FF0050; /* TikTok Pink accent */
-    }
-    .action-text, .time-tag {
-        font-size: 10px;
-    }
-    .neural-icon-wrap {
-        width: 18px;
-        height: 18px;
-        background: rgba(255, 255, 255, 0.1);
-    }
   }
 </style>

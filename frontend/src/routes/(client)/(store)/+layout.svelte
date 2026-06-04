@@ -37,7 +37,7 @@
 
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
-    if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
+    if (!isAdmin && ui.isMobile && ui.settings?.conversions?.fomo_enabled) {
         fomoStore.init('smartshop-elite');
     }
 
@@ -60,7 +60,7 @@
     }
     
     // Fomo State Machine (Elite V2.6)
-    const fomoEnabled = !isAdmin && ui.settings?.conversions?.fomo_enabled;
+    const fomoEnabled = !isAdmin && ui.isMobile && ui.settings?.conversions?.fomo_enabled;
     if (fomoEnabled) {
         if (!fomoStore.isInitialized) {
             fomoStore.init('smartshop-elite');
@@ -135,7 +135,7 @@
     {/if}
   {/if}
 
-  {#if !isAdmin && ui.settings?.conversions?.fomo_enabled && NeuralBarComponent}
+  {#if !isAdmin && ui.isMobile && ui.settings?.conversions?.fomo_enabled && NeuralBarComponent}
     {@const DynamicBar = NeuralBarComponent}
     <DynamicBar />
   {/if}
