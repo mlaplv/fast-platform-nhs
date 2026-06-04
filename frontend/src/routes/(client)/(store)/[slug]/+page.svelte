@@ -137,12 +137,15 @@
       const p = productData.product;
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
       if (data.isMobile) {
+        // Fallback matching MobileHero.svelte
         if (tierVar) {
           const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
           if (mobImgs.length > 0) return mobImgs[0];
           const deskImgs = (tierVar.images || []).filter(Boolean);
           if (deskImgs.length > 0) return deskImgs[0];
         }
+        if (p.mobileImages && p.mobileImages.length > 0) return p.mobileImages[0];
+        if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) return p.metadata.mobile_images[0];
       } else {
         if (tierVar) {
           const deskImgs = (tierVar.images || []).filter(Boolean);

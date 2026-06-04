@@ -266,12 +266,19 @@
       : 0
   );
 
+  let scrollTicking = false;
   function handleCarouselScroll(e: Event) {
-    if (!carouselRef) return;
-    const scrollLeft = (e.target as HTMLElement).scrollLeft;
-    // clientWidth: read from the bound reactive variable, zero layout cost!
-    const width = carouselWidth || 375;
-    activeImageIndex = Math.round(scrollLeft / width);
+    if (!carouselRef || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      if (carouselRef) {
+        const scrollLeft = carouselRef.scrollLeft;
+        // clientWidth: read from the bound reactive variable, zero layout cost!
+        const width = carouselWidth || 375;
+        activeImageIndex = Math.round(scrollLeft / width);
+      }
+      scrollTicking = false;
+    });
   }
 
   function toggleVoucher(id: string) {
@@ -292,11 +299,18 @@
     }
   }
 
+  let voucherScrollTicking = false;
   function handleVoucherScroll() {
-    if (!vouchersListRef) return;
-    const { scrollLeft, scrollWidth } = vouchersListRef;
-    isAtStart = scrollLeft <= 5;
-    isAtEnd = scrollLeft + (vouchersWidth || 375) >= scrollWidth - 5;
+    if (!vouchersListRef || voucherScrollTicking) return;
+    voucherScrollTicking = true;
+    requestAnimationFrame(() => {
+      if (vouchersListRef) {
+        const { scrollLeft, scrollWidth } = vouchersListRef;
+        isAtStart = scrollLeft <= 5;
+        isAtEnd = scrollLeft + (vouchersWidth || 375) >= scrollWidth - 5;
+      }
+      voucherScrollTicking = false;
+    });
   }
 
   const activeComboQty = $derived((selectedVariant || pVariants?.[0])?.attributes?.combo_qty || (selectedVariant || pVariants?.[0])?.attributes?.comboQty || product.metadata?.combo_qty || 0);
