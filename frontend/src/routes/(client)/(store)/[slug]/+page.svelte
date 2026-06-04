@@ -12,6 +12,15 @@
   type FunnelPageData = PageData;
   import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
+  import MobileFunnelManager from '$lib/components/storefront/funnel/MobileFunnelManager.svelte';
+  import DesktopFunnelManager from '$lib/components/storefront/funnel/DesktopFunnelManager.svelte';
+  import ProductDetailMobile from '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte';
+  import ProductDetailDesktop from '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte';
+  import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
+  import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
+  import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
+  import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
+
 
 
   let { data }: { data: PageData } = $props();
@@ -240,15 +249,29 @@
   {/if}
 {/snippet}
 
-{#if data.component}
-  {#if data.type === 'product' && isFunnel}
-    <svelte:component this={data.component} data={data} />
-  {:else if data.type === 'product'}
-    <svelte:component this={data.component} product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
-  {:else if data.type === 'news'}
-    <svelte:component this={data.component} newsList={data.items} categoryName={data.categoryName} />
-  {:else if data.type === 'category'}
-    <svelte:component this={data.component} products={data.items} categoryName={data.categoryName} categorySlug={data.categorySlug} serverTotal={data.serverTotal} facets={data.facets} category={data.category} />
+{#if data.type === 'product' && isFunnel}
+  {#if data.isMobile}
+    <MobileFunnelManager data={data} />
+  {:else}
+    <DesktopFunnelManager data={data} />
+  {/if}
+{:else if data.type === 'product'}
+  {#if data.isMobile}
+    <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
+  {:else}
+    <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
+  {/if}
+{:else if data.type === 'news'}
+  {#if data.isMobile}
+    <NewsListMobile newsList={data.items} categoryName={data.categoryName} />
+  {:else}
+    <NewsListDesktop newsList={data.items} categoryName={data.categoryName} />
+  {/if}
+{:else if data.type === 'category'}
+  {#if data.isMobile}
+    <ProductListMobile products={data.items} categoryName={data.categoryName} categorySlug={data.categorySlug} serverTotal={data.serverTotal} facets={data.facets} category={data.category} />
+  {:else}
+    <ProductListDesktop products={data.items} categoryName={data.categoryName} categorySlug={data.categorySlug} serverTotal={data.serverTotal} facets={data.facets} category={data.category} />
   {/if}
 {:else}
   {@render Skeleton(data.type)}

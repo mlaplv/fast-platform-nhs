@@ -20,9 +20,7 @@ interface ReviewStats {
 }
 
 // ── Loader ────────────────────────────────────────────────────────────────────
-export const load: PageLoad = async ({ params, fetch, url, parent }) => {
-  const parentData = await parent();
-  const isMobile = parentData.isMobile;
+export const load: PageLoad = async ({ params, fetch, url }) => {
   const { slug } = params;
 
   // ── 1. Category (trailing slash) ─────────────────────────────────────────
@@ -59,21 +57,13 @@ export const load: PageLoad = async ({ params, fetch, url, parent }) => {
       };
     }
 
-    let component: any = null;
-    if (isMobile) {
-      component = (await import('$lib/components/storefront/product/ProductListMobile.svelte')).default;
-    } else {
-      component = (await import('$lib/components/storefront/product/ProductListDesktop.svelte')).default;
-    }
-
     return {
       type: 'category' as const,
       categoryName: (category?.name as string) || slug.replace(/-/g, ' ').toUpperCase(),
       categorySlug: slug,
       category,
       serverTotal: total,
-      items,
-      component
+      items
     };
   }
 
@@ -86,18 +76,10 @@ export const load: PageLoad = async ({ params, fetch, url, parent }) => {
     if (!newsRes?.ok) throw error(404, { message: 'Hiện tại chưa có bài viết nào.' });
 
     const data = await newsRes.json() as Record<string, unknown>;
-    let component: any = null;
-    if (isMobile) {
-      component = (await import('$lib/components/storefront/news/NewsListMobile.svelte')).default;
-    } else {
-      component = (await import('$lib/components/storefront/news/NewsListDesktop.svelte')).default;
-    }
-
     return {
       type: 'news' as const,
       categoryName: 'Hướng dẫn - kiến thức',
-      items: (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[],
-      component
+      items: (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[]
     };
   }
 
@@ -183,21 +165,6 @@ export const load: PageLoad = async ({ params, fetch, url, parent }) => {
     // NOTE: isMobile intentionally NOT set here.
     // It is resolved server-side in hooks.server.ts (User-Agent) and passed through layout data.
     // Setting it here via window.innerWidth would cause SSR/Hydration mismatch.
-    let component: any = null;
-    if (isFunnel) {
-      if (isMobile) {
-        component = (await import('$lib/components/storefront/funnel/MobileFunnelManager.svelte')).default;
-      } else {
-        component = (await import('$lib/components/storefront/funnel/DesktopFunnelManager.svelte')).default;
-      }
-    } else {
-      if (isMobile) {
-        component = (await import('$lib/components/storefront/product-detail/MainDetail/Mobile.svelte')).default;
-      } else {
-        component = (await import('$lib/components/storefront/product-detail/MainDetail/Desktop.svelte')).default;
-      }
-    }
-
     return {
       type: 'product' as const,
       product,
@@ -205,8 +172,7 @@ export const load: PageLoad = async ({ params, fetch, url, parent }) => {
       relatedProducts,
       reviews,
       shopInfo,
-      unlockedVoucherIds,
-      component
+      unlockedVoucherIds
     };
   }
 
