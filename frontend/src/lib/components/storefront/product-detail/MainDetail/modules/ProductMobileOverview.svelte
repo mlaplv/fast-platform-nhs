@@ -187,7 +187,7 @@
   }
   
   // Voucher State
-  let vouchersListRef: HTMLElement | null = $state(null);
+  let vouchersListRef = $state<HTMLElement | null>(null);
   let isAtStart = $state(true);
   let isAtEnd = $state(false);
   let selectedVouchers = $state<string[]>([]);
@@ -273,8 +273,8 @@
     requestAnimationFrame(() => {
       if (carouselRef) {
         const scrollLeft = carouselRef.scrollLeft;
-        // clientWidth: read from the bound reactive variable, zero layout cost!
-        const width = carouselWidth || 375;
+        // Read window.innerWidth directly to avoid ResizeObserver reflow
+        const width = window.innerWidth || 375;
         activeImageIndex = Math.round(scrollLeft / width);
       }
       scrollTicking = false;
@@ -307,7 +307,9 @@
       if (vouchersListRef) {
         const { scrollLeft, scrollWidth } = vouchersListRef;
         isAtStart = scrollLeft <= 5;
-        isAtEnd = scrollLeft + (vouchersWidth || 375) >= scrollWidth - 5;
+        // Avoid bound reactive variable to prevent ResizeObserver
+        const viewWidth = window.innerWidth || 375;
+        isAtEnd = scrollLeft + viewWidth >= scrollWidth - 5;
       }
       voucherScrollTicking = false;
     });
@@ -343,12 +345,11 @@
       // Scroll using requestAnimationFrame to avoid forced reflow
       requestAnimationFrame(() => {
         if (carouselRef) {
-          carouselRef.scrollTo({ left: i * (carouselWidth || 375), behavior: 'smooth' });
+          carouselRef.scrollTo({ left: i * (window.innerWidth || 375), behavior: 'smooth' });
         }
       });
     }}
     bind:carouselRef
-    bind:carouselWidth
     {isVideoUrl}
   />
 
@@ -405,7 +406,7 @@
     <div class="vouchers-outer">
       {#if !isAtStart}<button class="scroll-btn prev" aria-label="Cuộn trái" onclick={() => scrollVouchers('prev')}><ChevronLeft size={14} /></button>{/if}
       <div class="vouchers-container">
-        <div class="vouchers-list" bind:this={vouchersListRef} bind:clientWidth={vouchersWidth} onscroll={handleVoucherScroll}>
+        <div class="vouchers-list" bind:this={vouchersListRef} onscroll={handleVoucherScroll}>
           {#each vouchers as v}
             {@const isApplied = selectedVouchers.includes(v.id)}
             <button type="button" class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>

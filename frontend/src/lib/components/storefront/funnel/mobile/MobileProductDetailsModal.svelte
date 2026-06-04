@@ -43,11 +43,14 @@
     if (imageScrollTicking) return;
     imageScrollTicking = true;
     requestAnimationFrame(() => {
-      const el = e.target as HTMLDivElement;
-      if (el) {
-        const width = carouselWidth || 300;
-        const index = Math.round(el.scrollLeft / width);
-        if (currentImageIndex !== index) currentImageIndex = index;
+      if (scrollContainer) {
+        const cw = window.innerWidth || scrollContainer.clientWidth;
+        if (cw > 0) {
+          const newIndex = Math.round(scrollContainer.scrollLeft / cw);
+          if (newIndex !== currentImageIndex && newIndex >= 0) {
+            currentImageIndex = newIndex;
+          }
+        }
       }
       imageScrollTicking = false;
     });
@@ -455,7 +458,6 @@
           >
             <div
               bind:this={scrollContainer}
-              bind:clientWidth={carouselWidth}
               onscroll={handleImageScroll}
               class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar"
               style="scrollbar-width: none; -ms-overflow-style: none;"
