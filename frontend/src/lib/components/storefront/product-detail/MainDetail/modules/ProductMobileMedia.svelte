@@ -74,7 +74,7 @@
             class="slide-media" 
             loading={i === 0 ? undefined : "lazy"} 
             fetchpriority={i === 0 ? "high" : "low"}
-            decoding={i === 0 ? "sync" : "async"}
+            decoding="async"
           />
         {/if}
       </div>
