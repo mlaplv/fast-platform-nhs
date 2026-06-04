@@ -38,10 +38,12 @@
 
   $effect(() => {
     if (containerRef) {
-      // Use setTimeout to allow the browser to paint first, avoiding forced layout
       setTimeout(() => {
         if (containerRef) {
-          hasMore = containerRef.scrollHeight > truncatedHeight;
+          const newHasMore = containerRef.scrollHeight > truncatedHeight;
+          if (hasMore !== newHasMore) {
+            hasMore = newHasMore;
+          }
         }
       }, 0);
     }
