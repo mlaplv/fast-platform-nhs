@@ -10,6 +10,7 @@
 
   import BottomSheet from '$lib/components/storefront/funnel/mobile/BottomSheet.svelte';
   import SmartSearch from '$lib/components/storefront/product/SmartSearch.svelte';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   const searchStore = getSearchStore();
 
@@ -164,7 +165,7 @@
         {#each sortedProducts() as p}
           <a href="/{p.slug}" class="bg-white rounded-2xl border border-gray-50 overflow-hidden shadow-sm hover:shadow-md transition-shadow active:scale-[0.98] transition-transform">
             <div class="aspect-square bg-gray-50 overflow-hidden relative">
-              <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" decoding="async" />
+              <img src={resolveOptimizedImageUrl(p.images?.[0] ?? p.metadata?.image_url, 400)} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" decoding="async" />
               {#if p.discountPrice && p.price && p.discountPrice < p.price}
                 {@const percent = Math.round((1 - p.discountPrice / p.price) * 100)}
                 {#if percent > 0}

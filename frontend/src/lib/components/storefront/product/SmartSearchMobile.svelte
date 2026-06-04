@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName, formatCurrency } from '$lib/utils/format';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
   import { fade, fly } from 'svelte/transition';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import Search from "@lucide/svelte/icons/search";
@@ -130,7 +131,7 @@
                     class="group relative flex items-center gap-3 p-3 bg-white active:bg-gray-50 transition-colors text-left"
                   >
                     <div class="w-16 h-16 shrink-0 bg-white p-1 border border-gray-50 relative">
-                      <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" />
+                      <img src={resolveOptimizedImageUrl(p.images?.[0] ?? p.metadata?.image_url, 400)} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" />
                       <div class="absolute -top-1 -right-1 w-5 h-5 bg-[#FF3B30] text-white text-[9px] font-black flex items-center justify-center border border-white">
                         {i + 1}
                       </div>
@@ -213,7 +214,7 @@
                       class="flex items-center gap-3 p-3 bg-white active:bg-gray-50 transition-colors"
                     >
                       <div class="w-16 h-16 shrink-0 bg-white p-1.5 border border-gray-50">
-                        <img src={p.images?.[0]} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
+                        <img src={resolveOptimizedImageUrl(p.images?.[0] ?? p.metadata?.image_url, 400)} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
                       </div>
                       <div class="flex flex-col min-w-0">
                         <h4 class="text-[13px] font-bold text-gray-900 line-clamp-2 leading-tight mb-1">{p.name}</h4>

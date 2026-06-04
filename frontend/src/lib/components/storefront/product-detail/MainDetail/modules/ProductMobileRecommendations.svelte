@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatCurrency, trimProductName } from '$lib/utils/format';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
   interface Props {
     relatedProducts: Product[];
   }
@@ -13,7 +14,7 @@
     {#each relatedProducts as p}
       <a data-sveltekit-reload href="/{p.slug}" class="related-card">
         <div class="img-wrap">
-          <img src={p.images?.[0] || 'https://via.placeholder.com/150'} alt={p.name} />
+          <img src={resolveOptimizedImageUrl(p.images?.[0] || 'https://via.placeholder.com/150', 400)} alt={p.name} loading="lazy" decoding="async" />
         </div>
         <div class="info-wrap">
           <h3 class="related-name">{trimProductName(p.name)}</h3>

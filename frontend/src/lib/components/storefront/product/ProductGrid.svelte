@@ -3,6 +3,7 @@
   import { fly } from 'svelte/transition';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     products: Product[];
@@ -47,10 +48,11 @@
         {/if}
 
         <img
-          src={product.images?.[0] || ''}
+          src={resolveOptimizedImageUrl(product.images?.[0] || '', 400)}
           alt={product.name}
           class="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
           loading="lazy"
+          decoding="async"
         />
 
         <!-- Freeship Xtra Badge (Floating Bottom) -->
