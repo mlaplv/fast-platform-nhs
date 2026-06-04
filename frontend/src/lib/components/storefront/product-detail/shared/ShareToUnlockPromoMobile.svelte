@@ -821,7 +821,11 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding-bottom: 2px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
   .stu-ios-content { display: flex; flex-direction: column; gap: 0; }
   .stu-ios-title { 
@@ -837,7 +841,7 @@
   
   .stu-ios-btn { 
     position: relative; overflow: hidden;
-    background: rgba(255, 45, 85, 0.85);
+    background: rgba(220, 20, 60, 0.95);
     color: #fff;
     height: 34px;
     padding: 0 10px;

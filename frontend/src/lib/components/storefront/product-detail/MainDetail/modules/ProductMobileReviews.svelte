@@ -236,8 +236,8 @@
 
       <div class="fomo-footer mt-1.5 p-2.5 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
         <div class="flex flex-col">
-          <span class="text-[11px] font-black text-luxury-copper tracking-tighter italic">Cảm nhận thực tế</span>
-          <span class="text-[9px] text-gray-400 font-bold tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
+          <span class="text-[11px] font-black text-[#9A6A58] tracking-tighter italic">Cảm nhận thực tế</span>
+          <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
         </div>
         <a href="/{product.slug}/reviews" class="btn-discover bg-luxury-copper">Khám phá ngay</a>
       </div>
@@ -259,7 +259,7 @@
   .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #666; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
   .user-meta { flex: 1; }
   .username { font-size: 13px; font-weight: 700; color: #222; }
-  .review-date-mini { font-size: 10px; color: #bbb; font-weight: 500; }
+  .review-date-mini { font-size: 10px; color: #777; font-weight: 500; }
 
   .review-content { margin-bottom: 6px; font-size: 14px; color: #444; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 

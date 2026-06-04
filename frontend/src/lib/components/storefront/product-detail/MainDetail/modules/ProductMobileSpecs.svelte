@@ -262,7 +262,7 @@
         <div
           class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden"
         >
-          <span class="text-[10px] text-gray-400 font-medium truncate"
+          <span class="text-[10px] text-gray-500 font-medium truncate"
             >{key.replace(/_/g, " ")}</span
           >
           {#if isBrandKey && val}
@@ -335,7 +335,7 @@
               <div class="flex flex-col gap-1">
                 <div class="flex items-center justify-between border-b border-gray-100/50 pb-0.5">
                   <span class="text-[10px] font-black text-teal-600 uppercase tracking-wider">{grp.group}</span>
-                  <span class="text-[9px] font-black text-gray-400">{grp.items.length} chất</span>
+                  <span class="text-[9px] font-black text-gray-500">{grp.items.length} chất</span>
                 </div>
                 <div class="flex flex-wrap gap-1 mt-0.5 font-mono">
                   {#each grp.items as item}
@@ -357,7 +357,7 @@
             </div>
           {:else}
             <div class="mt-3 flex justify-center">
-              <div class="flex items-center gap-1 text-gray-400 font-sans">
+              <div class="flex items-center gap-1 text-gray-500 font-sans">
                 <span class="text-[11px] font-medium">Thu gọn</span>
                 <ChevronUp size={12} />
               </div>
@@ -389,7 +389,7 @@
             </div>
           {:else}
             <div class="mt-2 flex justify-center">
-              <div class="flex items-center gap-1 text-gray-400 font-sans">
+              <div class="flex items-center gap-1 text-gray-500 font-sans">
                 <span class="text-[11px] font-medium">Thu gọn</span>
                 <ChevronUp size={12} />
               </div>
@@ -399,7 +399,7 @@
       {/if}
       <div class="mt-1 flex items-center gap-2 px-1">
         <Info size={10} class="text-blue-500" />
-        <span class="text-[9px] text-gray-400 font-bold italic"
+        <span class="text-[9px] text-gray-500 font-bold italic"
           >Phân tích thành phần bằng AI, sắp xếp theo độ ưu tiên giảm dần</span
         >
       </div>

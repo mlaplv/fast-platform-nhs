@@ -441,7 +441,7 @@
           class="ml-auto flex items-center gap-1.5 px-2 py-1 bg-green-50/50 rounded-lg border border-green-100/50 active:scale-95 transition-all transform translate-y-[-10px]"
         >
           <div class="flex flex-col items-end">
-            <span class="text-[7px] font-black text-green-600 tracking-[0.2em] uppercase leading-none mb-0.5">Mã vạch</span>
+            <span class="text-[7px] font-black text-green-800 tracking-[0.2em] uppercase leading-none mb-0.5">Mã vạch</span>
             <span class="text-[10px] font-black text-gray-900 tracking-tighter leading-none">{product.sku || product.metadata?.barcode}</span>
           </div>
           <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping shrink-0"></div>
@@ -452,7 +452,7 @@
     {#if variations.length > 0}
       <div class="w-full border-y border-gray-50 variations-container">
         <div class="flex items-center justify-between mb-2 px-1">
-          <span class="text-[12px] text-gray-400 font-bold tracking-wider">
+          <span class="text-[12px] text-gray-500 font-bold tracking-wider">
             {variations.length === 1 ? variations[0].name : 'Lựa chọn'}
           </span>
           {#if variations.length > 1}
@@ -511,7 +511,7 @@
           </div>
 
           <div class="mb-3 px-1">
-             <p class="text-[11px] text-slate-500 font-medium leading-relaxed italic">
+             <p class="text-[11px] text-slate-600 font-medium leading-relaxed italic">
                 "{helenAdvice}"
              </p>
           </div>
@@ -619,7 +619,7 @@
   .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 6px; margin-bottom: 6px; }
   .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; }
 
-  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; margin-bottom: 6px; }
+  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; margin-bottom: 6px; }
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }

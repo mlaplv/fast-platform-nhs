@@ -212,7 +212,7 @@
     align-items: center;
     padding: 0 12px;
     gap: 8px;
-    color: #888;
+    color: #555;
     overflow: hidden;
     border: 1px solid rgba(0,0,0,0.02);
   }

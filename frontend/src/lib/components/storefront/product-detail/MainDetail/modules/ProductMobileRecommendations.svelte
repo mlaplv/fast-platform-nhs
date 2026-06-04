@@ -34,5 +34,5 @@
   .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .info-wrap { padding: 10px; }
   .related-name { font-size: 12px; font-weight: 600; color: #333; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0 0 6px 0; }
-  .related-price { font-size: 15px; font-weight: 900; color: #ee4d2d; letter-spacing: -0.02em; }
+  .related-price { font-size: 15px; font-weight: 900; color: #d32f2f; letter-spacing: -0.02em; }
 </style>
