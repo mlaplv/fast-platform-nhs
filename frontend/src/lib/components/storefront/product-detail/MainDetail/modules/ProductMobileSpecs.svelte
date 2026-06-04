@@ -37,15 +37,17 @@
   });
 
   $effect(() => {
-    if (containerRef) {
-      setTimeout(() => {
-        if (containerRef) {
-          const newHasMore = containerRef.scrollHeight > truncatedHeight;
+    if (containerRef && typeof window !== "undefined") {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const newHasMore = entry.target.scrollHeight > truncatedHeight;
           if (hasMore !== newHasMore) {
             hasMore = newHasMore;
           }
         }
-      }, 0);
+      });
+      observer.observe(containerRef);
+      return () => observer.disconnect();
     }
   });
 
