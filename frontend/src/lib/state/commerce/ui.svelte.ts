@@ -152,9 +152,14 @@ export function createClientUiState(): ClientUiState {
             globalState.isDetermined = true;
             globalState.isHydrated = true;
 
-            window.addEventListener('resize', handleResize, { passive: true });
+            const observer = new ResizeObserver(() => {
+                handleResize();
+            });
+            
+            observer.observe(document.body);
+
             return () => {
-                window.removeEventListener('resize', handleResize);
+                observer.disconnect();
             };
         },
 
