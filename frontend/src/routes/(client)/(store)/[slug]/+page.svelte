@@ -159,8 +159,15 @@
       {#if isVideo}
         <link rel="preload" as="video" type="video/mp4" href={heroImage} fetchpriority="high" />
       {:else}
-        {@const preloadUrl = resolveOptimizedImageUrl(heroImage, data.isMobile ? 600 : 800)}
-        <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
+        {#if data.isMobile}
+          {@const src412 = resolveOptimizedImageUrl(heroImage, 412)}
+          {@const src600 = resolveOptimizedImageUrl(heroImage, 600)}
+          {@const src800 = resolveOptimizedImageUrl(heroImage, 800)}
+          <link rel="preload" as="image" imagesrcset="{src412} 1x, {src600} 1.5x, {src800} 2x" fetchpriority="high" />
+        {:else}
+          {@const preloadUrl = resolveOptimizedImageUrl(heroImage, 800)}
+          <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
+        {/if}
       {/if}
     {/if}
   {/if}

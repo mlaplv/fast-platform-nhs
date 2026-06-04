@@ -69,7 +69,10 @@
           {/if}
         {:else}
           <img 
-            src={resolveOptimizedImageUrl(img, 600)} 
+            src={resolveOptimizedImageUrl(img, 450)} 
+            srcset="{resolveOptimizedImageUrl(img, 412)} 1x, {resolveOptimizedImageUrl(img, 600)} 1.5x, {resolveOptimizedImageUrl(img, 800)} 2x"
+            width="412"
+            height="412"
             alt={product.name} 
             class="slide-media" 
             loading={i === 0 ? undefined : "lazy"} 
