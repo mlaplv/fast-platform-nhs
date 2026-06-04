@@ -103,7 +103,7 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 
 		# Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
 		@cacheable {
-			path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json
+			path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json *.webp
 			not path /index.html
 			not path /wasm/*
 			not path /vad/*
