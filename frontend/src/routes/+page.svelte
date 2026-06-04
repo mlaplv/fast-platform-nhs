@@ -1,25 +1,26 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { fade } from 'svelte/transition';
     import { onMount, type Component } from 'svelte';
-    import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
 
     /**
      * ELITE V2.2 - MISSION CONTROL HUB
-     * Logic: Zero-latency component selection based on verified tenant data.
-     * Rule: Static Typing (No 'any'), Rune-based reactivity.
+     * Type-safe tenant router: Admin and Storefront are fully isolated code paths.
+     * SeoHead is lazy-loaded only for storefront to avoid wasted JS parse on admin.
      */
     let { data }: { data: PageData } = $props();
 
-    // ELITE V2.2: Dynamic Component State (Post-Mount Resolution)
-    let activeComponent = $state<Component<{ data: PageData; isMobile: boolean }> | null>(null);
+    const isAdmin = $derived(data.tenant === 'admin');
 
-    const loadAdmin = () => import("$lib/components/admin/layout/AdminDashboard.svelte");
-    const loadStorefront = () => import("$lib/components/storefront/StorefrontHome.svelte");
+    // Type-safe component slots: separated by tenant to prevent prop mismatch bombs
+    let adminComponent = $state<Component<{ isMobile?: boolean; data?: PageData }> | null>(null);
+    let storefrontComponent = $state<Component<{ data: PageData; isMobile: boolean }> | null>(null);
+
+    // Lazy-loaded SeoHead — zero JS parse cost for admin tenant
+    let SeoHead = $state<Component<Record<string, unknown>> | null>(null);
 
     onMount(async () => {
-        // Disable GA/GTM/Pixel tracking early if in admin tenant mode to prevent data leak
-        if (data.tenant === 'admin') {
+        if (isAdmin) {
+            // Security: Neutralize all analytics trackers for admin zone
             try {
                 const seo = data.shopInfo?.seo_analytics;
                 if (seo) {
@@ -31,31 +32,36 @@
             } catch (e) {
                 console.error("[SECURITY] Failed to disable analytics for Admin Tenant:", e);
             }
-        }
 
-        try {
-            if (data.tenant === 'admin') {
-                const mod = await loadAdmin();
-                activeComponent = mod.default;
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('app-ready'));
-                }
-            } else {
-                const mod = await loadStorefront();
-                activeComponent = mod.default;
-            }
-        } catch (err) {
-            console.error("[SYSTEM FAULT] DYNAMIC_LOAD_FAILED:", err);
-            if (typeof window !== 'undefined') {
+            try {
+                const mod = await import("$lib/components/admin/layout/AdminDashboard.svelte");
+                adminComponent = mod.default;
                 window.dispatchEvent(new Event('app-ready'));
-                console.warn("[RECOVER] Chunk loading failed. Reloading page to force synchronization...");
+            } catch (err) {
+                console.error("[SYSTEM FAULT] Admin load failed:", err);
+                window.dispatchEvent(new Event('app-ready'));
+                window.location.reload();
+            }
+        } else {
+            try {
+                // Parallel load: SeoHead + StorefrontHome simultaneously
+                const [seoMod, storeMod] = await Promise.all([
+                    import('$lib/components/storefront/seo/SeoHead.svelte'),
+                    import('$lib/components/storefront/StorefrontHome.svelte')
+                ]);
+                SeoHead = seoMod.default;
+                storefrontComponent = storeMod.default;
+                // StorefrontHome dispatches app-ready itself after sub-components mount
+            } catch (err) {
+                console.error("[SYSTEM FAULT] Storefront load failed:", err);
+                window.dispatchEvent(new Event('app-ready'));
                 window.location.reload();
             }
         }
     });
 
-    // ELITE V2.2: SEO Derivation logic (Zero-Latency Sync)
-    const shopSettings = $derived(data.shopInfo);
+    // SEO Derivation — only computed when storefront (no wasted CPU for admin)
+    const shopSettings = $derived(!isAdmin ? data.shopInfo : null);
     const seoSiteName = $derived(
         shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo Elite"
     );
@@ -74,8 +80,9 @@
     );
 </script>
 
-{#if data.tenant !== 'admin'}
-    <SeoHead
+<!-- SEO: Only rendered for storefront, lazy-loaded -->
+{#if !isAdmin && SeoHead}
+    <svelte:component this={SeoHead}
         pageType="HOMEPAGE_ELITE"
         title={seoTitle}
         description={seoDescription}
@@ -87,30 +94,37 @@
             data.seo_meta?.breadcrumb_ld_string
         ].filter(Boolean)}
     />
-{:else}
-    <SeoHead title="Admin Control Center" robots="noindex, nofollow" />
 {/if}
 
 <svelte:head>
-    {#if data.tenant === 'admin'}
+    {#if isAdmin}
         <title>Xohi Darkboard</title>
+        <meta name="robots" content="noindex, nofollow" />
     {/if}
 </svelte:head>
 
-<div class="page-container md:h-auto md:overflow-visible h-dvh overflow-x-hidden overflow-y-auto {data.tenant === 'admin' ? 'bg-[#020202]' : 'bg-[#fafafa]'}">
-    {#if activeComponent}
-        <div in:fade={{ duration: 300 }} class="flex-1 flex flex-col">
+<div class="page-container md:h-auto md:overflow-visible min-h-dvh overflow-x-hidden {isAdmin ? 'bg-[#020202]' : 'bg-[#fafafa]'}">
+    {#if isAdmin && adminComponent}
+        <div class="flex-1 flex flex-col">
             <svelte:component
-                this={activeComponent}
+                this={adminComponent}
+                isMobile={data.isMobile}
+                data={data}
+            />
+        </div>
+    {:else if !isAdmin && storefrontComponent}
+        <div class="flex-1 flex flex-col">
+            <svelte:component
+                this={storefrontComponent}
                 data={data}
                 isMobile={data.isMobile}
             />
         </div>
     {:else}
-        <!-- Luxury Storefront/Admin Loading State (Elite V2.2) -->
-        <div class="fixed inset-0 flex items-center justify-center {data.tenant === 'admin' ? 'bg-[#020202] text-[#00FFFF]' : 'bg-[#fafafa] text-[#C5A25D]'} z-[var(--z-modal-overlay)]">
+        <!-- Loading State: Tenant-specific spinner -->
+        <div class="fixed inset-0 flex items-center justify-center {isAdmin ? 'bg-[#020202] text-[#00FFFF]' : 'bg-[#fafafa] text-[#C5A25D]'} z-[var(--z-modal-overlay)]">
             <div class="relative flex flex-col items-center gap-6">
-                {#if data.tenant === 'admin'}
+                {#if isAdmin}
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
                     <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] animate-pulse">Initializing Neural Link...</div>
                 {:else}

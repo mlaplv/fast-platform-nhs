@@ -142,5 +142,5 @@
 :global(.text-ruby) { color: var(--ruby) !important; }
 :global(.text-cyan) { color: var(--cyan) !important; }
 :global(.text-amber) { color: var(--amber) !important; }
-:global(.font-mono) { font-family: 'JetBrains Mono', monospace !important; }
+:global(.font-mono) { font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important; }
 :global(.num) { text-align: right; }

@@ -49,7 +49,7 @@
     {#if showHeadline}
       <h3
         id="personalized-care"
-        class="elite-session-headline mb-12 text-center diagnostics-headline"
+        class="elite-session-headline mb-4 text-center diagnostics-headline"
       >
         <span>
           <EditableWrapper
@@ -63,21 +63,21 @@
               "CHẨN ĐOÁN PHỤC HỒI SẮC TỐ GỐC"}
           </EditableWrapper>
         </span>
-        {#if showSubtitle}
-          <span class="diagnostics-subtitle-text">
-            <EditableWrapper
-              path="metadata.diagnostics_subtitle"
-              type="text"
-              label="Sửa mô tả phụ chẩn đoán"
-              class="inline"
-              as="span"
-            >
-              {product?.metadata?.diagnostics_subtitle ||
-                "Thấu hiểu làn da toàn diện với phác đồ quét và phân tích sạm nám bằng công nghệ AI thế hệ mới"}
-            </EditableWrapper>
-          </span>
-        {/if}
       </h3>
+    {/if}
+    {#if showSubtitle}
+      <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10 text-center font-normal mt-4">
+        <EditableWrapper
+          path="metadata.diagnostics_subtitle"
+          type="text"
+          label="Sửa mô tả phụ chẩn đoán"
+          class="inline"
+          as="span"
+        >
+          {product?.metadata?.diagnostics_subtitle ||
+            "Thấu hiểu làn da toàn diện với phác đồ quét và phân tích sạm nám bằng công nghệ AI thế hệ mới"}
+        </EditableWrapper>
+      </p>
     {/if}
 
     <div class="quiz-wrapper relative">
@@ -134,12 +134,5 @@
     display: block;
     margin-bottom: 0.15rem;
   }
-  
-  .diagnostics-headline :global(.diagnostics-subtitle-text) {
-    font-size: 0.65em !important;
-    opacity: 0.8;
-    letter-spacing: 0.05em !important;
-    font-weight: 500 !important;
-    -webkit-text-fill-color: white !important;
-  }
+
 </style>

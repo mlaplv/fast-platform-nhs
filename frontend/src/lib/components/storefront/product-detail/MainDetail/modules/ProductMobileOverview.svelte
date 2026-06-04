@@ -154,6 +154,9 @@
     }
   });
 
+  let carouselWidth = $state(0);
+  let vouchersWidth = $state(0);
+
   /** Auto-scroll mobile carousel to selected variant image */
   $effect(() => {
     if (selectedVariant) {
@@ -161,14 +164,18 @@
       if (typeof idx === 'number' && idx >= 0 && idx < displayImages.length) {
         activeImageIndex = idx;
         if (carouselRef) {
-          // Use clientWidth — does NOT trigger forced reflow
-          const width = carouselRef.clientWidth;
-          if (width > 0) {
-            carouselRef.scrollTo({
-              left: idx * width,
-              behavior: 'smooth'
-            });
-          }
+          // Defer the scrolling to requestAnimationFrame to ensure the DOM layout is stable,
+          // and use the reactive carouselWidth variable to avoid clientWidth read reflows.
+          requestAnimationFrame(() => {
+            if (!carouselRef) return;
+            const width = carouselWidth || 375;
+            if (width > 0) {
+              carouselRef.scrollTo({
+                left: idx * width,
+                behavior: 'smooth'
+              });
+            }
+          });
         }
       }
     }
@@ -262,8 +269,8 @@
   function handleCarouselScroll(e: Event) {
     if (!carouselRef) return;
     const scrollLeft = (e.target as HTMLElement).scrollLeft;
-    // clientWidth: reads box model cache, does NOT trigger forced reflow
-    const width = carouselRef.clientWidth;
+    // clientWidth: read from the bound reactive variable, zero layout cost!
+    const width = carouselWidth || 375;
     activeImageIndex = Math.round(scrollLeft / width);
   }
 
@@ -287,9 +294,9 @@
 
   function handleVoucherScroll() {
     if (!vouchersListRef) return;
-    const { scrollLeft, scrollWidth, clientWidth } = vouchersListRef;
+    const { scrollLeft, scrollWidth } = vouchersListRef;
     isAtStart = scrollLeft <= 5;
-    isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+    isAtEnd = scrollLeft + (vouchersWidth || 375) >= scrollWidth - 5;
   }
 
   const activeComboQty = $derived((selectedVariant || pVariants?.[0])?.attributes?.combo_qty || (selectedVariant || pVariants?.[0])?.attributes?.comboQty || product.metadata?.combo_qty || 0);
@@ -319,9 +326,15 @@
     {triggerViralFly}
     onThumbClick={(i) => {
       activeImageIndex = i;
-      carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
+      // Scroll using requestAnimationFrame to avoid forced reflow
+      requestAnimationFrame(() => {
+        if (carouselRef) {
+          carouselRef.scrollTo({ left: i * (carouselWidth || 375), behavior: 'smooth' });
+        }
+      });
     }}
     bind:carouselRef
+    bind:carouselWidth
     {isVideoUrl}
   />
 
@@ -378,7 +391,7 @@
     <div class="vouchers-outer">
       {#if !isAtStart}<button class="scroll-btn prev" onclick={() => scrollVouchers('prev')}><ChevronLeft size={14} /></button>{/if}
       <div class="vouchers-container">
-        <div class="vouchers-list" bind:this={vouchersListRef} onscroll={handleVoucherScroll}>
+        <div class="vouchers-list" bind:this={vouchersListRef} bind:clientWidth={vouchersWidth} onscroll={handleVoucherScroll}>
           {#each vouchers as v}
             {@const isApplied = selectedVouchers.includes(v.id)}
             <button type="button" class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>

@@ -38,8 +38,8 @@ export const load: LayoutLoad = async ({ fetch }) => {
                 sessionStorage.setItem('vouchers_config', JSON.stringify(freshVouchers));
                 
                 // Reactive sync back to Cart state store
-                const { getCartStore } = await import('$lib/state/commerce/cart.svelte');
-                getCartStore().setVouchers(freshVouchers);
+                const { getGlobalCart } = await import('$lib/state/commerce/cart.svelte');
+                getGlobalCart().setVouchers(freshVouchers);
             }
         }).catch(e => console.warn("[Background Sync Failed]", e));
 

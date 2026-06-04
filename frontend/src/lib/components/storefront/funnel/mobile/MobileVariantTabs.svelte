@@ -50,7 +50,7 @@
     </div>
 
     <!-- TikTok Search Icon -->
-    <button onclick={() => searchStore.isOverlayOpen = true} class="absolute right-4 p-1 opacity-90 hover:opacity-100 transition-opacity shrink-0">
+    <button onclick={() => searchStore.isOverlayOpen = true} aria-label="Tìm kiếm" class="absolute right-4 p-1 opacity-90 hover:opacity-100 transition-opacity shrink-0">
        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>

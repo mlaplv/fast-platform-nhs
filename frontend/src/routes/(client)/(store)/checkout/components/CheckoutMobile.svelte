@@ -297,6 +297,7 @@
               type="button"
               class="mt-[28px] shrink-0"
               onclick={() => cartStore.toggleItemSelection(item.id)}
+              aria-label="Chọn sản phẩm"
             >
               <div
                 class="w-[18px] h-[18px] rounded-full flex items-center justify-center border {item.selected
@@ -559,6 +560,7 @@
                   type="button"
                   onclick={() => removeCustomItem(idx)}
                   class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-gray-200 text-gray-400 hover:text-[#fe2c55] rounded-full flex items-center justify-center shadow-sm"
+                  aria-label="Xóa sản phẩm tự chọn"
                 >
                   <svg
                     class="w-3 h-3"
@@ -622,6 +624,7 @@
                   type="button"
                   onclick={() => (showCustomItemForm = false)}
                   class="text-gray-400 hover:text-gray-950"
+                  aria-label="Đóng form"
                   ><svg
                     class="w-4 h-4"
                     fill="none"
@@ -844,6 +847,7 @@
             cartStore.toggleAll(
               cartStore.selectedItemsCount < cartStore.totalItems,
             )}
+          aria-label="Chọn tất cả"
         >
           <div
             class="w-[18px] h-[18px] rounded-full flex items-center justify-center border {cartStore.selectedItemsCount ===

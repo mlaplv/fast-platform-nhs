@@ -57,6 +57,7 @@
       class="mobile-overlay border-none outline-none"
       class:active
       onclick={close}
+      aria-label="Đóng"
       transition:fade={{ duration: 300 }}
       style:z-index={Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET_OVERLAY}
     ></button>
@@ -81,7 +82,7 @@
         <div class="w-12 h-1 bg-white/20 rounded-full"></div>
       </div>
 
-      <button onclick={close} class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90" style:z-index={Z_INDEX_CLIENT.HEADER}>
+      <button onclick={close} aria-label="Đóng" class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90" style:z-index={Z_INDEX_CLIENT.HEADER}>
         <X class="w-5 h-5" strokeWidth={2} />
       </button>
 

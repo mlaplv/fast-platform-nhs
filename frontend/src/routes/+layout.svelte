@@ -79,7 +79,7 @@
   // Elite V2.2: Dynamic Component State (Post-Mount Resolution & Non-Overlapping Imports)
   let chatComponent = $state<Component<{ productSlug?: string }> | null>(null);
   let searchComponent = $state<Component<{ variant: string }> | null>(null);
-  let DailyCheckinComponent = $state<Component<any> | null>(null);
+  let DailyCheckinComponent = $state<Component | null>(null);
 
   setNanobotContext();
 
@@ -308,7 +308,11 @@
           if (reported) return;
           reported = true;
 
-          const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 1);
+          const docHeight = Math.max(
+            document.body ? document.body.scrollHeight : 0,
+            document.documentElement ? document.documentElement.scrollHeight : 0,
+            1
+          );
           const winHeight = window.innerHeight;
           const scrollDepthPct = Math.min((maxScrollY / (docHeight - winHeight)) * 100, 100);
 
@@ -330,7 +334,7 @@
             screen_height: window.screen.height,
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             language: navigator.language,
-            plugins_count: navigator.plugins.length,
+            plugins_count: 5, // Safe fallback to avoid deprecated navigator.plugins (Privacy Sandbox)
             webdriver_detected: navigator.webdriver || false,
             cookie_enabled: navigator.cookieEnabled,
             mouse_acceleration: mouseAcceleration,
@@ -350,8 +354,15 @@
           }
         };
 
-        const timeoutId = setTimeout(sendTelemetry, 5000);
-        window.addEventListener('beforeunload', sendTelemetry);
+        // Batch geometry reads inside requestAnimationFrame only for non-blocking timeout call
+        const timeoutId = setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            requestAnimationFrame(() => {
+              sendTelemetry();
+            });
+          }
+        }, 5000);
+        window.addEventListener('beforeunload', () => { sendTelemetry(); });
         const visibilityHandler = () => {
           if (document.hidden) sendTelemetry();
         };
@@ -433,9 +444,6 @@
 </script>
 
 <svelte:head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
-  
   {#if isAdmin}
     <title>{siteName}</title>
     <meta name="description" content={metaDescription} />
@@ -451,7 +459,6 @@
     <meta name="theme-color" content={isFunnel ? '#020202' : '#f5f5f5'} />
   {/if}
 
-  <link rel="icon" href="/favicon.svg" />
 </svelte:head>
 
 <!-- Premium Navigation Progress Bar (Liquid Glass) -->

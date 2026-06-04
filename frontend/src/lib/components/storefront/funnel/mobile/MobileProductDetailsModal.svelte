@@ -35,13 +35,22 @@
 
   let scrollContainer: HTMLDivElement | undefined = $state();
   let currentImageIndex = $state(0);
+  let carouselWidth = $state(0);
+
+  let imageScrollTicking = false;
 
   function handleImageScroll(e: Event) {
-    const el = e.target as HTMLDivElement;
-    if (!el) return;
-    const width = el.offsetWidth || el.clientWidth || 300;
-    const index = Math.round(el.scrollLeft / width);
-    if (currentImageIndex !== index) currentImageIndex = index;
+    if (imageScrollTicking) return;
+    imageScrollTicking = true;
+    requestAnimationFrame(() => {
+      const el = e.target as HTMLDivElement;
+      if (el) {
+        const width = carouselWidth || 300;
+        const index = Math.round(el.scrollLeft / width);
+        if (currentImageIndex !== index) currentImageIndex = index;
+      }
+      imageScrollTicking = false;
+    });
   }
 
   let { active = $bindable(), product }: { active: boolean; product: Product } =
@@ -58,19 +67,24 @@
   const shopStore = getShopStore();
   const cartStore = getCartStore();
 
+  let scrollTicking = false;
   function handleScroll(e: Event) {
-    if (!contentRef) return;
+    if (!contentRef || scrollTicking) return;
+    scrollTicking = true;
     const target = e.target as HTMLElement;
-    // Check if within 100px of bottom
-    isAtBottom =
-      target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+    requestAnimationFrame(() => {
+      // Check if within 100px of bottom — reads are safe inside rAF (layout stable)
+      isAtBottom =
+        target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
 
-    const proseEl = target.querySelector(".elite-prose") as HTMLElement;
-    if (proseEl) {
-      showSpeechButton = target.scrollTop >= proseEl.offsetTop - 150;
-    } else {
-      showSpeechButton = false;
-    }
+      const proseEl = target.querySelector(".elite-prose") as HTMLElement;
+      if (proseEl) {
+        showSpeechButton = target.scrollTop >= proseEl.offsetTop - 150;
+      } else {
+        showSpeechButton = false;
+      }
+      scrollTicking = false;
+    });
   }
 
   let showVerification = $state(false);
@@ -441,6 +455,7 @@
           >
             <div
               bind:this={scrollContainer}
+              bind:clientWidth={carouselWidth}
               onscroll={handleImageScroll}
               class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar"
               style="scrollbar-width: none; -ms-overflow-style: none;"

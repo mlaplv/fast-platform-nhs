@@ -204,9 +204,9 @@ body.live-edit-mode .is-disabled .content-container {
 /* ELITE V2.2: GLOBAL HEADLINE RESET */
 .elite-hero-headline,
 .elite-session-headline {
-  font-family: var(--font-main) !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
   font-weight: 900 !important;
-  letter-spacing: 0.08em !important;
+  letter-spacing: 0.03em !important;
   line-height: 1.35 !important;
   margin: 0 !important;
   padding: 0.15em 0.1em 0.1em 0.1em !important;

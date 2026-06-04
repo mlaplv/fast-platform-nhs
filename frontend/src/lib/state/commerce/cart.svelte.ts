@@ -692,11 +692,20 @@ export function setCartStore() {
 }
 
 export function getCartStore(): CartStore {
-    const store = getContext<CartStore>(CART_KEY);
-    if (store) return store;
+    try {
+        const store = getContext<CartStore>(CART_KEY);
+        if (store) return store;
+    } catch (e) {}
     
     // Elite V2.2: Singleton Fallback (Safety Net)
     if (_globalCartInstance) return _globalCartInstance;
     _globalCartInstance = new CartStore();
+    return _globalCartInstance;
+}
+
+export function getGlobalCart(): CartStore {
+    if (!_globalCartInstance) {
+        _globalCartInstance = new CartStore();
+    }
     return _globalCartInstance;
 }

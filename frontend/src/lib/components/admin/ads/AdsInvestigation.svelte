@@ -163,7 +163,7 @@
                   <div class="text-slate-500 font-black tracking-[0.2em] opacity-40 text-[8px]">Forensic analysis v2.6</div>
                </div>
                
-               <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-black/20" style="font-family: 'JetBrains Mono', monospace;">
+               <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-black/20" style="font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">
                   {#if reportLoading}
                      <div class="h-full flex flex-col items-center justify-center gap-4 opacity-50">
                         <RefreshCw size={40} class="animate-spin text-cyan-500" />

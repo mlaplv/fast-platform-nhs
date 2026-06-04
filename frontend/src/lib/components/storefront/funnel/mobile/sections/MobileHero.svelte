@@ -42,14 +42,6 @@
 
   onMount(() => { 
     mounted = true; 
-    scrollerWidth = window.innerWidth || 390;
-    const handleResize = () => {
-      scrollerWidth = window.innerWidth || 390;
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
   });
 
   $effect(() => {
@@ -102,12 +94,20 @@
 
   let variantScroller: HTMLDivElement | undefined = $state();
 
+  let scrollTickingVariant = false;
+
   function syncVariantOnScroll() {
-    if (!variantScroller) return;
-    const index = Math.round(variantScroller.scrollLeft / scrollerWidth);
-    if (currentVariant?.tierIndex[0] !== index) {
-      shopStore.selectVariantByTier([index]);
-    }
+    if (!variantScroller || scrollTickingVariant) return;
+    scrollTickingVariant = true;
+    requestAnimationFrame(() => {
+      if (variantScroller) {
+        const index = Math.round(variantScroller.scrollLeft / scrollerWidth);
+        if (currentVariant?.tierIndex[0] !== index) {
+          shopStore.selectVariantByTier([index]);
+        }
+      }
+      scrollTickingVariant = false;
+    });
   }
 
   $effect(() => {
@@ -150,6 +150,7 @@
     );
   }
 </script>
+<svelte:window bind:innerWidth={scrollerWidth} />
 
 <div class="h-full w-full relative group">
   <MobileVariantTabs />

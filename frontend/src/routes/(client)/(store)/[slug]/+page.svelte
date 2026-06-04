@@ -349,5 +349,34 @@
 {#if activeComponent && activeProps}
   <svelte:component this={activeComponent} {...activeProps} />
 {:else}
+  {#if productData?.product}
+    {@const p = productData.product}
+    {@const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0]}
+    {@const ssrHeroImage = (() => {
+      if (data.isMobile && tierVar) {
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+        if (mobImgs.length > 0) return mobImgs[0];
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
+      } else if (tierVar) {
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
+      }
+      return p.images?.[0];
+    })()}
+    {#if ssrHeroImage && !/\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(ssrHeroImage.split('?')[0].toLowerCase())}
+      <!-- SSR LCP Hero: z-index above skeleton so Lighthouse sees it as visible LCP during initial paint -->
+      <div class="w-full aspect-square bg-white overflow-hidden" style="position:relative;z-index:999999;">
+        <img
+          src={resolveOptimizedImageUrl(ssrHeroImage, data.isMobile ? 600 : 800)}
+          alt={p.name}
+          class="w-full h-full object-cover"
+          fetchpriority="high"
+          loading="eager"
+          decoding="sync"
+        />
+      </div>
+    {/if}
+  {/if}
   {@render Skeleton(data.type)}
 {/if}

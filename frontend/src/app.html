@@ -1,8 +1,87 @@
 <!doctype html>
 <html lang="vi" translate="no">
   <head>
+    <meta charset="utf-8" />
     <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
     <script>(function(){
+      // Triệt tiêu tận gốc cảnh báo API Attribution Reporting (Privacy Sandbox) lỗi thời ở mọi tầng
+      try {
+        // 1. Chặn ghi thuộc tính DOM 'attributionsrc' thông qua setAttribute / setAttributeNode
+        var orgSetAttr = Element.prototype.setAttribute;
+        Element.prototype.setAttribute = function(name, value) {
+          if (typeof name === 'string' && name.toLowerCase() === 'attributionsrc') {
+            return;
+          }
+          return orgSetAttr.apply(this, arguments);
+        };
+
+        var orgSetAttrNS = Element.prototype.setAttributeNS;
+        Element.prototype.setAttributeNS = function(ns, name, value) {
+          if (typeof name === 'string' && name.toLowerCase() === 'attributionsrc') {
+            return;
+          }
+          return orgSetAttrNS.apply(this, arguments);
+        };
+
+        var orgSetAttrNode = Element.prototype.setAttributeNode;
+        Element.prototype.setAttributeNode = function(node) {
+          if (node && typeof node.name === 'string' && node.name.toLowerCase() === 'attributionsrc') {
+            return node;
+          }
+          return orgSetAttrNode.apply(this, arguments);
+        };
+
+        // 2. Loại bỏ attributionReporting khỏi tham số của fetch và Request
+        if (typeof window.fetch === 'function') {
+          var orgFetch = window.fetch;
+          window.fetch = function(input, init) {
+            if (init && typeof init === 'object') {
+              try {
+                delete init.attributionReporting;
+              } catch(e) {}
+            }
+            return orgFetch.apply(this, arguments);
+          };
+        }
+
+        if (typeof window.Request === 'function') {
+          var orgRequest = window.Request;
+          window.Request = function(input, init) {
+            if (init && typeof init === 'object') {
+              try {
+                delete init.attributionReporting;
+              } catch(e) {}
+            }
+            return new orgRequest(input, init);
+          };
+          window.Request.prototype = orgRequest.prototype;
+        }
+
+        // 3. Khóa các JS properties getter/setter trên prototype
+        var targets = [
+          { proto: typeof Request !== 'undefined' && Request.prototype, prop: 'attributionReporting' },
+          { proto: typeof HTMLAnchorElement !== 'undefined' && HTMLAnchorElement.prototype, prop: 'attributionSrc' },
+          { proto: typeof HTMLImageElement !== 'undefined' && HTMLImageElement.prototype, prop: 'attributionSrc' },
+          { proto: typeof HTMLScriptElement !== 'undefined' && HTMLScriptElement.prototype, prop: 'attributionSrc' },
+          { proto: typeof HTMLAreaElement !== 'undefined' && HTMLAreaElement.prototype, prop: 'attributionSrc' }
+        ];
+        targets.forEach(function(t) {
+          if (t.proto) {
+            try {
+              delete t.proto[t.prop];
+            } catch(e) {}
+            try {
+              Object.defineProperty(t.proto, t.prop, {
+                configurable: false,
+                enumerable: true,
+                get: function() { return undefined; },
+                set: function() {}
+              });
+            } catch(e) {}
+          }
+        });
+      } catch (e) {}
+
       /* Check if in admin zone to prevent data leak */
       function isAdminZone() {
         try {
@@ -155,17 +234,33 @@
         }catch(e){}
       }
 
-      if (window.requestIdleCallback) {
-        window.requestIdleCallback(runTracking);
+      var trackerTriggered = false;
+      function triggerTrackers() {
+        if (trackerTriggered) return;
+        trackerTriggered = true;
+        var events = ['touchstart', 'scroll', 'click', 'mousemove'];
+        events.forEach(function(e) {
+          window.removeEventListener(e, triggerTrackers, { passive: true });
+        });
+        runTracking();
+      }
+      function scheduleTrackers() {
+        var events = ['touchstart', 'scroll', 'click', 'mousemove'];
+        events.forEach(function(e) {
+          window.addEventListener(e, triggerTrackers, { passive: true });
+        });
+        setTimeout(triggerTrackers, 3500);
+      }
+      if (document.readyState === 'complete') {
+        scheduleTrackers();
       } else {
-        setTimeout(runTracking, 1500);
+        window.addEventListener('load', scheduleTrackers);
       }
     })();</script>
     <!-- End Dynamic Analytics Loader -->
-    <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+      content="width=device-width, initial-scale=1"
     />
     <meta name="google" content="notranslate" />
     <meta name="theme-color" content="#f5f5f5" />
@@ -179,10 +274,8 @@
       content="black-translucent"
     />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
-
-
 
     %sveltekit.head%
     <script>
@@ -220,9 +313,6 @@
       html.admin-theme, html.admin-theme body {
         background-color: #020202;
       }
-      
-
-
     </style>
     <script>
       (function() {

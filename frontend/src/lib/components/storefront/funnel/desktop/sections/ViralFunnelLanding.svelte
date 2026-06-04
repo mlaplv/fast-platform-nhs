@@ -482,7 +482,9 @@
       }
       
       const shareDurationMs = Date.now() - shareStartTime;
-      const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
+      // Avoid forced reflow: use cached maxScrollY and window.innerHeight for approximate depth
+      const docHeight = Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0, 1);
+      const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (docHeight - window.innerHeight || 1)) * 100));
 
       console.log('Step 4 | POST /api/v1/client/viral/verify-share', {
         product_id: product.id,

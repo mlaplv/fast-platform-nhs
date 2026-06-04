@@ -168,6 +168,7 @@
         </div>
         <button
           onclick={close}
+          aria-label="Đóng"
           class="text-slate-400 hover:text-white transition-all transform hover:rotate-90"
         >
           <svg

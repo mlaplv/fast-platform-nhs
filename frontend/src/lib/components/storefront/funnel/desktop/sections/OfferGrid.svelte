@@ -113,6 +113,14 @@
         {/if}
       </h2>
 
+      {#if lightLiveEdit.isEditMode || (metadata.offer_subheadline && !metadata.offer_subheadline.startsWith('[OFF]'))}
+        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10 text-center font-normal mt-4">
+          <EditableWrapper path="metadata.offer_subheadline" type="text" label="SỬA MÔ TẢ ƯU ĐÃI" as="span">
+            {metadata.offer_subheadline || "Chương trình trợ giá độc quyền kết hợp quà tặng cao cấp từ Nhật Bản"}
+          </EditableWrapper>
+        </p>
+      {/if}
+
       <div class="flex items-center justify-center gap-4 mt-2 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
          <EditableWrapper path="metadata.offer_trust_verified_by" type="text" label="SỬA CHỨNG NHẬN 1" class="inline" as="span">
            <span class="text-[8px] tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
@@ -167,3 +175,4 @@
 </section>
 
 <DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />
+

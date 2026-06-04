@@ -19,18 +19,20 @@
     onThumbClick: (index: number) => void;
     carouselRef: HTMLElement | null;
     isVideoUrl: (url: string | undefined | null) => boolean;
+    carouselWidth?: number;
   }
 
   let { 
     product, displayImages, activeImageIndex, videoEl = $bindable(), 
     videoMuted, videoEndTime, handleTimeUpdate, toggleMute, 
     handleCarouselScroll, triggerViralFly, onThumbClick, carouselRef = $bindable(),
-    isVideoUrl
+    isVideoUrl,
+    carouselWidth = $bindable(0)
   }: Props = $props();
 </script>
 
 <section class="media-section">
-  <div class="carousel-container" bind:this={carouselRef} onscroll={handleCarouselScroll}>
+  <div class="carousel-container" bind:this={carouselRef} bind:clientWidth={carouselWidth} onscroll={handleCarouselScroll}>
     {#each displayImages as img, i}
       <div class="carousel-slide">
         {#if isVideoUrl(img)}

@@ -38,7 +38,12 @@
 
   $effect(() => {
     if (containerRef) {
-      hasMore = containerRef.scrollHeight > truncatedHeight;
+      // Defer scrollHeight read to rAF to avoid forced reflow during Svelte render cycle
+      requestAnimationFrame(() => {
+        if (containerRef) {
+          hasMore = containerRef.scrollHeight > truncatedHeight;
+        }
+      });
     }
   });
 

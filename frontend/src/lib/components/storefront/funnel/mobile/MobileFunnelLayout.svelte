@@ -11,8 +11,8 @@
   import type { Component } from 'svelte';
   let ScannerHUDComponent = $state<Component<Record<string, unknown>> | null>(null);
   let MobileVerificationCenterComponent = $state<Component<Record<string, unknown>> | null>(null);
-  let MobileProductDetailsModalComponent = $state<Component<any> | null>(null);
-  let BottomSheetComponent = $state<Component<any> | null>(null);
+  let MobileProductDetailsModalComponent = $state<Component | null>(null);
+  let BottomSheetComponent = $state<Component | null>(null);
   let loadJIT = $state(false);
   async function loadScannerHUD() {
     if (!ScannerHUDComponent) {
@@ -27,7 +27,7 @@
     }
     if (!BottomSheetComponent) {
       const mod = await import('./BottomSheet.svelte');
-      BottomSheetComponent = mod.default as Component<any>;
+      BottomSheetComponent = mod.default as Component;
     }
   }
 
@@ -47,10 +47,10 @@
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
 
-  let DiagnosticsComponent = $state<Component<any> | null>(null);
-  let ScienceComponent = $state<Component<any> | null>(null);
-  let ReviewsComponent = $state<Component<any> | null>(null);
-  let OfferComponent = $state<Component<any> | null>(null);
+  let DiagnosticsComponent = $state<Component | null>(null);
+  let ScienceComponent = $state<Component | null>(null);
+  let ReviewsComponent = $state<Component | null>(null);
+  let OfferComponent = $state<Component | null>(null);
 
   $effect(() => {
     if (loadJIT) {

@@ -150,7 +150,7 @@
                 <p class="text-[10px] font-black text-[#C18F7E] tracking-[0.3em] leading-none mt-1">Quy trình osmo Premium</p>
             </div>
         </div>
-        <button onclick={close} class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-400">
+        <button onclick={close} aria-label="Đóng" class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-400">
             <X size={18} />
         </button>
       </div>

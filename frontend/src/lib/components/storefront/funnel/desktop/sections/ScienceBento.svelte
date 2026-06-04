@@ -91,7 +91,7 @@
         </h2>
 
         {#if showSubheadline}
-        <p class="section-description text-white/50 text-[11px] md:text-[12px] max-w-xl mx-auto leading-relaxed tracking-[0.1em] -mt-6 mb-12 text-center font-medium">
+        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10 text-center font-normal mt-4">
             <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ" as="span">
                 {product?.metadata?.science_subheadline ? clean(product.metadata.science_subheadline) : clean(labels.subheadline)}
             </EditableWrapper>
@@ -391,4 +391,5 @@
     font-weight: 500 !important;
     -webkit-text-fill-color: white !important; /* Force hiển thị rõ ràng */
   }
+
 </style>

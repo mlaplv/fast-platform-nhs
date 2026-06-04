@@ -143,7 +143,7 @@
           {#if step === 'ward'}
             <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-600' : 'text-[#FFB7C5]'} px-2 py-1 bg-white/5 rounded-lg hover:opacity-80">Quay lại</button>
           {/if}
-          <button onclick={() => isOpen = false} class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white transition-all">
+          <button onclick={() => isOpen = false} aria-label="Đóng" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white transition-all">
             <X class="w-4 h-4" />
           </button>
         </div>

@@ -166,8 +166,7 @@
             muted
             loop
             playsinline
-            preload="auto"
-            fetchpriority="high"
+            preload="metadata"
             disablepictureinpicture
           >
             <track kind="captions" />
