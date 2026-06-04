@@ -24,6 +24,7 @@
   let { 
     product, displayImages, activeImageIndex, videoEl = $bindable(), 
     videoMuted, videoEndTime, handleTimeUpdate, toggleMute, 
+    handleCarouselScroll, triggerViralFly, onThumbClick, carouselRef = $bindable(),
     isVideoUrl
   }: Props = $props();
 </script>
