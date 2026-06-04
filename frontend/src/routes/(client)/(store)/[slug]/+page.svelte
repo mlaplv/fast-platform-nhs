@@ -372,7 +372,6 @@
           alt={p.name}
           class="w-full h-full object-cover"
           fetchpriority="high"
-          loading="eager"
           decoding="sync"
         />
       </div>

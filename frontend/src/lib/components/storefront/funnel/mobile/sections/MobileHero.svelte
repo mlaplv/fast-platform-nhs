@@ -113,9 +113,11 @@
   $effect(() => {
     if (variantScroller && currentVariant) {
       const targetX = currentVariant.tierIndex[0] * scrollerWidth;
-      if (Math.abs(variantScroller.scrollLeft - targetX) > 10) {
-        variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
-      }
+      requestAnimationFrame(() => {
+        if (variantScroller && Math.abs(variantScroller.scrollLeft - targetX) > 10) {
+          variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
+        }
+      });
     }
   });
 
@@ -178,7 +180,7 @@
               width="390"
               height="844"
               class="w-full h-full object-cover select-none"
-              loading={i === 0 ? "eager" : "lazy"}
+              loading={i === 0 ? undefined : "lazy"}
               fetchpriority={i === 0 ? "high" : "low"}
               decoding={i === 0 ? "sync" : "async"}
             />

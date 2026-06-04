@@ -140,7 +140,6 @@
         src={resolveOptimizedImageUrl(currentImage, 800)} 
         alt={product.name} 
         class="w-full h-full object-contain bg-white" 
-        loading="eager"
         fetchpriority="high"
         decoding="sync"
       />
