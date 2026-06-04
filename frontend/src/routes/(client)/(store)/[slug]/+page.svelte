@@ -111,119 +111,13 @@
   const newsData = $derived(data.type === 'news' ? (data as unknown as NewsPageData) : null);
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
 
-  // ── Elite Code Splitting: State-based router to prevent page-transition flicker ──────────
-  let activeComponent = $state<any>(null);
-  let activeProps = $state<any>(null);
-  let currentComponentKey = $state<string>('');
-
+  // ── Elite Code Splitting: SSR Router to prevent page-transition flicker & resolve LCP ──────────
+  
   $effect(() => {
-    const type = data.type;
-    const isMobile = ui.isMobile;
-    const funnel = isFunnel;
-    const key = `${type}-${isMobile ? 'mobile' : 'desktop'}-${funnel ? 'funnel' : 'standard'}`;
-
-    async function load() {
-      try {
-        let component: any = null;
-        let props: any = null;
-
-        if (type === 'product' && productData) {
-          if (funnel && funnelPageData) {
-            if (isMobile) {
-              const { default: MobileFunnelPage } = await import(
-                '$lib/components/storefront/funnel/MobileFunnelManager.svelte'
-              );
-              component = MobileFunnelPage;
-            } else {
-              const { default: DesktopFunnelPage } = await import(
-                '$lib/components/storefront/funnel/DesktopFunnelManager.svelte'
-              );
-              component = DesktopFunnelPage;
-            }
-            props = { data: funnelPageData };
-          } else if (isMobile) {
-            // ── Mobile Product Detail (isolated chunk) ─────────────────────────
-            const { default: ProductDetailMobile } = await import(
-              '$lib/components/storefront/product-detail/MainDetail/Mobile.svelte'
-            );
-            component = ProductDetailMobile;
-            props = {
-              product: productData.product,
-              relatedProducts: productData.relatedProducts,
-              reviewStats: productData.reviewStats
-            };
-          } else {
-            // ── Desktop Product Detail (isolated chunk) ─────────────────────────
-            const { default: ProductDetailDesktop } = await import(
-              '$lib/components/storefront/product-detail/MainDetail/Desktop.svelte'
-            );
-            component = ProductDetailDesktop;
-            props = {
-              product: productData.product,
-              relatedProducts: productData.relatedProducts,
-              reviewStats: productData.reviewStats
-            };
-          }
-        } else if (type === 'news' && newsData) {
-          if (isMobile) {
-            const { default: NewsListMobile } = await import(
-              '$lib/components/storefront/news/NewsListMobile.svelte'
-            );
-            component = NewsListMobile;
-          } else {
-            const { default: NewsListDesktop } = await import(
-              '$lib/components/storefront/news/NewsListDesktop.svelte'
-            );
-            component = NewsListDesktop;
-          }
-          props = { newsList: newsData.items, categoryName: newsData.categoryName };
-        } else if (type === 'category' && categoryData) {
-          if (isMobile) {
-            const { default: ProductListMobile } = await import(
-              '$lib/components/storefront/product/ProductListMobile.svelte'
-            );
-            component = ProductListMobile;
-          } else {
-            const { default: ProductListDesktop } = await import(
-              '$lib/components/storefront/product/ProductListDesktop.svelte'
-            );
-            component = ProductListDesktop;
-          }
-          props = {
-            products: categoryData.items,
-            categoryName: categoryData.categoryName,
-            categorySlug: categoryData.categorySlug,
-            serverTotal: categoryData.serverTotal,
-            facets: categoryData.facets,
-            category: categoryData.category
-          };
-        }
-
-        if (currentComponentKey === key && activeComponent === component) {
-          // Keep component mounted, update props synchronously to eliminate flicker
-          activeProps = props;
-        } else {
-          // Different layout or first mount, reset component to trigger skeleton
-          activeComponent = null;
-          activeProps = null;
-          currentComponentKey = key;
-          await new Promise((r) => setTimeout(r, 0));
-          activeComponent = component;
-          activeProps = props;
-        }
-
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('app-ready'));
-        }
-      } catch (e) {
-        console.error('[PageRouter] Dynamic component import failed:', e);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('app-ready'));
-        }
-      }
+    // Dispatch app-ready event for any listeners waiting for hydration to complete
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('app-ready'));
     }
-
-    load();
   });
 </script>
 
@@ -346,36 +240,16 @@
   {/if}
 {/snippet}
 
-{#if activeComponent && activeProps}
-  <svelte:component this={activeComponent} {...activeProps} />
-{:else}
-  {#if productData?.product}
-    {@const p = productData.product}
-    {@const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0]}
-    {@const ssrHeroImage = (() => {
-      if (data.isMobile && tierVar) {
-        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
-        if (mobImgs.length > 0) return mobImgs[0];
-        const deskImgs = (tierVar.images || []).filter(Boolean);
-        if (deskImgs.length > 0) return deskImgs[0];
-      } else if (tierVar) {
-        const deskImgs = (tierVar.images || []).filter(Boolean);
-        if (deskImgs.length > 0) return deskImgs[0];
-      }
-      return p.images?.[0];
-    })()}
-    {#if ssrHeroImage && !/\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(ssrHeroImage.split('?')[0].toLowerCase())}
-      <!-- SSR LCP Hero: z-index above skeleton so Lighthouse sees it as visible LCP during initial paint -->
-      <div class="w-full aspect-square bg-white overflow-hidden" style="position:relative;z-index:999999;">
-        <img
-          src={resolveOptimizedImageUrl(ssrHeroImage, data.isMobile ? 600 : 800)}
-          alt={p.name}
-          class="w-full h-full object-cover"
-          fetchpriority="high"
-          decoding="sync"
-        />
-      </div>
-    {/if}
+{#if data.component}
+  {#if data.type === 'product' && isFunnel}
+    <svelte:component this={data.component} data={data} />
+  {:else if data.type === 'product'}
+    <svelte:component this={data.component} product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
+  {:else if data.type === 'news'}
+    <svelte:component this={data.component} newsList={data.items} categoryName={data.categoryName} />
+  {:else if data.type === 'category'}
+    <svelte:component this={data.component} products={data.items} categoryName={data.categoryName} categorySlug={data.categorySlug} serverTotal={data.serverTotal} facets={data.facets} category={data.category} />
   {/if}
+{:else}
   {@render Skeleton(data.type)}
 {/if}
