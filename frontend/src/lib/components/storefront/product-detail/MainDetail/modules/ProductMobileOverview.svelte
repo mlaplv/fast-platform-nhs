@@ -214,6 +214,8 @@
       const deskImgs = (tierVar.images || []).filter(Boolean);
       if (deskImgs.length > 0) return deskImgs;
     }
+    const globalMobImgs = product.mobileImages || product.metadata?.mobile_images || [];
+    if (globalMobImgs.length > 0) return globalMobImgs.filter(Boolean);
     return product.images?.length > 0 ? product.images : [product.images?.[0] || ''];
   });
   

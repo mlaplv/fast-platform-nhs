@@ -38,12 +38,12 @@
 
   $effect(() => {
     if (containerRef) {
-      // Defer scrollHeight read to rAF to avoid forced reflow during Svelte render cycle
-      requestAnimationFrame(() => {
+      // Use setTimeout to allow the browser to paint first, avoiding forced layout
+      setTimeout(() => {
         if (containerRef) {
           hasMore = containerRef.scrollHeight > truncatedHeight;
         }
-      });
+      }, 0);
     }
   });
 
