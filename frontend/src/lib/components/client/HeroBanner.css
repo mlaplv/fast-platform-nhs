@@ -177,7 +177,7 @@ html {
   /* ─── ELITE HEADLINE ─────────────────────────────────── */
   .elite-hero-headline {
     margin-top: 0 !important;
-    padding: 0.1em 0 !important;
+    padding: 0.25em 0 !important;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
     font-weight: 900 !important;
     line-height: 1.35 !important;

@@ -162,9 +162,18 @@
     return `${h}:${m}:${s}`;
   }
 
+  let modalEl = $state<HTMLDivElement | null>(null);
+  let balanceCoinEl = $state<HTMLDivElement | null>(null);
+  let claimButtonEl = $state<HTMLButtonElement | null>(null);
+  let animStartX = $state(0);
+  let animStartY = $state(0);
+
   let flyingCoins = $state<{ id: number; rx: number; ry: number; tx: number; ty: number; delay: number }[]>([]);
 
-  function triggerCoinExplosion() {
+  function triggerCoinExplosion(bX: number, bY: number, cX: number, cY: number) {
+    animStartX = bX;
+    animStartY = bY;
+
     flyingCoins = Array.from({ length: 15 }, (_, i) => {
       const rx = (Math.random() - 0.5) * 80;
       const ry = -30 - Math.random() * 50;
@@ -172,8 +181,8 @@
         id: i,
         rx: rx,
         ry: ry,
-        tx: -130 + (Math.random() - 0.5) * 20,
-        ty: -180 + (Math.random() - 0.5) * 20,
+        tx: cX - bX + (Math.random() - 0.5) * 20,
+        ty: cY - bY + (Math.random() - 0.5) * 20,
         delay: i * 50
       };
     });
@@ -201,9 +210,27 @@
       return;
     }
     if (!checkinStore.canClaim || checkinStore.claiming) return;
+
+    let bX = 280;
+    let bY = 400;
+    let cX = 35;
+    let cY = 90;
+
+    if (modalEl && balanceCoinEl && claimButtonEl) {
+      const modalRect = modalEl.getBoundingClientRect();
+      const buttonRect = claimButtonEl.getBoundingClientRect();
+      const coinRect = balanceCoinEl.getBoundingClientRect();
+
+      bX = buttonRect.left - modalRect.left + buttonRect.width / 2;
+      bY = buttonRect.top - modalRect.top + buttonRect.height / 2;
+
+      cX = coinRect.left - modalRect.left + coinRect.width / 2;
+      cY = coinRect.top - modalRect.top + coinRect.height / 2;
+    }
+
     const ok = await checkinStore.claimReward();
     if (ok) {
-      triggerCoinExplosion();
+      triggerCoinExplosion(bX, bY, cX, cY);
       spawnConfetti();
       const earnedVnd = checkinStore.status?.today_reward ?? 10000; // đã là VNĐ từ API
       const rawToday = checkinStore.status?.total_checkin_today ?? 0;
@@ -322,6 +349,7 @@
 <!-- Center Dialog Desktop (Sleek matching Mobile visual identity perfectly) -->
 <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
   <div
+    bind:this={modalEl}
     class="relative w-full max-w-[560px] rounded-[5px] overflow-hidden flex flex-col shadow-[0_32px_80px_rgba(0,0,0,0.65)] pointer-events-auto"
     style="
       height: 85vh;
@@ -371,7 +399,7 @@
     <div class="px-4 pt-3 pb-5 flex-shrink-0 flex flex-col justify-start">
       <div class="flex items-center gap-1.5 mb-1.5">
         <!-- Premium round golden treasury coin -->
-        <div class="w-7.5 h-7.5 rounded-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] shadow-[0_2px_6px_rgba(229,169,60,0.3)]">
+        <div bind:this={balanceCoinEl} class="w-7.5 h-7.5 rounded-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] shadow-[0_2px_6px_rgba(229,169,60,0.3)]">
           <svg class="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 6.5L7.5 9h9L12 6.5zM9 10v4.5M12 10v4.5M15 10v4.5M7 15.5h10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -503,6 +531,7 @@
           </div>
         {:else}
           <button
+            bind:this={claimButtonEl}
             onclick={handleClaim}
             disabled={checkinStore.claiming}
             class="relative w-full py-4 rounded-full overflow-visible
@@ -766,28 +795,28 @@
   </div>
 {/if}
 
-<!-- Golden Coins Flying Animation -->
-{#if flyingCoins.length > 0}
-  <div class="fixed inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
-    {#each flyingCoins as coin (coin.id)}
-      <div
-        class="absolute w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#E5A93C] border border-white flex items-center justify-center shadow-lg animate-coin-fly"
-        style="
-          left: 50%;
-          top: 65%;
-          transform: translate(-50%, -50%);
-          --rx: {coin.rx}px;
-          --ry: {coin.ry}px;
-          --tx: {coin.tx}px;
-          --ty: {coin.ty}px;
-          animation-delay: {coin.delay}ms;
-        "
-      >
-        <span class="text-[11px] select-none">🪙</span>
+    <!-- Golden Coins Flying Animation -->
+    {#if flyingCoins.length > 0}
+      <div class="absolute inset-0 pointer-events-none overflow-hidden z-[10000]" aria-hidden="true">
+        {#each flyingCoins as coin (coin.id)}
+          <div
+            class="absolute w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#E5A93C] border border-white flex items-center justify-center shadow-lg animate-coin-fly"
+            style="
+              left: {animStartX}px;
+              top: {animStartY}px;
+              transform: translate(-50%, -50%);
+              --rx: {coin.rx}px;
+              --ry: {coin.ry}px;
+              --tx: {coin.tx}px;
+              --ty: {coin.ty}px;
+              animation-delay: {coin.delay}ms;
+            "
+          >
+            <span class="text-[11px] select-none">🪙</span>
+          </div>
+        {/each}
       </div>
-    {/each}
-  </div>
-{/if}
+    {/if}
 
 <style>
   .scrollbar-hide::-webkit-scrollbar {
