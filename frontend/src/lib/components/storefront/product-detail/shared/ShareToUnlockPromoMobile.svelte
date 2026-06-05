@@ -841,7 +841,7 @@
   
   .stu-ios-btn { 
     position: relative; overflow: hidden;
-    background: rgba(220, 20, 60, 0.95);
+    background: #C8102E;
     color: #fff;
     height: 34px;
     padding: 0 10px;

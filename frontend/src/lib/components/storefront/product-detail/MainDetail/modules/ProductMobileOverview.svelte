@@ -620,8 +620,8 @@
     scroll-padding: 0 10px;
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
-  .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper, #C18F7E); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }
-  .ticket.active { background: var(--color-luxury-copper, #C18F7E); color: white; border-style: solid; }
+  .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper-dark, #8A5241); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }
+  .ticket.active { background: var(--color-luxury-copper-dark, #8A5241); color: white; border-style: solid; }
   .ticket-wrapper { position: relative; background: none; border: none; padding: 0; }
   .active-badge { position: absolute; top: -4px; right: -4px; background: var(--color-luxury-peach, #E3B5A4); color: white; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   .scroll-btn {
