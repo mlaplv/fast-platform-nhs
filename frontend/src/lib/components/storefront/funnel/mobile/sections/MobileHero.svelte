@@ -133,7 +133,15 @@
   const fallbackDesc = 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.';
 
   function getProcessedDescription(vItem: ProductVariant | undefined) {
-    let desc = vItem?.attributes?.short_description || product?.shortDescription || fallbackDesc;
+    let desc = vItem?.attributes?.seo_description || 
+               vItem?.attributes?.seo_meta_description || 
+               vItem?.attributes?.meta_description || 
+               vItem?.attributes?.short_description || 
+               product?.seoMeta?.description || 
+               product?.seoDescription || 
+               product?.seo_description || 
+               product?.shortDescription || 
+               fallbackDesc;
     const keyword = "Beppin Body Virgin White Serum";
     
     if (desc.includes('<h1') && desc.includes(keyword)) return desc;
