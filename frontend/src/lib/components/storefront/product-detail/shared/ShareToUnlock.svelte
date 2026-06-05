@@ -552,7 +552,7 @@
                   <span class="text-[10px] text-red-500 font-bold bg-red-50 border border-red-200/50 px-2 py-0.5 rounded-sm w-fit leading-tight">{errorMsg}</span>
                   {#if _token}
                     <button 
-                      class="text-[10px] text-[#ee4d2d] hover:text-[#d33b1d] font-extrabold hover:underline flex items-center gap-0.5 mt-1 transition-colors border:none bg-transparent p-0 cursor-pointer"
+                      class="text-[10px] text-[#d12a0f] hover:text-[#d33b1d] font-extrabold hover:underline flex items-center gap-0.5 mt-1 transition-colors border:none bg-transparent p-0 cursor-pointer"
                       onclick={() => attemptVerify()}
                     >
                       <span>➔ Tôi đã chia sẻ xong, Xác minh ngay</span>
@@ -577,7 +577,7 @@
         <div class="viral-card" transition:scale={{ duration: 300, start: 0.95 }}>
           <div class="viral-glow"></div>
           <div class="viral-icon-box">
-            <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
+            <Zap size={28} class="viral-zap-anim text-[#d12a0f]" />
           </div>
           <h3 class="viral-title">
             {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
@@ -693,7 +693,7 @@
 
   .viral-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #ff4e50, #ee4d2d);
+    background: linear-gradient(90deg, #ff4e50, #d12a0f);
     border-radius: 9999px;
     transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -722,7 +722,7 @@
   
   .stp-icon-box { 
     position: relative;
-    color: #ee4d2d; 
+    color: #d12a0f; 
     display: flex; 
     align-items: center; 
     justify-content: center;
@@ -740,7 +740,7 @@
   .stp-go { 
     position: relative;
     display: flex; align-items: center; gap: 6px; color: #fff; 
-    background: #ee4d2d;
+    background: #d12a0f;
     padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: 900; 
     border: none; cursor: pointer;
     overflow: hidden;
@@ -756,7 +756,7 @@
     display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; 
     border-radius: 12px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(8px);
   }
-  .stu-loading-text { font-size: 12px; font-weight: 700; color: #ee4d2d; }
+  .stu-loading-text { font-size: 12px; font-weight: 700; color: #d12a0f; }
   .stu-loading-text-blue { font-size: 12px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; }
   
   :global(.stu-spin-pulse) { animation: stu-pulse-zap 1.5s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); }
@@ -769,21 +769,21 @@
   .stu-confirm-txt { font-size: 14px; font-weight: 800; color: #000; }
   .stu-confirm-btns { display: flex; gap: 8px; width: 100%; }
   .stu-btn-alt { flex: 1; height: 36px; background: #f5f5f5; color: #666; border: none; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; }
-  .stu-btn-prim { flex: 1; height: 36px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 900; cursor: pointer; }
+  .stu-btn-prim { flex: 1; height: 36px; background: #d12a0f; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 900; cursor: pointer; }
 
   .stu-revealed-card { 
     display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; 
     background: linear-gradient(135deg, #fffaf9, #fff);
     border-radius: 12px;
-    border: 1px dashed #ee4d2d;
+    border: 1px dashed #d12a0f;
     animation: stu-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .stu-voucher-info { display: flex; flex-direction: column; gap: 2px; }
   .stu-voucher-label { font-size: 10px; font-weight: 700; color: #999; }
-  .stu-voucher-code { font-size: 20px; font-weight: 900; color: #ee4d2d; font-family: monospace; letter-spacing: 1px; }
+  .stu-voucher-code { font-size: 20px; font-weight: 900; color: #d12a0f; font-family: monospace; letter-spacing: 1px; }
   .stu-copy-btn { 
     display: flex; align-items: center; gap: 6px;
-    padding: 8px 16px; background: #ee4d2d; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer;
+    padding: 8px 16px; background: #d12a0f; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer;
     box-shadow: none;
   }
 

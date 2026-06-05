@@ -272,7 +272,7 @@
           {#if isBrandKey && val}
             <a
               href="/search?q={encodeURIComponent(String(val))}"
-              class="text-[12px] text-[#ee4d2d] font-bold truncate hover:underline"
+              class="text-[12px] text-[#d12a0f] font-bold truncate hover:underline"
             >{val}</a>
           {:else}
             <span class="text-[12px] text-gray-800 font-bold truncate">{val}</span>
@@ -297,10 +297,10 @@
       <div class="grid grid-cols-1 gap-2">
         {#each product.metadata.featured_ingredients as ing}
           <div
-            class="group bg-[#fdf2f2]/40 border border-[#ee4d2d]/10 p-2 rounded-xl flex items-center gap-3 transition-all hover:bg-white hover:shadow-md"
+            class="group bg-[#fdf2f2]/40 border border-[#d12a0f]/10 p-2 rounded-xl flex items-center gap-3 transition-all hover:bg-white hover:shadow-md"
           >
             <div
-              class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-xl flex items-center justify-center text-[18px] shadow-sm group-hover:scale-110 transition-transform"
+              class="w-10 h-10 shrink-0 bg-white border border-[#d12a0f]/10 rounded-xl flex items-center justify-center text-[18px] shadow-sm group-hover:scale-110 transition-transform"
             >
               {ing.icon || getIngredientIcon(ing.name)}
             </div>
@@ -338,7 +338,7 @@
             {#each product.metadata.ingredients_groups as grp}
               <div class="flex flex-col gap-1">
                 <div class="flex items-center justify-between border-b border-gray-100/50 pb-0.5">
-                  <span class="text-[10px] font-black text-teal-600 uppercase tracking-wider">{grp.group}</span>
+                  <span class="text-[10px] font-black text-teal-800 uppercase tracking-wider">{grp.group}</span>
                   <span class="text-[9px] font-black text-gray-500">{grp.items.length} chất</span>
                 </div>
                 <div class="flex flex-wrap gap-1 mt-0.5 font-mono">
@@ -418,7 +418,7 @@
       onclick={toggleSpeech}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 active:scale-95 border {isReading ||
       isBuffering
-        ? 'bg-[#ee4d2d]/10 text-[#ee4d2d] border-[#ee4d2d]/20'
+        ? 'bg-[#d12a0f]/10 text-[#d12a0f] border-[#d12a0f]/20'
         : 'bg-gray-50 border-gray-200 text-gray-600'}"
       aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
     >
@@ -428,14 +428,14 @@
             class="absolute inset-0 border-[1.5px] border-gray-300 rounded-full"
           ></div>
           <div
-            class="absolute inset-0 border-[1.5px] border-[#ee4d2d] border-t-transparent rounded-full animate-spin"
+            class="absolute inset-0 border-[1.5px] border-[#d12a0f] border-t-transparent rounded-full animate-spin"
           ></div>
         </div>
       {:else if isReading}
         <div class="flex items-end gap-[2px] h-3">
-          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-1"></div>
-          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-2"></div>
-          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-3"></div>
+          <div class="w-[2px] bg-[#d12a0f] animate-voice-bar-1"></div>
+          <div class="w-[2px] bg-[#d12a0f] animate-voice-bar-2"></div>
+          <div class="w-[2px] bg-[#d12a0f] animate-voice-bar-3"></div>
         </div>
       {:else}
         <AudioLines size={13} strokeWidth={2.5} class="text-gray-500" />
@@ -467,16 +467,16 @@
         <div class="py-2.5 bg-white relative select-none">
           
           <!-- Decorative Mobile backlight -->
-          <div class="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-[#ee4d2d]/3 blur-2xl pointer-events-none"></div>
+          <div class="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-[#d12a0f]/3 blur-2xl pointer-events-none"></div>
 
           <!-- Section Title & Badges in 2 neat rows to prevent any wrapping on narrow screens -->
           <div class="relative z-10 flex flex-col gap-1.5 pb-2.5">
             <div class="flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-[#ee4d2d] shrink-0"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[#d12a0f] shrink-0"></span>
               <div class="text-[12.5px] font-black text-slate-800 uppercase tracking-wider whitespace-nowrap">OSMO Cam Kết Vàng</div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#ee4d2d]/5 text-[#ee4d2d] text-[9.5px] font-black uppercase tracking-wider whitespace-nowrap select-none">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#d12a0f]/5 text-[#d12a0f] text-[9.5px] font-black uppercase tracking-wider whitespace-nowrap select-none">
                 ✦ Lành tính & An toàn
               </span>
               <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/5 text-emerald-600 text-[9.5px] font-black uppercase tracking-wider whitespace-nowrap select-none">
@@ -489,7 +489,7 @@
           <div class="relative z-10 flex flex-col gap-3 my-3">
             <!-- 1. Không Paraben -->
             <div class="flex items-start gap-3 py-1.5 bg-transparent transition-all duration-300">
-              <span class="w-5.5 h-5.5 rounded-full bg-[#ee4d2d]/5 flex items-center justify-center text-[#ee4d2d] shrink-0 font-black text-[10px] mt-0.5">01</span>
+              <span class="w-5.5 h-5.5 rounded-full bg-[#d12a0f]/5 flex items-center justify-center text-[#d12a0f] shrink-0 font-black text-[10px] mt-0.5">01</span>
               <div class="flex flex-col min-w-0">
                 <span class="text-[11.5px] font-black text-slate-800 uppercase tracking-tight leading-snug">KHÔNG PARABEN</span>
                 <span class="text-[10px] text-gray-500 font-medium leading-normal mt-0.5">An toàn tuyệt đối cho sức khỏe lâu dài.</span>
@@ -497,7 +497,7 @@
             </div>
             <!-- 2. Không dầu khoáng -->
             <div class="flex items-start gap-3 py-1.5 bg-transparent transition-all duration-300">
-              <span class="w-5.5 h-5.5 rounded-full bg-[#ee4d2d]/5 flex items-center justify-center text-[#ee4d2d] shrink-0 font-black text-[10px] mt-0.5">02</span>
+              <span class="w-5.5 h-5.5 rounded-full bg-[#d12a0f]/5 flex items-center justify-center text-[#d12a0f] shrink-0 font-black text-[10px] mt-0.5">02</span>
               <div class="flex flex-col min-w-0">
                 <span class="text-[11.5px] font-black text-slate-800 uppercase tracking-tight leading-snug">KHÔNG DẦU KHOÁNG</span>
                 <span class="text-[10px] text-gray-500 font-medium leading-normal mt-0.5">Thông thoáng, không gây bí tắc lỗ chân lông.</span>
@@ -505,7 +505,7 @@
             </div>
             <!-- 3. Không màu nhân tạo -->
             <div class="flex items-start gap-3 py-1.5 bg-transparent transition-all duration-300">
-              <span class="w-5.5 h-5.5 rounded-full bg-[#ee4d2d]/5 flex items-center justify-center text-[#ee4d2d] shrink-0 font-black text-[10px] mt-0.5">03</span>
+              <span class="w-5.5 h-5.5 rounded-full bg-[#d12a0f]/5 flex items-center justify-center text-[#d12a0f] shrink-0 font-black text-[10px] mt-0.5">03</span>
               <div class="flex flex-col min-w-0">
                 <span class="text-[11.5px] font-black text-slate-800 uppercase tracking-tight leading-snug">KHÔNG MÀU NHÂN TẠO</span>
                 <span class="text-[10px] text-gray-500 font-medium leading-normal mt-0.5">Tinh khiết nguyên bản chuẩn dược liệu Nhật Bản.</span>
@@ -518,21 +518,21 @@
             <div class="flex items-center justify-between gap-1 py-0.5">
               <!-- Item 1: Đổi trả -->
               <div class="flex items-center gap-1 text-[10px] font-black text-slate-700">
-                <svg class="w-3.5 h-3.5 text-[#ee4d2d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <svg class="w-3.5 h-3.5 text-[#d12a0f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 6H16" />
                 </svg>
                 <span>Đổi trả 7 ngày</span>
               </div>
               <!-- Item 2: Free Ship -->
               <div class="flex items-center gap-1 text-[10px] font-black text-slate-700">
-                <svg class="w-3.5 h-3.5 text-[#ee4d2d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <svg class="w-3.5 h-3.5 text-[#d12a0f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>Freeship toàn quốc</span>
               </div>
               <!-- Item 3: Hoàn tiền -->
               <div class="flex items-center gap-1 text-[10px] font-black text-slate-700">
-                <svg class="w-3.5 h-3.5 text-[#ee4d2d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <svg class="w-3.5 h-3.5 text-[#d12a0f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <span>Hoàn tiền nhanh</span>
@@ -540,7 +540,7 @@
             </div>
             
             <!-- Bottom pink ribbon -->
-            <div class="bg-[#ee4d2d]/5 text-[#ee4d2d] py-2 px-3 rounded-lg text-center font-black text-[10px] tracking-wider animate-pulse flex items-center justify-center gap-1 select-none">
+            <div class="bg-[#d12a0f]/5 text-[#d12a0f] py-2 px-3 rounded-lg text-center font-black text-[10px] tracking-wider animate-pulse flex items-center justify-center gap-1 select-none">
               🔥 GIỚI HẠN: ĐẶT HÀNG HÔM NAY ĐỂ NHẬN ƯU ĐÃI!
             </div>
           </div>
@@ -589,7 +589,7 @@
             >
           </div>
           {#if commitments.subtitle}
-            <span class="text-[10px] font-bold text-[#ee4d2d] leading-normal"
+            <span class="text-[10px] font-bold text-[#d12a0f] leading-normal"
               >{commitments.subtitle}</span
             >
           {/if}
@@ -692,7 +692,7 @@
           <div
             class="bg-gray-50/50 border border-gray-100 rounded-[5px] overflow-hidden transition-all {activeMobileFaq ===
             i
-              ? 'border-[#ee4d2d]/30 bg-white shadow-sm'
+              ? 'border-[#d12a0f]/30 bg-white shadow-sm'
               : ''}"
           >
             <button
@@ -708,7 +708,7 @@
               <ChevronDown
                 size={14}
                 class="text-gray-400 transition-transform {activeMobileFaq === i
-                  ? 'rotate-180 text-[#ee4d2d]'
+                  ? 'rotate-180 text-[#d12a0f]'
                   : ''}"
               />
             </button>
@@ -739,7 +739,7 @@
     font-weight: 700;
     color: #111;
     margin-bottom: 4px;
-    border-left: 4px solid #ee4d2d;
+    border-left: 4px solid #d12a0f;
     padding-left: 6px;
     text-transform: none;
     letter-spacing: -0.02em;
@@ -766,7 +766,7 @@
   .expand-btn-elite {
     background: transparent;
     border: none;
-    color: #ee4d2d;
+    color: #d12a0f;
     font-size: 13px;
     font-weight: 800;
     display: flex;
@@ -840,7 +840,7 @@
     content: "✦" !important;
     position: static !important;
     display: inline-block !important;
-    color: #ee4d2d !important;
+    color: #d12a0f !important;
     font-weight: bold !important;
     margin-right: 0.35rem !important;
   }
@@ -853,7 +853,7 @@
     content: counter(osmo-counter) "." !important;
     position: static !important;
     display: inline-block !important;
-    color: #ee4d2d !important;
+    color: #d12a0f !important;
     font-weight: 900 !important;
     font-size: 14px !important;
     line-height: 1.6 !important;

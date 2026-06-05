@@ -63,7 +63,7 @@
             </div>
             {#if commitments.subtitle}
               <span class="text-gray-300 hidden sm:inline shrink-0">|</span>
-              <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight leading-normal">{commitments.subtitle}</span>
+              <span class="text-[11.5px] font-black text-[#d12a0f] tracking-tight leading-normal">{commitments.subtitle}</span>
             {/if}
           </div>
 

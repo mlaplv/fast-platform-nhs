@@ -636,7 +636,7 @@
                       {/if}
                     </div>
                   {:else if subDescription}
-                    <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1 inline-block first-letter:uppercase">{subDescription}</span>
+                    <span class="text-[8px] text-[#ffb7c5] font-medium leading-none mb-1 inline-block first-letter:uppercase">{subDescription}</span>
                   {/if}
                   <div class="stp-f-progress">
                     <div class="stp-f-bar" style="width: 50%"></div>
@@ -658,7 +658,7 @@
         <div class="viral-card" transition:scale={{ duration: 300, start: 0.95 }}>
           <div class="viral-glow"></div>
           <div class="viral-icon-box">
-            <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
+            <Zap size={28} class="viral-zap-anim text-[#d12a0f]" />
           </div>
           <h3 class="viral-title">
             {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
@@ -774,7 +774,7 @@
 
   .viral-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #ff4e50, #ee4d2d);
+    background: linear-gradient(90deg, #ff4e50, #d12a0f);
     border-radius: 9999px;
     transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -806,12 +806,12 @@
   .stp-f-msg { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .stp-f-t { font-size: 9px; font-weight: 900; color: #ffb7c5; letter-spacing: 0.1em; }
   .stp-f-progress { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
-  .stp-f-bar { height: 100%; background: linear-gradient(90deg, #ffb7c5, #ee4d2d); border-radius: 10px; }
+  .stp-f-bar { height: 100%; background: linear-gradient(90deg, #ffb7c5, #d12a0f); border-radius: 10px; }
   .stp-f-btn { 
     position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #fff; 
+    background: linear-gradient(135deg, #d12a0f, #eb3c1a); color: #fff; 
     padding: 8px 10px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
-    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(209, 42, 15, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     letter-spacing: 0.05em;
   }
   .stp-f-btn:active { transform: scale(0.92); }
@@ -822,19 +822,18 @@
     flex-direction: column;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.45);
+    background: #111827; /* Solid dark color for accessibility contrast */
     border-radius: 12px;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   }
   .stu-ios-content { display: flex; flex-direction: column; gap: 0; }
   .stu-ios-title { 
-    font-size: 18px; font-weight: 1000; color: #fff; 
+    font-size: 18px; font-weight: 1000; color: #ffffff; 
     text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9);
     letter-spacing: -0.02em; line-height: 1;
   }
   .stu-ios-sub { 
-    font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.9); 
+    font-size: 10px; font-weight: 800; color: #e5e7eb; /* Solid gray color to guarantee contrast ratio */
     letter-spacing: 0.05em; margin-top: 2px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
   }
@@ -899,7 +898,7 @@
   }
 
   .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; }
-  .stu-loading-text { font-size: 11px; font-weight: 800; color: #ee4d2d; }
+  .stu-loading-text { font-size: 11px; font-weight: 800; color: #d12a0f; }
   .stu-loading-text-blue { font-size: 13px; font-weight: 1000; color: #ffffff; letter-spacing: -0.01em; }
   
   :global(.stu-spin-pulse) { animation: stu-pulse-zap 1.5s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); }
@@ -908,17 +907,17 @@
     50% { transform: scale(1.2) rotate(15deg); opacity: 0.7; }
   }
   
-  .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: #fff; border: 1.5px dashed #ee4d2d; border-radius: 4px; }
+  .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: #fff; border: 1.5px dashed #d12a0f; border-radius: 4px; }
   .stu-confirm-txt { font-size: 14px; font-weight: 1000; color: #000; }
   .stu-confirm-btns { display: flex; gap: 8px; width: 100%; }
   .stu-btn-alt { flex: 1; height: 36px; background: #f5f5f5; color: #666; border: none; border-radius: 6px; font-size: 12px; font-weight: 800; }
-  .stu-btn-prim { flex: 1; height: 36px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 1000; }
+  .stu-btn-prim { flex: 1; height: 36px; background: #d12a0f; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 1000; }
 
-  .stu-revealed-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fffcfc; border: 1.5px dashed #ee4d2d; border-radius: 4px; animation: stu-reveal 0.5s ease; }
+  .stu-revealed-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fffcfc; border: 1.5px dashed #d12a0f; border-radius: 4px; animation: stu-reveal 0.5s ease; }
   .stu-voucher-info { display: flex; flex-direction: column; }
   .stu-voucher-label { font-size: 10px; font-weight: 800; color: #999; }
-  .stu-voucher-code { font-size: 18px; font-weight: 1000; color: #ee4d2d; font-family: monospace; }
-  .stu-copy-btn { padding: 6px 12px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 11px; font-weight: 900; }
+  .stu-voucher-code { font-size: 18px; font-weight: 1000; color: #d12a0f; font-family: monospace; }
+  .stu-copy-btn { padding: 6px 12px; background: #d12a0f; color: #fff; border: none; border-radius: 6px; font-size: 11px; font-weight: 900; }
 
   @keyframes stu-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes stu-reveal { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -926,6 +925,6 @@
   @keyframes stu-rotate { to { transform: rotate(360deg); } }
 
   .stu-fly-ghost { position: fixed; z-index: 9999; bottom: 25%; left: 50%; pointer-events: none; animation: stu-fly 1.2s ease-in forwards; }
-  .stu-fly-content { background: #fff; border: 1.5px dashed #ee4d2d; padding: 6px 12px; border-radius: 4px; color: #ee4d2d; box-shadow: 0 10px 30px rgba(238, 77, 45, 0.4); }
+  .stu-fly-content { background: #fff; border: 1.5px dashed #d12a0f; padding: 6px 12px; border-radius: 4px; color: #d12a0f; box-shadow: 0 10px 30px rgba(209, 42, 15, 0.4); }
   @keyframes stu-fly { 0% { transform: translate(-50%, 0) scale(1.5); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(-50%, -400px) scale(0.2); opacity: 0; } }
 </style>

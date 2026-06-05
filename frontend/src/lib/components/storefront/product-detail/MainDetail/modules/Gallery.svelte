@@ -146,13 +146,13 @@
     {/if}
     
     {#if isFlashSaleActive}
-      <div class="absolute top-0 left-0 bg-[#ee4d2d] text-white px-3 py-1.5 text-[11px] font-black tracking-widest shadow-lg">
+      <div class="absolute top-0 left-0 bg-[#d12a0f] text-white px-3 py-1.5 text-[11px] font-black tracking-widest shadow-lg">
         Flash Sale
       </div>
     {/if}
  
     {#if !isVideoUrl(currentImage) && productInfo.salePrice < productInfo.originalPrice}
-      <div class="absolute {isFlashSaleActive ? 'top-8' : 'top-0'} left-0 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#ee4d2d] shadow-sm z-10">
+      <div class="absolute {isFlashSaleActive ? 'top-8' : 'top-0'} left-0 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#d12a0f] shadow-sm z-10">
         -{Math.round((1 - productInfo.salePrice / productInfo.originalPrice) * 100)}%
       </div>
     {/if}

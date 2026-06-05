@@ -3,3 +3,4 @@ Mày BẮT BUỘC phải code trên bộ stack sinh tử duy nhất: SvelteKit 5
 Tuyệt đối tuân thủ các nguyên tắc Thiết Quân Luật: Zero-Hydration, Full Async I/O, và ép kiểu tĩnh 100% (CẤM TUYỆT ĐỐI dùng 'any', mọi dữ liệu phải có kiểu tường minh). 
 CẤM tự ý hardcode, vượt rào bỏ qua `@RULES.md`. Bất kỳ một dòng code nào vi phạm giới hạn RAM 4GB hoặc đi lệch bộ stack này, tao sẽ xóa sạch context và reset session ngay lập tức.
 CẤM dùng Pydantic V1. Khi Python 3.14 bắn cảnh báo "V1 compatibility bridge" từ Litestar, BẮT BUỘC phải duy trì filter `ignore` trong `docker-compose.yml` và `backend/__init__.py` cho đến khi thư viện có bản vá chính thức.
+6: BẮT BUỘC phải luôn sử dụng tiền tố 'rtk' trước toàn bộ các lệnh terminal (ví dụ: 'rtk git status', 'rtk docker ps', 'rtk ls') để lọc và nén dữ liệu đầu ra, tối ưu hóa dung lượng token trong context window. AI chỉ làm và báo cáo kết quả, cấm giải thích, CẤM tự ý chạy test, CẤM build pnpm, CẤM chạy docker.

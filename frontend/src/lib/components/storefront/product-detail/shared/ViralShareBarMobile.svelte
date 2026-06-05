@@ -289,11 +289,11 @@
               <div class="h-1.5 w-full bg-slate-100 rounded-full relative">
                 <div 
                   class="absolute top-0 left-0 h-full rounded-full blur-[2px] opacity-40 transition-all duration-1000" 
-                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #d12a0f 50%, rgba(209, 42, 15, 0) 100%);"
                 ></div>
                 <div 
                   class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
-                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #d12a0f 75%, rgba(209, 42, 15, 0.15) 100%);"
                 >
                   <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
                 </div>
@@ -328,7 +328,7 @@
       <!-- Actions Row (Premium Glass) -->
       <div class="relative z-10 flex items-center justify-between gap-2 mt-3 mb-2">
         <!-- Like Pill -->
-        <button onclick={handleLike} class="flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all active:scale-95 shrink-0 backdrop-blur-md {isLiked ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-white/10 text-white/90 border border-white/10'}">
+        <button onclick={handleLike} class="flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all active:scale-95 shrink-0 backdrop-blur-md {isLiked ? 'bg-rose-700 text-white shadow-lg shadow-rose-500/20' : 'bg-white/10 text-white/90 border border-white/10'}">
           <Heart size={14} class={isLiked ? 'fill-current' : ''} />
           <span class="text-xs font-bold">{formatViralCount(localLikeCount)}</span>
         </button>
@@ -375,12 +375,12 @@
                 <!-- Glow shadow layer under the progress bar -->
                 <div 
                   class="absolute top-0 left-0 h-full rounded-full blur-[3px] opacity-60 transition-all duration-1000" 
-                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #d12a0f 50%, rgba(209, 42, 15, 0) 100%);"
                 ></div>
                 <!-- Main filled progress bar with a comet fade-out tail -->
                 <div 
                   class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
-                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #d12a0f 75%, rgba(209, 42, 15, 0.15) 100%);"
                 >
                   <!-- Liquid light sweep animation -->
                   <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
@@ -402,7 +402,7 @@
               <div class="text-[11px] font-black text-rose-400 mb-2 tracking-widest">🎉 Mục tiêu đã đạt!</div>
               <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2 border border-white/10">
                 <span class="font-mono text-lg font-black text-white tracking-wider">{voucherCode}</span>
-                <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-[10px] font-black bg-rose-500 text-white px-3 py-1.5 rounded-md shadow-lg active:scale-95 transition-transform">Copy</button>
+                <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-[10px] font-black bg-rose-700 text-white px-3 py-1.5 rounded-md shadow-lg active:scale-95 transition-transform">Copy</button>
               </div>
             </div>
           {/if}
@@ -500,7 +500,7 @@
               <span class="text-[11px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-500 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
+            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
               {activeRatePercent}
             </span>
           </button>
@@ -522,7 +522,7 @@
               <span class="text-[11px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-500 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
+            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
               +{activeRatePercent}
             </span>
           </button>

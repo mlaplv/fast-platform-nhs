@@ -111,19 +111,19 @@
       {/if}
     </div>
     {#if reviewCount > 0}
-      <a href="/{product.slug}/reviews" class="view-all text-luxury-copper">Xem tất cả <ChevronRight size={14} /></a>
+      <a href="/{product.slug}/reviews" class="view-all">Xem tất cả <ChevronRight size={14} /></a>
     {:else}
-      <a href="/{product.slug}/reviews?write=true" class="view-all text-luxury-copper">
+      <a href="/{product.slug}/reviews?write=true" class="view-all">
         <PenLine size={14} class="mr-1" /> Viết <ChevronRight size={14} />
       </a>
     {/if}
   </div>
 
   {#if hasAiSentiment}
-    <div class="ai-sentiment-box mb-2 p-3 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
+    <div class="ai-sentiment-box mb-2 p-3 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#d12a0f]/10 shadow-sm relative overflow-hidden">
        <div class="flex items-center gap-2 mb-2 relative z-10">
-         <Sparkles size={16} class="text-[#ee4d2d] fill-current" />
-         <h3 class="text-[12px] font-black tracking-widest text-[#ee4d2d]">AI Tổng hợp đánh giá</h3>
+         <Sparkles size={16} class="text-[#d12a0f] fill-current" />
+         <h3 class="text-[12px] font-black tracking-widest text-[#d12a0f]">AI Tổng hợp đánh giá</h3>
        </div>
        {#if aiSummary}
          <p class="text-[13px] text-gray-700 leading-relaxed mb-3 font-medium relative z-10">{aiSummary}</p>
@@ -236,10 +236,10 @@
 
       <div class="fomo-footer mt-1.5 p-2.5 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
         <div class="flex flex-col">
-          <span class="text-[11px] font-black text-[#9A6A58] tracking-tighter italic">Cảm nhận thực tế</span>
+          <span class="text-[11px] font-black text-[#7c5143] tracking-tighter italic">Cảm nhận thực tế</span>
           <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
         </div>
-        <a href="/{product.slug}/reviews" class="btn-discover bg-luxury-copper">Khám phá ngay</a>
+        <a href="/{product.slug}/reviews" class="btn-discover">Khám phá ngay</a>
       </div>
     </div>
   {/if}
@@ -249,7 +249,7 @@
   .content-section { background: white; padding: 8px 10px 8px 10px; }
   .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .section-title { font-size: 14px; font-weight: 800; color: #222; margin: 0; letter-spacing: -0.01em; }
-  .view-all { font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }
+  .view-all { font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; color: #8a5a4c; }
 
   .score-big { font-size: 24px; font-weight: 900; color: #333; display: flex; align-items: baseline; gap: 2px; }
   .score-big span { font-size: 14px; color: #999; font-weight: 500; }
@@ -259,7 +259,7 @@
   .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #666; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
   .user-meta { flex: 1; }
   .username { font-size: 13px; font-weight: 700; color: #222; }
-  .review-date-mini { font-size: 10px; color: #777; font-weight: 500; }
+  .review-date-mini { font-size: 10px; color: #555; font-weight: 500; }
 
   .review-content { margin-bottom: 6px; font-size: 14px; color: #444; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -269,7 +269,7 @@
   .play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); }
   .media-more { position: absolute; bottom: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; }
 
-  .btn-discover { color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 4px; text-decoration: none; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(193, 143, 126, 0.2); }
+  .btn-discover { background: #8a5a4c; color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 4px; text-decoration: none; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(138, 90, 76, 0.2); }
 
   :global(.prose-osmo-mini p) { margin: 0 !important; }
 </style>

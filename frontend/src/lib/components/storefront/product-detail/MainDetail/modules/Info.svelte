@@ -119,9 +119,9 @@
   <!-- Stats Row -->
   <div class="flex items-center gap-6 text-[15px] mb-2">
     {#if stats?.total_count || product.metadata?.review_count}
-      <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
+      <div class="flex items-center gap-2 text-[#d12a0f] group cursor-default">
         <span
-          class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5"
+          class="text-[16px] font-black border-b-2 border-[#d12a0f] leading-none pb-0.5"
           >{stats?.average_rating ||
             product.metadata?.reviews_trust_score ||
             "5.0"}</span
@@ -173,7 +173,7 @@
     <div class="ml-auto">
       <button
         onclick={onTriggerWriteReview}
-        class="text-[13px] text-gray-400 font-bold hover:text-[#ee4d2d] transition-colors flex items-center gap-1"
+        class="text-[13px] text-gray-400 font-bold hover:text-[#d12a0f] transition-colors flex items-center gap-1"
       >
         Tố cáo
       </button>
@@ -247,7 +247,7 @@
       <div class="flex flex-col items-end">
         <div class="flex items-center gap-2 mb-1">
           <div
-            class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full shadow-[0_0_8px_#ee4d2d]"
+            class="w-1.5 h-1.5 bg-[#d12a0f] rounded-full shadow-[0_0_8px_#d12a0f]"
           ></div>
           <span
             class="text-[10px] font-black text-gray-500 tracking-[0.2em] opacity-80"
@@ -295,8 +295,8 @@
           <button
             onclick={() => onToggleVoucher(v.id)}
             class="relative flex items-center gap-2 bg-[#fff4f1] border-2 transition-all p-2 pr-4 shadow-sm group {isApplied
-              ? 'border-[#ee4d2d]'
-              : 'border-transparent hover:border-[#ee4d2d]/30'}"
+              ? 'border-[#d12a0f]'
+              : 'border-transparent hover:border-[#d12a0f]/30'}"
           >
             <div
               class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-gray-100"
@@ -305,11 +305,11 @@
               class="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-gray-100"
             ></div>
             <div
-              class="w-px h-6 bg-[#ee4d2d]/20 border-dashed border-l mx-1"
+              class="w-px h-6 bg-[#d12a0f]/20 border-dashed border-l mx-1"
             ></div>
             <div class="flex flex-col items-start translate-x-1">
               <span
-                class="text-[12px] font-black text-[#ee4d2d] leading-none inline-block first-letter:uppercase"
+                class="text-[12px] font-black text-[#d12a0f] leading-none inline-block first-letter:uppercase"
                 >{v.label}</span
               >
               <span
@@ -319,7 +319,7 @@
             </div>
             {#if isApplied}
               <div
-                class="absolute -top-2 -right-2 bg-[#ee4d2d] text-white rounded-full p-0.5 shadow-md"
+                class="absolute -top-2 -right-2 bg-[#d12a0f] text-white rounded-full p-0.5 shadow-md"
               >
                 <svg
                   class="w-3 h-3"
@@ -401,7 +401,7 @@
                   onclick={() => onSelectOption(tIdx, oIdx)}
                   class="relative min-w-[80px] h-10 px-4 border transition-all flex items-center justify-center text-[14px] hover:bg-[#ffeee8]/20 group
                   {isSelected
-                    ? 'border-[#ee4d2d] text-[#ee4d2d] bg-white ring-1 ring-[#ee4d2d]/10'
+                    ? 'border-[#d12a0f] text-[#d12a0f] bg-white ring-1 ring-[#d12a0f]/10'
                     : 'border-gray-200 text-gray-800 bg-white'}"
                 >
                   {#if tIdx === 0 && tier.images?.[oIdx]}
@@ -414,7 +414,7 @@
                   <span class="font-medium">{option}</span>
                   {#if isSelected}
                     <div
-                      class="absolute bottom-0 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[12px] border-r-[#ee4d2d]"
+                      class="absolute bottom-0 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[12px] border-r-[#d12a0f]"
                     ></div>
                     <svg
                       class="absolute bottom-0 right-0 w-2.5 h-2.5 text-white"
@@ -474,9 +474,9 @@
         >
         {#if currentStock < 10}
           <span
-            class="text-[11px] font-bold text-[#ee4d2d] flex items-center gap-1"
+            class="text-[11px] font-bold text-[#d12a0f] flex items-center gap-1"
           >
-            <span class="w-1 h-1 bg-[#ee4d2d] rounded-full"></span>
+            <span class="w-1 h-1 bg-[#d12a0f] rounded-full"></span>
             Hàng hiếm, chỉ còn {currentStock} bộ trong kho
           </span>
         {:else}
@@ -493,12 +493,12 @@
   {#if activeGifts.length > 0}
     <div class="mb-6">
       <div
-        class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#ee4d2d]/10 p-5 relative overflow-hidden group/combo-box shadow-sm"
+        class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#d12a0f]/10 p-5 relative overflow-hidden group/combo-box shadow-sm"
       >
         <div class="flex items-start gap-4 relative z-10">
           <div class="mt-1">
             <div
-              class="w-10 h-10 rounded-full bg-[#ee4d2d] flex items-center justify-center text-white shadow-lg shadow-[#ee4d2d]/20"
+              class="w-10 h-10 rounded-full bg-[#d12a0f] flex items-center justify-center text-white shadow-lg shadow-[#d12a0f]/20"
             >
               <Gift size={20} />
             </div>
@@ -521,7 +521,7 @@
                 {#if gift.slug}
                   <a
                     href={resolveGiftUrl(gift.slug)}
-                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 hover:bg-rose-50/40 transition-all group/gift-item rounded-sm w-full cursor-pointer"
+                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#d12a0f]/5 hover:border-[#d12a0f]/20 hover:bg-rose-50/40 transition-all group/gift-item rounded-sm w-full cursor-pointer"
                     style="text-decoration: none;"
                   >
                     <div
@@ -543,7 +543,7 @@
                     </div>
                     <div class="flex flex-col min-w-0 flex-1">
                       <span
-                        class="text-[13px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#ee4d2d] transition-colors"
+                        class="text-[13px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#d12a0f] transition-colors"
                         >{gift.name}
                         <span
                           class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1"
@@ -555,7 +555,7 @@
                           >Số lượng:</span
                         >
                         <span
-                          class="text-[11px] text-[#ee4d2d] font-black italic"
+                          class="text-[11px] text-[#d12a0f] font-black italic"
                           >x{gift.qty}</span
                         >
                       </div>
@@ -563,7 +563,7 @@
                   </a>
                 {:else}
                   <div
-                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm"
+                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#d12a0f]/5 hover:border-[#d12a0f]/20 transition-all group/gift-item rounded-sm"
                   >
                     <div
                       class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 shadow-sm"
@@ -592,7 +592,7 @@
                           >Số lượng:</span
                         >
                         <span
-                          class="text-[11px] text-[#ee4d2d] font-black italic"
+                          class="text-[11px] text-[#d12a0f] font-black italic"
                           >x{gift.qty}</span
                         >
                       </div>

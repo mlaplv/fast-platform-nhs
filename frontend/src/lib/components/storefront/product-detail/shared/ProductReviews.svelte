@@ -292,11 +292,11 @@
             <div class="flex gap-1">
               {#each Array(5) as _, i}
                 <button onclick={() => newRating = i + 1} class="transition-transform hover:scale-125">
-                  <Star class="w-8 h-8 {i < newRating ? 'text-[#ee4d2d] fill-current' : 'text-gray-200'}" />
+                  <Star class="w-8 h-8 {i < newRating ? 'text-[#d12a0f] fill-current' : 'text-gray-200'}" />
                 </button>
               {/each}
             </div>
-            <span class="text-xs font-bold text-[#ee4d2d] tracking-widest">{['Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][newRating - 1]}</span>
+            <span class="text-xs font-bold text-[#d12a0f] tracking-widest">{['Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][newRating - 1]}</span>
           </div>
 
           <!-- Quick Attributes -->
@@ -395,7 +395,7 @@
       </div>
       <div class="flex gap-1.5 mt-2">
         {#each Array(5) as _, i}
-          <Star class="w-6 h-6 {i < Math.round(stats.average_rating) ? 'text-[#ee4d2d] fill-current' : 'text-gray-200'} " />
+          <Star class="w-6 h-6 {i < Math.round(stats.average_rating) ? 'text-[#d12a0f] fill-current' : 'text-gray-200'} " />
         {/each}
       </div>
     </div>
@@ -414,14 +414,14 @@
 
   <!-- AI Sentiment Box (Desktop) -->
   {#if hasAiSentiment}
-    <div class="mb-10 bg-gradient-to-r from-[#FFF9F6] to-white border border-[#ee4d2d]/10 p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden">
+    <div class="mb-10 bg-gradient-to-r from-[#FFF9F6] to-white border border-[#d12a0f]/10 p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden">
        <!-- Decorative background -->
-       <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#ee4d2d]/5 rounded-full blur-3xl pointer-events-none"></div>
+       <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#d12a0f]/5 rounded-full blur-3xl pointer-events-none"></div>
 
        <div class="w-full md:w-1/3 shrink-0 relative z-10">
          <div class="flex items-center gap-2 mb-3">
-           <Sparkles class="w-5 h-5 text-[#ee4d2d] fill-current" />
-           <h3 class="text-[13px] font-black tracking-[0.2em] text-[#ee4d2d]">AI Tổng hợp đánh giá</h3>
+           <Sparkles class="w-5 h-5 text-[#d12a0f] fill-current" />
+           <h3 class="text-[13px] font-black tracking-[0.2em] text-[#d12a0f]">AI Tổng hợp đánh giá</h3>
          </div>
          {#if aiSummary}
            <p class="text-[14px] text-gray-700 leading-relaxed font-medium">{aiSummary}</p>
@@ -457,7 +457,7 @@
   <div class="space-y-6">
     {#if isLoading}
       <div class="py-20 flex flex-col items-center justify-center gap-4">
-        <div class="w-8 h-8 border-2 border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-8 h-8 border-2 border-[#d12a0f] border-t-transparent rounded-full animate-spin"></div>
         <span class="text-xs font-bold text-gray-400 tracking-widest">Đang tải đánh giá...</span>
       </div>
     {:else if reviews.length === 0}
@@ -484,7 +484,7 @@
             
             <div class="flex gap-0.5 mb-1.5">
               {#each Array(5) as _, i}
-                <Star class="w-2.5 h-2.5 {i < review.rating ? 'text-[#ee4d2d] fill-current' : 'text-gray-200'}" />
+                <Star class="w-2.5 h-2.5 {i < review.rating ? 'text-[#d12a0f] fill-current' : 'text-gray-200'}" />
               {/each}
             </div>
 
@@ -534,8 +534,8 @@
               <button 
                 onclick={() => handleLikeReview(review.id)}
                 class="flex items-center gap-1.5 group {likedReviews.has(review.id) ? 'pointer-events-none' : ''}">
-                <ThumbsUp class="w-4 h-4 {review.likes_count || likedReviews.has(review.id) ? 'text-[#ee4d2d] fill-current' : 'text-gray-300'} transition-colors {likedReviews.has(review.id) ? '' : 'group-hover:text-[#ee4d2d]'}" />
-                <span class="text-[13px] {likedReviews.has(review.id) ? 'text-[#ee4d2d]' : 'text-gray-400'} font-medium group-hover:text-[#ee4d2d]">{review.likes_count || ''}</span>
+                <ThumbsUp class="w-4 h-4 {review.likes_count || likedReviews.has(review.id) ? 'text-[#d12a0f] fill-current' : 'text-gray-300'} transition-colors {likedReviews.has(review.id) ? '' : 'group-hover:text-[#d12a0f]'}" />
+                <span class="text-[13px] {likedReviews.has(review.id) ? 'text-[#d12a0f]' : 'text-gray-400'} font-medium group-hover:text-[#d12a0f]">{review.likes_count || ''}</span>
               </button>
               <div class="relative">
                 <button 

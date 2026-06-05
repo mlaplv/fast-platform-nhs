@@ -171,11 +171,11 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
       </div>
       <div class="flex flex-col justify-end pb-1 pr-6">
         <div class="flex items-baseline gap-1">
-           <span class="text-[#ee4d2d] text-xl font-black">{formatCurrency(currentPrice)}</span>
+           <span class="text-[#d12a0f] text-xl font-black">{formatCurrency(currentPrice)}</span>
            <span class="text-[9px] text-gray-400 font-bold ">/ sp</span>
         </div>
         {#if quantity > 1}
-          <div class="text-[12px] text-[#ee4d2d] font-bold mt-0.5">Tổng: {formatCurrency(totalPrice)}</div>
+          <div class="text-[12px] text-[#d12a0f] font-bold mt-0.5">Tổng: {formatCurrency(totalPrice)}</div>
         {/if}
         <div class="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
            Kho: {currentStock || 0} sản phẩm
@@ -183,7 +183,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
         
         <div class="text-[12px] text-gray-900 font-bold mt-2">
           {#if selectedIndices.every(idx => idx === -1)}
-            <span class="text-[#ee4d2d]">Vui lòng chọn phân loại</span>
+            <span class="text-[#d12a0f]">Vui lòng chọn phân loại</span>
           {:else}
             <span>Đã chọn: {variations.map((t, i) => selectedIndices[i] >= 0 ? t.options[selectedIndices[i]] : '').filter(Boolean).join(', ')}</span>
           {/if}
@@ -207,11 +207,11 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
                   <button 
                     onclick={() => selectOption(tIdx, oIdx)}
                     class="relative px-5 py-2.5 text-[12px] font-black border-2 transition-all tracking-tight
-                    {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'border-gray-100 bg-gray-50 text-gray-500'}"
+                    {isSelected ? 'border-[#d12a0f] text-[#d12a0f] bg-[#d12a0f]/5' : 'border-gray-100 bg-gray-50 text-gray-700'}"
                   >
                     {option}
                     {#if isSelected}
-                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#d12a0f] border-l-[8px] border-l-transparent"></div>
                     {/if}
                   </button>
                 {/if}
@@ -225,9 +225,9 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
       {#if activeComboQty > 1 || activeGifts.length > 0}
         <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5"><Zap size={12} class="text-[#ee4d2d]" /> Ưu đãi</span>
+            <span class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5"><Zap size={12} class="text-[#d12a0f]" /> Ưu đãi</span>
             {#if activeComboQty > 1}
-              <span class="bg-[#ee4d2d] text-white text-[9px] font-black px-2 py-0.5 rounded">Combo x{activeComboQty}</span>
+              <span class="bg-[#d12a0f] text-white text-[9px] font-black px-2 py-0.5 rounded">Combo x{activeComboQty}</span>
             {/if}
           </div>
           {#if activeGifts.length > 0}
@@ -239,7 +239,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
                   </div>
                   <div class="flex flex-col">
                     <span class="text-[10px] font-bold text-gray-900 leading-tight">{gift.name}</span>
-                    <span class="text-[9px] text-[#ee4d2d] font-bold italic">Tặng kèm x{gift.qty}</span>
+                    <span class="text-[9px] text-[#d12a0f] font-bold italic">Tặng kèm x{gift.qty}</span>
                   </div>
                 </div>
               {/each}
@@ -305,7 +305,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
 
       <button 
         onclick={handleConfirm}
-        class="w-full h-12 bg-[#ee4d2d] text-white font-black text-[15px] tracking-wider rounded-xl shadow-lg shadow-[#ee4d2d]/20 active:scale-[0.98] transition-all"
+        class="w-full h-12 bg-[#d12a0f] text-white font-black text-[15px] tracking-wider rounded-xl shadow-lg shadow-[#d12a0f]/20 active:scale-[0.98] transition-all"
       >
         Xác nhận lựa chọn
       </button>

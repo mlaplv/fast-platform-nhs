@@ -53,12 +53,12 @@
 
 <style>
   .flash-sale-banner { 
-    background: linear-gradient(90deg, #ee4d2d, #ff7337); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
-    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.2);
+    background: linear-gradient(90deg, #d12a0f, #eb3c1a); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(209, 42, 15, 0.2);
   }
   .fs-left { flex: 1; z-index: 1; }
-  .discount-percent { background: white; color: #ee4d2d; border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
-  .freeship-fomo { background: #E3B5A4; color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
+  .discount-percent { background: white; color: #d12a0f; border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
+  .freeship-fomo { background: #ffebe6; color: #d12a0f; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
   .price-container { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
   .price-label { font-size: 13px; color: white; opacity: 0.9; }
   .price-value { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }

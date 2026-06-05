@@ -36,7 +36,7 @@
         label: 'Cùng danh mục', 
         reasoning: `Dựa trên sở thích chăm sóc ${product.category_name || 'chuyên sâu'} của Bạn`,
         icon: Flame, 
-        color: '#ee4d2d' 
+        color: '#d12a0f' 
       });
     }
     if (brandProducts.length > 0) {
@@ -285,11 +285,11 @@
   }
 
   .tab-sharp.active .sharp-bg {
-    background: #ee4d2d; /* OSMO Brand Color */
+    background: #d12a0f; /* OSMO Brand Color */
   }
 
   .tab-sharp:not(.active):hover .sharp-bg {
-    background: rgba(238, 77, 45, 0.05);
+    background: rgba(209, 42, 15, 0.05);
   }
 
   .icon-wrap {
@@ -311,19 +311,19 @@
     align-items: center;
     justify-content: center;
     padding: 1rem 3.5rem;
-    background: #ee4d2d; /* OSMO Brand Color */
+    background: #d12a0f; /* OSMO Brand Color */
     color: white;
     font-size: 14px;
     font-weight: 800;
     text-decoration: none;
     border-radius: 0 !important;
     transition: all 0.3s;
-    border: 1px solid #ee4d2d;
+    border: 1px solid #d12a0f;
   }
 
   .btn-sharp:hover {
     background: #fff;
-    color: #ee4d2d;
+    color: #d12a0f;
   }
 
   .loading-placeholder {

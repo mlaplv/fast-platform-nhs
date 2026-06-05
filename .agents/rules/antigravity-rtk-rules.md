@@ -4,7 +4,7 @@
 
 ## Rule
 
-Always prefix shell commands with `rtk` to minimize token consumption.
+Always prefix shell commands with `rtk` to minimize token consumption. AI only implements changes and reports results; it is forbidden from running tests, building with pnpm, or running docker commands.
 
 Examples:
 

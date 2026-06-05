@@ -230,7 +230,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    background: #ee4d2d;
+    background: #d12a0f;
     color: white;
     padding: 0.375rem 0.75rem;
     font-size: 11px;
@@ -248,7 +248,7 @@
     padding: 0.25rem 0.5rem;
     font-size: 12px;
     font-weight: 900;
-    color: #ee4d2d;
+    color: #d12a0f;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
@@ -274,11 +274,11 @@
   }
 
   .thumb-btn.active {
-    border-color: #ee4d2d;
+    border-color: #d12a0f;
   }
 
   .thumb-btn:hover {
-    border-color: rgba(238, 77, 45, 0.3);
+    border-color: rgba(209, 42, 15, 0.3);
   }
 
   .thumb-video, .thumb-img {

@@ -473,7 +473,7 @@
             {variations.length === 1 ? variations[0].name : 'Lựa chọn'}
           </span>
           {#if variations.length > 1}
-            <button onclick={onOpenSelector} class="text-[11px] text-[#ee4d2d] font-bold flex items-center gap-0.5">
+            <button onclick={onOpenSelector} class="text-[11px] text-[#d12a0f] font-bold flex items-center gap-0.5">
               Thay đổi <ChevronRight size={12} />
             </button>
           {/if}
@@ -487,11 +487,11 @@
                  <button 
                    onclick={() => onOpenSelector()} 
                    class="relative shrink-0 px-5 py-2.5 border-2 text-[12px] font-black tracking-tight transition-all
-                   {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'bg-gray-50 border-gray-100 text-gray-500'}"
+                   {isSelected ? 'border-[#d12a0f] text-[#d12a0f] bg-[#d12a0f]/5' : 'bg-gray-50 border-gray-100 text-gray-700'}"
                  >
                    {option}
                    {#if isSelected}
-                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#d12a0f] border-l-[8px] border-l-transparent"></div>
                    {/if}
                  </button>
                {/if}
@@ -512,10 +512,10 @@
     {/if}
 
     {#if activeComboQty > 1 || activeGifts.length > 0}
-      <div class="promo-container relative overflow-hidden bg-white border border-[#ee4d2d]/10 rounded-xl p-3 shadow-sm">
+      <div class="promo-container relative overflow-hidden bg-white border border-[#d12a0f]/10 rounded-xl p-3 shadow-sm">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
-              <div class="w-6 h-6 rounded-full bg-[#ee4d2d] flex items-center justify-center text-white shrink-0">
+              <div class="w-6 h-6 rounded-full bg-[#d12a0f] flex items-center justify-center text-white shrink-0">
                 <Gift size={14} />
               </div>
               <span class="text-[12px] font-black text-gray-900">Ưu đãi độc quyền</span>
@@ -537,7 +537,7 @@
             <div class="flex flex-wrap gap-2">
                {#each activeGifts as gift}
                   {#if gift.slug}
-                     <a href={resolveGiftUrl(gift.slug)} class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/25 hover:bg-rose-50 transition-all cursor-pointer group/gift-item w-fit" style="text-decoration: none;">
+                     <a href={resolveGiftUrl(gift.slug)} class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#d12a0f]/5 hover:border-[#d12a0f]/25 hover:bg-rose-50 transition-all cursor-pointer group/gift-item w-fit" style="text-decoration: none;">
                         <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0 relative">
                            {#if gift.image}
                               <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
@@ -546,15 +546,15 @@
                            {/if}
                         </div>
                         <div class="flex flex-col min-w-0">
-                           <span class="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover/gift-item:text-[#ee4d2d] transition-colors max-w-[140px]">
+                           <span class="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover/gift-item:text-[#d12a0f] transition-colors max-w-[140px]">
                              {gift.name}
                              <span class="inline-block text-[7px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span>
                            </span>
-                           <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
+                           <span class="text-[9px] text-[#d12a0f] font-black italic">Tặng x{gift.qty}</span>
                         </div>
                      </a>
                   {:else}
-                     <div class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5">
+                     <div class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#d12a0f]/5">
                         <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0">
                            {#if gift.image}
                               <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
@@ -564,7 +564,7 @@
                         </div>
                         <div class="flex flex-col">
                            <span class="text-[11px] font-bold text-gray-900 leading-tight truncate max-w-[150px]">{gift.name}</span>
-                           <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
+                           <span class="text-[9px] text-[#d12a0f] font-black italic">Tặng x{gift.qty}</span>
                         </div>
                      </div>
                   {/if}
@@ -590,13 +590,13 @@
 <style>
   /* Elite V2.2: Unified Flash Sale Banner Styles */
   .flash-sale-banner { 
-    background: linear-gradient(90deg, #ee4d2d, #ff7337); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
-    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.2);
+    background: linear-gradient(90deg, #d12a0f, #eb3c1a); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(209, 42, 15, 0.2);
   }
 
   .fs-left { flex: 1; z-index: 1; }
-  .discount-percent { background: white; color: #ee4d2d; border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
-  .freeship-fomo { background: #E3B5A4; color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
+  .discount-percent { background: white; color: #d12a0f; border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
+  .freeship-fomo { background: #ffebe6; color: #d12a0f; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
   .price-container { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
   .price-label { font-size: 13px; color: white; opacity: 0.9; }
   .price-value { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }

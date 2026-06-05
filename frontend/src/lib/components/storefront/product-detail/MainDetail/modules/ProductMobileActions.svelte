@@ -42,11 +42,11 @@
   .tbn-action-split:active { opacity: 0.7; transform: scale(0.95); }
   
   .tbn-action-split--cart { 
-    width: 52px; background: #fff; color: #ee4d2d; border-right: 1px solid #f5f5f5; 
+    width: 52px; background: #fff; color: #d12a0f; border-right: 1px solid #f5f5f5; 
   }
   .tbn-action-split--buy { 
     flex: 1; position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #FFF; padding: 0 20px; 
+    background: linear-gradient(135deg, #d12a0f, #eb3c1a); color: #FFF; padding: 0 20px; 
   }
   .buy-text { font-size: 13px; font-weight: 1000; letter-spacing: 0.05em; }
   .buy-sub { font-size: 9px; font-weight: 800; opacity: 0.9; margin-top: 1px; }

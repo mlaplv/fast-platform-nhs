@@ -513,7 +513,7 @@
     >
       <a
         href="/"
-        class="text-gray-400 hover:text-[#ee4d2d] transition-all font-black tracking-widest text-[11px]"
+        class="text-gray-400 hover:text-[#d12a0f] transition-all font-black tracking-widest text-[11px]"
       >
         Osmo
       </a>
@@ -691,7 +691,7 @@
     content: "✦" !important;
     position: static !important;
     display: inline-block !important;
-    color: #ee4d2d !important;
+    color: #d12a0f !important;
     font-size: 14px !important;
     line-height: 1.6 !important;
     margin-right: 0.35rem !important;
@@ -753,7 +753,7 @@
     content: counter(osmo-counter) "." !important;
     position: static !important;
     display: inline-block !important;
-    color: #ee4d2d !important;
+    color: #d12a0f !important;
     font-weight: 900 !important;
     font-size: 14px !important;
     line-height: 1.6 !important;

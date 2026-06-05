@@ -302,11 +302,11 @@
                         class="flex items-center justify-between border-b border-gray-50 pb-1"
                       >
                         <span
-                          class="text-[11px] font-black text-teal-600 tracking-wider uppercase"
+                          class="text-[11px] font-black text-teal-800 tracking-wider uppercase"
                           >{grp.group}</span
                         >
                         <span
-                          class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-teal-50/10 text-teal-600"
+                          class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-teal-50/10 text-teal-800"
                           >{grp.items.length} chất</span
                         >
                       </div>

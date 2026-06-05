@@ -431,7 +431,7 @@
                     {/if}
                   </div>
                   <div class="gift-info flex-1 min-w-0">
-                    <span class="gift-name group-hover/gift-item:text-[#ee4d2d] transition-colors truncate" style="color: #111827;">
+                    <span class="gift-name group-hover/gift-item:text-[#d12a0f] transition-colors truncate" style="color: #111827;">
                       {gift.name}
                       <span class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span>
                     </span>
