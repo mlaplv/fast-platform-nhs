@@ -195,10 +195,29 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
+  let lcpImageUrl: string | null = null;
+  let lcpType = "image";
+
   // Process the request and minify HTML for storefront to ensure peak SGE performance
   const response = await resolve(event, {
     transformPageChunk: ({ html }) => {
       if (event.locals.tenant === "storefront") {
+        // Find LCP preload URL in the fully rendered HTML (case-insensitive and quote-tolerant)
+        const linkMatches = html.match(/<link\s+[^>]*rel=["']?preload["']?[^>]*>/gi);
+        if (linkMatches) {
+          for (const link of linkMatches) {
+            const lowerLink = link.toLowerCase();
+            if (lowerLink.includes('fetchpriority="high"') || lowerLink.includes("fetchpriority='high'") || lowerLink.includes('fetchpriority=high')) {
+              const hrefMatch = link.match(/href=["']?([^"'\s>]+)["']?/i);
+              const asMatch = link.match(/as=["']?([^"'\s>]+)["']?/i);
+              if (hrefMatch) {
+                lcpImageUrl = hrefMatch[1];
+                lcpType = asMatch ? asMatch[1] : "image";
+                break;
+              }
+            }
+          }
+        }
         return minifyHtml(html);
       }
       return html;
@@ -222,16 +241,22 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
   }
 
-  // ─── LCP FIX: Strip modulepreload Link headers for storefront HTML pages ───
-  // SvelteKit injects ~100+ modulepreload entries into the HTTP Link header.
-  // The browser processes these BEFORE parsing HTML, creating massive bandwidth
-  // contention that deprioritizes the LCP image preload.
-  // The modulepreload <link> tags in the HTML body still work fine for JS loading.
+  // ─── LCP FIX: Strip modulepreload & Inject custom LCP preload Link header ───
+  // SvelteKit injects ~100+ modulepreload entries into the HTTP Link header, which causes
+  // bandwidth contention. We replace it with our single high-priority LCP resource preload.
   if (event.locals.tenant === "storefront") {
     const contentType = response.headers.get("content-type") || "";
     if (contentType.includes("text/html")) {
-      // Remove the massive modulepreload Link header
+      // Remove SvelteKit's massive Link header
       response.headers.delete("link");
+      
+      // Inject the clean LCP preload Link header
+      if (lcpImageUrl) {
+        response.headers.set(
+          "Link",
+          `<${lcpImageUrl}>; rel="preload"; as="${lcpType}"; fetchpriority="high"`
+        );
+      }
     }
   }
 
