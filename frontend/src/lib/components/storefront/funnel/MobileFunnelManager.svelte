@@ -33,7 +33,7 @@
   const product = $derived(data?.product);
   const metadata = $derived(product?.metadata || {});
   const seoMeta = $derived(product?.seoMeta || product?.seo_meta || null);
-  const loadingText = $derived(metadata.sync_loading_text || "SYNCHRONIZING ELITE ASSETS...");
+  const loadingText = $derived(metadata.sync_loading_text || "Loading...");
 
   const clientUi = getClientUi();
 

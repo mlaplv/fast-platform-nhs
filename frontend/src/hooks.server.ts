@@ -200,6 +200,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // Process the request and minify HTML for storefront to ensure peak SGE performance
   const response = await resolve(event, {
+    filterSerializedResponseHeaders: (name) => name === 'content-type' || name === 'location',
     transformPageChunk: ({ html }) => {
       if (event.locals.tenant === "storefront") {
         // Find LCP preload URL in the fully rendered HTML (case-insensitive and quote-tolerant)

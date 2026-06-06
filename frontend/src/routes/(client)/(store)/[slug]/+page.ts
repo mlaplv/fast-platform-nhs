@@ -2,8 +2,38 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { normalizeSeoMeta, type NormalizedSeoMeta } from '$lib/utils/seo';
 import { browser } from '$app/environment';
+import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
 export const trailingSlash = 'ignore';
+
+const resolvedCache = new Map<string, string>();
+
+async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string, width: number): Promise<string> {
+  const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(originalUrl.split('?')[0].toLowerCase());
+  if (isVideo) return originalUrl;
+
+  const optUrl = resolveOptimizedImageUrl(originalUrl, width);
+  const cacheKey = `${optUrl}`;
+  if (resolvedCache.has(cacheKey)) {
+    return resolvedCache.get(cacheKey)!;
+  }
+
+  try {
+    const res = await fetchFn(optUrl, { method: 'GET', redirect: 'manual' });
+    if (res.status === 302 || res.status === 301) {
+      const loc = res.headers.get('location');
+      if (loc) {
+        resolvedCache.set(cacheKey, loc);
+        return loc;
+      }
+    }
+    resolvedCache.set(cacheKey, optUrl);
+    return optUrl;
+  } catch (e) {
+    console.error(`[LCP REDIRECT RESOLVER FAILED] ${optUrl}`, e);
+    return optUrl;
+  }
+}
 
 // ── Shared local types ────────────────────────────────────────────────────────
 interface NewsItem {
@@ -163,6 +193,36 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
         .map(c => c.split('=')[0].replace('elite_viral_', ''));
     }
 
+    // Derive LCP hero images for mobile and desktop
+    const mobileHeroImage = (() => {
+      const p = product;
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      if (tierVar) {
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+        if (mobImgs.length > 0) return mobImgs[0];
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
+      }
+      if (p.mobileImages && p.mobileImages.length > 0) return p.mobileImages[0];
+      if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) return p.metadata.mobile_images[0];
+      return p.images?.[0];
+    })();
+
+    const desktopHeroImage = (() => {
+      const p = product;
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      if (tierVar) {
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
+      }
+      return p.images?.[0];
+    })();
+
+    const [resolvedMobileLcpUrl, resolvedDesktopLcpUrl] = await Promise.all([
+      mobileHeroImage ? resolveDirectCacheUrl(fetch, mobileHeroImage, 600) : Promise.resolve(''),
+      desktopHeroImage ? resolveDirectCacheUrl(fetch, desktopHeroImage, 800) : Promise.resolve('')
+    ]);
+
     // NOTE: isMobile intentionally NOT set here.
     // It is resolved server-side in hooks.server.ts (User-Agent) and passed through layout data.
     // Setting it here via window.innerWidth would cause SSR/Hydration mismatch.
@@ -173,7 +233,9 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       relatedProducts,
       reviews,
       shopInfo,
-      unlockedVoucherIds
+      unlockedVoucherIds,
+      resolvedMobileLcpUrl,
+      resolvedDesktopLcpUrl
     };
   }
 

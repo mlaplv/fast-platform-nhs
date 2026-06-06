@@ -28,9 +28,10 @@
     product: Product;
     relatedProducts?: Product[];
     reviewStats?: ReviewStats | null;
+    resolvedLcpUrl?: string;
   }
 
-  let { product, relatedProducts = [], reviewStats = null }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl }: Props = $props();
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -277,6 +278,7 @@
         {hideRatio}
         onOpenSelector={() => (showVariantSelector = true)}
         onTriggerScan={triggerScan}
+        {resolvedLcpUrl}
       />
     </section>
 

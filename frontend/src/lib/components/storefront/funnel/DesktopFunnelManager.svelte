@@ -92,7 +92,7 @@
   const seoMeta = $derived(product?.seoMeta || product?.seo_meta || null);
 
   const loadingText = $derived(
-    metadata.sync_loading_text || "SYNCHRONIZING ELITE ASSETS..."
+    metadata.sync_loading_text || "Loading..."
   );
 
   const clientUi = getClientUi();

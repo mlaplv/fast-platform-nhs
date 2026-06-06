@@ -19,13 +19,15 @@
     onThumbClick: (index: number) => void;
     carouselRef: HTMLElement | null;
     isVideoUrl: (url: string | undefined | null) => boolean;
+    resolvedLcpUrl?: string;
   }
 
   let { 
     product, displayImages, activeImageIndex, videoEl = $bindable(), 
     videoMuted, videoEndTime, handleTimeUpdate, toggleMute, 
     handleCarouselScroll, triggerViralFly, onThumbClick, carouselRef = $bindable(),
-    isVideoUrl
+    isVideoUrl,
+    resolvedLcpUrl
   }: Props = $props();
 </script>
 
@@ -70,12 +72,11 @@
         {:else}
           {#if i === 0}
             <img 
-              src={resolveOptimizedImageUrl(img, 600)} 
+              src={resolvedLcpUrl || resolveOptimizedImageUrl(img, 600)} 
               width="412"
               height="412"
               alt={product.name} 
               class="slide-media" 
-              loading="eager" 
               fetchpriority="high"
               decoding="sync"
             />

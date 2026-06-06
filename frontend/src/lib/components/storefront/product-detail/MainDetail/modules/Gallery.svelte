@@ -19,6 +19,7 @@
       options: string[];
       images?: string[];
     }>;
+    resolvedLcpUrl?: string;
   }
 
   let { 
@@ -27,7 +28,8 @@
     isFlashSaleActive, 
     productInfo, 
     selectedIndices, 
-    variations 
+    variations,
+    resolvedLcpUrl
   }: Props = $props();
 
   // --- Gallery State ---
@@ -137,10 +139,9 @@
       </button>
     {:else}
       <img 
-        src={resolveOptimizedImageUrl(currentImage, 800)} 
+        src={(currentImage === displayImages[0] && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800)} 
         alt={product.name} 
         class="w-full h-full object-contain bg-white" 
-        loading="eager"
         fetchpriority="high"
         decoding="sync"
       />

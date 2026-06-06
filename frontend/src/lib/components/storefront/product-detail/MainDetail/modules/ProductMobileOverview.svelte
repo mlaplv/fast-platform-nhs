@@ -53,6 +53,7 @@
     scrollRatio?: number;
     hideRatio?: number;
     onTriggerScan?: () => void;
+    resolvedLcpUrl?: string;
   }
 
   let { 
@@ -60,7 +61,8 @@
     onOpenSelector, stats, isViralUnlocked = $bindable(), 
     isScrolled = false, isHidden = false, 
     scrollRatio = 0, hideRatio = 0,
-    onTriggerScan
+    onTriggerScan,
+    resolvedLcpUrl
   }: Props = $props();
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -335,6 +337,7 @@
     {product}
     {displayImages}
     {activeImageIndex}
+    {resolvedLcpUrl}
     bind:videoEl
     {videoMuted}
     {videoEndTime}

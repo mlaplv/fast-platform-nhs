@@ -28,8 +28,9 @@
     product: Product;
     relatedProducts?: Product[];
     reviewStats?: ReviewStats | null;
+    resolvedLcpUrl?: string;
   }
-  let { product, relatedProducts = [], reviewStats = null }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl }: Props = $props();
 
   interface ExtendedProductMetadata {
     share_promotion?: {
@@ -549,6 +550,7 @@
           {productInfo}
           {selectedIndices}
           {variations}
+          {resolvedLcpUrl}
         />
       </div>
 
