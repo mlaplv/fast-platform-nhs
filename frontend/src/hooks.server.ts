@@ -250,11 +250,11 @@ export const handle: Handle = async ({ event, resolve }) => {
       // Remove SvelteKit's massive Link header
       response.headers.delete("link");
       
-      // Inject the clean LCP preload Link header
+      // Inject the clean LCP preload Link header (standard HTTP Link header syntax, no quotes around parameter tokens)
       if (lcpImageUrl) {
         response.headers.set(
           "Link",
-          `<${lcpImageUrl}>; rel="preload"; as="${lcpType}"; fetchpriority="high"`
+          `<${lcpImageUrl}>; rel=preload; as=${lcpType}; fetchpriority=high`
         );
       }
     }
