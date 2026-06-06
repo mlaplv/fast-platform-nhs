@@ -16,9 +16,10 @@
 
   interface Props {
     banners: Banner[];
+    resolvedLcpUrl?: string;
   }
 
-  let { banners }: Props = $props();
+  let { banners, resolvedLcpUrl }: Props = $props();
 
   // Elite V3.1: Hiển thị toàn bộ banner tại vị trí home_main dưới dạng Carousel
   const homeBanners = $derived(banners?.filter(b => b.position === 'home_main') || []);
@@ -76,7 +77,7 @@
       {#if banner.link_url && banner.link_url !== '#'}
         <a href={getProductLink(banner.link_url)} class="banner-slide">
           <img
-            src={resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
+            src={i === 0 && resolvedLcpUrl ? resolvedLcpUrl : resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
             alt={banner.title || "Banner"}
             class="w-full h-full object-cover select-none"
             loading={i === 0 ? "eager" : "lazy"}
@@ -86,7 +87,7 @@
       {:else}
         <div class="banner-slide">
           <img
-            src={resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
+            src={i === 0 && resolvedLcpUrl ? resolvedLcpUrl : resolveOptimizedImageUrl(banner.mobile_image_url || banner.image_url, 800)}
             alt={banner.title || "Banner"}
             class="w-full h-full object-cover select-none"
             loading={i === 0 ? "eager" : "lazy"}

@@ -37,6 +37,7 @@
         categories={data.categories}
         products={data.products}
         videos={data.videos} 
+        resolvedLcpUrl={data.resolvedMobileLcpUrl}
     />
 {:else}
     <HeaderDesktop settings={data.settings} />
@@ -46,6 +47,7 @@
             categories={data.categories}
             products={data.products}
             aiProducts={data.ai_products}
+            resolvedLcpUrl={data.resolvedDesktopLcpUrl}
         />
     </main>
     <FooterDesktop shopInfo={shopInfo} />

@@ -11,8 +11,9 @@
     categories: Category[];
     products: Product[];
     aiProducts: Product[];
+    resolvedLcpUrl?: string;
   }
-  let { banners, categories, products, aiProducts }: Props = $props();
+  let { banners, categories, products, aiProducts, resolvedLcpUrl }: Props = $props();
 
   let activeCatIndex = $state(0);
   
@@ -31,7 +32,7 @@
   <!-- Top Section (White Opaque) -->
   <div class="bg-white w-full border-b border-gray-100 shadow-sm">
     <div class="max-w-[1200px] mx-auto flex flex-col px-4 xl:px-0">
-      <HomeBanner {banners} />
+      <HomeBanner {banners} {resolvedLcpUrl} />
       
       <!-- Viral 2026 Category Navigation -->
       <HomeCategory {categories} />

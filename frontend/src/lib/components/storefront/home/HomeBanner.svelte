@@ -4,8 +4,9 @@
 
   interface Props {
     banners: Banner[];
+    resolvedLcpUrl?: string;
   }
-  let { banners }: Props = $props();
+  let { banners, resolvedLcpUrl }: Props = $props();
 
   // Elite V2.2: Neural Link Intelligence
   // Chuẩn hóa link: Mọi slug đều được coi là sản phẩm hoặc danh mục cấp cao (Root-level)
@@ -64,11 +65,11 @@
         {#each mainBanners as banner, i}
           {#if banner.link_url && banner.link_url !== '#'}
             <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
-              <img src={resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+              <img src={i === 0 && resolvedLcpUrl ? resolvedLcpUrl : resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
             </a>
           {:else}
             <div class="w-full h-full shrink-0 block">
-              <img src={resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+              <img src={i === 0 && resolvedLcpUrl ? resolvedLcpUrl : resolveOptimizedImageUrl(banner.image_url, 800)} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
             </div>
           {/if}
         {/each}

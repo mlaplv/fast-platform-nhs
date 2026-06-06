@@ -15,9 +15,10 @@
     categories: Category[];
     products: Product[];
     videos?: Array<{ id: string; url: string; title: string; likes: number; image: string }>;
+    resolvedLcpUrl?: string;
   }
 
-  let { banners, categories, products, videos }: Props = $props();
+  let { banners, categories, products, videos, resolvedLcpUrl }: Props = $props();
 </script>
 
 <!-- Wrapper: full page scroll, padding-bottom cho bottom nav -->
@@ -30,7 +31,7 @@
   <!-- Content scroll area -->
   <div class="mobile-home-content">
     <!-- Banner slidshow -->
-    <MobileBannerCarousel {banners} />
+    <MobileBannerCarousel {banners} {resolvedLcpUrl} />
 
     <!-- Service icon shortcuts -->
     <MobileServiceIcons />

@@ -79,6 +79,16 @@
     {#if isAdmin}
         <title>Xohi Darkboard</title>
         <meta name="robots" content="noindex, nofollow" />
+    {:else}
+        {#if data.isMobile}
+            {#if data.resolvedMobileLcpUrl}
+                <link rel="preload" as="image" href={data.resolvedMobileLcpUrl} fetchpriority="high" type="image/webp" />
+            {/if}
+        {:else}
+            {#if data.resolvedDesktopLcpUrl}
+                <link rel="preload" as="image" href={data.resolvedDesktopLcpUrl} fetchpriority="high" type="image/webp" />
+            {/if}
+        {/if}
     {/if}
 </svelte:head>
 
