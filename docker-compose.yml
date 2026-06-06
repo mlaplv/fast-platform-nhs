@@ -64,7 +64,6 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./frontend/dist:/app/frontend/dist:ro
       - ./frontend/static:/app/frontend/static:ro
       # Use ACME automatically; remove manual pki mount which may contain malformed certs
       - caddy_data:/data
@@ -124,6 +123,35 @@ services:
       redis:
         condition: service_healthy
     restart: always
+
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fast_platform_ui
+    expose:
+      - "3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - INTERNAL_API_URL=http://api:8000
+    mem_limit: 512M
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      api:
+        condition: service_started
+    restart: always
+
 
 
 

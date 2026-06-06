@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { normalizeSeoMeta, type NormalizedSeoMeta } from '$lib/utils/seo';
+import { browser } from '$app/environment';
 
 export const trailingSlash = 'ignore';
 
@@ -151,7 +152,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
     }
 
     let unlockedVoucherIds: string[] = [];
-    if (typeof document !== 'undefined') {
+    if (browser) {
       unlockedVoucherIds = document.cookie.split(';')
         .map(c => c.trim())
         .filter(c => c.startsWith('elite_viral_') && c.includes('='))

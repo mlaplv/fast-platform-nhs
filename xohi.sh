@@ -966,20 +966,40 @@ function upgrade_python_packages() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
-function update_storefront_ro() {
-    echo -e "${CYAN}[SYSTEM] ĐANG CẬP NHẬT STOREFRONT DIST LÊN DOCKER CADDY (READ-ONLY)...${NC}"
+function update_storefront_ssr() {
+    echo -e "${CYAN}[SYSTEM] ĐANG CẬP NHẬT STOREFRONT SVELTEKIT SSR (HOST BUILD & CONTAINER RESTART)...${NC}"
     
-    if docker ps --format '{{.Names}}' | grep -q "fast_platform_caddy"; then
-        echo -e "${YELLOW}-> Đang tiến hành làm mới Caddy Container...${NC}"
-        # Restart container Caddy để làm sạch bộ nhớ cache, nạp lại phân vùng Read-Only static chính xác
-        docker compose restart caddy
-        echo -e "${GREEN}   ✔ Đã làm mới thành công! Caddy đang phục vụ dist mới của Sếp ở chế độ Read-Only.${NC}"
-    else
-        echo -e "${RED}[ERROR] Container fast_platform_caddy không chạy. Hãy chắc chắn Sếp đã khởi chạy dự án.${NC}"
+    if [ ! -d "frontend" ]; then
+        echo -e "${RED}[ERROR] Thư mục frontend không tồn tại.${NC}"
+        read -p "Nhấn Enter để quay lại menu..."
+        return
     fi
     
+    echo -e "${YELLOW}-> 1. Đang build SvelteKit trên Host...${NC}"
+    cd frontend
+    rm -rf .svelte-kit
+    if pnpm build; then
+        echo -e "${GREEN}✔ Build SvelteKit thành công!${NC}"
+    else
+        echo -e "${RED}[ERROR] Build SvelteKit thất bại.${NC}"
+        cd ..
+        read -p "Nhấn Enter để quay lại menu..."
+        return
+    fi
+    cd ..
+    
+    echo -e "${YELLOW}-> 2. Đang build lại Docker Image cho UI...${NC}"
+    docker compose build ui
+    
+    echo -e "${YELLOW}-> 3. Đang khởi động lại UI Container...${NC}"
+    docker compose stop ui
+    docker compose rm -f ui
+    docker compose up -d ui
+    
+    echo -e "${GREEN}✔ Cập nhật Storefront SSR hoàn tất! UI Container đã chạy bản mới nhất.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
+
 
 function total_garbage_clean() {
     local NO_WAIT=false
@@ -1016,13 +1036,28 @@ function total_garbage_clean() {
     docker builder prune -f 2>/dev/null || true
     echo -e "${GREEN}   ✔ Đã giải phóng toàn bộ tài nguyên Docker dư thừa!${NC}"
 
-    # 5. Clean local system temp logs & caches
-    echo -e "${YELLOW}-> [5/6] Đang làm sạch logs hệ thống cục bộ...${NC}"
+    # 5. Clean local system temp logs, pycache & dev caches
+    echo -e "${YELLOW}-> [5/7] Đang làm sạch logs, pycache & dev caches trên Host...${NC}"
     sudo rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
     sudo find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
-    
-    # 6. Flush Redis & Force Client Reset Cache
-    echo -e "${YELLOW}-> [6/6] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
+    find backend -type f -name "*.pyc" -delete 2>/dev/null || true
+    find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    rm -rf frontend/.svelte-kit frontend/.vite frontend/dist 2>/dev/null || true
+    echo -e "${GREEN}   ✔ Đã làm sạch logs, pycache và dev caches trên Host!${NC}"
+
+    # 6. Clean npm & pnpm global caches on Host
+    echo -e "${YELLOW}-> [6/7] Đang làm sạch npm cache & pnpm store...${NC}"
+    if command -v npm &> /dev/null; then
+        npm cache clean --force &>/dev/null || true
+    fi
+    if command -v pnpm &> /dev/null; then
+        pnpm store prune &>/dev/null || true
+        rm -rf ~/.cache/pnpm 2>/dev/null || true
+    fi
+    echo -e "${GREEN}   ✔ Đã dọn dẹp sạch sẽ npm & pnpm caches!${NC}"
+
+    # 7. Flush Redis & Force Client Reset Cache
+    echo -e "${YELLOW}-> [7/7] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
         docker exec fast_platform_redis redis-cli flushall || true
     fi
@@ -1046,19 +1081,19 @@ function restart_backend_services() {
         NO_WAIT=true
     fi
 
-    echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend & Gateway (api + worker_high + caddy)...${NC}"
-    docker compose stop api worker_high caddy
-    docker compose rm -f api worker_high caddy
+    echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend, UI & Gateway (api + worker_high + ui + caddy)...${NC}"
+    docker compose stop api worker_high ui caddy
+    docker compose rm -f api worker_high ui caddy
     
     # [Elite V2.2] Purge pycache cũ trực tiếp trên host trước khi up (tránh Double Restart làm treo lock DB)
     echo -e "${YELLOW}[PYCACHE] Đang xóa sạch pycache cũ trên Host...${NC}"
     find backend -name "*.pyc" -delete 2>/dev/null || true
     find backend -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     
-    docker compose up -d api worker_high caddy
-    echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, Caddy) sạch sẽ!${NC}"
+    docker compose up -d api worker_high ui caddy
+    echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, UI, Caddy) sạch sẽ!${NC}"
     echo -e "${CYAN}--- Trạng thái hoạt động mới nhất ---${NC}"
-    docker compose logs --tail 15 api worker_high
+    docker compose logs --tail 15 api worker_high ui
     echo -e "${GREEN}✔ Khởi chạy hoàn tất! Hệ thống đã trực tuyến ổn định.${NC}"
     
     if [ "$NO_WAIT" = false ]; then
@@ -1077,14 +1112,8 @@ if [[ -n "$1" ]]; then
             restart_backend_services --no-wait
             exit 0
             ;;
-        dist-ro|caddy-ro|update-ro|ro)
-            if docker ps --format '{{.Names}}' | grep -q "fast_platform_caddy"; then
-                docker compose restart caddy
-                echo -e "${GREEN}✔ Đã làm mới Caddy Read-Only dist thành công!${NC}"
-            else
-                echo -e "${RED}Error: fast_platform_caddy container is not running.${NC}"
-                exit 1
-            fi
+        ui-ssr|ssr-update|update-ui|ui|dist-ro|caddy-ro|update-ro|ro)
+            update_storefront_ssr
             exit 0
             ;;
     esac
@@ -1125,7 +1154,7 @@ while true; do
     echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
     echo "21) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
     echo "22) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
-    echo "23) CẬP NHẬT DIST LÊN DOCKER RO (Restart Caddy)"
+    echo "23) CẬP NHẬT STOREFRONT SSR (Build SvelteKit & Restart UI)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1213,7 +1242,7 @@ while true; do
             total_garbage_clean
             ;;
         23)
-            update_storefront_ro
+            update_storefront_ssr
             ;;
         0)
             exit 0

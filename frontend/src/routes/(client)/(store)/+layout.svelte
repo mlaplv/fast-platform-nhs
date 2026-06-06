@@ -8,6 +8,7 @@
   import SmartSearch from "$lib/components/storefront/product/SmartSearch.svelte";
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import { onMount, type Snippet, type Component } from "svelte";
+  import { browser } from "$app/environment";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import type { LayoutData } from './$types';
 
@@ -26,7 +27,7 @@
 
   if (data.shopInfo) {
     ui.settings = data.shopInfo;
-    if (typeof sessionStorage !== 'undefined') {
+    if (browser) {
       sessionStorage.setItem('primary_config', JSON.stringify(data.shopInfo));
     }
   }
@@ -51,7 +52,7 @@
   $effect.pre(() => {
     if (data.shopInfo) {
         ui.settings = data.shopInfo;
-        if (typeof sessionStorage !== 'undefined') {
+        if (browser) {
           sessionStorage.setItem('primary_config', JSON.stringify(data.shopInfo));
         }
     }

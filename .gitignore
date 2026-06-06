@@ -14,6 +14,7 @@ certs/caddy/pki/
 # 2. Rác thư viện & Môi trường
 backend/cache/
 node_modules/
+node-v22.12.0-linux-x64/
 /static/
 frontend/static/video   
 .pnpm-store/
@@ -54,6 +55,8 @@ backend/cache/
 build/
 dist/
 frontend/dist/
+frontend/static/wasm/
+frontend/static/vad/
 .svelte-kit/
 .next/
 out/

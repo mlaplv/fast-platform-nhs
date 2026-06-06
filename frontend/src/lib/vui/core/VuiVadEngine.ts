@@ -46,12 +46,13 @@ export class VuiVadEngine {
         }
         const customWindow = window as unknown as CustomWindow;
         if (typeof window !== 'undefined') {
+            const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
             if (!customWindow.ort) {
                 console.log("[VUI] Loading AI Core (ort.min.js) dynamically for VAD...");
                 try {
                     await new Promise<void>((resolve, reject) => {
                         const script = document.createElement('script');
-                        script.src = '/wasm/ort.min.js';
+                        script.src = `${apiBase}/wasm/ort.min.js`;
                         script.async = true;
                         script.onload = () => resolve();
                         script.onerror = reject;
@@ -63,7 +64,6 @@ export class VuiVadEngine {
             }
             if (customWindow.ort) {
                 const ort = customWindow.ort;
-                const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
                 const wasmBase = `${apiBase}/wasm`;
                 
                 ort.env.wasm.wasmPaths = {

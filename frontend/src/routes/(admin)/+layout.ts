@@ -2,6 +2,9 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 import { permissionState } from '$lib/state/permissions.svelte';
 
+export const ssr = false;
+export const prerender = false;
+
 export const load: LayoutLoad = async ({ url }) => {
     if (typeof window === 'undefined') return {};
 

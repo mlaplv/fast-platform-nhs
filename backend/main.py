@@ -48,65 +48,78 @@ from backend.lifespan import lifespan
 from backend.database import alchemy_config
 from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 
-# Route Handlers
+# ==============================================================================
+# ROUTE HANDLERS & CONTROLLERS
+# ==============================================================================
+
+# Core Routers
+from backend.routers.content_stream import ContentStreamController
 from backend.routers.intent import IntentController
+from backend.routers.intent_map import IntentMapController
 from backend.routers.intent_stream import IntentStreamController
-from backend.routers.pulse_stream import PulseStreamController
-from backend.controllers.health import HealthController
 from backend.routers.mcp.router import MCPController
-from backend.controllers.auth import AuthController
-from backend.controllers.notifications import NotificationController
-from backend.controllers.auditor import AuditorController
-from backend.controllers.user import UserController
-from backend.controllers.category import CategoryController
-from backend.controllers.product import ProductController
-from backend.controllers.client.diagnostics import DiagnosticController
+from backend.routers.pulse_stream import PulseStreamController
+from backend.routers.voice_core import stt_websocket
+
+# System & Auth Controllers
+from backend.controllers.ads_protection import AdsProtectionController
+from backend.controllers.ai_management import AIManagementController
 from backend.controllers.article import ArticleController
+from backend.controllers.auth import AuthController
+from backend.controllers.banner import BannerController
+from backend.controllers.category import CategoryController
+from backend.controllers.chat import ChatController
+from backend.controllers.compliance import ComplianceController
+from backend.controllers.content import ContentController
+from backend.controllers.health import HealthController
+from backend.controllers.media import MediaController
+from backend.controllers.notifications import NotificationController
 from backend.controllers.order import OrderController
+from backend.controllers.product import ProductController
+from backend.controllers.promotion import PromotionController
+from backend.controllers.review import AdminReviewController
+from backend.controllers.scheduler import SchedulerController
+from backend.controllers.security import SecurityController
+from backend.controllers.settings import SettingsController
+from backend.controllers.tts_handler import TTSController
+from backend.controllers.user import UserController
+
+# Admin Support & CTV Controllers
+from backend.controllers.admin_ctv import AdminCtvController
+from backend.controllers.admin_support import AdminSupportController
+from backend.controllers.admin_support_inbox import AdminSupportInboxController
+from backend.controllers.auditor import AuditorController
+
+# Client Storefront Controllers
+from backend.controllers.client.barcode import BarcodeController
 from backend.controllers.client.checkout import CheckoutController
+from backend.controllers.client.ctv import ClientCtvController
+from backend.controllers.client.diagnostics import DiagnosticController
+from backend.controllers.client.fomo import FomoController
+from backend.controllers.client.home import ClientHomeController
+from backend.controllers.client.news import PublicNewsController
+from backend.controllers.client.notifications import ClientNotificationController
 from backend.controllers.client.order import PublicOrderController
 from backend.controllers.client.product import PublicProductController
 from backend.controllers.client.category import PublicCategoryController
-from backend.controllers.client.home import ClientHomeController
-from backend.controllers.client.review import PublicReviewController
-from backend.controllers.client.support import SupportController
 from backend.controllers.client.pulse import ClientPulseController
-from backend.controllers.client.news import PublicNewsController
-from backend.controllers.client.user import ClientUserController
+from backend.controllers.client.review import PublicReviewController
+from backend.controllers.client.seo import PublicGoogleMerchantController, PublicSeoController
 from backend.controllers.client.settings import ClientSettingsController
-from backend.controllers.client.notifications import ClientNotificationController
-from backend.controllers.client.seo import PublicSeoController, PublicGoogleMerchantController, PublicCrawlerSeoController
-from backend.controllers.admin_support import AdminSupportController
-from backend.controllers.admin_support_inbox import AdminSupportInboxController
-from backend.controllers.review import AdminReviewController
-from backend.controllers.promotion import PromotionController
-from backend.controllers.settings import SettingsController
-from backend.controllers.ai_management import AIManagementController
-from backend.controllers.chat import ChatController
-from backend.controllers.content import ContentController
-from backend.controllers.media import MediaController
-from backend.controllers.banner import BannerController
-from backend.routers.content_stream import ContentStreamController
-from backend.routers.voice_core import stt_websocket
-from backend.controllers.tts_handler import TTSController
+from backend.controllers.client.support import SupportController
 from backend.controllers.client.tts import PublicTTSController
-from backend.routers.intent_map import IntentMapController
-from backend.controllers.scheduler import SchedulerController
-from backend.controllers.client.fomo import FomoController
+from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.viral import ViralController
-from backend.controllers.client.barcode import BarcodeController
-from backend.controllers.compliance import ComplianceController
-from backend.controllers.ads_protection import AdsProtectionController
-from backend.controllers.security import SecurityController
-from backend.controllers.client.ctv import ClientCtvController
-from backend.controllers.admin_ctv import AdminCtvController
 
-from backend.middleware import AuthMiddleware
-from backend.body_limit import BodyLimitMiddleware
-from backend.domain_guard import DomainGuardMiddleware
+# ==============================================================================
+# MIDDLEWARES
+# ==============================================================================
 from backend.audit_middleware import AuditMiddleware
-from backend.stall_middleware import StallDetectorMiddleware
+from backend.body_limit import BodyLimitMiddleware
 from backend.core.transaction_middleware import TransactionMiddleware
+from backend.domain_guard import DomainGuardMiddleware
+from backend.middleware import AuthMiddleware
+from backend.stall_middleware import StallDetectorMiddleware
 
 
 # R72: Unified Model Environment Sync
@@ -191,7 +204,6 @@ client_routes = [
     ViralController,
     BarcodeController,
     ClientCtvController,
-    PublicCrawlerSeoController,
 ]
 
 public_routes = [

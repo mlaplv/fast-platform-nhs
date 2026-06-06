@@ -145,6 +145,12 @@ export class VuiAudioEngine {
   private async playAudio(blob: Blob): Promise<boolean> {
     if (!vuiState.isActive) return false;
 
+    // Guard against empty or invalid audio blobs (e.g. Edge TTS returned 0 bytes or JSON error)
+    if (!blob || blob.size === 0 || blob.type.includes('json')) {
+      console.warn(`[AudioEngine] Refusing to play empty/invalid blob. Size: ${blob?.size || 0} bytes, Type: ${blob?.type || 'unknown'}`);
+      return false;
+    }
+
     return new Promise((resolve) => {
       try {
         const url = URL.createObjectURL(blob);

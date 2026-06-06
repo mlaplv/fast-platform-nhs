@@ -13,13 +13,15 @@ export class BehaviorEngine {
         // [Elite V3.0] SSR Stealth: Guarding against server-side execution
         if (typeof window === 'undefined') return;
 
+        const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
+
         // [Elite V2.2] Lazy Load AI Core (ort.min.js)
         if (!window.ort) {
             console.log("🛡️ [BehaviorEngine] Loading AI Core (ort.min.js) dynamically...");
             try {
                 await new Promise<void>((resolve, reject) => {
                     const script = document.createElement('script');
-                    script.src = '/wasm/ort.min.js';
+                    script.src = `${apiBase}/wasm/ort.min.js`;
                     script.async = true;
                     script.onload = () => {
                         console.log("🛡️ [BehaviorEngine] AI Core loaded successfully!");
@@ -48,7 +50,6 @@ export class BehaviorEngine {
         }
 
         // [Elite V3.0] In-situ Asset Injection & Model Hardening
-        const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
         
         // Harden model path if it's relative
         const hardenedModelPath = modelPath.startsWith('/') 

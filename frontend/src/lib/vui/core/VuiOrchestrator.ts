@@ -106,6 +106,26 @@ class VuiOrchestrator {
     vuiState.setActiveTier("");
     vuiState.setPhase("listening");
 
+    // Check for microphone presence first
+    if (typeof window !== 'undefined') {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        vuiState.setError("Trình duyệt không hỗ trợ truy cập Microphone.");
+        this.interruptAll();
+        return;
+      }
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasMic = devices.some(d => d.kind === 'audioinput');
+        if (!hasMic) {
+          vuiState.setError("Không tìm thấy thiết bị Microphone. Vui lòng kết nối Microphone.");
+          this.interruptAll();
+          return;
+        }
+      } catch (e) {
+        console.warn("[VUI] Check devices failed:", e);
+      }
+    }
+
     try {
       try {
         await this.audio!.unlock();
@@ -131,7 +151,7 @@ class VuiOrchestrator {
       );
       
       if (this.mic!.isActive()) this.mic!.stop();
-      this.mic!.start(VUI_CONFIG.MIC.CHUNK_DURATION_MS,
+      await this.mic!.start(VUI_CONFIG.MIC.CHUNK_DURATION_MS,
         (blob) => {
           if (vuiState.phase !== "listening") return;
           this.ws!.sendBinary(blob);
@@ -179,8 +199,19 @@ class VuiOrchestrator {
       }, VUI_CONFIG.VAD.MAX_RECORDING_DURATION_MS);
     } catch (e: unknown) {
       const err = e as Error;
-      console.error("[VuiOrchestrator] MIC_START_FAIL:", err);
-      vuiState.setError(err.message || "Lỗi truy cập Microphone");
+      let errMsg = "Lỗi truy cập Microphone";
+      
+      if (err.name === 'NotFoundError' || err.message?.includes('device not found')) {
+        errMsg = "Không tìm thấy thiết bị Microphone. Vui lòng kết nối Microphone.";
+        console.warn("[VUI] Microphone device not found.");
+      } else if (err.name === 'NotAllowedError' || err.message?.includes('Permission denied')) {
+        errMsg = "Trình duyệt bị chặn quyền truy cập Microphone. Vui lòng cấp quyền.";
+        console.warn("[VUI] Microphone permission denied.");
+      } else {
+        console.error("[VuiOrchestrator] MIC_START_FAIL:", err);
+      }
+      
+      vuiState.setError(errMsg);
       this.interruptAll();
     } finally {
       vuiState.setStartingLock(false);

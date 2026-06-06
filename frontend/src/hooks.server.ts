@@ -1,9 +1,43 @@
-import type { Handle, HandleServerError } from "@sveltejs/kit";
+import type { Handle, HandleServerError, HandleFetch } from "@sveltejs/kit";
 import type { JwtPayload } from "$lib/types";
 import { redirect } from "@sveltejs/kit";
 import { ServerEnv } from "$lib/server/env";
 import { isMobileDevice } from "$lib/utils/device";
 import { ADMIN_PROTECTED_PATHS } from "$lib/constants/routes";
+
+
+/**
+ * Safe and fast HTML minifier for SGE & SSR optimization.
+ * Protects pre, code, script, and style blocks from being mangled.
+ */
+function minifyHtml(html: string): string {
+  const placeholders: string[] = [];
+  const protectedTags = /(<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/gi;
+
+  // 1. Separate code blocks
+  let minified = html.replace(protectedTags, (match) => {
+    placeholders.push(match);
+    return `<!--__HTML_MINIFIER_PLACEHOLDER_${placeholders.length - 1}__-->`;
+  });
+
+  // 2. Remove comments
+  minified = minified.replace(/<!--(?!__HTML_MINIFIER_PLACEHOLDER_)[\s\S]*?-->/g, "");
+
+  // 3. Minify space & layout
+  minified = minified
+    .replace(/>\s+</g, "><")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\r?\n/g, "")
+    .trim();
+
+  // 4. Restore original blocks
+  minified = minified.replace(/<!--__HTML_MINIFIER_PLACEHOLDER_(\d+)__-->/g, (_, index) => {
+    return placeholders[parseInt(index, 10)];
+  });
+
+  return minified;
+}
+
 
 export const handleError: HandleServerError = ({ error }) => {
   const isDev = ServerEnv.isDev;
@@ -161,8 +195,15 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Process the request
-  const response = await resolve(event);
+  // Process the request and minify HTML for storefront to ensure peak SGE performance
+  const response = await resolve(event, {
+    transformPageChunk: ({ html }) => {
+      if (event.locals.tenant === "storefront") {
+        return minifyHtml(html);
+      }
+      return html;
+    }
+  });
 
   // R12 - Security & Protocol Defaults
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -172,4 +213,16 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set("Vary", "Origin, User-Agent");
 
   return response;
+};
+
+export const handleFetch: HandleFetch = async ({ request, fetch }) => {
+  const url = new URL(request.url);
+  console.log(`[handleFetch] Original URL: ${request.url}`);
+  if (url.pathname.startsWith('/api/')) {
+    // Intercept internal server-side API fetches and route them directly to Litestar container
+    const targetUrl = new URL(url.pathname + url.search, ServerEnv.INTERNAL_API_URL);
+    console.log(`[handleFetch] Re-routed URL: ${targetUrl.toString()}`);
+    request = new Request(targetUrl.toString(), request);
+  }
+  return fetch(request);
 };

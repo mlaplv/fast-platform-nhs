@@ -35,6 +35,7 @@ def sync_to_vps():
         "--exclude", ".env",
         "--exclude", "logs/",
         "--exclude", ".pytest_cache/",
+        "--exclude", "build/",
         "-e", "ssh -o StrictHostKeyChecking=no",
         "./", "mlap@103.1.236.14:/opt/fast-platform/"
     ]

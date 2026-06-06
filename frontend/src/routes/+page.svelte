@@ -1,22 +1,19 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { onMount, type Component } from 'svelte';
+    import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+    import StorefrontHome from '$lib/components/storefront/StorefrontHome.svelte';
 
     /**
      * ELITE V2.2 - MISSION CONTROL HUB
      * Type-safe tenant router: Admin and Storefront are fully isolated code paths.
-     * SeoHead is lazy-loaded only for storefront to avoid wasted JS parse on admin.
      */
     let { data }: { data: PageData } = $props();
 
     const isAdmin = $derived(data.tenant === 'admin');
 
-    // Type-safe component slots: separated by tenant to prevent prop mismatch bombs
+    // Admin dashboard is client-only (SPA mode)
     let adminComponent = $state<Component<{ isMobile?: boolean; data?: PageData }> | null>(null);
-    let storefrontComponent = $state<Component<{ data: PageData; isMobile: boolean }> | null>(null);
-
-    // Lazy-loaded SeoHead — zero JS parse cost for admin tenant
-    let SeoHead = $state<Component<Record<string, unknown>> | null>(null);
 
     onMount(async () => {
         if (isAdmin) {
@@ -39,21 +36,6 @@
                 window.dispatchEvent(new Event('app-ready'));
             } catch (err) {
                 console.error("[SYSTEM FAULT] Admin load failed:", err);
-                window.dispatchEvent(new Event('app-ready'));
-                window.location.reload();
-            }
-        } else {
-            try {
-                // Parallel load: SeoHead + StorefrontHome simultaneously
-                const [seoMod, storeMod] = await Promise.all([
-                    import('$lib/components/storefront/seo/SeoHead.svelte'),
-                    import('$lib/components/storefront/StorefrontHome.svelte')
-                ]);
-                SeoHead = seoMod.default;
-                storefrontComponent = storeMod.default;
-                // StorefrontHome dispatches app-ready itself after sub-components mount
-            } catch (err) {
-                console.error("[SYSTEM FAULT] Storefront load failed:", err);
                 window.dispatchEvent(new Event('app-ready'));
                 window.location.reload();
             }
@@ -80,9 +62,8 @@
     );
 </script>
 
-<!-- SEO: Only rendered for storefront, lazy-loaded -->
-{#if !isAdmin && SeoHead}
-    <svelte:component this={SeoHead}
+{#if !isAdmin}
+    <SeoHead
         pageType="HOMEPAGE_ELITE"
         title={seoTitle}
         description={seoDescription}
@@ -104,37 +85,30 @@
 </svelte:head>
 
 <div class="page-container md:h-auto md:overflow-visible min-h-dvh overflow-x-hidden {isAdmin ? 'bg-[#020202]' : 'bg-[#fafafa]'}">
-    {#if isAdmin && adminComponent}
-        <div class="flex-1 flex flex-col">
-            <svelte:component
-                this={adminComponent}
-                isMobile={data.isMobile}
-                data={data}
-            />
-        </div>
-    {:else if !isAdmin && storefrontComponent}
-        <div class="flex-1 flex flex-col">
-            <svelte:component
-                this={storefrontComponent}
-                data={data}
-                isMobile={data.isMobile}
-            />
-        </div>
-    {:else}
-        <!-- Loading State: Tenant-specific spinner -->
-        <div class="fixed inset-0 flex items-center justify-center {isAdmin ? 'bg-[#020202] text-[#00FFFF]' : 'bg-[#fafafa] text-[#C5A25D]'} z-[var(--z-modal-overlay)]">
-            <div class="relative flex flex-col items-center gap-6">
-                {#if isAdmin}
+    {#if isAdmin}
+        {#if adminComponent}
+            <div class="flex-1 flex flex-col">
+                <svelte:component
+                    this={adminComponent}
+                    isMobile={data.isMobile}
+                    data={data}
+                />
+            </div>
+        {:else}
+            <!-- Loading State: Admin-specific spinner -->
+            <div class="fixed inset-0 flex items-center justify-center bg-[#020202] text-[#00FFFF] z-[var(--z-modal-overlay)]">
+                <div class="relative flex flex-col items-center gap-6">
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
                     <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] animate-pulse">Initializing Neural Link...</div>
-                {:else}
-                    <div class="w-16 h-16 border-[1px] border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin duration-[2s]"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                         <div class="w-8 h-8 border-[1px] border-[#C5A25D]/5 border-b-[#C5A25D] rounded-full animate-spin-reverse duration-[3s]"></div>
-                    </div>
-                    <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] animate-pulse">Loading...</div>
-                {/if}
+                </div>
             </div>
+        {/if}
+    {:else}
+        <div class="flex-1 flex flex-col">
+            <StorefrontHome
+                data={data}
+                isMobile={data.isMobile}
+            />
         </div>
     {/if}
 </div>

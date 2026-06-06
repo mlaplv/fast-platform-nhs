@@ -1,12 +1,13 @@
 import type { LayoutLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { browser } from '$app/environment';
 
 export const load: LayoutLoad = async ({ fetch }) => {
     let shopInfo = null;
     let vouchers = [];
 
     // 1. Elite V2.2: Cache-First Strategy — check sessionStorage for zero-latency boot
-    if (typeof window !== 'undefined') {
+    if (browser) {
         try {
             const cachedShop = sessionStorage.getItem('primary_config');
             if (cachedShop) shopInfo = JSON.parse(cachedShop);
@@ -67,7 +68,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
         const vouchersData = voucherResp.ok ? await voucherResp.json() : { data: [] };
         const freshVouchers = vouchersData.data || [];
 
-        if (typeof window !== 'undefined') {
+        if (browser) {
             try {
                 sessionStorage.setItem('primary_config', JSON.stringify(freshShop));
                 sessionStorage.setItem('vouchers_config', JSON.stringify(freshVouchers));

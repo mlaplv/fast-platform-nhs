@@ -35,17 +35,6 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	# tls internal  # removed to allow ACME automatic certificates
 	import security_headers
 
-	# Elite V2.2: Dynamic Rendering for SPA SEO (Social Preview & Bot hydration)
-	# Intercepts crawlers requesting storefront pages and routes them to python pre-renderer
-	@social_bots {
-		header_regexp User-Agent (?i)(googlebot|googleother|google-extended|inspectiontool|chrome-lighthouse|lighthouse|adsbot|mediapartners-google|bingbot|facebookexternalhit|facebot|zalobot|twitterbot|slackbot|yandex|baiduspider|coccocbot|ahrefsbot|semrushbot|dotbot|screaming\s+frog|pinterest)
-		host {$APP_DOMAIN}
-		not path /api/* /sitemap.xml /google-merchant.xml* /ws/* /uploads/* /v65_assets/* /avatars/*
-	}
-	handle @social_bots {
-		rewrite * /seo-render?url=https://{host}{uri}
-		import service_proxy
-	}
 
 	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
 	@dynamic_assets path /uploads/* /v65_assets/* /avatars/* /client_uploads/*
@@ -81,42 +70,10 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		import service_proxy
 	}
 
-	# Frontend Routing (Only for main and admin domains)
-	# Serves precompiled static files directly with high-performance Brotli and Gzip compression
+	# Frontend Routing (Only for main and admin domains) - SSR Reverse Proxy
 	@frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
 	handle @frontend_host {
-		root * /app/frontend/dist
-
-
-		# Match immutable assets compiled by SvelteKit (exclude hotpatched chunk)
-		@immutable {
-			path /_app/immutable/*
-			not path /_app/immutable/chunks/*7ktzR5dC*.js
-			not path /_app/immutable/chunks/*U1VHYwQw*.js
-			not path /_app/immutable/chunks/*C-Cf-Tae*.js
-		}
-		header @immutable Cache-Control "public, max-age=31536000, immutable"
-
-		# Match central WASM and third-party libraries that never change (Elite V2.2)
-		@thirdparty_immutable path /wasm/* /vad/*
-		header @thirdparty_immutable Cache-Control "public, max-age=31536000, immutable"
-
-		# Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
-		@cacheable {
-			path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json *.webp
-			not path /index.html
-			not path /wasm/*
-			not path /vad/*
-			not path /_app/immutable/chunks/*7ktzR5dC*.js
-			not path /_app/immutable/chunks/*U1VHYwQw*.js
-			not path /_app/immutable/chunks/*C-Cf-Tae*.js
-		}
-		header @cacheable Cache-Control "public, max-age=31536000"
-
-		file_server {
-			precompressed br gzip
-		}
-		try_files {path} /index.html
+		reverse_proxy ui:3000
 	}
 
 	# Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)
