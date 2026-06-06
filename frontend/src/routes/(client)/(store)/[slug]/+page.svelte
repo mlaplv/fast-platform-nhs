@@ -129,44 +129,49 @@
     }
   });
 </script>
-
-<!-- Elite LCP Optimization: Preload hero product image with precise device-optimized resolution to avoid double downloads and maximize LCP -->
 <svelte:head>
   {#if productData?.product}
-    {@const heroImage = (() => {
+    {@const mobileHeroImage = (() => {
       const p = productData.product;
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
-      if (data.isMobile) {
-        // Fallback matching MobileHero.svelte
-        if (tierVar) {
-          const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
-          if (mobImgs.length > 0) return mobImgs[0];
-          const deskImgs = (tierVar.images || []).filter(Boolean);
-          if (deskImgs.length > 0) return deskImgs[0];
-        }
-        if (p.mobileImages && p.mobileImages.length > 0) return p.mobileImages[0];
-        if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) return p.metadata.mobile_images[0];
-      } else {
-        if (tierVar) {
-          const deskImgs = (tierVar.images || []).filter(Boolean);
-          if (deskImgs.length > 0) return deskImgs[0];
-        }
+      if (tierVar) {
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+        if (mobImgs.length > 0) return mobImgs[0];
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
+      }
+      if (p.mobileImages && p.mobileImages.length > 0) return p.mobileImages[0];
+      if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) return p.metadata.mobile_images[0];
+      return p.images?.[0];
+    })()}
+    {@const desktopHeroImage = (() => {
+      const p = productData.product;
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      if (tierVar) {
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs[0];
       }
       return p.images?.[0];
     })()}
-    {#if heroImage}
-      {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(heroImage.split('?')[0].toLowerCase())}
-      {#if isVideo}
-        <link rel="preload" as="video" type="video/mp4" href={heroImage} fetchpriority="high" />
-      {:else}
-        {#if data.isMobile}
-          {@const src412 = resolveOptimizedImageUrl(heroImage, 412)}
-          {@const src600 = resolveOptimizedImageUrl(heroImage, 600)}
-          {@const src800 = resolveOptimizedImageUrl(heroImage, 800)}
-          <link rel="preload" as="image" imagesrcset="{src412} 1x, {src600} 1.5x, {src800} 2x" fetchpriority="high" />
+
+    {#if data.isMobile}
+      {#if mobileHeroImage}
+        {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(mobileHeroImage.split('?')[0].toLowerCase())}
+        {#if !isVideo}
+          {@const mSrc600 = resolveOptimizedImageUrl(mobileHeroImage, 600)}
+          <link rel="preload" as="image" href={mSrc600} fetchpriority="high" />
         {:else}
-          {@const preloadUrl = resolveOptimizedImageUrl(heroImage, 800)}
-          <link rel="preload" as="image" href={preloadUrl} fetchpriority="high" />
+          <link rel="preload" as="video" type="video/mp4" href={mobileHeroImage} fetchpriority="high" />
+        {/if}
+      {/if}
+    {:else}
+      {#if desktopHeroImage}
+        {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(desktopHeroImage.split('?')[0].toLowerCase())}
+        {#if !isVideo}
+          {@const dSrc800 = resolveOptimizedImageUrl(desktopHeroImage, 800)}
+          <link rel="preload" as="image" href={dSrc800} fetchpriority="high" />
+        {:else}
+          <link rel="preload" as="video" type="video/mp4" href={desktopHeroImage} fetchpriority="high" />
         {/if}
       {/if}
     {/if}

@@ -68,17 +68,31 @@
             ></video>
           {/if}
         {:else}
-          <img 
-            src={resolveOptimizedImageUrl(img, 450)} 
-            srcset="{resolveOptimizedImageUrl(img, 412)} 1x, {resolveOptimizedImageUrl(img, 600)} 1.5x, {resolveOptimizedImageUrl(img, 800)} 2x"
-            width="412"
-            height="412"
-            alt={product.name} 
-            class="slide-media" 
-            loading={i === 0 ? "eager" : "lazy"} 
-            fetchpriority={i === 0 ? "high" : "low"}
-            decoding={i === 0 ? "sync" : "async"}
-          />
+          {#if i === 0}
+            <img 
+              src={resolveOptimizedImageUrl(img, 600)} 
+              width="412"
+              height="412"
+              alt={product.name} 
+              class="slide-media" 
+              loading="eager" 
+              fetchpriority="high"
+              decoding="sync"
+            />
+          {:else}
+            <img 
+              src={resolveOptimizedImageUrl(img, 600)} 
+              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 800)} 800w"
+              sizes="(max-width: 767px) 100vw, 600px"
+              width="412"
+              height="412"
+              alt={product.name} 
+              class="slide-media" 
+              loading="lazy" 
+              fetchpriority="low"
+              decoding="async"
+            />
+          {/if}
         {/if}
       </div>
     {/each}

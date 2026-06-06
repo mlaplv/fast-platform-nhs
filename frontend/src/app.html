@@ -2,8 +2,7 @@
 <html lang="vi" translate="no">
   <head>
     <meta charset="utf-8" />
-    <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
-    <script src="/js/analytics.js"></script>
+    <!-- [Elite V2.2] Analytics deferred to avoid render-blocking -->
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1"
@@ -24,11 +23,10 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
     %sveltekit.head%
-    <script src="/js/sw-register.js"></script>
     <!-- Ads Protection: Click Shield V1.0 -->
     <script src="/js/click-shield.js" defer></script>
     <style>html,body{background-color:#fafafa;margin:0;padding:0}html.admin-theme,html.admin-theme body{background-color:#020202}</style>
-    <script src="/js/theme-loader.js"></script>
+    <script>try{var h=location.hostname,d=localStorage.getItem('last_bg_color');if(h.indexOf('admin.')!==-1||location.search.indexOf('admin')!==-1||d==='#020202'||d==='#010101')document.documentElement.classList.add('admin-theme')}catch(e){}</script>
   </head>
   <body data-sveltekit-preload-data="hover">
     <div class="contents">
@@ -37,5 +35,7 @@
       <style>@keyframes initial-progress{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}.sk-shine{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 37%,#f0f0f0 63%);background-size:600px 100%;animation:sk-shimmer 1.4s infinite linear}.sk-shine-dark{background:linear-gradient(90deg,#1a1a1a 25%,#222 37%,#1a1a1a 63%);background-size:600px 100%;animation:sk-shimmer 1.4s infinite linear}</style>
       %sveltekit.body%
     </div>
+    <script src="/js/analytics.js" defer></script>
+    <script src="/js/sw-register.js" defer></script>
   </body>
 </html>

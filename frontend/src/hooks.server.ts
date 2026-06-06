@@ -212,6 +212,29 @@ export const handle: Handle = async ({ event, resolve }) => {
   // Elite V2.2: Vary cache by User-Agent for Adaptive Layouts
   response.headers.set("Vary", "Origin, User-Agent");
 
+  // Elite V3.0: Static asset cache headers for Lighthouse "efficient cache lifetimes"
+  const pathname = event.url.pathname;
+  if (pathname.startsWith('/js/') || pathname.match(/\.(webp|png|jpg|jpeg|svg|ico|woff2?|ttf|eot)$/)) {
+    response.headers.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+  }
+  // SvelteKit hashed assets (_app/) get long-lived immutable cache
+  if (pathname.startsWith('/_app/')) {
+    response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  }
+
+  // ─── LCP FIX: Strip modulepreload Link headers for storefront HTML pages ───
+  // SvelteKit injects ~100+ modulepreload entries into the HTTP Link header.
+  // The browser processes these BEFORE parsing HTML, creating massive bandwidth
+  // contention that deprioritizes the LCP image preload.
+  // The modulepreload <link> tags in the HTML body still work fine for JS loading.
+  if (event.locals.tenant === "storefront") {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("text/html")) {
+      // Remove the massive modulepreload Link header
+      response.headers.delete("link");
+    }
+  }
+
   return response;
 };
 

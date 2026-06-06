@@ -57,7 +57,7 @@
     }
   }
 
-  // Elite V2.6: Load core components on mount instead of effect to prevent multiple executions
+  // Load core above-fold components on mount
   onMount(() => {
     Promise.all([
       import("$lib/components/client/LiquidHeader.svelte"),

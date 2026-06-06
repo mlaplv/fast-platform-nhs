@@ -977,7 +977,7 @@ function update_storefront_ssr() {
     
     echo -e "${YELLOW}-> 1. Đang build SvelteKit trên Host...${NC}"
     cd frontend
-    rm -rf .svelte-kit
+    rm -rf .svelte-kit build
     if pnpm build; then
         echo -e "${GREEN}✔ Build SvelteKit thành công!${NC}"
     else

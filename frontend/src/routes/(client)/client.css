@@ -57,8 +57,8 @@
 
   /* Elite V2.2: Architecture Refinement */
   color-scheme: light;
-  --bg-canvas: #010101;
-  --text-base: #FFFFFF;
+  --bg-canvas: #fafafa;
+  --text-base: #111827;
 
   /* Elite V2.2 Typo Logic */
   --font-main: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,

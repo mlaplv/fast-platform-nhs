@@ -23,7 +23,6 @@
   import type { Component } from "svelte";
   let MobileLandingLayoutComponent = $state<Component<any> | null>(null);
 
-  // Elite V2.6: Use onMount instead of $effect to prevent re-triggering on reactivity changes
   onMount(() => {
     import("./mobile/MobileFunnelLayout.svelte").then((mod) => {
       MobileLandingLayoutComponent = mod.default;

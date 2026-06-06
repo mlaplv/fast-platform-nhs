@@ -36,6 +36,26 @@ export interface CommitmentsData {
   fomo: string;
 }
 
+import { resolveOptimizedImageUrl } from "$lib/state/utils";
+
+export function optimizeHtmlImages(html: string): string {
+  if (!html) return '';
+  return html.replace(/<img([^>]*)\s+src=["']([^"']+)["']([^>]*)>/gi, (match, before, src, after) => {
+    if (src.includes('/api/v1/media/') || src.includes('/uploads/')) {
+      const src412 = resolveOptimizedImageUrl(src, 412);
+      const src600 = resolveOptimizedImageUrl(src, 600);
+      const src800 = resolveOptimizedImageUrl(src, 800);
+      
+      // Clean up existing attributes to prevent duplicates
+      const cleanBefore = before.replace(/\s+(loading|decoding|fetchpriority|srcset|src|sizes)=["'][^"']*["']/gi, '');
+      const cleanAfter = after.replace(/\s+(loading|decoding|fetchpriority|srcset|src|sizes)=["'][^"']*["']/gi, '');
+      
+      return `<img${cleanBefore} src="${src600}" srcset="${src412} 412w, ${src600} 600w, ${src800} 800w" sizes="(max-width: 600px) 100vw, 600px" loading="lazy" decoding="async"${cleanAfter}>`;
+    }
+    return match;
+  });
+}
+
 /**
  * Robust HTML Commitments Parser for Elite Storefront conversion
  */
@@ -56,7 +76,7 @@ export function parseDescriptionAndCommitments(description: string): {
     const fallbackRegex = /(?:<p[^>]*>|<strong>)\s*(?:Cam\s*kết\s*["“]3\s*Không["”]|Lành\s*tính\s*&\s*An\s*toàn)/i;
     const fallbackMatch = description.match(fallbackRegex);
     if (!fallbackMatch) {
-      return { cleanDescription: description, commitments: null };
+      return { cleanDescription: optimizeHtmlImages(description), commitments: null };
     }
 
     const index = fallbackMatch.index!;
@@ -67,7 +87,7 @@ export function parseDescriptionAndCommitments(description: string): {
 
     const cleanDescription = description.slice(0, splitIndex).trim() || description.slice(0, index).trim();
     return {
-      cleanDescription,
+      cleanDescription: optimizeHtmlImages(cleanDescription),
       commitments: null
     };
   }
@@ -76,7 +96,7 @@ export function parseDescriptionAndCommitments(description: string): {
   const cleanDescription = description.slice(0, index).trim();
 
   return {
-    cleanDescription,
+    cleanDescription: optimizeHtmlImages(cleanDescription),
     commitments: null
   };
 }
