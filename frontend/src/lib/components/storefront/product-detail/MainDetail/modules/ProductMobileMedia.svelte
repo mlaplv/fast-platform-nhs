@@ -75,9 +75,9 @@
             height="412"
             alt={product.name} 
             class="slide-media" 
-            loading={i === 0 ? undefined : "lazy"} 
+            loading={i === 0 ? "eager" : "lazy"} 
             fetchpriority={i === 0 ? "high" : "low"}
-            decoding="async"
+            decoding={i === 0 ? "sync" : "async"}
           />
         {/if}
       </div>

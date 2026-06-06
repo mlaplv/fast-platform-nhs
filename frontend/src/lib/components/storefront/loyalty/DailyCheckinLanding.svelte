@@ -5,7 +5,7 @@
    * - Auto-open sau 1.5s
    * - Nếu chưa login → click CTA → mở LoginModal
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { scale } from 'svelte/transition';
   import { page } from '$app/state';
   import { browser } from '$app/environment';
@@ -58,63 +58,64 @@
     // Read reactive variables synchronously to register them as Svelte 5 dependencies
     const currentPathname = page.url.pathname;
     const isAuthenticated = authStore.isAuthenticated;
-    const st = checkinStore.status;
 
     const isHomepage = currentPathname === '/' || currentPathname === '/home';
     if (!isHomepage) {
       userDismissed = false; // Reset dismissal when navigating away from the homepage
+      if (checkinStore.showPopup) {
+        checkinStore.closePopup();
+      }
       return;
     }
 
-    const dismissedDate = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date');
-    const isDismissed = dismissedDate === getVnDateString();
-    if (isDismissed || userDismissed) return;
+    return untrack(() => {
+      const dismissedDate = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date');
+      const isDismissed = dismissedDate === getVnDateString();
+      if (isDismissed || userDismissed) return;
 
-    let timerId: ReturnType<typeof setTimeout> | null = null;
+      if (checkinStore.showPopup) return;
 
-    const runAutoPopup = (statusData: typeof checkinStore.status) => {
-      if (statusData && statusData.is_event_enabled === false) return;
-      if (page.url.pathname !== currentPathname || userDismissed) return;
+      let timerId: ReturnType<typeof setTimeout> | null = null;
 
-      if (isAuthenticated) {
-        // If logged in, only show if they haven't checked in today yet
-        if (statusData && !statusData.is_checked_in_today) {
-          timerId = setTimeout(() => {
-            if (!userDismissed && page.url.pathname === currentPathname) {
-              checkinStore.openPopup();
-            }
-          }, 1500); // 1.5s as per design spec
+      const runAutoPopup = (statusData: typeof checkinStore.status) => {
+        if (statusData && statusData.is_event_enabled === false) return;
+        if (page.url.pathname !== currentPathname || userDismissed || checkinStore.showPopup) return;
+
+        if (isAuthenticated) {
+          // If logged in, only show if they haven't checked in today yet
+          if (statusData && statusData.is_checked_in_today) return;
         }
-      } else {
-        // Guest user fallback
+
         timerId = setTimeout(() => {
-          if (!userDismissed && page.url.pathname === currentPathname) {
+          if (!userDismissed && page.url.pathname === currentPathname && !checkinStore.showPopup) {
             checkinStore.openPopup();
           }
         }, 1500); // 1.5s as per design spec
+      };
+
+      if (isAuthenticated) {
+        const st = checkinStore.status;
+        if (st) {
+          runAutoPopup(st);
+        } else if (!checkinStore.loading) {
+          checkinStore.fetchStatus().then(() => {
+            runAutoPopup(checkinStore.status);
+          }).catch((err) => {
+            console.error('[DailyCheckinLanding] fetchStatus error fallback:', err);
+            // Fallback if API fails
+            runAutoPopup(null);
+          });
+        }
+      } else {
+        // Guest user fallback (always show after 1.5s if not checked in/dismissed)
+        runAutoPopup(null);
       }
-    };
 
-    if (st) {
-      runAutoPopup(st);
-    } else if (!checkinStore.loading) {
-      checkinStore.fetchStatus().then(() => {
-        runAutoPopup(checkinStore.status);
-      }).catch(() => {
-        // Fallback if API fails
-        if (page.url.pathname !== currentPathname || userDismissed) return;
-        timerId = setTimeout(() => {
-          if (!userDismissed && page.url.pathname === currentPathname) {
-            checkinStore.openPopup();
-          }
-        }, 1500);
-      });
-    }
-
-    // Cleanup: Clear active timers when route or authentication state changes, or on component unmount
-    return () => {
-      if (timerId) clearTimeout(timerId);
-    };
+      // Cleanup: Clear active timers when route or authentication state changes, or on component unmount
+      return () => {
+        if (timerId) clearTimeout(timerId);
+      };
+    });
   });
 
   // Auto-reopen reward center modal immediately after successful login
