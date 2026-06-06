@@ -48,15 +48,7 @@
     });
   });
 
-  // Elite V2.2: Automatic app-ready trigger for static routes (not home page and not product detail)
-  $effect(() => {
-    const routeId = page.route?.id;
-    if (routeId && routeId !== '/' && !routeId.includes('[slug]')) {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('app-ready'));
-      }
-    }
-  });
+
 
   // Elite V2.2: Stable Admin Tenant Detection (SvelteKit-Native $app/state Page Rune)
   const isAdmin = $derived(
@@ -144,33 +136,6 @@
   onMount(() => {
     isMounted = true;
 
-    // Elite V2.2: Safety cleanup for initial loader & app skeleton
-    const hideSkeleton = () => {
-      if (typeof document !== 'undefined') {
-        const loader = document.getElementById('initial-loader');
-        const skeleton = document.getElementById('app-skeleton');
-        if (loader) {
-          loader.style.opacity = '0';
-          setTimeout(() => {
-            if (loader.parentNode) loader.remove();
-          }, 500);
-        }
-        if (skeleton) {
-          skeleton.style.opacity = '0';
-          setTimeout(() => {
-            if (skeleton.parentNode) skeleton.remove();
-          }, 500);
-        }
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      (window as any).__hideSkeleton = hideSkeleton;
-      window.addEventListener('app-ready', hideSkeleton);
-    }
-
-    const fallbackTimer = setTimeout(hideSkeleton, 3000);
-
 
     // Elite V2.2: Lazy Defer Daily Check-in component by 3 seconds to protect initial hydration TBT/LCP
     if (!isAdmin) {
@@ -204,21 +169,8 @@
     let adsCleanup: (() => void) | null = null;
     if (!isAdmin && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      
-      // Capture CTV affiliate tracking parameter client-side for SPA routing
-      const ctv = urlParams.get('ctv');
-      if (ctv) {
-        let ctvValue = ctv.trim();
-        if (ctvValue.length <= 20) {
-          ctvValue = ctvValue.toUpperCase();
-        } else {
-          ctvValue = ctvValue.replace(/[^A-Za-z0-9_\-=]/g, "");
-        }
-        if (ctvValue.length >= 4) {
-          const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-          document.cookie = `__ctv=${ctvValue}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${secure}`;
-        }
-      }
+
+      // CTV attribution is handled server-side in hooks.server.ts
 
       const gclid = urlParams.get('gclid');
       if (gclid) {
@@ -390,19 +342,11 @@
       return () => {
         if (adsCleanup) adsCleanup();
         if (observerCleanup) observerCleanup();
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('app-ready', hideSkeleton);
-        }
-        clearTimeout(fallbackTimer);
       };
     }
 
     return () => {
       if (adsCleanup) adsCleanup();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('app-ready', hideSkeleton);
-      }
-      clearTimeout(fallbackTimer);
     };
   });
 

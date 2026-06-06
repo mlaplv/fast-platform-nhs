@@ -120,14 +120,7 @@
   const newsData = $derived(data.type === 'news' ? (data as unknown as NewsPageData) : null);
   const funnelPageData = $derived(isFunnel && productData ? (productData as unknown as FunnelPageData) : null);
 
-  // ── Elite Code Splitting: SSR Router to prevent page-transition flicker & resolve LCP ──────────
-  
-  $effect(() => {
-    // Dispatch app-ready event for any listeners waiting for hydration to complete
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('app-ready'));
-    }
-  });
+
 </script>
 <svelte:head>
   {#if productData?.product}

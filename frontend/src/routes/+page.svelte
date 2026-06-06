@@ -33,10 +33,8 @@
             try {
                 const mod = await import("$lib/components/admin/layout/AdminDashboard.svelte");
                 adminComponent = mod.default;
-                window.dispatchEvent(new Event('app-ready'));
             } catch (err) {
                 console.error("[SYSTEM FAULT] Admin load failed:", err);
-                window.dispatchEvent(new Event('app-ready'));
                 window.location.reload();
             }
         }
@@ -64,7 +62,7 @@
 
 {#if !isAdmin}
     <SeoHead
-        pageType="HOMEPAGE_ELITE"
+        pageType="home"
         title={seoTitle}
         description={seoDescription}
         canonical={data.seo_meta?.canonical_url || "https://osmo.vn/"}
@@ -117,14 +115,6 @@
     .page-container {
         display: flex;
         flex-direction: column;
-    }
-    
-    @keyframes spin-reverse {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(-360deg); }
-    }
-    .animate-spin-reverse {
-        animation: spin-reverse 3s linear infinite;
     }
 
     /* Ensure the inner transition container grows to fill the page container */

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { setShopStore } from "$lib/state/commerce/shop.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { browser } from "$app/environment";
 
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
+  import MobileFunnelLayout from "./mobile/MobileFunnelLayout.svelte";
 
   import type { Product, ReviewStats } from "$lib/types";
 
@@ -20,14 +20,7 @@
 
   let { data }: { data: FunnelData } = $props();
 
-  import type { Component } from "svelte";
-  let MobileLandingLayoutComponent = $state<Component<any> | null>(null);
 
-  onMount(() => {
-    import("./mobile/MobileFunnelLayout.svelte").then((mod) => {
-      MobileLandingLayoutComponent = mod.default;
-    });
-  });
 
   const shopStore = setShopStore();
   const product = $derived(data?.product);
@@ -54,6 +47,8 @@
       }
     }
   });
+
+  import { onMount } from "svelte";
 
   onMount(() => {
     if (!browser) return;
@@ -109,20 +104,10 @@
 />
 
 {#if product}
-  {#if MobileLandingLayoutComponent}
-    {@const MobileLandingLayout = MobileLandingLayoutComponent}
-    <MobileLandingLayout
-      {product}
-      reviewStats={data.reviewStats}
-      reviews={data.reviews}
-      relatedProducts={data.relatedProducts}
-    />
-  {:else}
-    <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
-      <div class="w-16 h-16 border-4 border-luxury-copper border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p class="text-sm tracking-[0.2em] font-light animate-pulse text-luxury-copper">
-        {loadingText}
-      </p>
-    </div>
-  {/if}
+  <MobileFunnelLayout
+    {product}
+    reviewStats={data.reviewStats}
+    reviews={data.reviews}
+    relatedProducts={data.relatedProducts}
+  />
 {/if}

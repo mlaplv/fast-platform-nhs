@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { HomeData, ShopInfo, Product, Category, Banner } from '$lib/types';
     import { getClientUi } from '$lib/state/commerce/ui.svelte';
-    import { onMount } from 'svelte';
     import HeaderDesktop from './layout/HeaderDesktop.svelte';
     import FooterDesktop from './layout/FooterDesktop.svelte';
     import HomeMobile from './home/HomeMobile.svelte';
@@ -11,12 +10,6 @@
     const ui = getClientUi();
 
     let { data, isMobile }: { data: HomeData, isMobile: boolean } = $props();
-
-    onMount(() => {
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('app-ready'));
-        }
-    });
 
     $effect(() => {
         if (data.settings) {

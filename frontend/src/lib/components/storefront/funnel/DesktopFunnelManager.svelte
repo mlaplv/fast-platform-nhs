@@ -29,8 +29,8 @@
   let loadJIT = $state(false);
 
   import type { Component } from "svelte";
-  let LiquidHeaderComponent = $state<Component<any> | null>(null);
-  let HeroBannerComponent = $state<Component<any> | null>(null);
+  import LiquidHeader from "$lib/components/client/LiquidHeader.svelte";
+  import HeroBanner from "$lib/components/client/HeroBanner.svelte";
 
   // Desktop Dynamic JIT Components
   let DiagnosticsSectionComponent = $state<Component<any> | null>(null);
@@ -56,17 +56,6 @@
       VerificationCenterComponent = mod.default;
     }
   }
-
-  // Load core above-fold components on mount
-  onMount(() => {
-    Promise.all([
-      import("$lib/components/client/LiquidHeader.svelte"),
-      import("$lib/components/client/HeroBanner.svelte")
-    ]).then(([headerMod, heroMod]) => {
-      LiquidHeaderComponent = headerMod.default;
-      HeroBannerComponent = heroMod.default;
-    });
-  });
 
   $effect(() => {
     if (loadJIT) {
@@ -313,18 +302,12 @@
   translate="no"
 >
   {#if product?.id}
-    {#if LiquidHeaderComponent}
-      {@const LiquidHeader = LiquidHeaderComponent}
-      <LiquidHeader
-        {product}
-        {scrollToQuiz}
-        {activeId}
-      />
-    {/if}
-    {#if HeroBannerComponent}
-      {@const HeroBanner = HeroBannerComponent}
-      <HeroBanner {scrollToQuiz} {triggerScan} />
-    {/if}
+    <LiquidHeader
+      {product}
+      {scrollToQuiz}
+      {activeId}
+    />
+    <HeroBanner {scrollToQuiz} {triggerScan} />
     <div id="jit-trigger"></div>
 
     <!-- SECTIONS WITH DYNAMIC JIT RENDERING -->

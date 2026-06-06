@@ -30,9 +30,6 @@
   </head>
   <body data-sveltekit-preload-data="hover">
     <div class="contents">
-      <!-- Premium Top Progress Bar (Google Style) -->
-      <div id="initial-loader" style="position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #C18F7E, #E3B5A4, transparent); background-size: 200% 100%; z-index: 999999; animation: initial-progress 2s infinite linear; transition: opacity 0.4s ease;"></div>
-      <style>@keyframes initial-progress{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}.sk-shine{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 37%,#f0f0f0 63%);background-size:600px 100%;animation:sk-shimmer 1.4s infinite linear}.sk-shine-dark{background:linear-gradient(90deg,#1a1a1a 25%,#222 37%,#1a1a1a 63%);background-size:600px 100%;animation:sk-shimmer 1.4s infinite linear}</style>
       %sveltekit.body%
     </div>
     <script src="/js/analytics.js" defer></script>

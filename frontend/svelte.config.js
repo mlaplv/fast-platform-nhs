@@ -1,10 +1,8 @@
 /**
- * Lý do chọn giải pháp:
- * - Theo kỷ luật V60.0: Mọi logic phải đặt ở Backend, UI phải là Zero-Hydration hoặc CSR.
- * - Chuyển sang sử dụng adapter-static thay vì adapter-auto/adapter-node:
- *   Tránh chạy tiến trình Node.js (tốn RAM), giao trọn gói static folder cho Caddy.
- * - Cấu hình fallback "index.html" phục vụ app dưới dạng SPA.
- * - Bật precompress tối ưu Network-I/O từ xa.
+ * SvelteKit SSR Configuration (adapter-node)
+ * - Node.js SSR server cho storefront (SEO/LCP tối ưu)
+ * - Admin zone vẫn chạy SPA mode (ssr=false trong admin layout)
+ * - precompress bật sẵn gzip/brotli cho static assets
  */
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
