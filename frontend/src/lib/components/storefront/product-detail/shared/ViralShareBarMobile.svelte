@@ -412,7 +412,7 @@
   {:else}
     <!-- TikTok Vertical Floating Style -->
     <div 
-      class="fixed right-3 top-[22vh] z-[1000] flex flex-col items-center gap-4 transition-all duration-300" 
+      class="fixed right-3 top-[92px] z-[1000] flex flex-col items-center gap-3 transition-all duration-300" 
       style="
         opacity: {1 - hideRatio}; 
         transform: 
@@ -426,7 +426,7 @@
         {@const hasCheckedIn = checkinStore.status?.is_checked_in_today ?? false}
         <button
           onclick={() => checkinStore.openPopup()}
-          class="w-10 h-10 flex items-center justify-center relative active:scale-95 transition-all focus:outline-none group shrink-0"
+          class="w-8 h-8 flex items-center justify-center relative active:scale-95 transition-all focus:outline-none group shrink-0"
           aria-label="Điểm danh nhận quà"
         >
           {#if !hasCheckedIn}
@@ -437,13 +437,13 @@
 
           <!-- Liquid gradient/glass gift circle -->
           <div
-            class="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
+            class="relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
               {hasCheckedIn 
                 ? 'bg-white/30 border border-white/50 backdrop-blur-md' 
                 : 'bg-gradient-to-br from-[#FFD700] to-[#F7B731] border border-[#FFD700]/30 shadow-[0_4px_10px_rgba(255,215,0,0.3)]'}"
           >
-            <!-- Standard Gift Icon (Bigger) -->
-            <svg class="w-6 h-6 {hasCheckedIn ? 'text-white drop-shadow-md' : 'text-white drop-shadow-[0_1.5px_3px_rgba(229,169,60,0.4)] animate-bounce-subtle'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Standard Gift Icon -->
+            <svg class="w-5 h-5 {hasCheckedIn ? 'text-white drop-shadow-md' : 'text-white drop-shadow-[0_1.5px_3px_rgba(229,169,60,0.4)] animate-bounce-subtle'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 12v10H4V12" />
               <path d="M12 22V7" />
               <path d="M2 12h20" />
@@ -454,12 +454,12 @@
 
           <!-- Badges -->
           {#if !hasCheckedIn}
-            <span class="absolute -top-1 -right-1 px-1 py-0.5 bg-[#f44336] text-white rounded-full font-black text-[7px] scale-90 border border-white/20 shadow-md whitespace-nowrap animate-pulse">
+            <span class="absolute -top-0.5 -right-0.5 px-1 py-0.5 bg-[#f44336] text-white rounded-full font-black text-[6.5px] scale-90 border border-white/20 shadow-md whitespace-nowrap animate-pulse">
               NHẬN
             </span>
           {:else}
             <!-- Checked in: Green checkmark badge on top right -->
-            <div class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white/50 shadow-md">
+            <div class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full flex items-center justify-center border border-white/50 shadow-md">
               <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
@@ -468,23 +468,23 @@
         </button>
       {/if}
 
-      <button aria-label="Chứng nhận" class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-lg focus:outline-none" onclick={triggerVerify}>
+      <button aria-label="Chứng nhận" class="w-8 h-8 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-lg focus:outline-none" onclick={triggerVerify}>
         <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
       </button>
   
       <button aria-label="Thích" class="flex flex-col items-center gap-1 drop-shadow-lg active:scale-90 transition-transform" onclick={handleLike}>
-        <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-white/30 border border-white/50'}">
-           <Heart size={20} class={isLiked ? 'fill-white text-white' : 'text-white drop-shadow-md'} />
+        <div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-white/30 border border-white/50'}">
+           <Heart size={16} class={isLiked ? 'fill-white text-white' : 'text-white drop-shadow-md'} />
         </div>
-        <span class="text-[11px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">{formatViralCount(localLikeCount)}</span>
+        <span class="text-[10px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">{formatViralCount(localLikeCount)}</span>
       </button>
   
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
         <button aria-label="Chia sẻ Facebook" class="active:scale-90 transition-transform" onclick={() => share('facebook')}>
-          <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Facebook size={18} class="fill-white text-white drop-shadow-md" /></div>
+          <div class="w-8 h-8 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Facebook size={14} class="fill-white text-white drop-shadow-md" /></div>
         </button>
         <button aria-label="Chia sẻ Zalo" class="active:scale-90 transition-transform" onclick={() => share('zalo')}>
-          <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><span class="text-[10px] font-black italic text-white drop-shadow-md tracking-tighter">Zalo</span></div>
+          <div class="w-8 h-8 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><span class="text-[9px] font-black italic text-white drop-shadow-md tracking-tighter">Zalo</span></div>
         </button>
         
         {#if isCtv}
@@ -496,11 +496,11 @@
             }} 
             title="Kênh Tiếp Thị CTV"
           >
-            <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg relative overflow-hidden">
-              <span class="text-[11px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
+            <div class="w-8 h-8 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg relative overflow-hidden">
+              <span class="text-[9.5px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
+            <span class="absolute -top-0.5 -right-1.5 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[6.5px] scale-90 shadow-md whitespace-nowrap">
               {activeRatePercent}
             </span>
           </button>
@@ -518,18 +518,18 @@
             }} 
             title="Đăng ký CTV - Nhận hoa hồng"
           >
-            <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg relative overflow-hidden">
-              <span class="text-[11px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
+            <div class="w-8 h-8 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg relative overflow-hidden">
+              <span class="text-[9.5px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[7.5px] scale-90 shadow-md whitespace-nowrap">
+            <span class="absolute -top-0.5 -right-1.5 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[6.5px] scale-90 shadow-md whitespace-nowrap">
               +{activeRatePercent}
             </span>
           </button>
         {/if}
  
         <button aria-label="Sao chép liên kết" class="active:scale-90 transition-transform" onclick={copyLink}>
-          <div class="w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Copy size={16} class="text-white drop-shadow-md" /></div>
+          <div class="w-8 h-8 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-lg"><Copy size={14} class="text-white drop-shadow-md" /></div>
         </button>
       </div>
     </div>
