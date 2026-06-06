@@ -50,6 +50,31 @@ interface ReviewStats {
   total_count: number;
 }
 
+interface ProductMetadata {
+  landing_type?: string;
+  mobile_images?: string[];
+}
+
+interface TierVariation {
+  mobile_images?: string[];
+  mobileImages?: string[];
+  images?: string[];
+}
+
+interface ProductDetails {
+  id?: string | number;
+  name?: string;
+  seoMeta?: NormalizedSeoMeta | null;
+  metadata?: ProductMetadata | null;
+  tierVariations?: TierVariation[];
+  tier_variations?: TierVariation[];
+  attributes?: {
+    tier_variations?: TierVariation[];
+  } & Record<string, unknown>;
+  mobileImages?: string[];
+  images?: string[];
+}
+
 // ── Loader ────────────────────────────────────────────────────────────────────
 export const load: PageLoad = async ({ params, fetch, url }) => {
   const { slug } = params;
@@ -129,14 +154,14 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       seoMeta,
       // Normalize legacy weight notation
       name: typeof prodData.name === 'string' ? prodData.name.replace(/40gr/g, '40g') : prodData.name
-    };
+    } as ProductDetails & Record<string, unknown>;
 
     const metadata = product.metadata || {};
     const landingType = metadata.landing_type || 'standard';
     const isFunnel = landingType !== 'standard';
 
     // Fetch related products & review stats in parallel
-    const promises: Promise<any>[] = [
+    const promises: Promise<Response | null>[] = [
       fetch(`/api/v1/client/products/?limit=9`, { signal: AbortSignal.timeout(2000) })
         .catch(e => { console.error('[RELATED PRODUCTS FETCH FAILED]', e); return null; }),
       fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${String(product.id)}`, {
@@ -170,13 +195,13 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       reviewStats = await statsRes.json() as ReviewStats;
     }
 
-    let reviews: any[] = [];
+    let reviews: unknown[] = [];
     if (reviewsRes && reviewsRes.ok) {
-      const revData = await reviewsRes.json();
-      reviews = revData.items || [];
+      const revData = await reviewsRes.json() as Record<string, unknown>;
+      reviews = (revData.items || []) as unknown[];
     }
 
-    let shopInfo: any = null;
+    let shopInfo: unknown = null;
     if (settingsRes && settingsRes.ok) {
       shopInfo = await settingsRes.json();
     }

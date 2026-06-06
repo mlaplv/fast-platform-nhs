@@ -90,6 +90,16 @@ class AIStrategist:
             competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp."
 
         # 2. Xây dựng Prompt Chiến thuật (Elite V2.6 Standard)
+        task_directives = ""
+        if req.task == "RSA":
+            task_directives = """
+            YÊU CẦU ĐẶC BIỆT CHO TÁC VỤ RSA (RESPONSIVE SEARCH AD):
+            - BẮT BUỘC sinh đúng ĐỦ 15 tiêu đề (headlines) trong trường 'headlines'. Mỗi tiêu đề dài từ 10 đến TỐI ĐA 30 ký tự. KHÔNG được vượt quá 30 ký tự!
+            - BẮT BUỘC sinh đúng ĐỦ 4 mô tả (descriptions) trong trường 'descriptions'. Mỗi mô tả dài từ 50 đến TỐI ĐA 90 ký tự. KHÔNG được vượt quá 90 ký tự!
+            - Tự kiểm tra các tiêu đề và mô tả: KHÔNG chứa dấu chấm than (!), không chứa nhiều hơn 1 dấu hỏi (?), không viết hoa toàn bộ, không chứa từ cấm ('bảo đảm 100%', 'miễn phí hoàn toàn', 'tốt nhất thế giới').
+            - Các tiêu đề/mô tả phải cực kỳ đa dạng, bao gồm: tên thương hiệu, từ khóa ngách, lợi ích sản phẩm, độ uy tín, lời kêu gọi hành động (CTA).
+            """
+
         prompt = f"""
         BÁO CÁO TRINH SÁT TÁC CHIẾN - THỰC THI NHIỆM VỤ: {req.task}
         ĐỐI TƯỢNG PHÂN TÍCH: {req.context}
@@ -100,6 +110,8 @@ class AIStrategist:
         DỮ LIỆU ĐỐI THỦ CẠNH TRANH:
         {competitor_context}
         
+        {task_directives}
+        
         CHỈ THỊ TỪ SẾP:
         Bạn phải trả về kết quả dưới định dạng JSON (AISuggestionResponse) với các yêu cầu sau:
         1. THIẾT LẬP success = True (Trừ khi gặp lỗi kỹ thuật không thể phân tích).
@@ -107,7 +119,7 @@ class AIStrategist:
            - seo_score: Đánh giá tối ưu công cụ tìm kiếm truyền thống.
            - sge_score: Đánh giá khả năng hiển thị trên Google AI (SGE) 2026.
            - quality_score: Đánh giá sự đồng bộ giữa quảng cáo và trang đích (0-10).
-        3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
+         3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
            - KHÔNG dùng tiền tố 'INTERNAL_ERROR' hay 'SUCCESS'.
            - Đưa ra các bước hành động cụ thể, ngắn gọn, quyết liệt để Sếp tối ưu ngay.
            - Phân tích ngắn gọn kẽ hở của đối thủ so với trang của mình.

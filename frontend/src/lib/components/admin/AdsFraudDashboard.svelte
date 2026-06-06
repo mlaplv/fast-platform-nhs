@@ -27,10 +27,13 @@
   import Zap from "@lucide/svelte/icons/zap";
   import Brain from "@lucide/svelte/icons/brain";
   import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
 
   const ads = createAdsState();
   let showTimeMenu = $state(false);
   let showIntelDropdown = $state(false);
+  let showStats = $state(true);
 
   onMount(() => {
     ads.fetchAll();
@@ -82,7 +85,7 @@
               <span class="text-[9px] text-cyan-400/60 font-black tracking-[0.3em]">Xohi AI Protection</span>
               <span class="text-[7px] px-1.5 py-0.5 bg-cyan-400/10 text-cyan-400/80 border border-cyan-400/20 font-mono">V3.0_λ</span>
             </div>
-            <h1 class="text-2xl font-black tracking-tighter text-white leading-none">Gian lận Quảng cáo</h1>
+            <h1 class="text-2xl font-black tracking-tighter text-white leading-none">Trung tâm Google Ads
           </div>
         </div>
 
@@ -263,6 +266,18 @@
           </div>
           
           <button 
+            onclick={() => showStats = !showStats}
+            class="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+            title={showStats ? "Ẩn thống kê" : "Hiện thống kê"}
+          >
+            {#if showStats}
+               <EyeOff size={18} class="text-white/40 group-hover:text-white transition-colors" />
+            {:else}
+               <Eye size={18} class="text-white/40 group-hover:text-white transition-colors" />
+            {/if}
+          </button>
+
+          <button 
             onclick={close}
             class="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
           >
@@ -290,9 +305,11 @@
            </div>
         {/if}
       <!-- KPI GRID -->
-      <div class="mb-8" in:fade={{delay: 100}}>
-        <AdsKpiGrid summary={ads.summary} fmt={ads.fmt} />
-      </div>
+      {#if showStats}
+         <div class="mb-8" transition:slide>
+            <AdsKpiGrid summary={ads.summary} fmt={ads.fmt} />
+         </div>
+      {/if}
 
       <!-- NAVIGATION (Elite V2.6 Standard) -->
       <nav class="flex justify-center mb-10" in:fade={{delay: 200}}>
@@ -350,7 +367,7 @@
           {:else if ads.activeTab === 'google'}
             <AdsGoogleMetrics {...ads} />
           {:else if ads.activeTab === 'campaigns'}
-            <AdsCampaignManager {...ads} />
+            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} />
           {:else if ads.activeTab === 'merchant'}
             <div class="max-w-5xl mx-auto py-2">
               <GoogleMerchantWidget />

@@ -93,9 +93,10 @@
 
       <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10">
          {#if googleError}
-            <div class="h-full flex flex-col items-center justify-center text-rose-500 gap-6 py-20">
-               <AlertTriangle size={64} class="animate-bounce" />
-               <span class="text-[10px] font-black tracking-[0.4em] font-mono">Lỗi xác thực API</span>
+            <div class="h-full flex flex-col items-center justify-center text-rose-500 gap-6 py-20 px-8 text-center max-w-2xl mx-auto">
+               <AlertTriangle size={64} class="animate-bounce text-rose-500" />
+               <span class="text-[10px] font-black tracking-[0.4em] font-mono uppercase text-rose-400">LỖI XÁC THỰC API GOOGLE ADS</span>
+               <p class="text-xs font-mono bg-rose-950/20 border border-rose-500/20 p-4 text-rose-300 select-all whitespace-pre-wrap leading-relaxed">{googleError}</p>
             </div>
          {:else if googleMetrics.length > 0}
             <table class="w-full border-collapse">

@@ -15,6 +15,11 @@
   import Search from "@lucide/svelte/icons/search";
   import Filter from "@lucide/svelte/icons/filter";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
+  import Minimize2 from "@lucide/svelte/icons/minimize-2";
+  import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { onDestroy } from 'svelte';
 
   let { 
     campaigns = [],
@@ -72,11 +77,35 @@
       currentPage = 1;
     }
   });
+
+  let isFullView = $state(false);
+
+  function toggleFullView(): void {
+    isFullView = !isFullView;
+    if (typeof window !== 'undefined') {
+      document.body.style.overflow = isFullView ? 'hidden' : '';
+    }
+  }
+
+  onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  });
 </script>
 
-<div class="grid grid-cols-12 gap-8 h-full" in:fade>
+<div 
+   use:portal={isFullView}
+   class={isFullView 
+     ? "fixed inset-0 w-screen h-screen bg-[#050505] p-8 flex flex-col overflow-hidden text-white" 
+     : "grid grid-cols-12 gap-8 h-full"}
+   style={isFullView ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN};` : ""}
+   in:fade
+>
    <!-- MODULE CHÍNH -->
-   <div class="col-span-12 bg-white/[0.02] border border-white/5 rounded-none flex flex-col overflow-hidden shadow-2xl relative group">
+   <div class={isFullView
+      ? "flex-1 bg-[#050505]/40 border border-white/5 rounded-none flex flex-col overflow-hidden shadow-2xl relative group"
+      : "col-span-12 bg-white/[0.02] border border-white/5 rounded-none flex flex-col overflow-hidden shadow-2xl relative group"}>
       <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
       {#if campaignLoading}
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-4" in:fade>
@@ -116,8 +145,15 @@
                      <X size={18} /> <span>Quay lại</span>
                   </button>
                {/if}
-               <button class="w-12 h-12 flex items-center justify-center bg-black/40 border border-white/10 rounded-none hover:border-cyan-400/50 transition-all shadow-lg group/refresh" onclick={fetchCampaigns} disabled={campaignLoading}>
+               <button class="w-12 h-12 flex items-center justify-center bg-black/40 border border-white/10 rounded-none hover:border-cyan-400/50 transition-all shadow-lg group/refresh" onclick={fetchCampaigns} disabled={campaignLoading} title="Tải lại dữ liệu">
                   <RefreshCw size={18} class="{campaignLoading ? 'animate-spin text-cyan-400' : 'text-slate-500 group-hover/refresh:text-cyan-400 transition-colors'}" />
+               </button>
+               <button class="w-12 h-12 flex items-center justify-center bg-black/40 border border-white/10 rounded-none hover:border-cyan-400/50 transition-all shadow-lg group/fullscreen" onclick={toggleFullView} title={isFullView ? "Thu nhỏ" : "Phóng to toàn màn hình"}>
+                  {#if isFullView}
+                     <Minimize2 size={18} class="text-slate-500 group-hover/fullscreen:text-cyan-400 transition-colors" />
+                  {:else}
+                     <Maximize2 size={18} class="text-slate-500 group-hover/fullscreen:text-cyan-400 transition-colors" />
+                  {/if}
                </button>
             </div>
          </div>

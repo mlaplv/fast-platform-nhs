@@ -13,6 +13,7 @@ from typing import AsyncGenerator, Optional, Annotated
 
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.response import ServerSentEvent
+from litestar.exceptions import HTTPException
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -359,16 +360,17 @@ class AdsProtectionController(Controller):
     ) -> list[GoogleInvalidClickMetric]:
         """
         Lấy invalid click metrics trực tiếp từ Google Ads Reporting API v24.
-        Trả list rỗng nếu chưa cấu hình hoặc API lỗi.
         """
         try:
             metrics = await _reporter.fetch_invalid_click_metrics(
                 date_from=date_from, date_to=date_to
             )
             return [GoogleInvalidClickMetric(**m) for m in metrics]
+        except ValueError as e:
+            raise HTTPException(detail=str(e), status_code=400)
         except Exception as e:
             logger.error("GET_GOOGLE_METRICS_CONTROLLER_FAILED: %s", e)
-            return []
+            raise HTTPException(detail=f"Lỗi khi lấy dữ liệu từ Google Ads: {str(e)}", status_code=500)
 
     # ══════════════════════════════════════════════════════════════════
     # CAMPAIGN MANAGER — Google Ads API v24
@@ -383,9 +385,14 @@ class AdsProtectionController(Controller):
     ) -> list[CampaignInfo]:
         """
         Lấy danh sách campaigns với metrics 30 ngày gần nhất.
-        Trả list rỗng nếu chưa cấu hình credentials.
         """
-        return await _campaign_mgr.list_campaigns(db_session=db_session)
+        try:
+            return await _campaign_mgr.list_campaigns(db_session=db_session)
+        except ValueError as e:
+            raise HTTPException(detail=str(e), status_code=400)
+        except Exception as e:
+            logger.error("LIST_CAMPAIGNS_CONTROLLER_FAILED: %s", e)
+            raise HTTPException(detail=f"Lỗi khi lấy danh sách chiến dịch: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
     # 8. Tạo Campaign mới (Policy validation bắt buộc)
@@ -434,8 +441,13 @@ class AdsProtectionController(Controller):
         self, campaign_id: str
     ) -> list[AdGroupInfo]:
         """Lấy danh sách ad groups với metrics."""
-        resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
-        return await _campaign_mgr.list_ad_groups(resource)
+        try:
+            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
+            return await _campaign_mgr.list_ad_groups(resource)
+        except ValueError as e:
+            raise HTTPException(detail=str(e), status_code=400)
+        except Exception as e:
+            raise HTTPException(detail=f"Lỗi khi lấy danh sách nhóm quảng cáo: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
     # 12. Tạo Ad Group + Keywords
@@ -468,8 +480,13 @@ class AdsProtectionController(Controller):
         self, ad_group_id: str
     ) -> list[AdInfo]:
         """Lấy danh sách ads của ad group với policy status."""
-        resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
-        return await _campaign_mgr.list_ads(resource)
+        try:
+            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
+            return await _campaign_mgr.list_ads(resource)
+        except ValueError as e:
+            raise HTTPException(detail=str(e), status_code=400)
+        except Exception as e:
+            raise HTTPException(detail=f"Lỗi khi lấy danh sách mẫu quảng cáo: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
     # 15. Gợi ý từ khóa (Keyword Planner)

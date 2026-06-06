@@ -141,35 +141,34 @@ class GoogleAdsReporter:
     async def fetch_invalid_click_metrics(
         self, date_from: str, date_to: str
     ) -> list[dict[str, object]]:
+        if not self._has_credentials():
+            raise ValueError("Chưa cấu hình đầy đủ Google Ads API credentials trong file .env.")
+
+        access_token = await self._get_access_token()
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "developer-token": self._DEVELOPER_TOKEN,
+            "login-customer-id": self._LOGIN_CUSTOMER_ID,
+        }
+
+        query = f"""
+            SELECT
+                campaign.id,
+                campaign.name,
+                campaign.status,
+                metrics.clicks,
+                metrics.invalid_clicks,
+                metrics.invalid_click_rate,
+                metrics.cost_micros
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+              AND segments.date BETWEEN '{date_from}' AND '{date_to}'
+            LIMIT 50
+        """.strip()
+
+        url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:search"
+
         try:
-            if not self._has_credentials():
-                logger.warning("google_ads_credentials_missing — returning empty metrics")
-                return []
-
-            access_token = await self._get_access_token()
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "developer-token": self._DEVELOPER_TOKEN,
-                "login-customer-id": self._LOGIN_CUSTOMER_ID,
-            }
-
-            query = f"""
-                SELECT
-                    campaign.id,
-                    campaign.name,
-                    campaign.status,
-                    metrics.clicks,
-                    metrics.invalid_clicks,
-                    metrics.invalid_click_rate,
-                    metrics.cost_micros
-                FROM campaign
-                WHERE campaign.status = 'ENABLED'
-                  AND segments.date BETWEEN '{date_from}' AND '{date_to}'
-                LIMIT 50
-            """.strip()
-
-            url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:search"
-
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(
                     url,
@@ -181,41 +180,39 @@ class GoogleAdsReporter:
                     resp.raise_for_status()
                 
                 data = resp.json()
-
-            rows: list[dict[str, object]] = []
-            # data có thể là list (batches) hoặc dict tùy theo proxy/client
-            batches = data if isinstance(data, list) else [data]
-            
-            for batch in batches:
-                for result in batch.get("results", []):
-                    campaign = result.get("campaign", {})
-                    metrics  = result.get("metrics", {})
-                    
-                    # Google Ads API metrics are strings in REST JSON
-                    c = int(metrics.get("clicks", 0))
-                    ic = int(metrics.get("invalidClicks", 0))
-                    icr = float(metrics.get("invalidClickRate", 0))
-                    cm = int(metrics.get("costMicros", 0))
-                    
-                    # Calculate protected value (avg CPC * invalid clicks)
-                    # We use the same currency as account (assume VND for this project)
-                    avg_cpc_micros = cm / c if c > 0 else 0
-                    protected_micros = avg_cpc_micros * ic
-                    protected_vnd = round(protected_micros / 1_000_000)
-                    
-                    rows.append({
-                        "campaign_name": campaign.get("name", "Unknown"),
-                        "clicks":         c,
-                        "invalid_clicks": ic,
-                        "invalid_click_rate": icr,
-                        "cost_micros":    cm,
-                        "cost_vnd":       protected_vnd,
-                    })
-
-            return rows
+        except httpx.HTTPStatusError as e:
+            raise ValueError(f"Google Ads API Error (HTTP {e.response.status_code}): {e.response.text}")
         except Exception as e:
-            logger.error("FAILED_FETCH_GOOGLE_METRICS: %s", e, exc_info=True)
-            return [] # Trả về list rỗng thay vì làm crash cả Dashboard
+            logger.error("google_ads_api_call_failed: %s", e)
+            raise ValueError(f"Lỗi khi gọi Google Ads API: {str(e)}")
+
+        rows: list[dict[str, object]] = []
+        batches = data if isinstance(data, list) else [data]
+        
+        for batch in batches:
+            for result in batch.get("results", []):
+                campaign = result.get("campaign", {})
+                metrics  = result.get("metrics", {})
+                
+                c = int(metrics.get("clicks", 0))
+                ic = int(metrics.get("invalidClicks", 0))
+                icr = float(metrics.get("invalidClickRate", 0))
+                cm = int(metrics.get("costMicros", 0))
+                
+                avg_cpc_micros = cm / c if c > 0 else 0
+                protected_micros = avg_cpc_micros * ic
+                protected_vnd = round(protected_micros / 1_000_000)
+                
+                rows.append({
+                    "campaign_name": campaign.get("name", "Unknown"),
+                    "clicks":         c,
+                    "invalid_clicks": ic,
+                    "invalid_click_rate": icr,
+                    "cost_micros":    cm,
+                    "cost_vnd":       protected_vnd,
+                })
+
+        return rows
 
     # -----------------------------------------------------------------------
     # Public: upload offline conversion với status INVALID
@@ -401,15 +398,29 @@ class GoogleAdsReporter:
 
     async def _get_access_token(self) -> str:
         """OAuth2 token refresh."""
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "client_id":     self._OAUTH_CLIENT_ID,
-                    "client_secret": self._OAUTH_CLIENT_SECRET,
-                    "refresh_token": self._REFRESH_TOKEN,
-                    "grant_type":    "refresh_token",
-                },
-            )
-            resp.raise_for_status()
-            return resp.json()["access_token"]
+        if not self._has_credentials():
+            raise ValueError("Chưa cấu hình đầy đủ Google Ads API credentials trong file .env.")
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "client_id":     self._OAUTH_CLIENT_ID,
+                        "client_secret": self._OAUTH_CLIENT_SECRET,
+                        "refresh_token": self._REFRESH_TOKEN,
+                        "grant_type":    "refresh_token",
+                    },
+                )
+                resp.raise_for_status()
+                return resp.json()["access_token"]
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 400:
+                try:
+                    err_desc = e.response.json().get("error_description", str(e))
+                except Exception:
+                    err_desc = e.response.text
+                raise ValueError(f"Xác thực Google Ads thất bại (400 Bad Request): {err_desc}. OAuth2 Refresh Token có thể đã hết hạn hoặc bị thu hồi.")
+            raise ValueError(f"Không thể lấy Google Ads Access Token do lỗi HTTP {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            logger.error("Failed to acquire Google Ads access token: %s", e)
+            raise ValueError(f"Lỗi khi kết nối với Google Ads OAuth: {str(e)}")

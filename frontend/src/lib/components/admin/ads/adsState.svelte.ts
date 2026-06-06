@@ -7,6 +7,70 @@ const API_BASE = '/api/v1';
 const ADS_API = `${API_BASE}/ads-protection`;
 
 // --- Type Definitions (Elite V2.6 Standard) ---
+export interface AdInsight {
+  type: string;
+  title: string;
+  message: string;
+  severity: string;
+}
+
+export interface GoogleCampaign {
+  resource_name: string;
+  name: string;
+  status: string;
+  daily_budget_vnd?: number;
+  bidding_strategy?: string;
+}
+
+export interface GoogleAdGroup {
+  resource_name: string;
+  name: string;
+  status?: string;
+  cpc_bid_vnd?: number;
+}
+
+export interface GoogleAd {
+  resource_name: string;
+  name?: string;
+  status?: string;
+  final_url?: string;
+  headlines?: string[];
+  descriptions?: string[];
+}
+
+export interface BlacklistedIP {
+  ip: string;
+  reason?: string;
+  campaign_id?: string;
+  is_global?: boolean;
+  created_at?: string;
+}
+
+export interface NegativeKeyword {
+  resource_name: string;
+  text: string;
+  campaign_id?: string;
+  is_global?: boolean;
+}
+
+export interface ReportItem {
+  name: string;
+  created_at?: string;
+}
+
+export interface AISuggestionResponse {
+  success: boolean;
+  message?: string;
+  headlines?: string[];
+  descriptions?: string[];
+  negative_keywords?: string[];
+}
+
+export interface GenericSuccessResponse {
+  success: boolean;
+  message?: string;
+}
+
 export interface FraudSummary {
   period_hours: number;
   generated_at: string;
@@ -26,7 +90,7 @@ export interface FraudSummary {
   };
   top_offending_ips: Array<{ ip: string; click_count: number }>;
   hourly_breakdown: Array<{ hour: string; fraud_rate: number; total_clicks: number }>;
-  insights: any[];
+  insights: AdInsight[];
 }
 
 export interface GoogleMetric {
@@ -56,17 +120,26 @@ export function createAdsState() {
   const nanobot = useNanobot();
 
   let summary = $state<FraudSummary | null>(null);
-  let insights = $state<any[]>([]);
+  let insights = $state<AdInsight[]>([]);
   let reportResult = $state<InvestigationReportResult | null>(null);
   let googleMetrics = $state<GoogleMetric[]>([]);
-  let campaigns = $state<any[]>([]);
-  let selectedCampaign = $state<any>(null);
-  let adGroups = $state<any[]>([]);
-  let selectedAdGroup = $state<any>(null);
-  let ads = $state<any[]>([]);
-  let blacklistedIPs = $state<any[]>([]);
-  let negativeKeywords = $state<any[]>([]);
-  let aiResult = $state<any>(null);
+  let campaigns = $state<GoogleCampaign[]>([]);
+  let selectedCampaign = $state<GoogleCampaign | null>(null);
+  let adGroups = $state<GoogleAdGroup[]>([]);
+  let selectedAdGroup = $state<GoogleAdGroup | null>(null);
+  let ads = $state<GoogleAd[]>([]);
+  let blacklistedIPs = $state<BlacklistedIP[]>([]);
+  let negativeKeywords = $state<NegativeKeyword[]>([]);
+  let aiResult = $state<AISuggestionResponse | null>(null);
+  let isEditingAd = $state(false);
+  
+  // --- Tree View Cache States ---
+  let expandedCampaigns = $state<Record<string, boolean>>({});
+  let expandedAdGroups = $state<Record<string, boolean>>({});
+  let campaignAdGroups = $state<Record<string, GoogleAdGroup[]>>({});
+  let adGroupAds = $state<Record<string, GoogleAd[]>>({});
+  let loadingCampaigns = $state<Record<string, boolean>>({});
+  let loadingAdGroups = $state<Record<string, boolean>>({});
   
   let manualIP = $state('');
   let newNegativeKeyword = $state('');
@@ -81,12 +154,44 @@ export function createAdsState() {
   let googleLoading = $state(false);
   let googleError = $state<string | null>(null);
   let campaignLoading = $state(false);
+  let campaignError = $state<string | null>(null);
   let adGroupLoading = $state(false);
   let adsLoading = $state(false);
   let aiLoading = $state(false);
   let negativeKeywordsLoading = $state(false);
   let activeTab = $state('overview');
   let campaignView = $state('list');
+  
+  // --- Campaign Creation ---
+  let fCampaign = $state({
+    name: '',
+    daily_budget_vnd: 200000,
+    bidding_strategy: 'MAXIMIZE_CLICKS',
+    target_roas: null
+  });
+  let campaignSubmitting = $state(false);
+
+  // --- Ad Group & Ad Creation ---
+  let fAdGroup = $state({
+    name: '',
+    cpc_bid_vnd: 5000,
+    keywords_raw: '',
+    match_type: 'EXACT'
+  });
+  let adGroupSubmitting = $state(false);
+
+  let fAd = $state({
+    final_url: '',
+    display_path1: '',
+    display_path2: '',
+    status: 'PAUSED',
+    headlines: Array(15).fill(''),
+    descriptions: Array(4).fill('')
+  });
+  let adSubmitting = $state(false);
+  let aiGenerating = $state(false);
+
+  
   
   // --- V3.0 Fast Path States ---
   let edgeStatus = $state<'idle' | 'initializing' | 'ready' | 'error'>('idle');
@@ -106,7 +211,7 @@ export function createAdsState() {
           if (data.verdict === 'CHALLENGE' && data.challenge) {
             solvePoW(data.challenge, data.difficulty || 4).then(proof => {
               if (proof) {
-                apiClient.post(`${ADS_API}/verify-pow`, {
+                apiClient.post<GenericSuccessResponse>(`${ADS_API}/verify-pow`, {
                   ip: data.ip,
                   challenge: data.challenge,
                   nonce: proof.nonce,
@@ -182,7 +287,7 @@ export function createAdsState() {
     }
   }
 
-  let debounceTimer: any;
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   function debounceFetch() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => fetchAll(), 5000);
@@ -219,7 +324,7 @@ export function createAdsState() {
     async function fetchAll() {
       loading = true;
       try {
-        const params: any = {};
+        const params: Record<string, string> = {};
         if (dateFrom && dateTo) {
           params.date_from = dateFrom;
           params.date_to = dateTo;
@@ -228,9 +333,9 @@ export function createAdsState() {
         }
         
         const [s, i, b] = await Promise.all([
-          apiClient.get(`${ADS_API}/summary`, { params }),
-          apiClient.get(`${ADS_API}/insights`, { params }),
-          apiClient.get(`${ADS_API}/blacklist`)
+          apiClient.get<FraudSummary>(`${ADS_API}/summary`, { params }),
+          apiClient.get<AdInsight[]>(`${ADS_API}/insights`, { params }),
+          apiClient.get<BlacklistedIP[]>(`${ADS_API}/blacklist`)
         ]);
         summary = s; 
         insights = i || []; 
@@ -243,7 +348,7 @@ export function createAdsState() {
       } finally { loading = false; }
     }
 
-  let pastReports = $state<any[]>([]);
+  let pastReports = $state<ReportItem[]>([]);
 
   function getDateRange() {
     if (dateFrom && dateTo) return { from: dateFrom, to: dateTo };
@@ -257,14 +362,14 @@ export function createAdsState() {
     reportLoading = true;
     try {
       const dates = getDateRange();
-      let res: any = await apiClient.post(`${ADS_API}/generate-investigation-report`, {
+      let res = await apiClient.post<InvestigationReportResult>(`${ADS_API}/generate-investigation-report`, {
          date_from: dates.from,
          date_to: dates.to
       });
       
       // Nếu không có dữ liệu mới, tự động truy xuất lại dữ liệu gần nhất (Force Rebuild)
       if (res.status !== 'ready') {
-         res = await apiClient.post(`${ADS_API}/generate-investigation-report`, { 
+         res = await apiClient.post<InvestigationReportResult>(`${ADS_API}/generate-investigation-report`, { 
             date_from: dates.from,
             date_to: dates.to,
             force: true 
@@ -278,24 +383,25 @@ export function createAdsState() {
       } else {
         nanobot.showToast('Không có dữ liệu gian lận trong 7 ngày qua', 'info');
       }
-    } catch (e: any) { 
-      const msg = e.response?.data?.detail || e.message || 'Lỗi truy xuất báo cáo';
+    } catch (error: unknown) { 
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const msg = err.response?.data?.detail || err.message || 'Lỗi truy xuất báo cáo';
       nanobot.showToast(msg, 'error'); 
-      console.error("REPORT_GEN_ERROR:", e);
+      console.error("REPORT_GEN_ERROR:", error);
     }
     finally { reportLoading = false; }
   }
 
   async function fetchPastReports() {
      try {
-        pastReports = await apiClient.get(`${ADS_API}/investigation-reports`) || [];
+        pastReports = await apiClient.get<ReportItem[]>(`${ADS_API}/investigation-reports`) || [];
      } catch { pastReports = []; }
   }
 
   async function viewPastReport(name: string) {
      reportLoading = true;
      try {
-        const res: any = await apiClient.get(`${ADS_API}/investigation-report-content/${name}`);
+        const res = await apiClient.get<InvestigationReportResult>(`${ADS_API}/investigation-report-content/${name}`);
         if (res.status === 'ready') {
            reportResult = res;
            nanobot.showToast(`Đã tải hồ sơ: ${name}`, 'success');
@@ -308,6 +414,7 @@ export function createAdsState() {
 
    async function fetchGoogleMetrics() {
      googleLoading = true;
+     googleError = null;
      try {
        let from_str, to_str;
        if (dateFrom && dateTo) {
@@ -315,53 +422,313 @@ export function createAdsState() {
          to_str = dateTo;
        } else {
          const to = new Date(); const from = new Date();
-         from.setHours(from.getHours() - selectedHours);
+         from.setHours(from.getHours() - Number(selectedHours));
          const fmtD = (d: Date) => d.toISOString().split('T')[0];
          from_str = fmtD(from);
          to_str = fmtD(to);
        }
-       googleMetrics = await apiClient.get(`${ADS_API}/google-metrics`, { params: { date_from: from_str, date_to: to_str } }) ?? [];
-     } catch { googleError = 'Lỗi API Google'; }
+       googleMetrics = await apiClient.get<GoogleMetric[]>(`${ADS_API}/google-metrics`, { params: { date_from: from_str, date_to: to_str } }) ?? [];
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { detail?: string } }; message?: string };
+        googleError = err.response?.data?.detail || err.message || 'Lỗi API Google';
+        nanobot.showToast(`Lỗi Google Ads Metrics: ${googleError}`, 'error');
+      }
      finally { googleLoading = false; }
    }
 
   async function fetchCampaigns() {
     campaignLoading = true;
-    try { campaigns = await apiClient.get(`${ADS_API}/campaigns`) ?? []; }
-    finally { campaignLoading = false; }
+    campaignError = null;
+    try {
+      campaigns = await apiClient.get<GoogleCampaign[]>(`${ADS_API}/campaigns`) ?? [];
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      campaignError = err.response?.data?.detail || err.message || 'Lỗi tải chiến dịch';
+      nanobot.showToast(`Lỗi Google Ads Campaigns: ${campaignError}`, 'error');
+      campaigns = [];
+    } finally { campaignLoading = false; }
   }
 
-  async function fetchAdGroups(c: any) {
+  async function fetchAdGroups(c: GoogleCampaign) {
     selectedCampaign = c; adGroupLoading = true; campaignView = 'ad_groups';
     try {
       const id = c.resource_name.split('/').pop();
-      adGroups = await apiClient.get(`${ADS_API}/campaigns/${id}/ad-groups`) ?? [];
+      adGroups = await apiClient.get<GoogleAdGroup[]>(`${ADS_API}/campaigns/${id}/ad-groups`) ?? [];
     } finally { adGroupLoading = false; }
   }
 
-  async function fetchAds(ag: any) {
+  async function fetchAds(ag: GoogleAdGroup) {
     selectedAdGroup = ag; adsLoading = true; campaignView = 'ads';
     try {
       const id = ag.resource_name.split('/').pop();
-      ads = await apiClient.get(`${ADS_API}/ad-groups/${id}/ads`) ?? [];
+      ads = await apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`) ?? [];
     } finally { adsLoading = false; }
+  }
+
+  async function toggleCampaign(c: GoogleCampaign) {
+    const resourceName = c.resource_name;
+    if (expandedCampaigns[resourceName]) {
+      expandedCampaigns[resourceName] = false;
+    } else {
+      expandedCampaigns[resourceName] = true;
+      selectedCampaign = c;
+      if (!campaignAdGroups[resourceName]) {
+        loadingCampaigns[resourceName] = true;
+        try {
+          const id = resourceName.split('/').pop();
+          const res = await apiClient.get<GoogleAdGroup[]>(`${ADS_API}/campaigns/${id}/ad-groups`);
+          campaignAdGroups[resourceName] = res ?? [];
+        } catch {
+          nanobot.showToast('Lỗi tải nhóm quảng cáo của chiến dịch', 'error');
+        } finally {
+          loadingCampaigns[resourceName] = false;
+        }
+      }
+    }
+  }
+
+  async function toggleAdGroup(ag: GoogleAdGroup) {
+    const resourceName = ag.resource_name;
+    if (expandedAdGroups[resourceName]) {
+      expandedAdGroups[resourceName] = false;
+    } else {
+      expandedAdGroups[resourceName] = true;
+      selectedAdGroup = ag;
+      if (!adGroupAds[resourceName]) {
+        loadingAdGroups[resourceName] = true;
+        try {
+          const id = resourceName.split('/').pop();
+          const res = await apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`);
+          adGroupAds[resourceName] = res ?? [];
+        } catch {
+          nanobot.showToast('Lỗi tải quảng cáo của nhóm', 'error');
+        } finally {
+          loadingAdGroups[resourceName] = false;
+        }
+      }
+    }
+  }
+
+  function selectAdForEdit(ad: GoogleAd, ag: GoogleAdGroup, c: GoogleCampaign) {
+    selectedCampaign = c;
+    selectedAdGroup = ag;
+    isEditingAd = true;
+    
+    fAd.final_url = ad.final_url || '';
+    fAd.display_path1 = ''; 
+    fAd.display_path2 = '';
+    fAd.status = ad.status || 'PAUSED';
+    fAd.headlines = Array(15).fill('');
+    fAd.descriptions = Array(4).fill('');
+    
+    if (ad.headlines && Array.isArray(ad.headlines)) {
+      for (let i = 0; i < Math.min(15, ad.headlines.length); i++) {
+        fAd.headlines[i] = ad.headlines[i];
+      }
+    }
+    if (ad.descriptions && Array.isArray(ad.descriptions)) {
+      for (let i = 0; i < Math.min(4, ad.descriptions.length); i++) {
+        fAd.descriptions[i] = ad.descriptions[i];
+      }
+    }
+    
+    campaignView = 'create_ad';
+    activeTab = 'campaigns'; 
   }
 
   async function updateCampaignStatus(resource: string, status: string) {
     const id = resource.split('/').pop();
+    if (!id) return;
     try {
-      const res: any = await apiClient.patch(`${ADS_API}/campaigns/${id}/status`, { status });
-      if (res.success) { nanobot.showToast(res.message, 'success'); fetchCampaigns(); }
+      const res = await apiClient.patch<GenericSuccessResponse>(`${ADS_API}/campaigns/${id}/status`, { status });
+      if (res.success) { nanobot.showToast(res.message || 'Cập nhật thành công', 'success'); fetchCampaigns(); }
     } catch { nanobot.showToast('Lỗi cập nhật', 'error'); }
   }
+
+  async function submitCampaign() {
+    if (!fCampaign.name) {
+      nanobot.showToast('Vui lòng nhập tên chiến dịch', 'warning');
+      return;
+    }
+    campaignSubmitting = true;
+    try {
+      const payload = {
+        name: fCampaign.name,
+        daily_budget_vnd: Number(fCampaign.daily_budget_vnd),
+        bidding_strategy: fCampaign.bidding_strategy,
+        target_roas: fCampaign.target_roas ? Number(fCampaign.target_roas) : null
+      };
+      const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/campaigns`, payload);
+      if (res.success) {
+        nanobot.showToast(res.message || 'Khởi tạo chiến dịch thành công!', 'success');
+        campaignView = 'list';
+        // Reset form
+        fCampaign.name = '';
+        fCampaign.daily_budget_vnd = 200000;
+        fCampaign.bidding_strategy = 'MAXIMIZE_CLICKS';
+        fCampaign.target_roas = null;
+        fetchCampaigns();
+      } else {
+        nanobot.showToast(res.message || 'Lỗi khởi tạo', 'error');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
+      nanobot.showToast(`Lỗi khởi tạo chiến dịch: ${errMsg}`, 'error');
+    } finally {
+      campaignSubmitting = false;
+    }
+  }
+
+  async function submitAdGroup() {
+    if (!selectedCampaign) {
+      nanobot.showToast('Chưa chọn chiến dịch mục tiêu', 'warning');
+      return;
+    }
+    if (!fAdGroup.name || !fAdGroup.keywords_raw) {
+      nanobot.showToast('Vui lòng điền đủ Tên nhóm và Từ khóa', 'warning');
+      return;
+    }
+    adGroupSubmitting = true;
+    try {
+      const keywords = fAdGroup.keywords_raw
+        .split('\n')
+        .map(k => k.trim())
+        .filter(Boolean);
+      
+      const payload = {
+        campaign_resource_name: selectedCampaign.resource_name,
+        name: fAdGroup.name,
+        cpc_bid_vnd: Number(fAdGroup.cpc_bid_vnd),
+        keywords: keywords,
+        match_types: [fAdGroup.match_type]
+      };
+
+      const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ad-groups`, payload);
+      if (res.success) {
+        nanobot.showToast(res.message || 'Tạo Ad Group thành công!', 'success');
+        // Reset form
+        fAdGroup.name = '';
+        fAdGroup.keywords_raw = '';
+        fAdGroup.cpc_bid_vnd = 5000;
+        // Go back/refresh
+        campaignView = 'ad_groups';
+        fetchAdGroups(selectedCampaign);
+      } else {
+        nanobot.showToast(res.message || 'Lỗi tạo Ad Group', 'error');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
+      nanobot.showToast(`Lỗi tạo Ad Group: ${errMsg}`, 'error');
+    } finally {
+      adGroupSubmitting = false;
+    }
+  }
+
+  async function submitAd() {
+    if (!selectedAdGroup) {
+      nanobot.showToast('Chưa chọn nhóm quảng cáo mục tiêu', 'warning');
+      return;
+    }
+    // Filter out empty headlines and descriptions
+    const headlines = fAd.headlines.map(h => h.trim()).filter(Boolean);
+    const descriptions = fAd.descriptions.map(d => d.trim()).filter(Boolean);
+
+    if (headlines.length < 3) {
+      nanobot.showToast('Cần tối thiểu 3 Tiêu đề', 'warning');
+      return;
+    }
+    if (descriptions.length < 2) {
+      nanobot.showToast('Cần tối thiểu 2 Mô tả', 'warning');
+      return;
+    }
+    if (!fAd.final_url) {
+      nanobot.showToast('Vui lòng nhập Final URL', 'warning');
+      return;
+    }
+
+    adSubmitting = true;
+    try {
+      const payload = {
+        ad_group_resource_name: selectedAdGroup.resource_name,
+        headlines,
+        descriptions,
+        final_url: fAd.final_url,
+        display_path1: fAd.display_path1 || null,
+        display_path2: fAd.display_path2 || null,
+        status: fAd.status
+      };
+
+      const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ads`, payload);
+      if (res.success) {
+        nanobot.showToast(res.message || 'Tạo quảng cáo thành công!', 'success');
+        // Reset form
+        fAd.final_url = '';
+        fAd.display_path1 = '';
+        fAd.display_path2 = '';
+        fAd.status = 'PAUSED';
+        fAd.headlines = Array(15).fill('');
+        fAd.descriptions = Array(4).fill('');
+        // Go back/refresh
+        campaignView = 'ads';
+        fetchAds(selectedAdGroup);
+      } else {
+        nanobot.showToast(res.message || 'Lỗi tạo mẫu quảng cáo', 'error');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
+      nanobot.showToast(`Lỗi tạo quảng cáo: ${errMsg}`, 'error');
+    } finally {
+      adSubmitting = false;
+    }
+  }
+
+  async function aiSuggestRSA(url: string) {
+    if (!url) {
+      nanobot.showToast('Vui lòng nhập Final URL trước khi nhờ Xohi gợi ý', 'warning');
+      return;
+    }
+    aiGenerating = true;
+    try {
+      const res = await apiClient.post<AISuggestionResponse>(`${ADS_API}/ai-suggest`, {
+        task: 'RSA',
+        context: url
+      });
+      if (res.success) {
+        nanobot.showToast(res.message || 'Xohi gợi ý thành công!', 'success');
+        if (res.headlines && Array.isArray(res.headlines)) {
+          for (let i = 0; i < 15; i++) {
+            fAd.headlines[i] = res.headlines[i] || '';
+          }
+        }
+        if (res.descriptions && Array.isArray(res.descriptions)) {
+          for (let i = 0; i < 4; i++) {
+            fAd.descriptions[i] = res.descriptions[i] || '';
+          }
+        }
+      } else {
+        nanobot.showToast(res.message || 'Lỗi gợi ý AI', 'error');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
+      nanobot.showToast(`Lỗi gợi ý Xohi: ${errMsg}`, 'error');
+    } finally {
+      aiGenerating = false;
+    }
+  }
+
+
 
    async function fetchNegativeKeywords() {
      negativeKeywordsLoading = true;
      try {
        const id = selectedCampaign?.resource_name.split('/').pop();
-       negativeKeywords = await apiClient.get(`${ADS_API}/negative-keywords`) ?? [];
+       negativeKeywords = await apiClient.get<NegativeKeyword[]>(`${ADS_API}/negative-keywords`) ?? [];
        if (id) {
-         const campK = await apiClient.get(`${ADS_API}/campaigns/${id}/negative-keywords`) ?? [];
+         const campK = await apiClient.get<NegativeKeyword[]>(`${ADS_API}/campaigns/${id}/negative-keywords`) ?? [];
          negativeKeywords = [...negativeKeywords, ...campK];
        }
      } catch { negativeKeywords = []; }
@@ -372,11 +739,17 @@ export function createAdsState() {
     if (!text.trim()) return;
     const keywords = text.split('\n').map(k => k.trim()).filter(Boolean);
     try {
-      let res: any;
-      if (isGlobalNegative) res = await apiClient.post(`${ADS_API}/negative-keywords`, { keywords });
-      else {
+      let res: GenericSuccessResponse;
+      if (isGlobalNegative) {
+        res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/negative-keywords`, { keywords });
+      } else {
+        if (!selectedCampaign) {
+          nanobot.showToast('Vui lòng chọn chiến dịch', 'warning');
+          return;
+        }
         const id = selectedCampaign.resource_name.split('/').pop();
-        res = await apiClient.post(`${ADS_API}/campaigns/${id}/negative-keywords`, { keywords });
+        if (!id) return;
+        res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/campaigns/${id}/negative-keywords`, { keywords });
       }
       if (res.success) { nanobot.showToast(`Đã xuất bản ${keywords.length} từ khóa`, 'success'); fetchNegativeKeywords(); newNegativeKeyword = ''; }
     } catch { nanobot.showToast("Lỗi API", "error"); }
@@ -384,31 +757,32 @@ export function createAdsState() {
 
   async function removeNegativeKeyword(resource: string) {
     const id = resource.split('/').pop();
+    if (!id) return;
     try {
-      const res: any = await apiClient.delete(`${ADS_API}/negative-keywords/${id}`);
-      if (res.success) { nanobot.showToast(res.message, 'success'); fetchNegativeKeywords(); }
+      const res = await apiClient.delete<GenericSuccessResponse>(`${ADS_API}/negative-keywords/${id}`);
+      if (res.success) { nanobot.showToast(res.message || 'Đã xóa thành công', 'success'); fetchNegativeKeywords(); }
     } catch { nanobot.showToast('Lỗi xóa', 'error'); }
   }
 
   async function blockIP(ip: string, reason = 'Phát hiện click fraud') {
     try {
       const id = selectedCampaign?.resource_name.split('/').pop();
-      const res: any = await apiClient.post(`${ADS_API}/blacklist`, { ip, reason, campaign_id: id, is_global: isGlobalIP });
+      const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/blacklist`, { ip, reason, campaign_id: id, is_global: isGlobalIP });
       if (res.success) { nanobot.showToast(res.message || 'Đã chặn IP thành công', 'success'); fetchAll(); }
     } catch { nanobot.showToast('Lỗi chặn IP', 'error'); }
   }
 
   async function unblockIP(ip: string) {
     try {
-      const res: any = await apiClient.delete(`${ADS_API}/blacklist/${ip}`);
-      if (res.success) { nanobot.showToast(res.message, 'success'); fetchAll(); }
+      const res = await apiClient.delete<GenericSuccessResponse>(`${ADS_API}/blacklist/${ip}`);
+      if (res.success) { nanobot.showToast(res.message || 'Đã gỡ chặn thành công', 'success'); fetchAll(); }
     } catch { nanobot.showToast('Lỗi gỡ chặn', 'error'); }
   }
 
   async function aiSuggest(task: string, context: string) {
     aiLoading = true;
     try {
-      const res: any = await apiClient.post(`${ADS_API}/ai-suggest`, { task, context });
+      const res = await apiClient.post<AISuggestionResponse>(`${ADS_API}/ai-suggest`, { task, context });
       if (res.success) {
          aiResult = res;
          if (task === 'NEGATIVE_KEYWORDS' && res.negative_keywords) {
@@ -452,12 +826,29 @@ export function createAdsState() {
     get googleAvgRate() { return googleAvgRate },
     get googleTotalClicks() { return googleTotalClicks },
     get googleTotalInvalid() { return googleTotalInvalid },
+    get googleError() { return googleError },
+    get campaignError() { return campaignError },
     get periodLabel() { return periodLabel },
+    get fCampaign() { return fCampaign }, set fCampaign(v) { fCampaign = v },
+    get campaignSubmitting() { return campaignSubmitting },
+    get fAdGroup() { return fAdGroup }, set fAdGroup(v) { fAdGroup = v },
+    get adGroupSubmitting() { return adGroupSubmitting },
+    get fAd() { return fAd }, set fAd(v) { fAd = v },
+    get adSubmitting() { return adSubmitting },
+    get aiGenerating() { return aiGenerating },
+    get isEditingAd() { return isEditingAd }, set isEditingAd(v) { isEditingAd = v },
+    get expandedCampaigns() { return expandedCampaigns }, set expandedCampaigns(v) { expandedCampaigns = v },
+    get expandedAdGroups() { return expandedAdGroups }, set expandedAdGroups(v) { expandedAdGroups = v },
+    get campaignAdGroups() { return campaignAdGroups }, set campaignAdGroups(v) { campaignAdGroups = v },
+    get adGroupAds() { return adGroupAds }, set adGroupAds(v) { adGroupAds = v },
+    get loadingCampaigns() { return loadingCampaigns },
+    get loadingAdGroups() { return loadingAdGroups },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
-    updateCampaignStatus, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
     getDateRange,
     initSSE, initEdge, solvePoW, dispose,
     get edgeStatus() { return edgeStatus },
-    get isPoWActive() { return isPoWActive }
+    get isPoWActive() { return isPoWActive },
+    toggleCampaign, toggleAdGroup, selectAdForEdit
   };
 }
