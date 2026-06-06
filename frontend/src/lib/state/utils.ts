@@ -1,3 +1,5 @@
+import { logger } from "$lib/utils/logger";
+
 export function safeRandomUUID(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -34,7 +36,7 @@ export function extractIdFromUrl(url: string | null): string | null {
         return lastPart;
     }
   } catch (e) {
-    // Silent fail
+    logger.warn('Failed to extract ID from URL', url, e);
   }
 
   return null;

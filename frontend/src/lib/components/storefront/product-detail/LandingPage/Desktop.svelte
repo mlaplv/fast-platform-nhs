@@ -8,6 +8,7 @@
   import { formatCurrency } from "$lib/utils/format";
   import { processProductVouchers } from "$lib/utils/commerce/voucher";
   import type { VoucherUI } from "$lib/utils/commerce/voucher";
+  import { logger } from "$lib/utils/logger";
   import Diamond from "@lucide/svelte/icons/diamond";
 
   // Modules
@@ -325,7 +326,9 @@
       if (saved) {
         try {
           unlockedVoucherInfo = JSON.parse(saved);
-        } catch (e) {}
+        } catch (e) {
+          logger.warn('Failed to parse saved viral voucher data', e);
+        }
       }
     }
 

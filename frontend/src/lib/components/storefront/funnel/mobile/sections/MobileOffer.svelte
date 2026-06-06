@@ -6,6 +6,7 @@
    */
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { logger } from '$lib/utils/logger';
 
   import AddressSelector from '../checkout/AddressSelector.svelte';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte';
@@ -120,7 +121,7 @@
             shopStore.toggleVoucher(data.code);
           }
         } catch (e) {
-          // Silent safe fail
+          logger.warn('Failed to parse saved viral voucher data', e);
         }
       }
     }

@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 export class WebSocketStream {
   private ws: WebSocket | null = null;
   private endpointPath: string;
@@ -46,7 +48,7 @@ export class WebSocketStream {
             const data = JSON.parse(e.data);
             onMessage(data);
           } catch (err) {
-            console.error("[WS] Parse error", err);
+            logger.error("[WS] Parse error", err);
           }
         };
 
@@ -71,11 +73,11 @@ export class WebSocketStream {
   sendBinary(chunk: Blob) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       if (chunk.size > 0) {
-        console.debug(`[WS] Sending binary chunk: ${chunk.size} bytes`);
+        logger.debug(`[WS] Sending binary chunk: ${chunk.size} bytes`);
         this.ws.send(chunk);
       }
     } else if (this.ws) {
-      console.warn(`[WS] Cannot send chunk, state: ${this.ws.readyState}`);
+      logger.warn(`[WS] Cannot send chunk, state: ${this.ws.readyState}`);
     }
   }
 
@@ -87,10 +89,10 @@ export class WebSocketStream {
       try {
         this.ws.send("STOP");
       } catch (e) {
-        console.error("[WS] Failed to send STOP signal", e);
+        logger.error("[WS] Failed to send STOP signal", e);
       }
     } else {
-      console.warn(`[WS] Cannot send STOP, state: ${this.ws?.readyState}`);
+      logger.warn(`[WS] Cannot send STOP, state: ${this.ws?.readyState}`);
     }
   }
 
@@ -105,7 +107,9 @@ export class WebSocketStream {
         if (ref.readyState === WebSocket.OPEN || ref.readyState === WebSocket.CONNECTING) {
           ref.close();
         }
-      } catch (e) {}
+      } catch (e) {
+        logger.warn('Failed to close websocket stream', e);
+      }
     }
   }
 }

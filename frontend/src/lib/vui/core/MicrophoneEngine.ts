@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 export class MicrophoneEngine {
   private stream: MediaStream | null = null;
   private recorder: MediaRecorder | null = null;
@@ -92,7 +94,9 @@ export class MicrophoneEngine {
 
     try {
       this.recorder?.stop();
-    } catch (e) {}
+    } catch (e) {
+      logger.warn('Failed to stop microphone recorder', e);
+    }
     this.recorder = null;
 
     if (this.stream) {
@@ -101,7 +105,7 @@ export class MicrophoneEngine {
     }
 
     if (this.audioCtx && this.audioCtx.state !== "closed") {
-      this.audioCtx.close().catch(() => {});
+      this.audioCtx.close().catch((e) => logger.warn('Failed to close audioCtx', e));
     }
     this.audioCtx = null;
     this.analyser = null;

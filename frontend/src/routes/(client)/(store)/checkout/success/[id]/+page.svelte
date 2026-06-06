@@ -17,6 +17,7 @@
   import { browser } from "$app/environment";
   import { authStore } from "$lib/state/authStore.svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
+  import { logger } from "$lib/utils/logger";
 
 
 
@@ -240,7 +241,7 @@
     );
 
     try {
-      console.log(`[Elite-Sync] Fetching order ${orderId} (Phone: ${phoneToUse || "None"})`);
+      logger.log(`[Elite-Sync] Fetching order ${orderId} (Phone: ${phoneToUse || "None"})`);
       const res = await apiClient.get<OrderDetail>(
         `/api/v1/client/orders/${orderId}`,
         {
@@ -249,7 +250,7 @@
       );
       if (res) {
         order = res;
-        console.log("[Elite-Sync] Order data received:", {
+        logger.log("[Elite-Sync] Order data received:", {
           id: order.id,
           name: order.customerName,
           is_trusted: order.is_trusted_device,
@@ -363,7 +364,7 @@
     }
 
     try {
-      console.log(`[Elite-Sync] Cancelling order ${orderId}...`);
+      logger.log(`[Elite-Sync] Cancelling order ${orderId}...`);
       const res = await apiClient.post<OrderDetail>(
         `/api/v1/client/orders/${orderId}/cancel`,
         {},
@@ -371,7 +372,7 @@
       );
       if (res) {
         order = res;
-        console.log("[Elite-Sync] Cancellation response received:", order);
+        logger.log("[Elite-Sync] Cancellation response received:", order);
       }
       showToast("Đã hủy đơn hàng thành công");
     } catch (err: unknown) {
@@ -392,7 +393,7 @@
     }
 
     try {
-      console.log("[Elite-Sync] Saving edit. Previous data:", {
+      logger.log("[Elite-Sync] Saving edit. Previous data:", {
         name: order.customer_name,
         address: order.customer_address
       });
@@ -412,7 +413,7 @@
       );
       if (res) {
         order = res;
-        console.log("[Elite-Sync] Save success. Updated data:", {
+        logger.log("[Elite-Sync] Save success. Updated data:", {
           name: order.customer_name,
           address: order.customer_address
         });
@@ -459,12 +460,6 @@
     // Elite V2.2: Dual-Key Resolver (CamelCase API vs SnakeCase Schema)
     const meta = order?.order_metadata;
     return meta?.customer_note || meta?.note || order?.customer_note || order?.note || "";
-  });
-
-  $effect(() => {
-    if (displayNote) {
-      console.log("LOG customer_note:", displayNote);
-    }
   });
 </script>
 

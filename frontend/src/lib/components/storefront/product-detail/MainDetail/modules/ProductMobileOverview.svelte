@@ -26,6 +26,7 @@
   import { getProductLikeCount } from '$lib/utils/commerce/viral';
   import { authStore } from '$lib/state/authStore.svelte';
   import { processProductVouchers } from '$lib/utils/commerce/voucher';
+  import { logger } from '$lib/utils/logger';
   
   // Components
   import ViralShareBarMobile from '../../shared/ViralShareBarMobile.svelte';
@@ -231,7 +232,9 @@
       if (saved) {
         try {
           unlockedInfo = JSON.parse(saved);
-        } catch (e) {}
+        } catch (e) {
+          logger.warn('Failed to parse saved viral voucher data', e);
+        }
       }
     }
 

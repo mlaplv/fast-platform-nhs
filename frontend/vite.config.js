@@ -37,6 +37,9 @@ export default defineConfig(({ command, mode }) => {
 		ssr: {
 			external: ['@ricky0123/vad-web']
 		},
+		esbuild: {
+			pure: ['console.log', 'console.debug', 'console.info']
+		},
 		build: {
 			emptyOutDir: !isWatch,
 		}

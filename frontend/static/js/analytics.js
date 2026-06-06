@@ -82,7 +82,6 @@
   }
 
   if (isAdminZone()) {
-    console.log("[SECURITY] Admin Zone detected. Suppressing analytics trackers to prevent data leak.");
     try {
       var raw = sessionStorage.getItem('primary_config');
       if (raw) {

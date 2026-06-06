@@ -4,6 +4,7 @@ let MicVAD: typeof MicVADClass | null = null;
 let utils: typeof utilsNamespace | null = null;
 
 import { VUI_CONFIG } from "./VuiConstants";
+import { logger } from "$lib/utils/logger";
 
 export class VuiVadEngine {
   private vad: MicVADClass | null = null;
@@ -48,7 +49,7 @@ export class VuiVadEngine {
         if (typeof window !== 'undefined') {
             const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
             if (!customWindow.ort) {
-                console.log("[VUI] Loading AI Core (ort.min.js) dynamically for VAD...");
+                logger.log("[VUI] Loading AI Core (ort.min.js) dynamically for VAD...");
                 try {
                     await new Promise<void>((resolve, reject) => {
                         const script = document.createElement('script');
@@ -59,7 +60,7 @@ export class VuiVadEngine {
                         document.head.appendChild(script);
                     });
                 } catch (e) {
-                    console.warn("[VUI] Dynamic load of ort.min.js failed:", e);
+                    logger.warn("[VUI] Dynamic load of ort.min.js failed:", e);
                 }
             }
             if (customWindow.ort) {
@@ -120,7 +121,7 @@ export class VuiVadEngine {
       },
 
       onVADMisfire: () => {
-        console.debug("[VuiVadEngine] VAD misfire (too short to be speech)");
+        logger.debug("[VuiVadEngine] VAD misfire (too short to be speech)");
         this._isSpeaking = false;
       },
     };
@@ -147,7 +148,7 @@ export class VuiVadEngine {
         await this.vad.pause();
         this.vad.destroy();
       } catch (e) {
-        console.debug("[VuiVadEngine] Cleanup error (safe to ignore):", e);
+        logger.debug("[VuiVadEngine] Cleanup error (safe to ignore):", e);
       }
       this.vad = null;
       this._isSpeaking = false;

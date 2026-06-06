@@ -3,6 +3,7 @@ import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
 import { xohiActions } from "./xohiActions";
 import { robustNormalize, refinementStitch, extractBoostedText, stripBoostTags } from "./xohiAnalysisLogic";
+import { logger } from "$lib/utils/logger";
 import type {
     CopyrightResult,
     SEOResult,
@@ -101,10 +102,10 @@ export function createAnalysisController(config: {
                 // [CNS V90.0] Fire Toast BEFORE resetting loading flags to ensure condition matches
                 if (isSuccess && (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading)) {
                     nanobot.showToast(data.progress_msg || "Xử lý hoàn tất thành công!", "success");
-                    console.log("[Neural Terminal] Success Toast fired.");
+                    logger.log("[Neural Terminal] Success Toast fired.");
                 } else if (isError) {
                     nanobot.showToast(data.progress_msg || "Xử lý thất bại.", "error");
-                    console.log("[Neural Terminal] Error Toast fired.");
+                    logger.log("[Neural Terminal] Error Toast fired.");
                 }
 
                 // Update bulkFixLogs one last time
@@ -264,7 +265,7 @@ export function createAnalysisController(config: {
                 }
             );
         } catch (e) {
-            console.error("[Neural Vault] Batch save failed:", e);
+            logger.error("[Neural Vault] Batch save failed:", e);
         }
     }
 
@@ -286,7 +287,7 @@ export function createAnalysisController(config: {
         
         // Handle Error status
         const errorMsg = (res as unknown as Record<string, unknown>)?.message || "Lỗi phản hồi từ Neural Engine";
-        console.error(`[Neural Engine] ${category} Error:`, res);
+        logger.error(`[Neural Engine] ${category} Error:`, res);
         bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${errorMsg}`];
         return 'error';
     }
@@ -512,7 +513,7 @@ export function createAnalysisController(config: {
                         // [CRITICAL] Đồng bộ ngay lên DB để tránh F5 bị mất
                         if (cid && cid !== 'adhoc') {
                             apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: updated }).catch(e => {
-                                console.error("[Neural Vault] Persistence failed:", e);
+                                logger.error("[Neural Vault] Persistence failed:", e);
                             });
                         }
                     }
@@ -594,7 +595,7 @@ export function createAnalysisController(config: {
         bulkFixLogs = [];
         addTerminalLog("Đang khởi tạo Neural Engine...");
         addTerminalLog("Đang phân tích cấu trúc...");
-        console.log(`[Neural Engine] Starting Bulk Fix for category: ${category}, Ad-hoc: ${isAdhoc}`);
+        logger.log(`[Neural Engine] Starting Bulk Fix for category: ${category}, Ad-hoc: ${isAdhoc}`);
 
         try {
             const payload = isAdhoc 
@@ -604,7 +605,7 @@ export function createAnalysisController(config: {
             const res = await xohiActions.runBulkFix(cid || null, isAdhoc, payload);
             
             if (res?.status === 'success' && res.data?.new_content) {
-                console.log("[Neural Engine] Bulk Fix successful, applying patches...");
+                logger.log("[Neural Engine] Bulk Fix successful, applying patches...");
                 if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
                 const newHtml = res.data.new_content;
                 const replacements = res.data.replacements || [];
@@ -648,13 +649,13 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Hoàn tất ✅";
             } else {
                 const msg = (res as { message?: string })?.message || "Không thể thực hiện tinh chỉnh hàng loạt";
-                console.error("[Neural Engine] Bulk Fix Error:", res);
+                logger.error("[Neural Engine] Bulk Fix Error:", res);
                 bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                 bulkFixStatus = "Thất bại ❌";
                 nanobot.showToast(msg, "error");
             }
         } catch (e: unknown) {
-            console.error("[Neural Engine] Bulk Fix Critical Error:", e);
+            logger.error("[Neural Engine] Bulk Fix Critical Error:", e);
             const errorObj = e as Error;
             const errorMsg = errorObj.message || String(e);
             bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorMsg}`];
@@ -773,7 +774,7 @@ export function createAnalysisController(config: {
                 }
             }
         } catch (e: unknown) {
-            console.error("[Neural Engine] AI Booster Error:", e);
+            logger.error("[Neural Engine] AI Booster Error:", e);
             const errorObj = e as Error;
             bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorObj.message || String(e)}`];
             bulkFixStatus = "Thất bại ❌";
@@ -835,7 +836,7 @@ export function createAnalysisController(config: {
                 const cid = resolve(config.campaign_id);
                 if (cid && cid !== 'adhoc') {
                     await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: content }).catch(e => {
-                        console.error("[Neural Vault] Persistence failed:", e);
+                        logger.error("[Neural Vault] Persistence failed:", e);
                     });
                 }
 
@@ -843,7 +844,7 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Hoàn tất ✅";
             }
         } catch (e) {
-            console.error("[Neural Engine] Bulk Booster Error:", e);
+            logger.error("[Neural Engine] Bulk Booster Error:", e);
             bulkFixStatus = "Thất bại ❌";
         } finally {
             setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 3000);

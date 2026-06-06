@@ -37,9 +37,7 @@
   }
 
   function log() {
-    if (CONFIG.debug && window.console) {
-      console.log.apply(console, ["[ClickShield]"].concat(Array.prototype.slice.call(arguments)));
-    }
+    // Suppressed to prevent diagnostic information leakage
   }
 
   // -------------------------------------------------------------------------

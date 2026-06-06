@@ -2,6 +2,7 @@ import { apiClient } from "$lib/utils/apiClient";
 import { browser } from "$app/environment";
 import { getNotificationState } from "$lib/state/notification.svelte";
 import { authStore } from "$lib/state/authStore.svelte";
+import { logger } from "$lib/utils/logger";
 
 export interface SupportProductInfo {
     id: string;
@@ -230,7 +231,7 @@ class SupportAgentState {
                 this.offlineMessage = res.offline_message || "";
             }
         } catch (error: unknown) {
-            console.warn("[SupportAgent] Failed to fetch status:", error);
+            logger.warn("[SupportAgent] Failed to fetch status:", error);
         }
     }
 
@@ -279,7 +280,7 @@ class SupportAgentState {
                 this.sessionId = res.session_id;
             }
         } catch(e) {
-            console.warn("[SupportAgent] Failed to init secure session cookie:", e);
+            logger.warn("[SupportAgent] Failed to init secure session cookie:", e);
         }
 
         // Elite V2.2: Fetch global AI toggle state first
@@ -333,7 +334,7 @@ class SupportAgentState {
                 }
             }
         } catch (error) {
-            console.error("[SupportAgent] History load error:", error);
+            logger.error("[SupportAgent] History load error:", error);
             getNotificationState().addPendingSignal({
                 id: crypto.randomUUID(),
                 message: "Không thể tải lịch sử trò chuyện. Vui lòng kiểm tra kết nối.",
@@ -461,25 +462,25 @@ class SupportAgentState {
                             ];
                         }
 
-                        console.log("🧩 [Helen Pulse] Received AI Response:", data);
+                        logger.log("🧩 [Helen Pulse] Received AI Response:", data);
 
                         if (data.ui_metadata) {
-                            console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
+                            logger.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
                             if (data.ui_metadata.is_optimal_price !== undefined) {
                                 this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
                             }
                             if (data.ui_metadata.order_draft) {
-                                console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
+                                logger.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
                             }
                         }
-                        if (data.metadata) console.log("🧠 [Helen Thoughts]:", data.metadata);
+                        if (data.metadata) logger.log("🧠 [Helen Thoughts]:", data.metadata);
 
                         this.vibrate([10, 50, 10]);
                         this.isTyping = false;
                         // Note: We keep the SSE channel active permanently thưa sếp!
                     }
                 } catch (e) {
-                    console.error("[Pulse] Error parsing response data:", e);
+                    logger.error("[Pulse] Error parsing response data:", e);
                 }
             });
 
@@ -527,12 +528,12 @@ class SupportAgentState {
                         }
                     }
                 } catch (e) {
-                    console.error("[Pulse] Error parsing update data:", e);
+                    logger.error("[Pulse] Error parsing update data:", e);
                 }
             });
 
             this._pulseSource.onerror = (err) => {
-                console.warn("[Pulse] SSE connection state changed, auto-recovering...");
+                logger.warn("[Pulse] SSE connection state changed, auto-recovering...");
                 // If there's a permanent error or we have no session, disconnect to prevent infinite loop thưa sếp!
                 if (!this.sessionId) {
                     this._disconnectPulse();
@@ -555,7 +556,7 @@ class SupportAgentState {
             this._pulseTimeout = null;
         }
         if (this._pulseSource) {
-            console.log("[SupportAgent] Pulse infrastructure disposed.");
+            logger.log("[SupportAgent] Pulse infrastructure disposed.");
             this._pulseSource.close();
             this._pulseSource = null;
         }
@@ -591,7 +592,7 @@ class SupportAgentState {
             && lastUserMsg.content.trim().toLowerCase() === normalizedInput
             && (new Date().getTime() - lastUserMsg.timestamp.getTime() < 30000);
         if (isDuplicateWithinWindow) {
-             console.warn("🛡️ [Client-Spam] Prevented duplicate message trigger (within 30s): ", text);
+             logger.warn("🛡️ [Client-Spam] Prevented duplicate message trigger (within 30s): ", text);
              return;
         }
 
@@ -609,7 +610,7 @@ class SupportAgentState {
             const MAX_MSG_LEN = 2000;
             const rawMsg = text.trim();
             if (rawMsg.length > MAX_MSG_LEN) {
-                console.warn(`[SupportAgent] Message truncated: ${rawMsg.length} → ${MAX_MSG_LEN} chars`);
+                logger.warn(`[SupportAgent] Message truncated: ${rawMsg.length} → ${MAX_MSG_LEN} chars`);
             }
             const res = await apiClient.post<SupportChatResponse>("/api/v1/client/support/chat", {
                 message: rawMsg.slice(0, MAX_MSG_LEN),
@@ -628,7 +629,7 @@ class SupportAgentState {
 
             if (res && res.status === "TAKEOVER") {
                 this.isTyping = false;
-                console.log("👤 [Human Takeover] Chat taken over by human representative. Keeping Pulse alive for admin replies.");
+                logger.log("👤 [Human Takeover] Chat taken over by human representative. Keeping Pulse alive for admin replies.");
                 // CRITICAL: Must connect Pulse SSE so client receives admin messages in real-time
                 this._connectPulse();
                 return;
@@ -647,9 +648,9 @@ class SupportAgentState {
                     }
                 ];
 
-                console.log("🧩 [Helen Chat] Received Response:", res);
-                if (res.metadata) console.log("🧠 [Helen Thoughts]:", res.metadata);
-                if (res.ui_metadata) console.log("📊 [Helen UI Meta]:", res.ui_metadata);
+                logger.log("🧩 [Helen Chat] Received Response:", res);
+                if (res.metadata) logger.log("🧠 [Helen Thoughts]:", res.metadata);
+                if (res.ui_metadata) logger.log("📊 [Helen UI Meta]:", res.ui_metadata);
 
                 // Check for Async Protocol (Elite V2.2)
                 if (res.status === "PROCESSING") {
@@ -662,7 +663,7 @@ class SupportAgentState {
                 throw new Error("Empty response or missing reply field");
             }
         } catch (error: unknown) {
-            console.error("[SupportAgent] Chat error:", error);
+            logger.error("[SupportAgent] Chat error:", error);
             const status = (error as { status?: number; response?: { status: number } })?.status || (error as { response?: { status: number } })?.response?.status;
             const userFriendlyMsg = status === 429
                 ? "Hệ thống đang xử lý nhiều luồng, bạn vui lòng đợi một lát rồi thử lại nhé!"

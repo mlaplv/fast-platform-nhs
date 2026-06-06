@@ -12,6 +12,7 @@
 
   // Utils
   import { processProductVouchers } from "$lib/utils/commerce/voucher";
+  import { logger } from "$lib/utils/logger";
 
   // Components
   import ProductReviews from "../shared/ProductReviews.svelte";
@@ -320,7 +321,7 @@
           }
           return;
         } catch (e) {
-          // Silent fail safe
+          logger.warn('Failed to parse saved viral unlock data', e);
         }
       }
       unlockedVoucherInfo = null;

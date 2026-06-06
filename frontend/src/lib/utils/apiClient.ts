@@ -5,7 +5,7 @@
 
 // V45.0: Passive Telemetry — import reactive state from .svelte.ts (runes require Svelte compilation)
 import { globalLatency } from "./telemetry.svelte";
-// export { globalLatency } from "./telemetry.svelte";
+import { logger } from "./logger";
 
 // Define the global ApiError so components can catch it easily
 export class ApiError extends Error {
@@ -161,7 +161,7 @@ export const apiClient = {
         try {
           data = await response.json();
         } catch (e) {
-          console.warn(`[SafeFetch] Could not parse JSON from ${endpoint}`, e);
+          logger.warn(`[SafeFetch] Could not parse JSON from ${endpoint}`, e);
           data = {};
         }
       } else {
@@ -180,7 +180,7 @@ export const apiClient = {
           if (isAdminDomain && !window.location.pathname.includes("/login")) {
             const hasToken = localStorage.getItem("admin_token") || document.cookie.includes("admin_token");
             if (hasToken) {
-              console.warn("[SafeFetch] Admin auth failed, purging session...");
+              logger.warn("[SafeFetch] Admin auth failed, purging session...");
               localStorage.removeItem("admin_token");
               localStorage.removeItem("user_token");
               localStorage.removeItem("access_token");

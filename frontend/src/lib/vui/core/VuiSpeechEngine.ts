@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * VuiSpeechEngine 2026: Native Browser STT Preview Layer
  * Provides sub-100ms word-by-word feedback using Web Speech API.
@@ -17,7 +19,7 @@ export class VuiSpeechEngine {
       this.recognition.interimResults = true;
       this.recognition.lang = 'vi-VN';
     } else {
-      console.debug("[VuiSpeechEngine] Web Speech API not supported in this browser. Fallback to server-side transcription.");
+      logger.debug("[VuiSpeechEngine] Web Speech API not supported in this browser. Fallback to server-side transcription.");
     }
   }
 
@@ -48,23 +50,27 @@ export class VuiSpeechEngine {
     };
 
     this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.debug("[VuiSpeechEngine] Recognition error:", event.error);
+      logger.debug("[VuiSpeechEngine] Recognition error:", event.error);
       if (event.error === 'no-speech') return;
       this.stop();
     };
 
     this.recognition.onend = () => {
       if (this.isRunning) {
-        try { this.recognition.start(); } catch(e) {} // Auto-restart if still supposed to be running
+        try {
+          this.recognition.start();
+        } catch (e) {
+          logger.warn('Failed to restart speech recognition', e);
+        }
       }
     };
 
     try {
       this.recognition.start();
       this.isRunning = true;
-      console.debug("[VuiSpeechEngine] Native Preview started.");
+      logger.debug("[VuiSpeechEngine] Native Preview started.");
     } catch (e) {
-      console.error("[VuiSpeechEngine] Failed to start:", e);
+      logger.error("[VuiSpeechEngine] Failed to start:", e);
     }
   }
 
@@ -73,8 +79,10 @@ export class VuiSpeechEngine {
     if (this.recognition) {
       try {
         this.recognition.stop();
-        console.debug("[VuiSpeechEngine] Native Preview stopped.");
-      } catch (e) {}
+        logger.debug("[VuiSpeechEngine] Native Preview stopped.");
+      } catch (e) {
+        logger.warn('Failed to stop speech recognition', e);
+      }
     }
   }
 }

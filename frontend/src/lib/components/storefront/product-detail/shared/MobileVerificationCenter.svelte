@@ -20,6 +20,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import { page } from '$app/stores';
+  import { logger } from '$lib/utils/logger';
 
   let { product, verificationData }: { 
     product: Product, 
@@ -78,7 +79,7 @@
           url: window.location.href
         });
       } catch (err) {
-        // Silently fail
+        logger.warn('Mobile share verification profile failed', err);
       }
     } else {
       try {

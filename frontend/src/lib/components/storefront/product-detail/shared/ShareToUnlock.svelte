@@ -20,6 +20,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { logger } from "$lib/utils/logger";
 
   interface Props {
     product: Product;
@@ -109,16 +110,16 @@
 
   const handleFocus = () => {
     const duration = Date.now() - shareStartTime;
-    console.log(`[ShareToUnlock Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
+    logger.log(`[ShareToUnlock Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
     // Bỏ qua nếu thời gian quá ngắn dưới 1s (tránh focus nhầm khi vừa click mở popup)
     if (duration < 1000) {
-        console.warn(`[ShareToUnlock Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
+        logger.warn(`[ShareToUnlock Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
         return;
     }
     
     cleanupFocusListeners();
     if (step !== 'revealed') {
-        console.log(`[ShareToUnlock Focus] Gọi attemptVerify() để backend kiểm tra.`);
+        logger.log(`[ShareToUnlock Focus] Gọi attemptVerify() để backend kiểm tra.`);
         attemptVerify();
     }
   };
@@ -126,15 +127,15 @@
   const handleVisibilityChange = () => {
     if (!document.hidden) {
       const duration = Date.now() - shareStartTime;
-      console.log(`[ShareToUnlock Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
+      logger.log(`[ShareToUnlock Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
       if (duration < 1000) {
-          console.warn(`[ShareToUnlock Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
+          logger.warn(`[ShareToUnlock Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
           return;
       }
       
       cleanupFocusListeners();
       if (step !== 'revealed') {
-          console.log(`[ShareToUnlock Visibility] Gọi attemptVerify() để backend kiểm tra.`);
+          logger.log(`[ShareToUnlock Visibility] Gọi attemptVerify() để backend kiểm tra.`);
           attemptVerify();
       }
     }
@@ -293,15 +294,15 @@
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
         hasRegisteredListeners = true;
-        console.log(`[ShareToUnlock Share] Mở popup. Target: Share Dialog. shareStartTime: ${shareStartTime}`);
+        logger.log(`[ShareToUnlock Share] Mở popup. Target: Share Dialog. shareStartTime: ${shareStartTime}`);
 
         popupWindow = window.open(targetUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
         
         if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
-            console.error('[ShareToUnlock Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
+            logger.error('[ShareToUnlock Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
             setTimeout(() => viralActions.verify(), 2000);
         } else {
-            console.log('[ShareToUnlock Share] Mở popup thành công. Bắt đầu pollTimer.');
+            logger.log('[ShareToUnlock Share] Mở popup thành công. Bắt đầu pollTimer.');
             // Polling phát hiện khi popup đóng
             pollTimer = setInterval(() => {
                 if (popupWindow) {
@@ -309,7 +310,7 @@
                     const duration = Date.now() - shareStartTime;
                     
                     if (isClosed) {
-                        console.log(`[ShareToUnlock Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms`);
+                        logger.log(`[ShareToUnlock Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms`);
                         cleanupFocusListeners();
                         if (step !== 'revealed') {
                             attemptVerify();
@@ -429,7 +430,7 @@
         try {
           cartStore?.setVouchers(cartStore.vouchers);
         } catch (e) {
-          console.error('Failed to sync to cartStore on unlock', e);
+          logger.error('Failed to sync to cartStore on unlock', e);
         }
         step = 'revealed'; 
         onUnlock?.();
@@ -442,9 +443,7 @@
         step = 'error';
         
         clientUi.showToast(errorMsg, 'error');
-        console.groupCollapsed('⚠️ [Osmo Verify] Xác thực lượt chia sẻ không thành công');
-        console.warn(`Chi tiết: ${errorMsg}`);
-        console.groupEnd();
+        logger.error('Xác thực lượt chia sẻ thất bại', e);
       } finally {
         finishProgress();
       }

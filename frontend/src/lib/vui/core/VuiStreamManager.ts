@@ -4,6 +4,7 @@ import { getNanobot } from "$lib/state/nanobot.svelte";
 const getBot = () => getNanobot();
 import { VUI_CONFIG } from "./VuiConstants";
 import type { VuiAudioEngine } from "./VuiAudioEngine";
+import { logger } from "$lib/utils/logger";
 
 interface VuiWsMessage {
   text?: string;
@@ -35,7 +36,7 @@ export class VuiStreamManager {
 
   public async handleWsMessage(data: VuiWsMessage) {
     const hasSpoken = this.callbacks.hasSpoken();
-    if (import.meta.env.DEV) console.debug(`[VUI] WS Incoming:`, data);
+    logger.debug(`[VUI] WS Incoming:`, data);
     const text = (data?.text || data?.transcript || "").trim();
     if (data?.tier) vuiState.setActiveTier(data.tier);
 
@@ -43,7 +44,7 @@ export class VuiStreamManager {
     
     const isEcho = VUI_CONFIG.NEURAL.ECHO_FILTERS.some(f => text.includes(f));
     if (hasSpoken && isEcho) {
-       console.warn("[VUI] Prompt Echo suppressed:", text);
+       logger.warn("[VUI] Prompt Echo suppressed:", text);
        if (isFinal) { this.callbacks.interruptAll(); return; }
        return;
     }
@@ -62,7 +63,7 @@ export class VuiStreamManager {
     if (!text || !isFinal) return;
 
     if (vuiState.transcript || this.isProcessingFinal) {
-       console.warn("[VUI] Ignored duplicate final event (Processing in progress):", text);
+       logger.warn("[VUI] Ignored duplicate final event (Processing in progress):", text);
        return;
     }
 
@@ -73,7 +74,7 @@ export class VuiStreamManager {
     const firstHalf = text.substring(0, mid).trim();
     const secondHalf = text.substring(mid).trim();
     if (firstHalf === secondHalf && firstHalf.length > 5) {
-      console.warn("[VUI] De-duplication triggered:", text, "->", firstHalf);
+      logger.warn("[VUI] De-duplication triggered:", text, "->", firstHalf);
       cleanedText = firstHalf;
     }
 
@@ -83,7 +84,7 @@ export class VuiStreamManager {
     }
 
     if (cleanedText.replace(/\./g, "").trim().length === 0) {
-      console.warn("[VUI] Dropped hallucinated dots:", cleanedText);
+      logger.warn("[VUI] Dropped hallucinated dots:", cleanedText);
       this.isProcessingFinal = false;
       return;
     }
@@ -151,7 +152,7 @@ export class VuiStreamManager {
 
           const isSleep = (parsed.category === "SESSION_CTRL" && (parsed.type === "SLEEP" || parsed.action === "HARDWARE_SLEEP"));
           if (isSleep) {
-             console.warn("[VUI] Hardware SLEEP signal received.");
+             logger.warn("[VUI] Hardware SLEEP signal received.");
              getBot().voice.hard_sleep();
              return;
           }
@@ -204,7 +205,7 @@ export class VuiStreamManager {
         this.callbacks.onTTSFinished();
       }
     } catch (e: unknown) {
-      console.error("[VUI] Stream Execution Error:", e);
+      logger.error("[VUI] Stream Execution Error:", e);
       vuiState.setError("Neural Connection Stall");
       vuiState.setActiveTier("");
       this.audio.flush();

@@ -17,6 +17,7 @@
   import Landmark from "@lucide/svelte/icons/landmark";
 
   import { authStore } from '$lib/state/authStore.svelte';
+  import { logger } from '$lib/utils/logger';
 
   let {
     profile,
@@ -71,7 +72,7 @@
           url: referralLink,
         });
       } catch (err) {
-        console.log('User cancelled share or sharing failed:', err);
+        logger.warn('Native share failed', err);
       }
     }
   }

@@ -18,6 +18,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti, getProductLikeCount
   } from '$lib/utils/commerce/viral';
+  import { logger } from "$lib/utils/logger";
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
 
@@ -199,16 +200,16 @@
 
   const handleFocus = () => {
     const duration = Date.now() - shareStartTime;
-    console.log(`[ShareToUnlockMobile Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
+    logger.log(`[ShareToUnlockMobile Focus] Trang chính nhận sự kiện 'focus'. Thời gian kể từ khi mở popup: ${duration}ms.`);
     // Bỏ qua nếu thời gian quá ngắn dưới 1s (tránh focus nhầm khi vừa click mở popup)
     if (duration < 1000) {
-        console.warn(`[ShareToUnlockMobile Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
+        logger.warn(`[ShareToUnlockMobile Focus] Bỏ qua sự kiện focus do duration quá ngắn (${duration}ms < 1000ms - có thể là focus ảo lúc mở)`);
         return;
     }
     
     cleanupFocusListeners();
     if (step !== 'revealed') {
-        console.log(`[ShareToUnlockMobile Focus] Gọi attemptVerify() để backend kiểm tra.`);
+        logger.log(`[ShareToUnlockMobile Focus] Gọi attemptVerify() để backend kiểm tra.`);
         attemptVerify();
     }
   };
@@ -216,15 +217,15 @@
   const handleVisibilityChange = () => {
     if (!document.hidden) {
       const duration = Date.now() - shareStartTime;
-      console.log(`[ShareToUnlockMobile Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
+      logger.log(`[ShareToUnlockMobile Visibility] Trang chính nhận sự kiện 'visibilitychange' (visible). Thời gian kể từ khi mở popup: ${duration}ms.`);
       if (duration < 1000) {
-          console.warn(`[ShareToUnlockMobile Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
+          logger.warn(`[ShareToUnlockMobile Visibility] Bỏ qua sự kiện visibility do duration quá ngắn (${duration}ms < 1000ms)`);
           return;
       }
       
       cleanupFocusListeners();
       if (step !== 'revealed') {
-          console.log(`[ShareToUnlockMobile Visibility] Gọi attemptVerify() để backend kiểm tra.`);
+          logger.log(`[ShareToUnlockMobile Visibility] Gọi attemptVerify() để backend kiểm tra.`);
           attemptVerify();
       }
     }
@@ -378,15 +379,15 @@
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
         hasRegisteredListeners = true;
-        console.log(`[ShareToUnlockMobile Share] Mở popup. Target: Share Dialog. shareStartTime: ${shareStartTime}`);
+        logger.log(`[ShareToUnlockMobile Share] Mở popup. Target: Share Dialog. shareStartTime: ${shareStartTime}`);
 
         popupWindow = window.open(targetUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
         
         if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
-            console.error('[ShareToUnlockMobile Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
+            logger.error('[ShareToUnlockMobile Share] Popup bị chặn hoặc closed ngay lập tức. Sử dụng fallback verify sau 2s.');
             setTimeout(() => { if (isComponentMounted) viralActions.verify(); }, 2000);
         } else {
-            console.log('[ShareToUnlockMobile Share] Mở popup thành công. Bắt đầu pollTimer.');
+            logger.log('[ShareToUnlockMobile Share] Mở popup thành công. Bắt đầu pollTimer.');
             // Polling phát hiện khi popup đóng
             pollTimer = setInterval(() => {
                 if (!isComponentMounted) {
@@ -398,7 +399,7 @@
                     const duration = Date.now() - shareStartTime;
                     
                     if (isClosed) {
-                        console.log(`[ShareToUnlockMobile Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms`);
+                        logger.log(`[ShareToUnlockMobile Poller] Phát hiện popupWindow.closed = true. Trôi qua: ${duration}ms`);
                         cleanupFocusListeners();
                         if (isComponentMounted && step !== 'revealed') {
                             attemptVerify();
@@ -518,7 +519,7 @@
         try {
           cartStore?.setVouchers(cartStore.vouchers);
         } catch (e) {
-          console.error('Failed to sync to cartStore on unlock', e);
+          logger.error('Failed to sync to cartStore on unlock', e);
         }
         step = 'revealed';
         if (onUnlock) onUnlock();
@@ -530,9 +531,7 @@
         errorMsg = errMsg;
         step = 'error';
         clientUi.showToast(errorMsg, 'error');
-        console.groupCollapsed('⚠️ [Osmo Mobile Verify] Xác thực lượt chia sẻ không thành công');
-        console.warn(`Chi tiết: ${errorMsg}`);
-        console.groupEnd();
+        logger.error('Xác thực lượt chia sẻ trên Mobile thất bại', e);
       } finally {
         finishProgress();
       }

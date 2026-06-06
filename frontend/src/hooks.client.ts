@@ -1,11 +1,8 @@
-import { dev } from '$app/environment';
 import type { HandleClientError } from '@sveltejs/kit';
 
-export const handleError: HandleClientError = ({ error, event }) => {
-  console.error('[CLIENT ERROR]', error);
-  
+export const handleError: HandleClientError = ({ error }) => {
+  // Suppress sensitive exception details on client-side routing/rendering crashes
   return {
-    message: dev && error instanceof Error ? error.message : "Lỗi hệ thống báo cáo (Client Error)",
-    stack: dev && error instanceof Error ? error.stack : undefined
+    message: 'Lỗi hệ thống (Internal Error)'
   };
 };

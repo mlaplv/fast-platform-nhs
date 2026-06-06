@@ -23,6 +23,7 @@
   import { formatCurrency } from '$lib/utils/format';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { logger } from '$lib/utils/logger';
 
   let { product, verificationData }: { 
     product: Product;
@@ -88,7 +89,7 @@
           url: window.location.href
         });
       } catch (err) {
-        // Silently fail if user cancels
+        logger.warn('Share verification profile failed', err);
       }
     } else {
       try {
