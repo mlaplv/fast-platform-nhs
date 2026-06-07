@@ -1,7 +1,44 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { slide } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
+
+  // Svelte 5 safe slide transition workaround to prevent NaNpx errors
+  function slide(node: HTMLElement, { duration = 200 } = {}) {
+    const style = getComputedStyle(node);
+    const opacity = +style.opacity;
+    const height = parseFloat(style.height);
+    const padding_top = parseFloat(style.paddingTop);
+    const padding_bottom = parseFloat(style.paddingBottom);
+    const margin_top = parseFloat(style.marginTop);
+    const margin_bottom = parseFloat(style.marginBottom);
+    const border_top_width = parseFloat(style.borderTopWidth);
+    const border_bottom_width = parseFloat(style.borderBottomWidth);
+
+    const h = isNaN(height) ? 0 : height;
+    const pt = isNaN(padding_top) ? 0 : padding_top;
+    const pb = isNaN(padding_bottom) ? 0 : padding_bottom;
+    const mt = isNaN(margin_top) ? 0 : margin_top;
+    const mb = isNaN(margin_bottom) ? 0 : margin_bottom;
+    const btw = isNaN(border_top_width) ? 0 : border_top_width;
+    const bbw = isNaN(border_bottom_width) ? 0 : border_bottom_width;
+
+    return {
+      duration,
+      easing: cubicOut,
+      css: (t: number) => `
+        overflow: hidden;
+        opacity: ${t * opacity};
+        height: ${t * h}px;
+        padding-top: ${t * pt}px;
+        padding-bottom: ${t * pb}px;
+        margin-top: ${t * mt}px;
+        margin-bottom: ${t * mb}px;
+        border-top-width: ${t * btw}px;
+        border-bottom-width: ${t * bbw}px;
+      `
+    };
+  }
 
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
   import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";

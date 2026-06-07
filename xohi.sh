@@ -1031,9 +1031,10 @@ function total_garbage_clean() {
     fi
 
     # 4. Prune unused Docker builds & caches
-    echo -e "${YELLOW}-> [4/6] Đang dọn dẹp Docker rác (Dangling images, build caches)...${NC}"
+    echo -e "${YELLOW}-> [4/6] Đang dọn dẹp Docker rác (Dangling images, build caches, networks)...${NC}"
     docker system prune -f 2>/dev/null || true
-    docker builder prune -f 2>/dev/null || true
+    docker network prune -f 2>/dev/null || true
+    docker builder prune -a -f 2>/dev/null || true
     echo -e "${GREEN}   ✔ Đã giải phóng toàn bộ tài nguyên Docker dư thừa!${NC}"
 
     # 5. Clean local system temp logs, pycache & dev caches
@@ -1042,11 +1043,11 @@ function total_garbage_clean() {
     sudo find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
     find backend -type f -name "*.pyc" -delete 2>/dev/null || true
     find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    rm -rf frontend/.svelte-kit frontend/.vite frontend/dist 2>/dev/null || true
-    echo -e "${GREEN}   ✔ Đã làm sạch logs, pycache và dev caches trên Host!${NC}"
+    rm -rf frontend/node_modules frontend/build frontend/.svelte-kit frontend/.vite frontend/dist 2>/dev/null || true
+    echo -e "${GREEN}   ✔ Đã làm sạch logs, pycache, node_modules và build folders trên Host!${NC}"
 
     # 6. Clean npm & pnpm global caches on Host
-    echo -e "${YELLOW}-> [6/7] Đang làm sạch npm cache & pnpm store...${NC}"
+    echo -e "${YELLOW}-> [6/7] Đang làm sạch npm cache, pnpm store & hệ thống (apt, journal)...${NC}"
     if command -v npm &> /dev/null; then
         npm cache clean --force &>/dev/null || true
     fi
@@ -1054,7 +1055,9 @@ function total_garbage_clean() {
         pnpm store prune &>/dev/null || true
         rm -rf ~/.cache/pnpm 2>/dev/null || true
     fi
-    echo -e "${GREEN}   ✔ Đã dọn dẹp sạch sẽ npm & pnpm caches!${NC}"
+    sudo apt-get clean &>/dev/null || true
+    sudo journalctl --vacuum-time=3d &>/dev/null || true
+    echo -e "${GREEN}   ✔ Đã dọn dẹp sạch sẽ npm, pnpm, apt cache và system journals!${NC}"
 
     # 7. Flush Redis & Force Client Reset Cache
     echo -e "${YELLOW}-> [7/7] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
@@ -1067,6 +1070,17 @@ function total_garbage_clean() {
 
     echo -e "${GREEN}[SUCCESS] Đã hoàn tất dọn dẹp hệ thống siêu sạch và ép reset client!${NC}"
     df -h /
+
+    # Check for bloated Docker images (greater than 4GB)
+    echo -e "${CYAN}-> Đang kiểm tra Docker Images phình to...${NC}"
+    local bloated_images=$(docker images --format "{{.Repository}}:{{.Tag}} ({{.Size}})" | grep -E "\((([4-9]|[1-9][0-9])(\.[0-9]+)?GB)\)" || true)
+    if [ -n "$bloated_images" ]; then
+        echo -e "\n${RED}[WARNING] Phát hiện các Docker Image sau đang chiếm dung lượng rất lớn (>4GB):${NC}"
+        echo -e "${RED}$bloated_images${NC}"
+        echo -e "${YELLOW}[GỢI Ý] Nguyên nhân thường do bản build cũ copy nhầm thư mục rác (node_modules, .venv) trên Host.${NC}"
+        echo -e "${YELLOW}Để giải phóng 4GB - 5GB dung lượng này mà không ảnh hưởng tới Database, Sếp hãy chạy lệnh:${NC}"
+        echo -e "${GREEN}       docker compose build api worker_high && docker image prune -f${NC}\n"
+    fi
     
     view_logs
     
