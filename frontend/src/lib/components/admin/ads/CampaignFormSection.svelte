@@ -24,10 +24,17 @@
             </div>
             <h4 class="text-xl font-black text-white tracking-tighter tracking-[0.05em] font-mono">Triển khai chiến dịch chiến lược</h4>
          </div>
-         <button class="px-8 py-3 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black tracking-widest hover:bg-cyan-400 hover:text-black transition-all flex items-center gap-3 rounded-none group/ai shadow-lg" onclick={() => aiSuggest('CAMPAIGN', 'Optimize deployment parameters')} disabled={aiLoading}>
-            <Brain size={16} class="{aiLoading ? 'animate-spin' : 'group-hover/ai:scale-110 transition-transform'}" /> 
-            <span>Gợi ý từ Xohi AI</span>
-         </button>
+          <button 
+             class="px-8 py-3 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black tracking-widest hover:bg-cyan-400 hover:text-black transition-all flex items-center gap-3 rounded-none group/ai shadow-lg" 
+             onclick={() => {
+                const ctx = fCampaign.name ? `Optimize deployment parameters for campaign named: ${fCampaign.name}` : 'Optimize deployment parameters';
+                aiSuggest('CAMPAIGN', ctx);
+             }} 
+             disabled={aiLoading}
+          >
+             <Brain size={16} class="{aiLoading ? 'animate-spin' : 'group-hover/ai:scale-110 transition-transform'}" /> 
+             <span>Gợi ý từ Xohi AI</span>
+          </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">

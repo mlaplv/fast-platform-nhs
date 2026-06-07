@@ -382,6 +382,7 @@
               bind:isGlobalNegative={ads.isGlobalNegative}
               bind:newNegativeKeyword={ads.newNegativeKeyword}
               aiSuggest={ads.aiSuggest}
+              aiLoading={ads.aiLoading}
               addNegativeKeyword={ads.addNegativeKeyword}
               removeNegativeKeyword={ads.removeNegativeKeyword}
             />

@@ -17,6 +17,7 @@
     isGlobalNegative = $bindable(), 
     newNegativeKeyword = $bindable(),
     aiSuggest,
+    aiLoading = false,
     addNegativeKeyword,
     removeNegativeKeyword
   } = $props();
@@ -161,8 +162,31 @@
             <div class="flex flex-col gap-4 mb-8">
                <div class="flex justify-between items-center">
                   <span class="text-[10px] text-slate-500 font-black ">Nhập danh sách từ khóa</span>
-                  <button class="flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black hover:bg-cyan-400 hover:text-black transition-all rounded-none" onclick={() => aiSuggest('NEGATIVE_KEYWORDS', 'Suggest high-risk keywords')}>
-                     <Brain size={14} /> <span>Gợi ý từ Xohi AI</span>
+                  <button 
+                     class="flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black hover:bg-cyan-400 hover:text-black transition-all rounded-none" 
+                     onclick={() => {
+                        let context = 'Suggest high-risk keywords';
+                        if (selectedCampaign) {
+                           const url = selectedCampaign.landing_page_url;
+                           if (url) {
+                              context = `Suggest negative keywords for Campaign: ${selectedCampaign.name}. Target URL: ${url}`;
+                           } else {
+                              context = `Suggest negative keywords for Campaign: ${selectedCampaign.name}`;
+                           }
+                        }
+                        aiSuggest('NEGATIVE_KEYWORDS', context);
+                     }}
+                     disabled={aiLoading}
+                  >
+                     {#if aiLoading}
+                        <svg class="animate-spin h-3.5 w-3.5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Đang gợi ý...</span>
+                     {:else}
+                        <Brain size={14} /> <span>Gợi ý từ Xohi AI</span>
+                     {/if}
                   </button>
                </div>
                <textarea 

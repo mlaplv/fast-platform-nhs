@@ -44,22 +44,126 @@ class AIStrategist:
         )
 
     async def _fetch_page(self, url: str) -> str:
-        """Trinh sát nội dung Landing Page."""
+        """Trinh sát nội dung Landing Page và phân tích SEO chuyên sâu."""
         try:
             async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-                resp = await client.get(url, headers={"User-Agent": "Xohi-Neural-Scout/1.0"})
+                resp = await client.get(url, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Xohi-Neural-Scout/1.0"
+                })
                 if resp.status_code == 200:
-                    # Lấy text cơ bản từ HTML (rất thô sơ để AI dễ đọc)
                     from lxml import html
-                    tree = html.fromstring(resp.content)
-                    # Xóa script/style
-                    for s in tree.xpath("//script|//style"):
-                        s.getparent().remove(s)
+                    import json
+                    import re
                     
-                    title = tree.xpath("//title/text()")
-                    h1 = tree.xpath("//h1//text()")
-                    text = tree.text_content()
-                    return f"TITLE: {title}\nH1: {h1}\nCONTENT_PREVIEW: {text[:2000]}"
+                    content_bytes = resp.content
+                    tree = html.fromstring(content_bytes)
+                    
+                    # 1. Title
+                    title_list = tree.xpath("//title/text()")
+                    title = title_list[0].strip() if title_list else ""
+                    title_len = len(title)
+                    
+                    # 2. Meta Description
+                    desc_list = tree.xpath("//meta[@name='description']/@content") or tree.xpath("//meta[@property='og:description']/@content")
+                    meta_desc = desc_list[0].strip() if desc_list else ""
+                    meta_desc_len = len(meta_desc)
+                    
+                    # 3. Canonical URL
+                    canonical_list = tree.xpath("//link[@rel='canonical']/@href")
+                    canonical_url = canonical_list[0].strip() if canonical_list else ""
+                    
+                    # 4. H1
+                    h1_nodes = tree.xpath("//h1")
+                    h1_count = len(h1_nodes)
+                    h1_contents = [node.text_content().strip() for node in h1_nodes if node.text_content().strip()]
+                    
+                    # 5. Image Alt
+                    img_nodes = tree.xpath("//img")
+                    img_total = len(img_nodes)
+                    img_missing_alt = 0
+                    for img in img_nodes:
+                        alt = img.get("alt")
+                        if alt is None or not alt.strip():
+                            img_missing_alt += 1
+                            
+                    # 6. Page Structure (Tables & Lists)
+                    tables_count = len(tree.xpath("//table"))
+                    lists_count = len(tree.xpath("//ul | //ol | //dl"))
+                    
+                    # 7. OG Image
+                    og_img_list = tree.xpath("//meta[@property='og:image']/@content")
+                    og_image = og_img_list[0].strip() if og_img_list else ""
+                    
+                    # 8. Author
+                    author_list = tree.xpath("//meta[@name='author']/@content") or tree.xpath("//meta[@property='article:author']/@content")
+                    author = author_list[0].strip() if author_list else ""
+                    
+                    # 9. JSON-LD Schema
+                    schema_types = []
+                    json_ld_nodes = tree.xpath("//script[@type='application/ld+json']")
+                    for node in json_ld_nodes:
+                        try:
+                            js_text = node.text_content().strip()
+                            if js_text:
+                                data = json.loads(js_text)
+                                def extract_types(obj):
+                                    t_list = []
+                                    if isinstance(obj, dict):
+                                        if "@type" in obj:
+                                            t = obj["@type"]
+                                            if isinstance(t, list):
+                                                t_list.extend(t)
+                                            else:
+                                                t_list.append(str(t))
+                                        if "@graph" in obj and isinstance(obj["@graph"], list):
+                                            for item in obj["@graph"]:
+                                                t_list.extend(extract_types(item))
+                                        for k, v in obj.items():
+                                            if isinstance(v, (dict, list)):
+                                                t_list.extend(extract_types(v))
+                                    elif isinstance(obj, list):
+                                        for item in obj:
+                                            t_list.extend(extract_types(item))
+                                    return t_list
+                                
+                                schema_types.extend(extract_types(data))
+                        except Exception as je:
+                            logger.warning(f"Error parsing JSON-LD in _fetch_page: {je}")
+                    
+                    schema_types = sorted(list(set(schema_types)))
+                    
+                    # 10. Clean body text for word count and content preview
+                    clean_tree = html.fromstring(content_bytes)
+                    for s in clean_tree.xpath("//script|//style|//noscript|//iframe|//header|//footer|//nav"):
+                        try:
+                            s.getparent().remove(s)
+                        except Exception:
+                            pass
+                    
+                    body_text = clean_tree.text_content()
+                    words = re.findall(r'\b\w+\b', body_text)
+                    word_count = len(words)
+                    
+                    preview_text = " ".join(body_text.split())[:3000]
+                    
+                    audit_report = (
+                        f"=== ON-PAGE SEO & SGE REAL-TIME AUDIT ===\n"
+                        f"Target URL: {url}\n"
+                        f"Title: \"{title}\" (Length: {title_len} chars)\n"
+                        f"Meta Description: \"{meta_desc}\" (Length: {meta_desc_len} chars)\n"
+                        f"Canonical Link: \"{canonical_url}\"\n"
+                        f"H1 Count: {h1_count} (H1 Contents: {h1_contents})\n"
+                        f"Images Count: {img_total} (Missing Alt Tags: {img_missing_alt})\n"
+                        f"Page Structure: {tables_count} Tables, {lists_count} Lists\n"
+                        f"OG Image: \"{og_image}\"\n"
+                        f"Author: \"{author}\"\n"
+                        f"Word Count: ~{word_count} words\n"
+                        f"Detected JSON-LD Schemas ({len(schema_types)} total): {', '.join(schema_types)}\n"
+                        f"=== LANDING PAGE CONTENT PREVIEW ===\n"
+                        f"{preview_text}\n"
+                        f"====================================="
+                    )
+                    return audit_report
                 return f"Lỗi truy cập Landing Page (Status: {resp.status_code})"
         except Exception as e:
             return f"Lỗi kết nối trinh sát: {str(e)}"
@@ -124,6 +228,24 @@ class AIStrategist:
             2. Sử dụng dòng tiêu đề độc đáo hơn: Các dòng tiêu đề phải đa dạng về mặt ngữ nghĩa, góc tiếp cận khác biệt (như lợi ích, tính năng, cảm xúc, uy tín, CTA) để tránh trùng lặp.
             3. Sử dụng nội dung mô tả độc đáo hơn: Tránh viết các mô tả tương tự nhau. Mỗi dòng mô tả phải tập trung vào một giá trị duy nhất (Ví dụ: Mô tả 1 tập trung vào Giải pháp & Lợi ích, Mô tả 2 tập trung vào Uy tín/Chứng nhận, Mô tả 3 tập trung vào Khuyến mãi độc quyền, Mô tả 4 là Lời kêu gọi hành động quyết liệt).
             4. Thêm đường liên kết khác của trang web (Sitelinks): Hãy luôn cấu hình `has_sitelinks = True` và trong trường `message` hãy gợi ý sếp thêm 2-4 sitelinks (liên kết trang web phụ) phù hợp với sản phẩm.
+            """
+        elif req.task == "NEGATIVE_KEYWORDS":
+            task_directives = """
+            YÊU CẦU ĐẶC BIỆT CHO TÁC VỤ NEGATIVE_KEYWORDS (TỪ KHÓA PHỦ ĐỊNH):
+            - Hãy phân tích landing page được cào (nếu có URL trong context) hoặc thông tin campaign để biết dòng sản phẩm gì.
+            - BẮT BUỘC sinh ra đúng và đủ từ 8 đến 12 từ khóa phủ định (ví dụ: cụm từ rác như 'miễn phí', 'giá rẻ', 'crack', 'tự làm', 'tuyển dụng', 'việc làm', 'đối thủ', cụm từ không liên quan tới phân khúc cao cấp của shop).
+            - Đưa danh sách các từ khóa phủ định này vào trường 'negative_keywords' của JSON response dưới dạng danh sách chuỗi (viết thường).
+            - Tại trường 'message', hãy giải thích chi tiết bằng tiếng Việt chiến thuật tại sao phủ định các từ này (chia theo nhóm từ khóa như nhóm tìm thông tin free, nhóm so sánh giá rẻ, nhóm tìm tuyển dụng/việc làm).
+            """
+        elif req.task == "CAMPAIGN":
+            task_directives = """
+            YÊU CẦU ĐẶC BIỆT CHO TÁC VỤ CAMPAIGN (TỐI ƯU THÔNG SỐ KHỞI TẠO):
+            - Gợi ý các thông số khởi tạo chiến dịch tối ưu:
+                * campaign_name: Tên campaign gợi ý (ví dụ: 'Search_Brand_[Dòng Sản Phẩm]_[Vùng miền]')
+                * daily_budget_vnd: Ngân sách ngày khuyến khích cho thị trường Việt Nam 2026 (tối thiểu 50000).
+                * bidding_strategy: BẮT BUỘC chọn một trong ('MAXIMIZE_CLICKS', 'MAXIMIZE_CONVERSIONS', 'TARGET_CPA').
+            - Điền các trường tương ứng trong JSON response.
+            - Giải thích chiến thuật đấu thầu và ngân sách gợi ý trong trường 'message' bằng tiếng Việt chuyên nghiệp.
             """
 
         prompt = f"""
