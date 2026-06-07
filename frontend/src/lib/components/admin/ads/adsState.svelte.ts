@@ -237,6 +237,7 @@ export function createAdsState() {
   let competitorAnalyzing = $state(false);
   let competitorUrl = $state('');
   let adGroupKeywords = $state<string[]>([]);
+  let originalAdGroupKeywords: string[] = [];
 
   
   
@@ -507,6 +508,7 @@ export function createAdsState() {
   async function fetchAds(ag: GoogleAdGroup) {
     selectedAdGroup = ag; adsLoading = true; campaignView = 'ads';
     adGroupKeywords = [];
+    originalAdGroupKeywords = [];
     try {
       const id = ag.resource_name.split('/').pop();
       const [adsList, kws] = await Promise.all([
@@ -515,6 +517,7 @@ export function createAdsState() {
       ]);
       ads = adsList ?? [];
       adGroupKeywords = kws ?? [];
+      originalAdGroupKeywords = [...adGroupKeywords];
     } finally { adsLoading = false; }
   }
 
@@ -553,6 +556,7 @@ export function createAdsState() {
       apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`)
         .then((kws: string[] | null) => {
           adGroupKeywords = kws ?? [];
+          originalAdGroupKeywords = [...adGroupKeywords];
         })
         .catch(() => {});
 
@@ -581,6 +585,7 @@ export function createAdsState() {
     apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`)
       .then((kws: string[] | null) => {
         adGroupKeywords = kws ?? [];
+        originalAdGroupKeywords = [...adGroupKeywords];
       })
       .catch(() => {});
     
@@ -752,6 +757,27 @@ export function createAdsState() {
             console.error('Failed to pause old ad:', err);
           });
         }
+
+        // Publish new keywords if added
+        const newKeywords = adGroupKeywords.filter(kw => !originalAdGroupKeywords.includes(kw));
+        if (newKeywords.length > 0) {
+          try {
+            const adGroupId = selectedAdGroup.resource_name.split('/').pop();
+            const kwRes = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ad-groups/${adGroupId}/keywords`, {
+              keywords: newKeywords
+            });
+            if (kwRes?.success) {
+              nanobot.showToast(`Đã tự động xuất bản ${newKeywords.length} từ khóa mới vào nhóm quảng cáo.`, 'success');
+              originalAdGroupKeywords = [...adGroupKeywords];
+            } else {
+              nanobot.showToast(`Lỗi đồng bộ từ khóa mới: ${kwRes?.message || 'Lỗi không xác định'}`, 'warning');
+            }
+          } catch (err: unknown) {
+            console.error('Failed to publish keywords:', err);
+            nanobot.showToast('Lỗi kết nối khi xuất bản từ khóa mới', 'error');
+          }
+        }
+
         // Reset form
         fAd.final_url = '';
         fAd.display_path1 = '';
@@ -765,7 +791,7 @@ export function createAdsState() {
         aiResult = null;
         // Go back/refresh list
         if (selectedAdGroup) {
-          fetchAds(selectedAdGroup.resource_name);
+          await fetchAds(selectedAdGroup);
           campaignView = 'ads';
         } else {
           campaignView = 'list';
@@ -964,7 +990,7 @@ export function createAdsState() {
     get adGroups() { return adGroups }, 
     get selectedAdGroup() { return selectedAdGroup }, set selectedAdGroup(v) { selectedAdGroup = v },
     get selectedAd() { return selectedAd }, set selectedAd(v) { selectedAd = v },
-    get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
+    get ads() { return ads }, get negativeKeywords() { return negativeKeywords }, set negativeKeywords(v) { negativeKeywords = v },
     get blacklistedIPs() { return blacklistedIPs },
     get aiResult() { return aiResult },
     get pastReports() { return pastReports },

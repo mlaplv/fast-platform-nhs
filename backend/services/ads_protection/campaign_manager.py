@@ -523,6 +523,30 @@ class CampaignManager:
                 keywords.append(text)
         return keywords
 
+    async def add_ad_group_keywords(self, ad_group_resource_name: str, keywords: list[str], match_type: str = "EXACT") -> bool:
+        """Thêm từ khóa vào một Ad Group đang tồn tại."""
+        if not self._has_credentials() or not keywords:
+            return False
+        token = await self._get_access_token()
+        if not token:
+            return False
+        
+        kw_ops = [
+            {
+                "create": {
+                    "adGroup": ad_group_resource_name,
+                    "status": "ENABLED",
+                    "keyword": {"text": kw, "matchType": match_type},
+                }
+            }
+            for kw in keywords
+        ]
+        results = await self._mutate(token, "adGroupCriteria", kw_ops)
+        success = len(results) > 0
+        if success:
+            logger.info("ad_group_keywords_added resource=%s count=%d", ad_group_resource_name, len(keywords))
+        return success
+
     async def list_ads(self, ad_group_resource_name: str) -> list[AdInfo]:
         """Danh sách ads của một Ad Group."""
         if not self._has_credentials():

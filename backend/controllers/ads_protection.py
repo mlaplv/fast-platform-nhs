@@ -524,6 +524,33 @@ class AdsProtectionController(Controller):
             raise HTTPException(detail=f"Lỗi khi lấy từ khóa nhóm: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
+    # 14.6 Thêm Từ khóa vào một Ad Group
+    # ------------------------------------------------------------------
+    @post("/ad-groups/{ad_group_id:str}/keywords")
+    async def add_ad_group_keywords(
+        self, ad_group_id: str, data: dict
+    ) -> CampaignOperationResult:
+        """Thêm từ khóa vào Ad Group."""
+        keywords = data.get("keywords", [])
+        if not keywords:
+            return CampaignOperationResult(
+                success=False,
+                operation="CREATE",
+                message="Không có từ khóa nào được cung cấp."
+            )
+        try:
+            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
+            success = await _campaign_mgr.add_ad_group_keywords(resource, keywords)
+            return CampaignOperationResult(
+                success=success,
+                resource_name=resource,
+                operation="CREATE",
+                message=f"Đã thêm thành công {len(keywords)} từ khóa vào Ad Group." if success else "Thêm từ khóa thất bại."
+            )
+        except Exception as e:
+            raise HTTPException(detail=f"Lỗi khi thêm từ khóa vào nhóm: {str(e)}", status_code=500)
+
+    # ------------------------------------------------------------------
     # 15. Gợi ý từ khóa (Keyword Planner)
     # ------------------------------------------------------------------
     @post("/keyword-suggestions")

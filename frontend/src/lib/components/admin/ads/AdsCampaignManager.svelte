@@ -48,7 +48,7 @@
     analyzeCompetitor,
     importKeyword,
     addNegativeKeyword,
-    negativeKeywords = [],
+    negativeKeywords = $bindable([]),
     competitorAnalysis,
     competitorAnalyzing,
     selectAdForEdit,
@@ -56,7 +56,7 @@
     aiSuggestRSA,
     adSubmitting = false,
     aiGenerating = false,
-    adGroupKeywords = [],
+    adGroupKeywords = $bindable([]),
 
     // Tree View Cache States
     expandedCampaigns = {},
