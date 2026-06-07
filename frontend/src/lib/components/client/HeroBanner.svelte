@@ -17,9 +17,10 @@
   interface HeroBannerProps {
     scrollToQuiz?: () => void;
     triggerScan?: () => void;
+    resolvedLcpUrl?: string;
   }
 
-  let { scrollToQuiz, triggerScan }: HeroBannerProps = $props();
+  let { scrollToQuiz, triggerScan, resolvedLcpUrl }: HeroBannerProps = $props();
   const product = $derived(
     liveEditStore.isEditMode && liveEditStore.dirtyProduct
       ? liveEditStore.dirtyProduct
@@ -90,11 +91,15 @@
     return () => clearInterval(interval);
   });
 
-  onMount(() => () => {
-    if (_springRafId !== null) {
-      cancelAnimationFrame(_springRafId);
-      _springRafId = null;
-    }
+  let isInitialLcp = $state(true);
+  onMount(() => {
+    isInitialLcp = false;
+    return () => {
+      if (_springRafId !== null) {
+        cancelAnimationFrame(_springRafId);
+        _springRafId = null;
+      }
+    };
   });
 
   const labels = $derived({
@@ -541,7 +546,7 @@
               class="relative film-grain-container rounded-[2px] overflow-hidden"
             >
               <img
-                src={mainImage}
+                src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : ((currentImageIndex === 0 && resolvedLcpUrl) ? resolvedLcpUrl : mainImage)}
                 alt={productName || "Hình ảnh sản phẩm nổi bật"}
                 loading="eager"
                 fetchpriority="high"

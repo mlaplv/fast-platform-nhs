@@ -3,15 +3,19 @@
 .gitignore
 
 # Node
-node_modules
-pnpm-lock.yaml
-.pnpm-store
+**/node_modules
+**/pnpm-lock.yaml
+**/.pnpm-store
+**/build
+**/dist
+**/.svelte-kit
+**/.vite
 
 # Python
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
 .Python
 env/
 venv/
@@ -23,6 +27,7 @@ pip-delete-this-directory.txt
 .tox/
 .coverage
 .cache
+**/cache/
 nosetests.xml
 coverage.xml
 *.cover
@@ -48,6 +53,9 @@ uploads/
 _agents/
 _agent/
 brain/
+scratch/
+logs/
+*.log
 
 # Docs & generated
 *.md

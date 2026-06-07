@@ -109,5 +109,6 @@
     reviewStats={data.reviewStats}
     reviews={data.reviews}
     relatedProducts={data.relatedProducts}
+    resolvedLcpUrl={data.resolvedMobileLcpUrl}
   />
 {/if}

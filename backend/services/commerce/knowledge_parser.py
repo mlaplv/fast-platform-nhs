@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 from lxml import html
-import pymupdf
+# pymupdf import removed to optimize memory
 
 logger = logging.getLogger("knowledge-parser")
 
@@ -43,42 +43,12 @@ class KnowledgeParserService:
         return "\n".join(line for line in lines if line)
 
     async def extract_text_from_pdf(self, file_path: str) -> Optional[str]:
-        """Extract plain text from a local PDF file using pymupdf."""
-        def _parse() -> Optional[str]:
-            real_path = self._resolve_file_path(file_path)
-            if not real_path:
-                return None
-            try:
-                doc = pymupdf.open(real_path)
-                page_count = doc.page_count
-                text_parts: list[str] = []
-                for i in range(page_count):
-                    page_text = doc[i].get_text()
-                    if page_text.strip():
-                        text_parts.append(page_text)
-                doc.close()
-
-                combined = "\n\n".join(text_parts).strip()
-                if not combined:
-                    logger.warning(
-                        f"[KnowledgeParser] PDF '{file_path}' has {page_count} pages "
-                        f"but ZERO text — likely a scanned/image-only PDF."
-                    )
-                    return (
-                        f"[PDF đính kèm — {page_count} trang. "
-                        f"Đây là PDF dạng ảnh quét (scanned), không có lớp text. "
-                        f"Vui lòng nhập nội dung thủ công hoặc dùng PDF có text layer.]"
-                    )
-                logger.info(
-                    f"[KnowledgeParser] Extracted {len(combined)} chars "
-                    f"from {page_count} pages: {file_path}"
-                )
-                return combined
-            except Exception as e:
-                logger.error(f"[KnowledgeParser] pymupdf error on '{file_path}': {e}")
-                return None
-
-        return await asyncio.to_thread(_parse)
+        """Extract plain text from a local PDF file - Disabled to optimize system memory."""
+        logger.warning(f"[KnowledgeParser] PDF extraction requested for '{file_path}' but PyMuPDF is disabled.")
+        return (
+            "[PDF đính kèm - Tính năng trích xuất văn bản từ PDF đã được gỡ bỏ để tối ưu dung lượng hệ thống. "
+            "Vui lòng sao chép nội dung và nhập trực tiếp dưới dạng văn bản thủ công.]"
+        )
 
     async def extract_text_from_file(self, file_path: str) -> Optional[str]:
         """

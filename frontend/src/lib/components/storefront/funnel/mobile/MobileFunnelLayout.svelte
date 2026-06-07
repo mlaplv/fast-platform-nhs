@@ -38,7 +38,7 @@
   const shopStore = getShopStore();
 
   // ⚡ Elite V2.2: $props() MUST be declared before any $derived that references props
-  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [], resolvedLcpUrl }: Props = $props();
 
   // Elite V2.2: Reactive switching between live data and edited data
   const product = $derived(shopStore.product || propProduct);
@@ -110,6 +110,7 @@
     reviewStats?: Record<string, unknown>;
     reviews?: Record<string, unknown>[];
     relatedProducts?: Product[];
+    resolvedLcpUrl?: string;
   }
   // NOTE: $props() moved above — must precede $derived(propProduct)
 
@@ -221,7 +222,7 @@
 
   <!-- SECTION 1 (or 0 if no video): NATIVE HERO (variant slider) -->
   <section id="hero" class="mobile-snap-section" data-section-idx={hasVideo ? 1 : 0}>
-    <MobileHero {product} />
+    <MobileHero {product} {resolvedLcpUrl} />
   </section>
 
   <div id="mobile-jit-trigger"></div>

@@ -307,7 +307,7 @@
       {scrollToQuiz}
       {activeId}
     />
-    <HeroBanner {scrollToQuiz} {triggerScan} />
+    <HeroBanner {scrollToQuiz} {triggerScan} resolvedLcpUrl={data.resolvedDesktopLcpUrl} />
     <div id="jit-trigger"></div>
 
     <!-- SECTIONS WITH DYNAMIC JIT RENDERING -->

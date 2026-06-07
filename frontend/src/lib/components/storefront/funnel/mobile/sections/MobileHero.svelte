@@ -16,7 +16,7 @@
   import MobileVariantTabs from '../MobileVariantTabs.svelte';
   import { formatCurrency } from '$lib/utils/format';
 
-  let { product: propProduct } = $props<{ product: Product | null }>();
+  let { product: propProduct, resolvedLcpUrl } = $props<{ product: Product | null; resolvedLcpUrl?: string }>();
   const shopStore = getShopStore();
   const currentVariant = $derived(shopStore.variant);
   
@@ -183,7 +183,7 @@
       <div class="variant-slide relative">
          <!-- Main Content Image (Elite Adaptive Rendering) -->
             <img
-              src={resolveOptimizedImageUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''), 600)}
+              src={(i === 0 && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''), 600)}
               alt="{product?.name || "Sản phẩm"} - {opt}"
               width="390"
               height="844"
