@@ -367,7 +367,7 @@
           {:else if ads.activeTab === 'google'}
             <AdsGoogleMetrics {...ads} />
           {:else if ads.activeTab === 'campaigns'}
-            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} />
+            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} bind:fAd={ads.fAd} bind:fAdGroup={ads.fAdGroup} bind:competitorUrl={ads.competitorUrl} aiResult={ads.aiResult} analyzeCompetitor={ads.analyzeCompetitor} importKeyword={ads.importKeyword} competitorAnalysis={ads.competitorAnalysis} competitorAnalyzing={ads.competitorAnalyzing} />
           {:else if ads.activeTab === 'merchant'}
             <div class="max-w-5xl mx-auto py-2">
               <GoogleMerchantWidget />

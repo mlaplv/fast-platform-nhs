@@ -36,6 +36,8 @@ export interface GoogleAd {
   final_url?: string;
   headlines?: string[];
   descriptions?: string[];
+  display_path1?: string;
+  display_path2?: string;
 }
 
 export interface BlacklistedIP {
@@ -58,12 +60,52 @@ export interface ReportItem {
   created_at?: string;
 }
 
+export interface AdStrengthDetails {
+  overall_strength: string;
+  headline_count_ok: boolean;
+  keyword_coverage_ok: boolean;
+  headline_uniqueness_ok: boolean;
+  description_uniqueness_ok: boolean;
+  has_sitelinks: boolean;
+}
+
 export interface AISuggestionResponse {
   success: boolean;
   message?: string;
   headlines?: string[];
   descriptions?: string[];
+  display_path1?: string;
+  display_path2?: string;
   negative_keywords?: string[];
+  ad_strength?: AdStrengthDetails;
+}
+
+export interface KeywordSuggestionItem {
+  keyword: string;
+  intent: 'COMMERCIAL' | 'INFORMATIONAL' | 'NAVIGATIONAL';
+  match_type: 'EXACT' | 'PHRASE' | 'BROAD';
+  relevance: 'HIGH' | 'MEDIUM' | 'LOW';
+  estimated_cpc_vnd?: number;
+  estimated_volume?: string;
+}
+
+export interface CompetitorHeadlineItem {
+  source_domain: string;
+  headline: string;
+  ad_type: 'HEADLINE' | 'DESCRIPTION';
+}
+
+export interface CompetitorAnalysisResponse {
+  success: boolean;
+  message: string;
+  page_title?: string;
+  page_summary?: string;
+  keyword_suggestions: KeywordSuggestionItem[];
+  competitor_headlines: CompetitorHeadlineItem[];
+  negative_keyword_suggestions: string[];
+  recommended_display_path1?: string;
+  recommended_display_path2?: string;
+  seo_gaps?: string;
 }
 
 export interface GenericSuccessResponse {
@@ -127,6 +169,7 @@ export function createAdsState() {
   let selectedCampaign = $state<GoogleCampaign | null>(null);
   let adGroups = $state<GoogleAdGroup[]>([]);
   let selectedAdGroup = $state<GoogleAdGroup | null>(null);
+  let selectedAd = $state<GoogleAd | null>(null);
   let ads = $state<GoogleAd[]>([]);
   let blacklistedIPs = $state<BlacklistedIP[]>([]);
   let negativeKeywords = $state<NegativeKeyword[]>([]);
@@ -190,6 +233,10 @@ export function createAdsState() {
   });
   let adSubmitting = $state(false);
   let aiGenerating = $state(false);
+  let competitorAnalysis = $state<CompetitorAnalysisResponse | null>(null);
+  let competitorAnalyzing = $state(false);
+  let competitorUrl = $state('');
+  let adGroupKeywords = $state<string[]>([]);
 
   
   
@@ -459,9 +506,15 @@ export function createAdsState() {
 
   async function fetchAds(ag: GoogleAdGroup) {
     selectedAdGroup = ag; adsLoading = true; campaignView = 'ads';
+    adGroupKeywords = [];
     try {
       const id = ag.resource_name.split('/').pop();
-      ads = await apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`) ?? [];
+      const [adsList, kws] = await Promise.all([
+        apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`),
+        apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`).catch(() => [])
+      ]);
+      ads = adsList ?? [];
+      adGroupKeywords = kws ?? [];
     } finally { adsLoading = false; }
   }
 
@@ -494,10 +547,18 @@ export function createAdsState() {
     } else {
       expandedAdGroups[resourceName] = true;
       selectedAdGroup = ag;
+      const id = resourceName.split('/').pop();
+      
+      // Fetch keywords to support Ad Strength calculations
+      apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`)
+        .then((kws: string[] | null) => {
+          adGroupKeywords = kws ?? [];
+        })
+        .catch(() => {});
+
       if (!adGroupAds[resourceName]) {
         loadingAdGroups[resourceName] = true;
         try {
-          const id = resourceName.split('/').pop();
           const res = await apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`);
           adGroupAds[resourceName] = res ?? [];
         } catch {
@@ -512,11 +573,20 @@ export function createAdsState() {
   function selectAdForEdit(ad: GoogleAd, ag: GoogleAdGroup, c: GoogleCampaign) {
     selectedCampaign = c;
     selectedAdGroup = ag;
+    selectedAd = ad;
     isEditingAd = true;
     
+    // Fetch keywords for the selected ad group
+    const id = ag.resource_name.split('/').pop();
+    apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`)
+      .then((kws: string[] | null) => {
+        adGroupKeywords = kws ?? [];
+      })
+      .catch(() => {});
+    
     fAd.final_url = ad.final_url || '';
-    fAd.display_path1 = ''; 
-    fAd.display_path2 = '';
+    fAd.display_path1 = ad.display_path1 || ''; 
+    fAd.display_path2 = ad.display_path2 || '';
     fAd.status = ad.status || 'PAUSED';
     fAd.headlines = Array(15).fill('');
     fAd.descriptions = Array(4).fill('');
@@ -611,9 +681,14 @@ export function createAdsState() {
         fAdGroup.name = '';
         fAdGroup.keywords_raw = '';
         fAdGroup.cpc_bid_vnd = 5000;
-        // Go back/refresh
-        campaignView = 'ad_groups';
-        fetchAdGroups(selectedCampaign);
+        // Go back/refresh tree view
+        const campRes = selectedCampaign.resource_name;
+        expandedCampaigns[campRes] = true;
+        const id = campRes.split('/').pop();
+        apiClient.get<GoogleAdGroup[]>(`${ADS_API}/campaigns/${id}/ad-groups`).then((freshAg: GoogleAdGroup[] | null) => {
+          campaignAdGroups[campRes] = freshAg ?? [];
+        });
+        campaignView = 'list';
       } else {
         nanobot.showToast(res.message || 'Lỗi tạo Ad Group', 'error');
       }
@@ -663,6 +738,20 @@ export function createAdsState() {
       const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ads`, payload);
       if (res.success) {
         nanobot.showToast(res.message || 'Tạo quảng cáo thành công!', 'success');
+        
+        // If editing, pause the old ad asynchronously to preserve historical data
+        if (isEditingAd && selectedAd) {
+          apiClient.patch<GenericSuccessResponse>(`${ADS_API}/ads/status`, {
+            resource_name: selectedAd.resource_name,
+            status: 'PAUSED'
+          }).then((patchRes: GenericSuccessResponse | null) => {
+            if (patchRes?.success) {
+              nanobot.showToast('Đã tự động tạm dừng mẫu quảng cáo cũ để lưu trữ lịch sử.', 'info');
+            }
+          }).catch((err: unknown) => {
+            console.error('Failed to pause old ad:', err);
+          });
+        }
         // Reset form
         fAd.final_url = '';
         fAd.display_path1 = '';
@@ -670,9 +759,17 @@ export function createAdsState() {
         fAd.status = 'PAUSED';
         fAd.headlines = Array(15).fill('');
         fAd.descriptions = Array(4).fill('');
-        // Go back/refresh
-        campaignView = 'ads';
-        fetchAds(selectedAdGroup);
+        // Reset edit state
+        isEditingAd = false;
+        selectedAd = null;
+        aiResult = null;
+        // Go back/refresh list
+        if (selectedAdGroup) {
+          fetchAds(selectedAdGroup.resource_name);
+          campaignView = 'ads';
+        } else {
+          campaignView = 'list';
+        }
       } else {
         nanobot.showToast(res.message || 'Lỗi tạo mẫu quảng cáo', 'error');
       }
@@ -694,10 +791,12 @@ export function createAdsState() {
     try {
       const res = await apiClient.post<AISuggestionResponse>(`${ADS_API}/ai-suggest`, {
         task: 'RSA',
-        context: url
+        context: url,
+        ad_group_resource_name: selectedAdGroup?.resource_name
       });
       if (res.success) {
         nanobot.showToast(res.message || 'Xohi gợi ý thành công!', 'success');
+        aiResult = res; // [NEW] Lưu kết quả gợi ý bao gồm độ mạnh quảng cáo
         if (res.headlines && Array.isArray(res.headlines)) {
           for (let i = 0; i < 15; i++) {
             fAd.headlines[i] = res.headlines[i] || '';
@@ -707,6 +806,12 @@ export function createAdsState() {
           for (let i = 0; i < 4; i++) {
             fAd.descriptions[i] = res.descriptions[i] || '';
           }
+        }
+        if (res.display_path1) {
+          fAd.display_path1 = res.display_path1;
+        }
+        if (res.display_path2) {
+          fAd.display_path2 = res.display_path2;
         }
       } else {
         nanobot.showToast(res.message || 'Lỗi gợi ý AI', 'error');
@@ -720,6 +825,57 @@ export function createAdsState() {
     }
   }
 
+
+  async function analyzeCompetitor(url: string) {
+    let targetUrl = url?.trim();
+    if (!targetUrl) {
+      targetUrl = fAd.final_url?.trim();
+    }
+    if (!targetUrl) {
+      nanobot.showToast('Vui lòng nhập URL đối thủ hoặc Final URL để phân tích', 'warning');
+      return;
+    }
+    competitorUrl = targetUrl; // Sync back to UI input field
+    competitorAnalyzing = true;
+    competitorAnalysis = null;
+    try {
+      const res = await apiClient.post<CompetitorAnalysisResponse>(`${ADS_API}/ai-competitor-research`, {
+        url: targetUrl,
+        ad_group_resource_name: selectedAdGroup?.resource_name
+      });
+      if (res.success) {
+        competitorAnalysis = res;
+        // Tự động áp dụng display paths nếu chưa có
+        if (!fAd.display_path1 && res.recommended_display_path1) {
+          fAd.display_path1 = res.recommended_display_path1;
+        }
+        if (!fAd.display_path2 && res.recommended_display_path2) {
+          fAd.display_path2 = res.recommended_display_path2;
+        }
+        nanobot.showToast('Phân tích hoàn tất!', 'success');
+      } else {
+        nanobot.showToast(res.message || 'Phân tích thất bại', 'error');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
+      nanobot.showToast(`Lỗi phân tích: ${errMsg}`, 'error');
+    } finally {
+      competitorAnalyzing = false;
+    }
+  }
+
+  function importKeyword(kw: string) {
+    // Thêm từ khóa vào headlines nếu còn chỗ trống
+    const emptyIdx = fAd.headlines.findIndex(h => !h.trim());
+    if (emptyIdx !== -1) {
+      fAd.headlines[emptyIdx] = kw;
+      fAd.headlines = [...fAd.headlines]; // Kích hoạt tính phản ứng Svelte 5
+      nanobot.showToast(`Đã thêm "${kw}" vào tiêu đề #${emptyIdx + 1}`, 'success');
+    } else {
+      nanobot.showToast('Tất cả 15 tiêu đề đã đầy', 'warning');
+    }
+  }
 
 
    async function fetchNegativeKeywords() {
@@ -807,6 +963,7 @@ export function createAdsState() {
     get selectedCampaign() { return selectedCampaign }, set selectedCampaign(v) { selectedCampaign = v },
     get adGroups() { return adGroups }, 
     get selectedAdGroup() { return selectedAdGroup }, set selectedAdGroup(v) { selectedAdGroup = v },
+    get selectedAd() { return selectedAd }, set selectedAd(v) { selectedAd = v },
     get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
     get blacklistedIPs() { return blacklistedIPs },
     get aiResult() { return aiResult },
@@ -843,8 +1000,12 @@ export function createAdsState() {
     get adGroupAds() { return adGroupAds }, set adGroupAds(v) { adGroupAds = v },
     get loadingCampaigns() { return loadingCampaigns },
     get loadingAdGroups() { return loadingAdGroups },
+    get competitorAnalysis() { return competitorAnalysis }, set competitorAnalysis(v) { competitorAnalysis = v },
+    get competitorAnalyzing() { return competitorAnalyzing },
+    get competitorUrl() { return competitorUrl }, set competitorUrl(v) { competitorUrl = v },
+    get adGroupKeywords() { return adGroupKeywords }, set adGroupKeywords(v) { adGroupKeywords = v },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
-    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
     getDateRange,
     initSSE, initEdge, solvePoW, dispose,
     get edgeStatus() { return edgeStatus },

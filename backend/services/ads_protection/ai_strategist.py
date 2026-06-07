@@ -13,6 +13,8 @@ from backend.services.xohi.google_search import google_search_service
 from backend.services.ads_protection.schemas import (
     AISuggestionRequest,
     AISuggestionResponse,
+    CompetitorAnalysisRequest,
+    CompetitorAnalysisResponse,
 )
 
 logger = logging.getLogger("ads_protection.ai_strategist")
@@ -89,6 +91,11 @@ class AIStrategist:
         else:
             competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp."
 
+        # 1.5 Lấy danh sách từ khóa hiện có của Ad Group
+        keywords_context = ""
+        if req.keywords:
+            keywords_context = f"\nTỪ KHÓA MỤC TIÊU CỦA AD GROUP:\n" + "\n".join([f"- {k}" for k in req.keywords])
+
         # 2. Xây dựng Prompt Chiến thuật (Elite V2.6 Standard)
         task_directives = ""
         if req.task == "RSA":
@@ -96,13 +103,33 @@ class AIStrategist:
             YÊU CẦU ĐẶC BIỆT CHO TÁC VỤ RSA (RESPONSIVE SEARCH AD):
             - BẮT BUỘC sinh đúng ĐỦ 15 tiêu đề (headlines) trong trường 'headlines'. Mỗi tiêu đề dài từ 10 đến TỐI ĐA 30 ký tự. KHÔNG được vượt quá 30 ký tự!
             - BẮT BUỘC sinh đúng ĐỦ 4 mô tả (descriptions) trong trường 'descriptions'. Mỗi mô tả dài từ 50 đến TỐI ĐA 90 ký tự. KHÔNG được vượt quá 90 ký tự!
-            - Tự kiểm tra các tiêu đề và mô tả: KHÔNG chứa dấu chấm than (!), không chứa nhiều hơn 1 dấu hỏi (?), không viết hoa toàn bộ, không chứa từ cấm ('bảo đảm 100%', 'miễn phí hoàn toàn', 'tốt nhất thế giới').
-            - Các tiêu đề/mô tả phải cực kỳ đa dạng, bao gồm: tên thương hiệu, từ khóa ngách, lợi ích sản phẩm, độ uy tín, lời kêu gọi hành động (CTA).
+            - BẮT BUỘC sinh 2 đường dẫn hiển thị ngắn gọn (display_path1 và display_path2) có liên quan đến sản phẩm/chiến dịch, dài tối đa 15 ký tự mỗi đường dẫn, không dấu, viết thường, ngăn cách bởi dấu gạch ngang (ví dụ: 'beppin-body', 'tri-tham').
+            - BẮT BUỘC thực hiện chấm điểm độ mạnh quảng cáo (ad_strength) theo các tiêu chuẩn Google Ads:
+                * headline_count_ok: True nếu sinh đủ 15 tiêu đề.
+                * keyword_coverage_ok: True nếu có ít nhất 4 tiêu đề chứa chính xác các từ khóa mục tiêu đã cung cấp.
+                * headline_uniqueness_ok: True nếu các tiêu đề có ý nghĩa và từ vựng độc đáo, không bị lặp lại ngữ nghĩa.
+                * description_uniqueness_ok: True nếu 4 mô tả đa dạng, không trùng lặp câu chữ.
+                * has_sitelinks: True (luôn khuyến nghị sếp cấu hình sitelink).
+                * overall_strength: Đánh giá tổng thể ("POOR" | "AVERAGE" | "GOOD" | "EXCELLENT"). Nếu tất cả ok thì là "EXCELLENT".
+            - Tự kiểm tra các tiêu đề và mô tả: KHÔNG chứa dấu chấm...). KHÔNG chứa dấu chấm thế giới (!) hoặc các từ cấm ('bảo đảm 100%', 'miễn phí hoàn toàn', 'tốt nhất thế giới').
+            - Phân bổ 15 tiêu đề theo tỷ lệ vàng:
+                * 3-5 tiêu đề chứa chính xác hoặc sát nghĩa từ khóa mục tiêu được cấp.
+                * 3 tiêu đề chứa Tên thương hiệu/Thương hiệu dòng sản phẩm (ví dụ: "Beppin Body Nhật Bản").
+                * 3 tiêu đề về Lợi ích nổi bật/USP của sản phẩm (ví dụ: "Mờ Thâm Nách Bẹn Mông").
+                * 3 tiêu đề Kêu gọi hành động (CTA) (ví dụ: "Mua Ngay Nhận Ưu Đãi").
+                * 1-2 tiêu đề khác biệt/Ưu đãi độc quyền.
+            
+            CÁC TIÊU CHÍ BẮT BUỘC ĐẢM BẢO KHI TẠO QUẢNG CÁO:
+            1. Sử dụng các từ khóa phổ biến trong dòng tiêu đề của bạn: Hãy chèn các từ khóa mục tiêu được cung cấp vào dòng tiêu đề một cách tự nhiên và chính xác nhất có thể.
+            2. Sử dụng dòng tiêu đề độc đáo hơn: Các dòng tiêu đề phải đa dạng về mặt ngữ nghĩa, góc tiếp cận khác biệt (như lợi ích, tính năng, cảm xúc, uy tín, CTA) để tránh trùng lặp.
+            3. Sử dụng nội dung mô tả độc đáo hơn: Tránh viết các mô tả tương tự nhau. Mỗi dòng mô tả phải tập trung vào một giá trị duy nhất (Ví dụ: Mô tả 1 tập trung vào Giải pháp & Lợi ích, Mô tả 2 tập trung vào Uy tín/Chứng nhận, Mô tả 3 tập trung vào Khuyến mãi độc quyền, Mô tả 4 là Lời kêu gọi hành động quyết liệt).
+            4. Thêm đường liên kết khác của trang web (Sitelinks): Hãy luôn cấu hình `has_sitelinks = True` và trong trường `message` hãy gợi ý sếp thêm 2-4 sitelinks (liên kết trang web phụ) phù hợp với sản phẩm.
             """
 
         prompt = f"""
         BÁO CÁO TRINH SÁT TÁC CHIẾN - THỰC THI NHIỆM VỤ: {req.task}
         ĐỐI TƯỢNG PHÂN TÍCH: {req.context}
+        {keywords_context}
         
         {f"URL TRANG ĐÍCH: {target_url}" if target_url else ""}
         {f"DỮ LIỆU NỘI DUNG:\n{page_content}" if target_url else ""}
@@ -119,7 +146,8 @@ class AIStrategist:
            - seo_score: Đánh giá tối ưu công cụ tìm kiếm truyền thống.
            - sge_score: Đánh giá khả năng hiển thị trên Google AI (SGE) 2026.
            - quality_score: Đánh giá sự đồng bộ giữa quảng cáo và trang đích (0-10).
-         3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
+           - ad_strength: Cấu trúc dữ liệu AdStrengthDetails chứa kết quả tự đánh giá.
+        3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
            - KHÔNG dùng tiền tố 'INTERNAL_ERROR' hay 'SUCCESS'.
            - Đưa ra các bước hành động cụ thể, ngắn gọn, quyết liệt để Sếp tối ưu ngay.
            - Phân tích ngắn gọn kẽ hở của đối thủ so với trang của mình.
@@ -141,5 +169,71 @@ class AIStrategist:
                 success=False,
                 message=f"Xohi đang bận suy nghĩ (Lỗi: {str(e)}). Sếp vui lòng thử lại sau giây lát ạ!"
             )
+
+    async def competitor_research(self, req: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
+        """Phân tích đối thủ, gợi ý từ khóa và chiến lược từ URL landing page."""
+        logger.info("competitor_research url=%s", req.url)
+
+        # 1. Trinh sát trang đích
+        page_content = await self._fetch_page(req.url)
+        import re
+        domain = re.sub(r'^https?://', '', req.url).split('/')[0]
+
+        # 2. Tìm kiếm đối thủ cạnh tranh cùng ngành
+        search_query = f'site:{domain} OR "{domain}" quảng cáo google ads tiêu đề mô tả'
+        competitor_query = f'quảng cáo google "{domain}" đối thủ việt nam 2026'
+        kw_query = f'từ khóa mua hàng site:{domain} {domain}'
+
+        results, competitor_results = await __import__('asyncio').gather(
+            google_search_service.search(kw_query, num=10),
+            google_search_service.search(competitor_query, num=8),
+        )
+
+        competitor_snippets = "\n".join([
+            f"- [{r.get('displayLink')}] {r.get('title')}: {r.get('snippet')}"
+            for r in (results + competitor_results)
+        ])
+
+        # 3. Build prompt phân tích
+        _agent: Agent[None, CompetitorAnalysisResponse] = Agent(output_type=CompetitorAnalysisResponse, retries=2)  # type: ignore
+
+        prompt = f"""PHÂN TÍCH ĐỐI THỦ VÀ KẾ HOẠCH TỪ KHÓA CHO: {req.url}
+
+DỮ LIỆU TRANG ĐÍCH:
+{page_content}
+
+DỮ LIỆU TỪ KHÓA & ĐỐI THỦ TỪ GOOGLE SEARCH:
+{competitor_snippets}
+
+YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
+1. page_title: Tiêu đề chính của trang.
+2. page_summary: Tóm tắt sản phẩm/dịch vụ và điểm mạnh/yếu trong 2-3 câu.
+3. keyword_suggestions: Gợi ý 15-20 từ khóa tìm kiếm mua hàng thực tế người dùng VN hay dùng.
+   - Mỗi từ khóa cần: intent (COMMERCIAL/INFORMATIONAL/NAVIGATIONAL), match_type (EXACT/PHRASE/BROAD),
+     relevance (HIGH/MEDIUM/LOW), estimated_cpc_vnd (ước tính CPC theo VNĐ), estimated_volume.
+   - Ưu tiên từ khóa COMMERCIAL + HIGH relevance, bao gồm: từ khóa thương hiệu, từ khóa sản phẩm, từ khóa vấn đề ("trị thâm", "làm hồng"), từ khóa so sánh.
+4. competitor_headlines: Trích xuất 8-10 tiêu đề/mô tả quảng cáo thực tế từ dữ liệu đối thủ tìm được.
+   - CHÚ Ý: Tuyệt đối LOẠI BỎ tên miền {domain} (website của chính mình) ra khỏi danh sách đối thủ này. Chỉ được lấy tiêu đề từ các domain của các đối thủ cạnh tranh khác.
+5. negative_keyword_suggestions: 5-8 từ khóa phủ định nên thêm để tránh click ảo (ví dụ: "miễn phí", "tự làm", "công thức").
+6. recommended_display_path1 và display_path2: Gợi ý 2 đường dẫn hiển thị tối ưu (không dấu, viết thường, tối đa 15 ký tự).
+7. seo_gaps: Phân tích kẽ hở SEO/Ads mà trang này đang bỏ lỡ so với đối thủ (2-3 gạch đầu dòng).
+8. message: Tóm tắt chiến thuật 1 câu.
+"""
+        try:
+            result = await trinity_bridge.run(
+                _agent,
+                prompt,
+                system_prompt=self.SYSTEM_PROMPT,
+                role="pro",
+                timeout=120.0
+            )
+            return result
+        except Exception as e:
+            logger.error("competitor_research_failed: %s", e)
+            return CompetitorAnalysisResponse(
+                success=False,
+                message=f"Phân tích thất bại: {str(e)}"
+            )
+
 
 ai_strategist: AIStrategist = AIStrategist()

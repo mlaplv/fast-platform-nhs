@@ -43,7 +43,7 @@ from backend.services.ads_protection.fraud_analytics_service import FraudAnalyti
 from backend.services.ads_protection.google_ads_reporter import GoogleAdsReporter
 from backend.services.ads_protection.campaign_manager import CampaignManager
 from backend.services.ads_protection.ai_strategist import ai_strategist
-from backend.services.ads_protection.schemas import AISuggestionRequest, AISuggestionResponse, CampaignOperationResult
+from backend.services.ads_protection.schemas import AISuggestionRequest, AISuggestionResponse, CampaignOperationResult, CompetitorAnalysisRequest, CompetitorAnalysisResponse
 from backend.database.models.ads import IPBlacklist, NegativeKeyword
 from sqlalchemy import select, delete as sa_delete
 
@@ -473,6 +473,27 @@ class AdsProtectionController(Controller):
         return await _campaign_mgr.create_responsive_search_ad(data)
 
     # ------------------------------------------------------------------
+    # 13.5 Cập nhật trạng thái Responsive Search Ad
+    # ------------------------------------------------------------------
+    @patch("/ads/status", status_code=200)
+    async def update_ad_status(
+        self, data: dict
+    ) -> CampaignOperationResult:
+        """Cập nhật trạng thái mẫu quảng cáo (ENABLED / PAUSED / REMOVED)."""
+        resource_name = data.get("resource_name")
+        status = data.get("status")
+        if not resource_name or not status:
+            raise HTTPException(detail="Thiếu resource_name hoặc status", status_code=400)
+        
+        success = await _campaign_mgr.update_ad_status(resource_name, status)
+        return CampaignOperationResult(
+            success=success,
+            resource_name=resource_name,
+            operation="UPDATE",
+            message=f"Mẫu quảng cáo đã được chuyển sang trạng thái {status}." if success else "Cập nhật thất bại."
+        )
+
+    # ------------------------------------------------------------------
     # 14. Danh sách Ads của một Ad Group
     # ------------------------------------------------------------------
     @get("/ad-groups/{ad_group_id:str}/ads")
@@ -487,6 +508,20 @@ class AdsProtectionController(Controller):
             raise HTTPException(detail=str(e), status_code=400)
         except Exception as e:
             raise HTTPException(detail=f"Lỗi khi lấy danh sách mẫu quảng cáo: {str(e)}", status_code=500)
+
+    # ------------------------------------------------------------------
+    # 14.5 Danh sách Từ khóa của một Ad Group
+    # ------------------------------------------------------------------
+    @get("/ad-groups/{ad_group_id:str}/keywords")
+    async def list_ad_group_keywords(
+        self, ad_group_id: str
+    ) -> list[str]:
+        """Lấy danh sách các từ khóa đang hoạt động của Ad Group."""
+        try:
+            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
+            return await _campaign_mgr.list_ad_group_keywords(resource)
+        except Exception as e:
+            raise HTTPException(detail=f"Lỗi khi lấy từ khóa nhóm: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
     # 15. Gợi ý từ khóa (Keyword Planner)
@@ -526,7 +561,30 @@ class AdsProtectionController(Controller):
         Gợi ý chiến lược quảng cáo từ Xohi AI.
         Thực hiện trinh sát đối thủ và tối ưu theo luật Google 2026.
         """
+        if data.task == "RSA" and data.ad_group_resource_name:
+            ad_group_kws = await _campaign_mgr.list_ad_group_keywords(data.ad_group_resource_name)
+            if ad_group_kws:
+                if not data.keywords:
+                    data.keywords = []
+                existing_kws = set(data.keywords)
+                for kw in ad_group_kws:
+                    if kw not in existing_kws:
+                        data.keywords.append(kw)
         return await ai_strategist.suggest(data)
+
+    # ------------------------------------------------------------------
+    # 17.5 Competitor Research & Keyword Planning (Xohi Keyword Planner)
+    # ------------------------------------------------------------------
+    @post("/ai-competitor-research")
+    async def get_competitor_research(
+        self, data: CompetitorAnalysisRequest
+    ) -> CompetitorAnalysisResponse:
+        """
+        Phân tích đối thủ, trinh sát trang đích và gợi ý từ khóa theo kế hoạch Google Ads.
+        Tương đương Google Keyword Planner nhưng tích hợp AI + dữ liệu thực.
+        """
+        return await ai_strategist.competitor_research(data)
+
     # ------------------------------------------------------------------
     # 18. IP Blacklist Management
     # ------------------------------------------------------------------

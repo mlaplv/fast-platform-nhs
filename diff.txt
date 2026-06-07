@@ -1,0 +1,1537 @@
+diff --git a/Caddyfile b/Caddyfile
+index 5854248a..fcbdcd47 100644
+--- a/Caddyfile
++++ b/Caddyfile
+@@ -47,7 +47,9 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
+ 	# Serve storefront static files directly with long-lived Cache-Control headers (Elite V3.0)
+ 	@static_files {
+ 		path *.webp *.png *.jpg *.jpeg *.svg *.gif *.ico *.js *.css *.woff2 *.ttf
+-		not path /_app/*
++		not {
++			path /_app/* /wasm/* /vad/* /models/*
++		}
+ 	}
+ 	handle @static_files {
+ 		root * /app/frontend/static
+@@ -70,6 +72,15 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
+ 		import service_proxy
+ 	}
+ 
++	# WASM & AI Core Static Assets CORS policy (Elite V3.0)
++	@wasm_assets path /wasm/* /vad/* /models/*
++	handle @wasm_assets {
++		header Access-Control-Allow-Origin "*"
++		header Access-Control-Allow-Methods "GET, POST, OPTIONS"
++		header Access-Control-Allow-Headers "*"
++		import service_proxy
++	}
++
+ 	handle /sitemap.xml {
+ 		import service_proxy
+ 	}
+diff --git a/backend/controllers/ads_protection.py b/backend/controllers/ads_protection.py
+index 6a414d55..537c8dd8 100644
+--- a/backend/controllers/ads_protection.py
++++ b/backend/controllers/ads_protection.py
+@@ -43,7 +43,7 @@ from backend.services.ads_protection.fraud_analytics_service import FraudAnalyti
+ from backend.services.ads_protection.google_ads_reporter import GoogleAdsReporter
+ from backend.services.ads_protection.campaign_manager import CampaignManager
+ from backend.services.ads_protection.ai_strategist import ai_strategist
+-from backend.services.ads_protection.schemas import AISuggestionRequest, AISuggestionResponse, CampaignOperationResult
++from backend.services.ads_protection.schemas import AISuggestionRequest, AISuggestionResponse, CampaignOperationResult, CompetitorAnalysisRequest, CompetitorAnalysisResponse
+ from backend.database.models.ads import IPBlacklist, NegativeKeyword
+ from sqlalchemy import select, delete as sa_delete
+ 
+@@ -472,6 +472,27 @@ class AdsProtectionController(Controller):
+         """
+         return await _campaign_mgr.create_responsive_search_ad(data)
+ 
++    # ------------------------------------------------------------------
++    # 13.5 Cập nhật trạng thái Responsive Search Ad
++    # ------------------------------------------------------------------
++    @patch("/ads/status", status_code=200)
++    async def update_ad_status(
++        self, data: dict
++    ) -> CampaignOperationResult:
++        """Cập nhật trạng thái mẫu quảng cáo (ENABLED / PAUSED / REMOVED)."""
++        resource_name = data.get("resource_name")
++        status = data.get("status")
++        if not resource_name or not status:
++            raise HTTPException(detail="Thiếu resource_name hoặc status", status_code=400)
++        
++        success = await _campaign_mgr.update_ad_status(resource_name, status)
++        return CampaignOperationResult(
++            success=success,
++            resource_name=resource_name,
++            operation="UPDATE",
++            message=f"Mẫu quảng cáo đã được chuyển sang trạng thái {status}." if success else "Cập nhật thất bại."
++        )
++
+     # ------------------------------------------------------------------
+     # 14. Danh sách Ads của một Ad Group
+     # ------------------------------------------------------------------
+@@ -488,6 +509,20 @@ class AdsProtectionController(Controller):
+         except Exception as e:
+             raise HTTPException(detail=f"Lỗi khi lấy danh sách mẫu quảng cáo: {str(e)}", status_code=500)
+ 
++    # ------------------------------------------------------------------
++    # 14.5 Danh sách Từ khóa của một Ad Group
++    # ------------------------------------------------------------------
++    @get("/ad-groups/{ad_group_id:str}/keywords")
++    async def list_ad_group_keywords(
++        self, ad_group_id: str
++    ) -> list[str]:
++        """Lấy danh sách các từ khóa đang hoạt động của Ad Group."""
++        try:
++            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
++            return await _campaign_mgr.list_ad_group_keywords(resource)
++        except Exception as e:
++            raise HTTPException(detail=f"Lỗi khi lấy từ khóa nhóm: {str(e)}", status_code=500)
++
+     # ------------------------------------------------------------------
+     # 15. Gợi ý từ khóa (Keyword Planner)
+     # ------------------------------------------------------------------
+@@ -526,7 +561,30 @@ class AdsProtectionController(Controller):
+         Gợi ý chiến lược quảng cáo từ Xohi AI.
+         Thực hiện trinh sát đối thủ và tối ưu theo luật Google 2026.
+         """
++        if data.task == "RSA" and data.ad_group_resource_name:
++            ad_group_kws = await _campaign_mgr.list_ad_group_keywords(data.ad_group_resource_name)
++            if ad_group_kws:
++                if not data.keywords:
++                    data.keywords = []
++                existing_kws = set(data.keywords)
++                for kw in ad_group_kws:
++                    if kw not in existing_kws:
++                        data.keywords.append(kw)
+         return await ai_strategist.suggest(data)
++
++    # ------------------------------------------------------------------
++    # 17.5 Competitor Research & Keyword Planning (Xohi Keyword Planner)
++    # ------------------------------------------------------------------
++    @post("/ai-competitor-research")
++    async def get_competitor_research(
++        self, data: CompetitorAnalysisRequest
++    ) -> CompetitorAnalysisResponse:
++        """
++        Phân tích đối thủ, trinh sát trang đích và gợi ý từ khóa theo kế hoạch Google Ads.
++        Tương đương Google Keyword Planner nhưng tích hợp AI + dữ liệu thực.
++        """
++        return await ai_strategist.competitor_research(data)
++
+     # ------------------------------------------------------------------
+     # 18. IP Blacklist Management
+     # ------------------------------------------------------------------
+diff --git a/backend/services/ads_protection/ai_strategist.py b/backend/services/ads_protection/ai_strategist.py
+index e1ac6c70..5353517f 100644
+--- a/backend/services/ads_protection/ai_strategist.py
++++ b/backend/services/ads_protection/ai_strategist.py
+@@ -13,6 +13,8 @@ from backend.services.xohi.google_search import google_search_service
+ from backend.services.ads_protection.schemas import (
+     AISuggestionRequest,
+     AISuggestionResponse,
++    CompetitorAnalysisRequest,
++    CompetitorAnalysisResponse,
+ )
+ 
+ logger = logging.getLogger("ads_protection.ai_strategist")
+@@ -89,6 +91,11 @@ class AIStrategist:
+         else:
+             competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp."
+ 
++        # 1.5 Lấy danh sách từ khóa hiện có của Ad Group
++        keywords_context = ""
++        if req.keywords:
++            keywords_context = f"\nTỪ KHÓA MỤC TIÊU CỦA AD GROUP:\n" + "\n".join([f"- {k}" for k in req.keywords])
++
+         # 2. Xây dựng Prompt Chiến thuật (Elite V2.6 Standard)
+         task_directives = ""
+         if req.task == "RSA":
+@@ -96,13 +103,33 @@ class AIStrategist:
+             YÊU CẦU ĐẶC BIỆT CHO TÁC VỤ RSA (RESPONSIVE SEARCH AD):
+             - BẮT BUỘC sinh đúng ĐỦ 15 tiêu đề (headlines) trong trường 'headlines'. Mỗi tiêu đề dài từ 10 đến TỐI ĐA 30 ký tự. KHÔNG được vượt quá 30 ký tự!
+             - BẮT BUỘC sinh đúng ĐỦ 4 mô tả (descriptions) trong trường 'descriptions'. Mỗi mô tả dài từ 50 đến TỐI ĐA 90 ký tự. KHÔNG được vượt quá 90 ký tự!
+-            - Tự kiểm tra các tiêu đề và mô tả: KHÔNG chứa dấu chấm than (!), không chứa nhiều hơn 1 dấu hỏi (?), không viết hoa toàn bộ, không chứa từ cấm ('bảo đảm 100%', 'miễn phí hoàn toàn', 'tốt nhất thế giới').
+-            - Các tiêu đề/mô tả phải cực kỳ đa dạng, bao gồm: tên thương hiệu, từ khóa ngách, lợi ích sản phẩm, độ uy tín, lời kêu gọi hành động (CTA).
++            - BẮT BUỘC sinh 2 đường dẫn hiển thị ngắn gọn (display_path1 và display_path2) có liên quan đến sản phẩm/chiến dịch, dài tối đa 15 ký tự mỗi đường dẫn, không dấu, viết thường, ngăn cách bởi dấu gạch ngang (ví dụ: 'beppin-body', 'tri-tham').
++            - BẮT BUỘC thực hiện chấm điểm độ mạnh quảng cáo (ad_strength) theo các tiêu chuẩn Google Ads:
++                * headline_count_ok: True nếu sinh đủ 15 tiêu đề.
++                * keyword_coverage_ok: True nếu có ít nhất 4 tiêu đề chứa chính xác các từ khóa mục tiêu đã cung cấp.
++                * headline_uniqueness_ok: True nếu các tiêu đề có ý nghĩa và từ vựng độc đáo, không bị lặp lại ngữ nghĩa.
++                * description_uniqueness_ok: True nếu 4 mô tả đa dạng, không trùng lặp câu chữ.
++                * has_sitelinks: True (luôn khuyến nghị sếp cấu hình sitelink).
++                * overall_strength: Đánh giá tổng thể ("POOR" | "AVERAGE" | "GOOD" | "EXCELLENT"). Nếu tất cả ok thì là "EXCELLENT".
++            - Tự kiểm tra các tiêu đề và mô tả: KHÔNG chứa dấu chấm...). KHÔNG chứa dấu chấm thế giới (!) hoặc các từ cấm ('bảo đảm 100%', 'miễn phí hoàn toàn', 'tốt nhất thế giới').
++            - Phân bổ 15 tiêu đề theo tỷ lệ vàng:
++                * 3-5 tiêu đề chứa chính xác hoặc sát nghĩa từ khóa mục tiêu được cấp.
++                * 3 tiêu đề chứa Tên thương hiệu/Thương hiệu dòng sản phẩm (ví dụ: "Beppin Body Nhật Bản").
++                * 3 tiêu đề về Lợi ích nổi bật/USP của sản phẩm (ví dụ: "Mờ Thâm Nách Bẹn Mông").
++                * 3 tiêu đề Kêu gọi hành động (CTA) (ví dụ: "Mua Ngay Nhận Ưu Đãi").
++                * 1-2 tiêu đề khác biệt/Ưu đãi độc quyền.
++            
++            CÁC TIÊU CHÍ BẮT BUỘC ĐẢM BẢO KHI TẠO QUẢNG CÁO:
++            1. Sử dụng các từ khóa phổ biến trong dòng tiêu đề của bạn: Hãy chèn các từ khóa mục tiêu được cung cấp vào dòng tiêu đề một cách tự nhiên và chính xác nhất có thể.
++            2. Sử dụng dòng tiêu đề độc đáo hơn: Các dòng tiêu đề phải đa dạng về mặt ngữ nghĩa, góc tiếp cận khác biệt (như lợi ích, tính năng, cảm xúc, uy tín, CTA) để tránh trùng lặp.
++            3. Sử dụng nội dung mô tả độc đáo hơn: Tránh viết các mô tả tương tự nhau. Mỗi dòng mô tả phải tập trung vào một giá trị duy nhất (Ví dụ: Mô tả 1 tập trung vào Giải pháp & Lợi ích, Mô tả 2 tập trung vào Uy tín/Chứng nhận, Mô tả 3 tập trung vào Khuyến mãi độc quyền, Mô tả 4 là Lời kêu gọi hành động quyết liệt).
++            4. Thêm đường liên kết khác của trang web (Sitelinks): Hãy luôn cấu hình `has_sitelinks = True` và trong trường `message` hãy gợi ý sếp thêm 2-4 sitelinks (liên kết trang web phụ) phù hợp với sản phẩm.
+             """
+ 
+         prompt = f"""
+         BÁO CÁO TRINH SÁT TÁC CHIẾN - THỰC THI NHIỆM VỤ: {req.task}
+         ĐỐI TƯỢNG PHÂN TÍCH: {req.context}
++        {keywords_context}
+         
+         {f"URL TRANG ĐÍCH: {target_url}" if target_url else ""}
+         {f"DỮ LIỆU NỘI DUNG:\n{page_content}" if target_url else ""}
+@@ -119,7 +146,8 @@ class AIStrategist:
+            - seo_score: Đánh giá tối ưu công cụ tìm kiếm truyền thống.
+            - sge_score: Đánh giá khả năng hiển thị trên Google AI (SGE) 2026.
+            - quality_score: Đánh giá sự đồng bộ giữa quảng cáo và trang đích (0-10).
+-         3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
++           - ad_strength: Cấu trúc dữ liệu AdStrengthDetails chứa kết quả tự đánh giá.
++        3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
+            - KHÔNG dùng tiền tố 'INTERNAL_ERROR' hay 'SUCCESS'.
+            - Đưa ra các bước hành động cụ thể, ngắn gọn, quyết liệt để Sếp tối ưu ngay.
+            - Phân tích ngắn gọn kẽ hở của đối thủ so với trang của mình.
+@@ -142,4 +170,69 @@ class AIStrategist:
+                 message=f"Xohi đang bận suy nghĩ (Lỗi: {str(e)}). Sếp vui lòng thử lại sau giây lát ạ!"
+             )
+ 
++    async def competitor_research(self, req: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
++        """Phân tích đối thủ, gợi ý từ khóa và chiến lược từ URL landing page."""
++        logger.info("competitor_research url=%s", req.url)
++
++        # 1. Trinh sát trang đích
++        page_content = await self._fetch_page(req.url)
++        import re
++        domain = re.sub(r'^https?://', '', req.url).split('/')[0]
++
++        # 2. Tìm kiếm đối thủ cạnh tranh cùng ngành
++        search_query = f'site:{domain} OR "{domain}" quảng cáo google ads tiêu đề mô tả'
++        competitor_query = f'quảng cáo google "{domain}" đối thủ việt nam 2026'
++        kw_query = f'từ khóa mua hàng site:{domain} {domain}'
++
++        results, competitor_results = await __import__('asyncio').gather(
++            google_search_service.search(kw_query, num=10),
++            google_search_service.search(competitor_query, num=8),
++        )
++
++        competitor_snippets = "\n".join([
++            f"- [{r.get('displayLink')}] {r.get('title')}: {r.get('snippet')}"
++            for r in (results + competitor_results)
++        ])
++
++        # 3. Build prompt phân tích
++        _agent: Agent[None, CompetitorAnalysisResponse] = Agent(output_type=CompetitorAnalysisResponse, retries=2)  # type: ignore
++
++        prompt = f"""PHÂN TÍCH ĐỐI THỦ VÀ KẾ HOẠCH TỪ KHÓA CHO: {req.url}
++
++DỮ LIỆU TRANG ĐÍCH:
++{page_content}
++
++DỮ LIỆU TỪ KHÓA & ĐỐI THỦ TỪ GOOGLE SEARCH:
++{competitor_snippets}
++
++YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
++1. page_title: Tiêu đề chính của trang.
++2. page_summary: Tóm tắt sản phẩm/dịch vụ và điểm mạnh/yếu trong 2-3 câu.
++3. keyword_suggestions: Gợi ý 15-20 từ khóa tìm kiếm mua hàng thực tế người dùng VN hay dùng.
++   - Mỗi từ khóa cần: intent (COMMERCIAL/INFORMATIONAL/NAVIGATIONAL), match_type (EXACT/PHRASE/BROAD),
++     relevance (HIGH/MEDIUM/LOW), estimated_cpc_vnd (ước tính CPC theo VNĐ), estimated_volume.
++   - Ưu tiên từ khóa COMMERCIAL + HIGH relevance, bao gồm: từ khóa thương hiệu, từ khóa sản phẩm, từ khóa vấn đề ("trị thâm", "làm hồng"), từ khóa so sánh.
++4. competitor_headlines: Trích xuất 8-10 tiêu đề/mô tả quảng cáo thực tế từ dữ liệu đối thủ tìm được.
++5. negative_keyword_suggestions: 5-8 từ khóa phủ định nên thêm để tránh click ảo (ví dụ: "miễn phí", "tự làm", "công thức").
++6. recommended_display_path1 và display_path2: Gợi ý 2 đường dẫn hiển thị tối ưu (không dấu, viết thường, tối đa 15 ký tự).
++7. seo_gaps: Phân tích kẽ hở SEO/Ads mà trang này đang bỏ lỡ so với đối thủ (2-3 gạch đầu dòng).
++8. message: Tóm tắt chiến thuật 1 câu.
++"""
++        try:
++            result = await trinity_bridge.run(
++                _agent,
++                prompt,
++                system_prompt=self.SYSTEM_PROMPT,
++                role="pro",
++                timeout=120.0
++            )
++            return result
++        except Exception as e:
++            logger.error("competitor_research_failed: %s", e)
++            return CompetitorAnalysisResponse(
++                success=False,
++                message=f"Phân tích thất bại: {str(e)}"
++            )
++
++
+ ai_strategist: AIStrategist = AIStrategist()
+diff --git a/backend/services/ads_protection/campaign_manager.py b/backend/services/ads_protection/campaign_manager.py
+index 62473789..972ed1a1 100644
+--- a/backend/services/ads_protection/campaign_manager.py
++++ b/backend/services/ads_protection/campaign_manager.py
+@@ -453,7 +453,7 @@ class CampaignManager:
+         ad_op: dict[str, object] = {
+             "create": {
+                 "adGroup": req.ad_group_resource_name,
+-                "status": "ENABLED",
++                "status": req.status or "ENABLED",
+                 "ad": {
+                     "responsiveSearchAd": {
+                         "headlines": [{"text": h} for h in req.headlines],
+@@ -477,6 +477,52 @@ class CampaignManager:
+             policy_check=policy_result,
+         )
+ 
++    async def update_ad_status(
++        self, ad_group_ad_resource_name: str, status: str
++    ) -> bool:
++        """Cập nhật trạng thái Ad (ENABLED / PAUSED / REMOVED)."""
++        if not self._has_credentials():
++            return False
++        token = await self._get_access_token()
++        if not token:
++            return False
++        op = {
++            "update": {
++                "resourceName": ad_group_ad_resource_name,
++                "status": status,
++            },
++            "updateMask": "status",
++        }
++        result = await self._mutate(token, "adGroupAds", [op])
++        success = bool(result)
++        logger.info("ad_status_update resource=%s status=%s success=%s", ad_group_ad_resource_name, status, success)
++        return success
++
++    async def list_ad_group_keywords(self, ad_group_resource_name: str) -> list[str]:
++        """Danh sách từ khóa (positive keywords) đang hoạt động của một Ad Group."""
++        if not self._has_credentials():
++            return []
++        token = await self._get_access_token()
++        if not token:
++            return []
++        query = f"""
++            SELECT
++                ad_group_criterion.keyword.text
++            FROM ad_group_criterion
++            WHERE ad_group.resource_name = '{ad_group_resource_name}'
++              AND ad_group_criterion.status = 'ENABLED'
++              AND ad_group_criterion.negative = FALSE
++        """
++        rows = await self._search(token, query)
++        keywords = []
++        for r in rows:
++            criterion = r.get("adGroupCriterion", {})
++            kw = criterion.get("keyword", {})
++            text = kw.get("text")
++            if text:
++                keywords.append(text)
++        return keywords
++
+     async def list_ads(self, ad_group_resource_name: str) -> list[AdInfo]:
+         """Danh sách ads của một Ad Group."""
+         if not self._has_credentials():
+@@ -492,6 +538,8 @@ class CampaignManager:
+                 ad_group_ad.status,
+                 ad_group_ad.ad.responsive_search_ad.headlines,
+                 ad_group_ad.ad.responsive_search_ad.descriptions,
++                ad_group_ad.ad.responsive_search_ad.path1,
++                ad_group_ad.ad.responsive_search_ad.path2,
+                 ad_group_ad.ad.final_urls,
+                 ad_group_ad.policy_summary.approval_status
+             FROM ad_group_ad
+@@ -512,6 +560,8 @@ class CampaignManager:
+                 headlines=[h.get("text", "") for h in rsa.get("headlines", [])],
+                 descriptions=[d.get("text", "") for d in rsa.get("descriptions", [])],
+                 final_url=(ad.get("finalUrls") or [""])[0],
++                display_path1=rsa.get("path1"),
++                display_path2=rsa.get("path2"),
+                 policy_summary=a.get("policySummary", {}).get("approvalStatus", "ELIGIBLE"),
+             ))
+         return result_ads
+diff --git a/backend/services/ads_protection/schemas.py b/backend/services/ads_protection/schemas.py
+index 50b7519f..ce305196 100644
+--- a/backend/services/ads_protection/schemas.py
++++ b/backend/services/ads_protection/schemas.py
+@@ -206,6 +206,7 @@ class ResponsiveSearchAdCreate(BaseModel):
+     final_url: str = Field(description="Landing page URL - phải là HTTPS")
+     display_path1: Optional[str] = Field(default=None, max_length=15)
+     display_path2: Optional[str] = Field(default=None, max_length=15)
++    status: Optional[str] = Field(default="ENABLED", pattern="^(ENABLED|PAUSED)$")
+     call_to_action: Optional[str] = None
+ 
+ 
+@@ -280,6 +281,8 @@ class AdInfo(BaseModel):
+     headlines: list[str]
+     descriptions: list[str]
+     final_url: str
++    display_path1: Optional[str] = None
++    display_path2: Optional[str] = None
+     policy_summary: str = "ELIGIBLE"
+ 
+ 
+@@ -309,6 +312,18 @@ class AISuggestionRequest(BaseModel):
+     """Yêu cầu gợi ý từ AI."""
+     task: str  # "CAMPAIGN" | "RSA" | "NEGATIVE_KEYWORDS"
+     context: str # Nội dung mô tả sản phẩm/mục tiêu của Sếp
++    keywords: Optional[list[str]] = None # [NEW] Các từ khóa hiện có của Ad Group
++    ad_group_resource_name: Optional[str] = None # [NEW] Resource name của Ad Group mục tiêu
++
++
++class AdStrengthDetails(BaseModel):
++    """Chi tiết đánh giá độ mạnh quảng cáo theo tiêu chuẩn Google Ads."""
++    overall_strength: str  # "POOR" | "AVERAGE" | "GOOD" | "EXCELLENT"
++    headline_count_ok: bool
++    keyword_coverage_ok: bool
++    headline_uniqueness_ok: bool
++    description_uniqueness_ok: bool
++    has_sitelinks: bool
+ 
+ 
+ class AISuggestionResponse(BaseModel):
+@@ -323,6 +338,8 @@ class AISuggestionResponse(BaseModel):
+     
+     headlines: Optional[list[str]] = None
+     descriptions: Optional[list[str]] = None
++    display_path1: Optional[str] = None  # [NEW] Đường dẫn hiển thị 1
++    display_path2: Optional[str] = None  # [NEW] Đường dẫn hiển thị 2
+     
+     negative_keywords: Optional[list[str]] = None
+     
+@@ -333,3 +350,44 @@ class AISuggestionResponse(BaseModel):
+     seo_score: Optional[float] = None
+     sge_score: Optional[float] = None
+     quality_score: Optional[float] = None
++    ad_strength: Optional[AdStrengthDetails] = None  # [NEW] Đánh giá độ mạnh quảng cáo
++
++
++# ─── Competitor Analysis & Keyword Planning ───────────────────────────────────
++
++class CompetitorAnalysisRequest(BaseModel):
++    """Yêu cầu phân tích đối thủ và gợi ý từ khóa từ URL."""
++    url: str = Field(description="URL landing page của mình hoặc đối thủ")
++    ad_group_resource_name: Optional[str] = None
++
++
++class KeywordSuggestionItem(BaseModel):
++    """Một từ khóa được gợi ý kèm thông tin đánh giá."""
++    keyword: str
++    intent: str          # "COMMERCIAL" | "INFORMATIONAL" | "NAVIGATIONAL"
++    match_type: str      # "EXACT" | "PHRASE" | "BROAD"
++    relevance: str       # "HIGH" | "MEDIUM" | "LOW"
++    estimated_cpc_vnd: Optional[int] = None
++    estimated_volume: Optional[str] = None  # "< 100" | "100-1K" | "1K-10K" | "> 10K"
++
++
++class CompetitorHeadlineItem(BaseModel):
++    """Một dòng tiêu đề/mô tả từ quảng cáo của đối thủ."""
++    source_domain: str
++    headline: str
++    ad_type: str  # "HEADLINE" | "DESCRIPTION"
++
++
++class CompetitorAnalysisResponse(BaseModel):
++    """Kết quả phân tích đối thủ và kế hoạch từ khóa."""
++    success: bool
++    message: str
++    page_title: Optional[str] = None
++    page_summary: Optional[str] = None          # Tóm tắt nội dung trang
++    keyword_suggestions: list[KeywordSuggestionItem] = []
++    competitor_headlines: list[CompetitorHeadlineItem] = []
++    negative_keyword_suggestions: list[str] = []
++    recommended_display_path1: Optional[str] = None
++    recommended_display_path2: Optional[str] = None
++    seo_gaps: Optional[str] = None              # Kẽ hở so với đối thủ
++
+diff --git a/frontend/src/lib/components/admin/AdsFraudDashboard.svelte b/frontend/src/lib/components/admin/AdsFraudDashboard.svelte
+index b3b0d2c1..3af1045a 100644
+--- a/frontend/src/lib/components/admin/AdsFraudDashboard.svelte
++++ b/frontend/src/lib/components/admin/AdsFraudDashboard.svelte
+@@ -367,7 +367,7 @@
+           {:else if ads.activeTab === 'google'}
+             <AdsGoogleMetrics {...ads} />
+           {:else if ads.activeTab === 'campaigns'}
+-            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} />
++            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} bind:fAd={ads.fAd} bind:fAdGroup={ads.fAdGroup} bind:competitorUrl={ads.competitorUrl} aiResult={ads.aiResult} analyzeCompetitor={ads.analyzeCompetitor} importKeyword={ads.importKeyword} competitorAnalysis={ads.competitorAnalysis} competitorAnalyzing={ads.competitorAnalyzing} />
+           {:else if ads.activeTab === 'merchant'}
+             <div class="max-w-5xl mx-auto py-2">
+               <GoogleMerchantWidget />
+diff --git a/frontend/src/lib/components/admin/ads/AdsCampaignManager.svelte b/frontend/src/lib/components/admin/ads/AdsCampaignManager.svelte
+index 4e3a796a..fe6625e9 100644
+--- a/frontend/src/lib/components/admin/ads/AdsCampaignManager.svelte
++++ b/frontend/src/lib/components/admin/ads/AdsCampaignManager.svelte
+@@ -17,6 +17,9 @@
+   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+   import Maximize2 from "@lucide/svelte/icons/maximize-2";
+   import Minimize2 from "@lucide/svelte/icons/minimize-2";
++  import Check from "@lucide/svelte/icons/check";
++  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
++  import Info from "@lucide/svelte/icons/info";
+   import { portal } from '$lib/core/actions/portal';
+   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+   import { onDestroy } from 'svelte';
+@@ -41,7 +44,24 @@
+     submitCampaign,
+     aiSuggest,
+     fmt,
+-    activeTab = $bindable()
++    activeTab = $bindable(),
++    
++    // Ads creation/edit properties
++    isEditingAd = $bindable(false),
++    selectedAd = $bindable(null),
++    fAd = $bindable({ headlines: Array(15).fill(''), descriptions: Array(4).fill(''), final_url: '', display_path1: '', display_path2: '', status: 'PAUSED' }),
++    competitorUrl = $bindable(''),
++    aiResult,
++    analyzeCompetitor,
++    importKeyword,
++    competitorAnalysis,
++    competitorAnalyzing,
++    selectAdForEdit,
++    submitAd,
++    aiSuggestRSA,
++    adSubmitting = false,
++    aiGenerating = false,
++    adGroupKeywords = []
+   } = $props();
+ 
+   // Khởi tạo an toàn để tránh lỗi props_invalid_value
+@@ -49,6 +69,58 @@
+   if (selectedCampaign === undefined) selectedCampaign = null;
+   if (selectedAdGroup === undefined) selectedAdGroup = null;
+ 
++  // Derived state for Ad Strength Widget
++  let headlinesFilled = $derived(fAd?.headlines ? fAd.headlines.filter(h => h.trim()).length : 0);
++  let descsFilled = $derived(fAd?.descriptions ? fAd.descriptions.filter(d => d.trim()).length : 0);
++  
++  let keywordMatches = $derived(() => {
++    if (!adGroupKeywords || !fAd?.headlines) return [];
++    return adGroupKeywords.filter(kw => 
++      fAd.headlines.some(h => h.toLowerCase().includes(kw.toLowerCase()))
++    );
++  });
++
++  let uniqueHeadlinesCount = $derived(() => {
++    if (!fAd?.headlines) return 0;
++    return new Set(fAd.headlines.filter(h => h.trim()).map(h => h.trim().toLowerCase())).size;
++  });
++
++  let uniqueDescsCount = $derived(() => {
++    if (!fAd?.descriptions) return 0;
++    return new Set(fAd.descriptions.filter(d => d.trim()).map(d => d.trim().toLowerCase())).size;
++  });
++
++  let adStrengthScore = $derived(() => {
++    let score = 0;
++    // 40 points for headlines count (up to 15)
++    score += Math.min(40, (headlinesFilled / 15) * 40);
++    // 20 points for descriptions count (up to 4)
++    score += Math.min(20, (descsFilled / 4) * 20);
++    // 20 points for keyword matching
++    if (adGroupKeywords && adGroupKeywords.length > 0) {
++      const matches = keywordMatches();
++      score += Math.min(20, (matches.length / Math.min(3, adGroupKeywords.length)) * 20);
++    } else {
++      score += 20; // default points if no keywords defined in group
++    }
++    // 20 points for uniqueness
++    if (headlinesFilled > 0) {
++      score += Math.min(10, (uniqueHeadlinesCount() / headlinesFilled) * 10);
++    }
++    if (descsFilled > 0) {
++      score += Math.min(10, (uniqueDescsCount() / descsFilled) * 10);
++    }
++    return Math.round(score);
++  });
++
++  let adStrengthLabel = $derived(() => {
++    const score = adStrengthScore();
++    if (score < 40) return 'POOR';
++    if (score < 65) return 'AVERAGE';
++    if (score < 85) return 'GOOD';
++    return 'EXCELLENT';
++  });
++
+   // Search & Filter State
+   let searchQuery = $state('');
+   let statusFilter = $state('ALL'); // ALL, ENABLED, PAUSED
+@@ -126,7 +198,7 @@
+                   {#if campaignView !== 'list'}
+                      <ChevronRight size={16} class="text-slate-600" />
+                      <span class="text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 px-4 py-1.5 rounded-none border border-cyan-400/20 font-mono">
+-                        {campaignView === 'create_campaign' ? 'CREATE_DEPLOYMENT' : campaignView === 'ad_groups' ? 'AD_GROUPS_MATRIX' : 'AD_ASSETS'}
++                        {campaignView === 'create_campaign' ? 'CREATE_DEPLOYMENT' : campaignView === 'ad_groups' ? 'AD_GROUPS_MATRIX' : campaignView === 'ads' ? 'AD_ASSETS' : 'AD_ASSET_CREATION'}
+                      </span>
+                   {/if}
+                </div>
+@@ -137,10 +209,30 @@
+                   <button class="px-8 py-3.5 bg-cyan-600 text-white text-[11px] font-black tracking-widest hover:bg-cyan-500 transition-all active:scale-95 flex items-center gap-3 rounded-none shadow-xl group/btn" onclick={() => campaignView = 'create_campaign'}>
+                      <Plus size={18} class="group-hover/btn:rotate-90 transition-transform" /> <span>Khởi tạo chiến dịch</span>
+                   </button>
++               {:else if campaignView === 'ads'}
++                  <button class="px-8 py-3.5 bg-emerald-600 text-white text-[11px] font-black tracking-widest hover:bg-emerald-500 transition-all active:scale-95 flex items-center gap-3 rounded-none shadow-xl group/btn" onclick={() => {
++                     isEditingAd = false;
++                     selectedAd = null;
++                     fAd.final_url = selectedCampaign?.final_url || '';
++                     fAd.display_path1 = '';
++                     fAd.display_path2 = '';
++                     fAd.status = 'PAUSED';
++                     fAd.headlines = Array(15).fill('');
++                     fAd.descriptions = Array(4).fill('');
++                     competitorUrl = fAd.final_url;
++                     campaignView = 'create_ad';
++                  }}>
++                     <Plus size={18} class="group-hover/btn:rotate-90 transition-transform" /> <span>Tạo quảng cáo</span>
++                  </button>
++                  <button class="px-8 py-3.5 bg-white/5 border border-white/10 text-white text-[11px] font-black tracking-widest hover:bg-white/10 transition-all flex items-center gap-3 rounded-none" onclick={() => {
++                     campaignView = 'ad_groups';
++                  }}>
++                     <X size={18} /> <span>Quay lại</span>
++                  </button>
+                {:else}
+                   <button class="px-8 py-3.5 bg-white/5 border border-white/10 text-white text-[11px] font-black tracking-widest hover:bg-white/10 transition-all flex items-center gap-3 rounded-none" onclick={() => {
+                      if (campaignView === 'create_campaign' || campaignView === 'ad_groups') campaignView = 'list';
+-                     else if (campaignView === 'ads') campaignView = 'ad_groups';
++                     else if (campaignView === 'create_ad') campaignView = 'ads';
+                   }}>
+                      <X size={18} /> <span>Quay lại</span>
+                   </button>
+@@ -462,7 +554,10 @@
+                                     </div>
+                                  </td>
+                                  <td class="px-8 py-6 text-right">
+-                                    <button class="w-10 h-10 inline-flex items-center justify-center bg-white/5 border border-white/10 rounded-none text-slate-500 hover:text-emerald-400 transition-all">
++                                    <button 
++                                       class="w-10 h-10 inline-flex items-center justify-center bg-white/5 border border-white/10 rounded-none text-slate-500 hover:text-emerald-400 transition-all"
++                                       onclick={() => selectAdForEdit(ad, selectedAdGroup, selectedCampaign)}
++                                    >
+                                        <Settings size={16} />
+                                     </button>
+                                  </td>
+@@ -477,6 +572,405 @@
+                   </div>
+                {/if}
+             </div>
++         {:else if campaignView === 'create_ad'}
++            <div class="grid grid-cols-12 gap-8 p-6 overflow-y-auto max-h-[calc(100vh-160px)]" in:fade>
++               <!-- LEFT PANEL: RSA FORM (8 Cols) -->
++               <div class="col-span-12 xl:col-span-8 space-y-8">
++                  <div class="bg-white/[0.03] border border-white/10 p-8 shadow-2xl relative overflow-hidden group/form">
++                     <div class="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 blur-[100px] rounded-none pointer-events-none"></div>
++                     
++                     <div class="flex justify-between items-center mb-8 pb-6 border-b border-white/10 relative z-10">
++                        <div class="flex items-center gap-5">
++                           <div class="p-3 bg-emerald-400/10 rounded-none border border-emerald-400/20">
++                              <Target size={24} class="text-emerald-400" />
++                           </div>
++                           <div>
++                              <h4 class="text-lg font-black text-white tracking-wider font-mono">
++                                 {isEditingAd ? 'Hiệu chỉnh Mẫu quảng cáo RSA' : 'Khởi tạo Mẫu quảng cáo RSA'}
++                              </h4>
++                              <p class="text-[10px] text-slate-500 font-mono mt-1 font-black">RSA (Responsive Search Ad) • Tiêu chuẩn tối ưu 2026</p>
++                           </div>
++                        </div>
++                        
++                        <div class="flex items-center gap-3">
++                           <button 
++                              class="px-5 py-2.5 bg-purple-600/10 border border-purple-500/30 text-purple-400 text-[10px] font-black tracking-wider hover:bg-purple-500 hover:text-white transition-all flex items-center gap-2 rounded-none group/ai"
++                              onclick={() => aiSuggestRSA(fAd.final_url)} 
++                              disabled={aiGenerating || !fAd.final_url}
++                              title="Tự động sinh tiêu đề, mô tả và display paths từ trang đích"
++                           >
++                              <Brain size={14} class="{aiGenerating ? 'animate-spin' : 'group-hover/ai:scale-110 transition-transform'}" /> 
++                              <span>Xohi AI gợi ý mẫu</span>
++                           </button>
++                        </div>
++                     </div>
++
++                     <div class="space-y-6 relative z-10">
++                        <!-- URL & Paths -->
++                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
++                           <div class="md:col-span-2">
++                              <label class="block text-[9px] text-slate-400 font-black mb-2 tracking-widest font-mono">FINAL URL (Trang đích)</label>
++                              <input 
++                                 type="text" 
++                                 bind:value={fAd.final_url} 
++                                 class="w-full bg-black/40 border border-white/10 rounded-none p-4 text-xs font-black text-white focus:border-cyan-400/50 outline-none transition-all" 
++                                 placeholder="https://example.com/san-pham" 
++                              />
++                           </div>
++                           <div>
++                              <label class="block text-[9px] text-slate-400 font-black mb-2 tracking-widest font-mono">ĐƯỜNG DẪN HIỂN THỊ (Path 1 / Path 2)</label>
++                              <div class="flex items-center bg-black/40 border border-white/10 px-2 py-1">
++                                 <span class="text-[10px] text-slate-600 font-mono select-none">/</span>
++                                 <input 
++                                    type="text" 
++                                    bind:value={fAd.display_path1} 
++                                    maxlength="15"
++                                    class="w-full bg-transparent border-none p-2 text-xs font-mono font-black text-white outline-none focus:text-cyan-400" 
++                                    placeholder="path1" 
++                                 />
++                                 <span class="text-[10px] text-slate-600 font-mono select-none">/</span>
++                                 <input 
++                                    type="text" 
++                                    bind:value={fAd.display_path2} 
++                                    maxlength="15"
++                                    class="w-full bg-transparent border-none p-2 text-xs font-mono font-black text-white outline-none focus:text-cyan-400" 
++                                    placeholder="path2" 
++                                 />
++                              </div>
++                           </div>
++                        </div>
++
++                        <!-- Headlines -->
++                        <div>
++                           <div class="flex justify-between items-center mb-3">
++                              <label class="text-[9px] text-slate-400 font-black tracking-widest font-mono">DÒNG TIÊU ĐỀ (Tối đa 15 tiêu đề - Dài tối đa 30 ký tự)</label>
++                              <span class="text-[9px] font-mono font-black {headlinesFilled >= 12 ? 'text-emerald-400' : 'text-yellow-500'}">
++                                 Đã điền: {headlinesFilled}/15 (Tối thiểu 12 tiêu đề)
++                              </span>
++                           </div>
++                           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
++                              {#each Array(15) as _, i}
++                                 <div class="relative flex items-center bg-black/30 border border-white/5 focus-within:border-cyan-400/30 transition-all">
++                                    <span class="pl-3 text-[9px] font-mono text-slate-600 font-black select-none">#{i+1}</span>
++                                    <input 
++                                       type="text" 
++                                       bind:value={fAd.headlines[i]} 
++                                       maxlength="30"
++                                       class="w-full bg-transparent border-none p-3 pl-2 text-xs font-black text-white outline-none" 
++                                       placeholder="Tiêu đề hấp dẫn..." 
++                                    />
++                                    <span class="pr-3 text-[8px] font-mono text-slate-600 select-none">
++                                       {(fAd.headlines[i] || '').length}/30
++                                    </span>
++                                 </div>
++                              {/each}
++                           </div>
++                        </div>
++
++                        <!-- Descriptions -->
++                        <div>
++                           <div class="flex justify-between items-center mb-3">
++                              <label class="text-[9px] text-slate-400 font-black tracking-widest font-mono">NỘI DUNG MÔ TẢ (Tối đa 4 mô tả - Dài tối đa 90 ký tự)</label>
++                              <span class="text-[9px] font-mono font-black {descsFilled >= 4 ? 'text-emerald-400' : 'text-yellow-500'}">
++                                 Đã điền: {descsFilled}/4
++                              </span>
++                           </div>
++                           <div class="space-y-3">
++                              {#each Array(4) as _, i}
++                                 <div class="relative flex items-center bg-black/30 border border-white/5 focus-within:border-cyan-400/30 transition-all">
++                                    <span class="pl-4 text-[9px] font-mono text-slate-600 font-black select-none">Mô tả #{i+1}</span>
++                                    <input 
++                                       type="text" 
++                                       bind:value={fAd.descriptions[i]} 
++                                       maxlength="90"
++                                       class="w-full bg-transparent border-none p-4 pl-3 text-xs font-black text-white outline-none" 
++                                       placeholder="Mô tả chi tiết về sản phẩm, dịch vụ hoặc ưu đãi..." 
++                                    />
++                                    <span class="pr-4 text-[8px] font-mono text-slate-600 select-none">
++                                       {(fAd.descriptions[i] || '').length}/90
++                                    </span>
++                                 </div>
++                              {/each}
++                           </div>
++                        </div>
++
++                        <!-- Status Select -->
++                        <div class="flex justify-between items-center pt-4 border-t border-white/10">
++                           <div class="flex items-center gap-4">
++                              <label class="text-[9px] text-slate-400 font-black tracking-widest font-mono">TRẠNG THÁI KHỞI CHẠY</label>
++                              <select 
++                                 bind:value={fAd.status} 
++                                 class="bg-black border border-white/10 text-xs text-white p-2 font-mono font-black outline-none"
++                              >
++                                 <option value="ENABLED">ĐANG CHẠY (ENABLED)</option>
++                                 <option value="PAUSED">TẠM DỪNG (PAUSED)</option>
++                              </select>
++                           </div>
++
++                           <div class="flex items-center gap-4">
++                              <button 
++                                 class="px-6 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black tracking-widest hover:bg-white/10 transition-all"
++                                 onclick={() => campaignView = 'ads'}
++                              >
++                                 QUAY LẠI
++                              </button>
++                              <button 
++                                 class="px-10 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black tracking-widest transition-all shadow-lg shadow-emerald-950/20 active:scale-95"
++                                 onclick={submitAd}
++                                 disabled={adSubmitting}
++                              >
++                                 {adSubmitting ? 'ĐANG XUẤT BẢN...' : 'XUẤT BẢN QUẢNG CÁO'}
++                              </button>
++                           </div>
++                        </div>
++                     </div>
++                  </div>
++               </div>
++
++               <!-- RIGHT PANEL: PREVIEW, STRENGTH & COMPETITOR (4 Cols) -->
++               <div class="col-span-12 xl:col-span-4 space-y-8">
++                  <!-- GOOGLE SEARCH AD MOCKUP -->
++                  <div class="bg-[#171717] border border-white/5 p-6 rounded-none shadow-xl">
++                     <div class="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
++                        <span class="text-[9px] text-slate-500 font-mono font-black tracking-wider uppercase">Google Search Preview (Real-time)</span>
++                        <div class="flex gap-1.5">
++                           <span class="w-2 h-2 rounded-full bg-red-500/30"></span>
++                           <span class="w-2 h-2 rounded-full bg-yellow-500/30"></span>
++                           <span class="w-2 h-2 rounded-full bg-green-500/30"></span>
++                        </div>
++                     </div>
++                     
++                     <!-- Google Result Card -->
++                     <div class="bg-white text-black p-5 rounded-lg shadow-md font-sans text-sm">
++                        <div class="flex items-center gap-2 text-xs text-slate-600 mb-1">
++                           <span class="font-bold text-black text-[11px] bg-slate-100 px-1.5 py-0.5 rounded">Tài trợ</span>
++                           <span class="text-slate-400 select-none">•</span>
++                           <span class="hover:underline cursor-pointer truncate max-w-[200px] text-slate-700 text-left">
++                              {fAd.final_url ? fAd.final_url.replace(/^https?:\/\//, '').split('/')[0] : 'your-domain.com'}
++                              {#if fAd.display_path1}
++                                 <span class="text-slate-500"> &gt; {fAd.display_path1}</span>
++                              {/if}
++                              {#if fAd.display_path2}
++                                 <span class="text-slate-500"> &gt; {fAd.display_path2}</span>
++                              {/if}
++                           </span>
++                        </div>
++                        
++                        <!-- Title (Blue Link) -->
++                        <h4 class="text-blue-800 text-lg hover:underline cursor-pointer font-medium leading-tight mb-1 tracking-normal text-left">
++                           {#if fAd.headlines && fAd.headlines.filter(h => h.trim()).length > 0}
++                              {fAd.headlines.filter(h => h.trim()).slice(0, 3).join(' | ')}
++                           {:else}
++                              Nhập tiêu đề hoặc bấm gợi ý AI...
++                           {/if}
++                        </h4>
++
++                        <!-- Description (Grey text) -->
++                        <p class="text-slate-700 text-xs leading-relaxed text-left">
++                           {#if fAd.descriptions && fAd.descriptions.filter(d => d.trim()).length > 0}
++                              {fAd.descriptions.filter(d => d.trim()).slice(0, 2).join(' ')}
++                           {:else}
++                              Nhập mô tả sản phẩm ở cột bên trái...
++                           {/if}
++                        </p>
++                     </div>
++                  </div>
++
++                  <!-- AD STRENGTH WIDGET -->
++                  <div class="bg-white/[0.02] border border-white/10 p-6 rounded-none relative overflow-hidden">
++                     <h5 class="text-xs font-black text-white tracking-widest font-mono uppercase mb-4 text-left">Độ mạnh quảng cáo</h5>
++                     
++                     <!-- Score & Label -->
++                     <div class="flex items-end justify-between mb-4">
++                        <span class="text-[9px] text-slate-500 font-mono font-black">CHỈ SỐ SỨC MẠNH</span>
++                        <div class="text-right">
++                           <span class="text-2xl font-black font-mono tracking-tighter {adStrengthLabel() === 'EXCELLENT' ? 'text-emerald-400' : adStrengthLabel() === 'GOOD' ? 'text-cyan-400' : adStrengthLabel() === 'AVERAGE' ? 'text-yellow-500' : 'text-red-500'}">
++                              {adStrengthLabel() === 'EXCELLENT' ? 'RẤT TỐT' : adStrengthLabel() === 'GOOD' ? 'TỐT' : adStrengthLabel() === 'AVERAGE' ? 'TRUNG BÌNH' : 'KÉM'}
++                           </span>
++                           <span class="text-xs text-slate-500 font-mono block">({adStrengthScore()}/100)</span>
++                        </div>
++                     </div>
++
++                     <!-- Progress Bar -->
++                     <div class="w-full h-2 bg-white/5 mb-6 rounded-none overflow-hidden flex">
++                        <div 
++                           class="h-full transition-all duration-500 {adStrengthLabel() === 'EXCELLENT' ? 'bg-emerald-500' : adStrengthLabel() === 'GOOD' ? 'bg-cyan-400' : adStrengthLabel() === 'AVERAGE' ? 'bg-yellow-500' : 'bg-red-500'}"
++                           style="width: {adStrengthScore()}%"
++                        ></div>
++                     </div>
++
++                     <!-- Checklist Criteria -->
++                     <div class="space-y-3 font-mono text-[10px] text-slate-400">
++                        <div class="flex items-center justify-between pb-2 border-b border-white/5">
++                           <span>1. Thêm nhiều dòng tiêu đề hơn</span>
++                           <span class="font-bold {headlinesFilled >= 12 ? 'text-emerald-400' : 'text-slate-600'}">
++                              {headlinesFilled >= 12 ? '✓ ĐẠT' : '✗ CHƯA ĐẠT'} ({headlinesFilled}/15)
++                           </span>
++                        </div>
++                        <div class="flex items-center justify-between pb-2 border-b border-white/5">
++                           <span>2. Bao phủ từ khóa mục tiêu</span>
++                           <span class="font-bold {keywordMatches().length >= Math.min(3, adGroupKeywords.length) ? 'text-emerald-400' : 'text-slate-600'}">
++                              {keywordMatches().length >= Math.min(3, adGroupKeywords.length) ? '✓ ĐẠT' : '✗ CHƯA ĐẠT'} ({keywordMatches().length}/{adGroupKeywords.length})
++                           </span>
++                        </div>
++                        <div class="flex items-center justify-between pb-2 border-b border-white/5">
++                           <span>3. Tiêu đề độc đáo, đa dạng</span>
++                           <span class="font-bold {uniqueHeadlinesCount() >= Math.max(5, Math.round(headlinesFilled * 0.7)) ? 'text-emerald-400' : 'text-slate-600'}">
++                              {uniqueHeadlinesCount() >= Math.max(5, Math.round(headlinesFilled * 0.7)) ? '✓ ĐẠT' : '✗ CHƯA ĐẠT'} ({uniqueHeadlinesCount()}/{headlinesFilled})
++                           </span>
++                        </div>
++                        <div class="flex items-center justify-between pb-2 border-b border-white/5">
++                           <span>4. Mô tả độc đáo, khác biệt</span>
++                           <span class="font-bold {uniqueDescsCount() >= Math.max(2, descsFilled) ? 'text-emerald-400' : 'text-slate-600'}">
++                              {uniqueDescsCount() >= Math.max(2, descsFilled) ? '✓ ĐẠT' : '✗ CHƯA ĐẠT'} ({uniqueDescsCount()}/{descsFilled})
++                           </span>
++                        </div>
++                        <div class="flex items-center justify-between pb-2 border-b border-white/5">
++                           <span>5. Cấu hình Sitelinks liên kết</span>
++                           <span class="font-bold text-emerald-400">✓ KHUYẾN NGHỊ</span>
++                        </div>
++                     </div>
++                  </div>
++
++                  <!-- PURPLE COMPETITOR RESEARCH PANEL -->
++                  <div class="bg-purple-950/20 border border-purple-500/30 p-6 rounded-none relative overflow-hidden group/intel">
++                     <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
++                     
++                     <div class="flex items-center gap-3 mb-4">
++                        <div class="p-2 bg-purple-500/10 border border-purple-500/20 rounded-none text-purple-400">
++                           <Brain size={16} />
++                        </div>
++                        <h5 class="text-xs font-black text-white tracking-widest font-mono uppercase text-left">Trinh sát trang đích đối thủ</h5>
++                     </div>
++
++                     <!-- Input URL to analyze -->
++                     <div class="space-y-3 mb-4">
++                        <p class="text-[9px] text-purple-300/70 font-mono text-left">Nhập link đối thủ để trích xuất chiến thuật, từ khóa và tiêu đề thực tế:</p>
++                        <div class="flex gap-2">
++                           <input 
++                              type="text" 
++                              bind:value={competitorUrl} 
++                              class="flex-1 bg-black/60 border border-purple-500/30 rounded-none p-3 text-xs text-white focus:border-purple-400 outline-none font-mono" 
++                              placeholder="Nhập URL đối thủ..." 
++                           />
++                           <button 
++                              class="px-4 py-3 bg-purple-600 text-white text-[10px] font-black tracking-widest hover:bg-purple-500 transition-all flex items-center gap-2 rounded-none"
++                              onclick={() => analyzeCompetitor(competitorUrl)}
++                              disabled={competitorAnalyzing}
++                           >
++                              {#if competitorAnalyzing}
++                                 <RefreshCw size={12} class="animate-spin" />
++                              {:else}
++                                 <Search size={12} />
++                              {/if}
++                              <span>PHÂN TÍCH</span>
++                           </button>
++                        </div>
++                     </div>
++
++                     {#if competitorAnalysis}
++                        <div class="space-y-6 pt-4 border-t border-purple-500/20" transition:slide>
++                           
++                           <!-- Summary -->
++                           <div class="space-y-2">
++                              <span class="text-[9px] text-purple-400 font-mono font-black block text-left">TỔM TẮT TRANG ĐÍCH</span>
++                              <p class="text-[10px] text-slate-300 bg-black/40 p-3 border border-white/5 leading-relaxed text-left">
++                                 {competitorAnalysis.page_summary || 'Không có tóm tắt.'}
++                              </p>
++                           </div>
++
++                           <!-- Keyword suggestions table -->
++                           <div class="space-y-2">
++                              <span class="text-[9px] text-purple-400 font-mono font-black block text-left">DANH SÁCH TỪ KHÓA MỤC TIÊU</span>
++                              <div class="overflow-hidden border border-white/5 bg-black/40 rounded-none max-h-48 overflow-y-auto">
++                                 <table class="w-full text-left font-mono text-[9px]">
++                                    <thead class="bg-white/5 sticky top-0">
++                                       <tr class="text-slate-500 font-black">
++                                          <th class="p-2">Từ khóa</th>
++                                          <th class="p-2">Intent</th>
++                                          <th class="p-2">Volume</th>
++                                          <th class="p-2">CPC</th>
++                                          <th class="p-2 text-right">Thao tác</th>
++                                       </tr>
++                                    </thead>
++                                    <tbody class="text-slate-300">
++                                       {#each competitorAnalysis.keyword_suggestions || [] as kw}
++                                          <tr class="border-b border-white/5 hover:bg-purple-500/10 group/kw">
++                                             <td class="p-2 font-bold text-white text-left">{kw.keyword}</td>
++                                             <td class="p-2 text-left">
++                                                <span class="px-1.5 py-0.5 rounded-none text-[8px] {kw.intent === 'COMMERCIAL' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}">
++                                                   {kw.intent === 'COMMERCIAL' ? 'MUA' : 'TÌM HIỂU'}
++                                                </span>
++                                             </td>
++                                             <td class="p-2 text-left">{kw.estimated_volume || 'N/A'}</td>
++                                             <td class="p-2 text-left">{kw.estimated_cpc_vnd ? fmt(kw.estimated_cpc_vnd) : 'N/A'}₫</td>
++                                             <td class="p-2 text-right">
++                                                <button 
++                                                   class="px-2 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500 hover:text-white rounded-none font-bold"
++                                                   onclick={() => importKeyword(kw.keyword)}
++                                                   title="Thêm vào tiêu đề quảng cáo"
++                                                >
++                                                   + THÊM
++                                                </button>
++                                             </td>
++                                          </tr>
++                                       {/each}
++                                    </tbody>
++                                 </table>
++                              </div>
++                           </div>
++
++                           <!-- Competitor headlines -->
++                           <div class="space-y-2">
++                              <span class="text-[9px] text-purple-400 font-mono font-black block text-left">TIÊU ĐỀ QUẢNG CÁO ĐỐI THỦ</span>
++                              <div class="space-y-2 max-h-48 overflow-y-auto pr-1 text-left">
++                                 {#each competitorAnalysis.competitor_headlines || [] as ch}
++                                    <div class="bg-black/30 border border-white/5 p-3 flex justify-between items-center gap-3 group/ch hover:border-purple-500/30">
++                                       <div class="flex flex-col gap-1 min-w-0 text-left">
++                                          <span class="text-[10px] text-white font-black truncate">{ch.headline}</span>
++                                          <span class="text-[8px] text-purple-400 truncate">{ch.source_domain}</span>
++                                       </div>
++                                       <button 
++                                          class="px-2 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500 hover:text-white rounded-none text-[9px] font-mono font-bold shrink-0"
++                                          onclick={() => importKeyword(ch.headline)}
++                                       >
++                                          DÙNG
++                                       </button>
++                                    </div>
++                                 {/each}
++                              </div>
++                           </div>
++
++                           <!-- Negative Keywords -->
++                           <div class="space-y-2">
++                              <span class="text-[9px] text-purple-400 font-mono font-black block text-left">GỢI Ý TỪ KHÓA PHỦ ĐỊNH</span>
++                              <div class="flex flex-wrap gap-2 text-left">
++                                 {#each competitorAnalysis.negative_keyword_suggestions || [] as nk}
++                                    <span class="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-mono">
++                                       {nk}
++                                    </span>
++                                 {/each}
++                              </div>
++                           </div>
++
++                           <!-- Gaps warnings -->
++                           {#if competitorAnalysis.seo_gaps}
++                              <div class="border border-yellow-500/30 bg-yellow-500/5 p-4 rounded-none space-y-2 text-left">
++                                 <div class="flex items-center gap-2 text-yellow-500">
++                                    <AlertTriangle size={14} />
++                                    <span class="text-[9px] font-black font-mono uppercase">Kẽ hở so với đối thủ</span>
++                                 </div>
++                                 <p class="text-[10px] text-yellow-200/80 leading-relaxed font-mono text-left">
++                                    {competitorAnalysis.seo_gaps}
++                                 </p>
++                              </div>
++                           {/if}
++
++                        </div>
++                     {/if}
++                  </div>
++               </div>
++            </div>
+          {/if}
+       </div>
+    </div>
+diff --git a/frontend/src/lib/components/admin/ads/adsState.svelte.ts b/frontend/src/lib/components/admin/ads/adsState.svelte.ts
+index 87bc6ba8..5eb9afb6 100644
+--- a/frontend/src/lib/components/admin/ads/adsState.svelte.ts
++++ b/frontend/src/lib/components/admin/ads/adsState.svelte.ts
+@@ -36,6 +36,8 @@ export interface GoogleAd {
+   final_url?: string;
+   headlines?: string[];
+   descriptions?: string[];
++  display_path1?: string;
++  display_path2?: string;
+ }
+ 
+ export interface BlacklistedIP {
+@@ -58,12 +60,52 @@ export interface ReportItem {
+   created_at?: string;
+ }
+ 
++export interface AdStrengthDetails {
++  overall_strength: string;
++  headline_count_ok: boolean;
++  keyword_coverage_ok: boolean;
++  headline_uniqueness_ok: boolean;
++  description_uniqueness_ok: boolean;
++  has_sitelinks: boolean;
++}
++
+ export interface AISuggestionResponse {
+   success: boolean;
+   message?: string;
+   headlines?: string[];
+   descriptions?: string[];
++  display_path1?: string;
++  display_path2?: string;
+   negative_keywords?: string[];
++  ad_strength?: AdStrengthDetails;
++}
++
++export interface KeywordSuggestionItem {
++  keyword: string;
++  intent: 'COMMERCIAL' | 'INFORMATIONAL' | 'NAVIGATIONAL';
++  match_type: 'EXACT' | 'PHRASE' | 'BROAD';
++  relevance: 'HIGH' | 'MEDIUM' | 'LOW';
++  estimated_cpc_vnd?: number;
++  estimated_volume?: string;
++}
++
++export interface CompetitorHeadlineItem {
++  source_domain: string;
++  headline: string;
++  ad_type: 'HEADLINE' | 'DESCRIPTION';
++}
++
++export interface CompetitorAnalysisResponse {
++  success: boolean;
++  message: string;
++  page_title?: string;
++  page_summary?: string;
++  keyword_suggestions: KeywordSuggestionItem[];
++  competitor_headlines: CompetitorHeadlineItem[];
++  negative_keyword_suggestions: string[];
++  recommended_display_path1?: string;
++  recommended_display_path2?: string;
++  seo_gaps?: string;
+ }
+ 
+ export interface GenericSuccessResponse {
+@@ -127,6 +169,7 @@ export function createAdsState() {
+   let selectedCampaign = $state<GoogleCampaign | null>(null);
+   let adGroups = $state<GoogleAdGroup[]>([]);
+   let selectedAdGroup = $state<GoogleAdGroup | null>(null);
++  let selectedAd = $state<GoogleAd | null>(null);
+   let ads = $state<GoogleAd[]>([]);
+   let blacklistedIPs = $state<BlacklistedIP[]>([]);
+   let negativeKeywords = $state<NegativeKeyword[]>([]);
+@@ -190,6 +233,10 @@ export function createAdsState() {
+   });
+   let adSubmitting = $state(false);
+   let aiGenerating = $state(false);
++  let competitorAnalysis = $state<CompetitorAnalysisResponse | null>(null);
++  let competitorAnalyzing = $state(false);
++  let competitorUrl = $state('');
++  let adGroupKeywords = $state<string[]>([]);
+ 
+   
+   
+@@ -459,9 +506,15 @@ export function createAdsState() {
+ 
+   async function fetchAds(ag: GoogleAdGroup) {
+     selectedAdGroup = ag; adsLoading = true; campaignView = 'ads';
++    adGroupKeywords = [];
+     try {
+       const id = ag.resource_name.split('/').pop();
+-      ads = await apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`) ?? [];
++      const [adsList, kws] = await Promise.all([
++        apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`),
++        apiClient.get<string[]>(`${ADS_API}/ad-groups/${id}/keywords`).catch(() => [])
++      ]);
++      ads = adsList ?? [];
++      adGroupKeywords = kws ?? [];
+     } finally { adsLoading = false; }
+   }
+ 
+@@ -512,11 +565,12 @@ export function createAdsState() {
+   function selectAdForEdit(ad: GoogleAd, ag: GoogleAdGroup, c: GoogleCampaign) {
+     selectedCampaign = c;
+     selectedAdGroup = ag;
++    selectedAd = ad;
+     isEditingAd = true;
+     
+     fAd.final_url = ad.final_url || '';
+-    fAd.display_path1 = ''; 
+-    fAd.display_path2 = '';
++    fAd.display_path1 = ad.display_path1 || ''; 
++    fAd.display_path2 = ad.display_path2 || '';
+     fAd.status = ad.status || 'PAUSED';
+     fAd.headlines = Array(15).fill('');
+     fAd.descriptions = Array(4).fill('');
+@@ -611,9 +665,14 @@ export function createAdsState() {
+         fAdGroup.name = '';
+         fAdGroup.keywords_raw = '';
+         fAdGroup.cpc_bid_vnd = 5000;
+-        // Go back/refresh
+-        campaignView = 'ad_groups';
+-        fetchAdGroups(selectedCampaign);
++        // Go back/refresh tree view
++        const campRes = selectedCampaign.resource_name;
++        expandedCampaigns[campRes] = true;
++        const id = campRes.split('/').pop();
++        apiClient.get<GoogleAdGroup[]>(`${ADS_API}/campaigns/${id}/ad-groups`).then(freshAg => {
++          campaignAdGroups[campRes] = freshAg ?? [];
++        });
++        campaignView = 'list';
+       } else {
+         nanobot.showToast(res.message || 'Lỗi tạo Ad Group', 'error');
+       }
+@@ -663,6 +722,20 @@ export function createAdsState() {
+       const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ads`, payload);
+       if (res.success) {
+         nanobot.showToast(res.message || 'Tạo quảng cáo thành công!', 'success');
++        
++        // If editing, pause the old ad asynchronously
++        if (isEditingAd && selectedAd) {
++          apiClient.patch(`${ADS_API}/ads/status`, {
++            resource_name: selectedAd.resource_name,
++            status: 'PAUSED'
++          }).then(patchRes => {
++            if (patchRes.success) {
++              nanobot.showToast('Đã tự động tạm dừng mẫu quảng cáo cũ.', 'info');
++            }
++          }).catch(err => {
++            console.error('Failed to pause old ad:', err);
++          });
++        }
+         // Reset form
+         fAd.final_url = '';
+         fAd.display_path1 = '';
+@@ -670,9 +743,18 @@ export function createAdsState() {
+         fAd.status = 'PAUSED';
+         fAd.headlines = Array(15).fill('');
+         fAd.descriptions = Array(4).fill('');
+-        // Go back/refresh
+-        campaignView = 'ads';
+-        fetchAds(selectedAdGroup);
++        // Reset edit state
++        isEditingAd = false;
++        selectedAd = null;
++        aiResult = null;
++        // Go back/refresh tree view
++        const agRes = selectedAdGroup.resource_name;
++        expandedAdGroups[agRes] = true;
++        const id = agRes.split('/').pop();
++        apiClient.get<GoogleAd[]>(`${ADS_API}/ad-groups/${id}/ads`).then(freshAds => {
++          adGroupAds[agRes] = freshAds ?? [];
++        });
++        campaignView = 'list';
+       } else {
+         nanobot.showToast(res.message || 'Lỗi tạo mẫu quảng cáo', 'error');
+       }
+@@ -694,10 +776,12 @@ export function createAdsState() {
+     try {
+       const res = await apiClient.post<AISuggestionResponse>(`${ADS_API}/ai-suggest`, {
+         task: 'RSA',
+-        context: url
++        context: url,
++        ad_group_resource_name: selectedAdGroup?.resource_name
+       });
+       if (res.success) {
+         nanobot.showToast(res.message || 'Xohi gợi ý thành công!', 'success');
++        aiResult = res; // [NEW] Lưu kết quả gợi ý bao gồm độ mạnh quảng cáo
+         if (res.headlines && Array.isArray(res.headlines)) {
+           for (let i = 0; i < 15; i++) {
+             fAd.headlines[i] = res.headlines[i] || '';
+@@ -708,6 +792,12 @@ export function createAdsState() {
+             fAd.descriptions[i] = res.descriptions[i] || '';
+           }
+         }
++        if (res.display_path1) {
++          fAd.display_path1 = res.display_path1;
++        }
++        if (res.display_path2) {
++          fAd.display_path2 = res.display_path2;
++        }
+       } else {
+         nanobot.showToast(res.message || 'Lỗi gợi ý AI', 'error');
+       }
+@@ -721,6 +811,51 @@ export function createAdsState() {
+   }
+ 
+ 
++  async function analyzeCompetitor(url: string) {
++    if (!url) {
++      nanobot.showToast('Vui lòng nhập URL để phân tích', 'warning');
++      return;
++    }
++    competitorAnalyzing = true;
++    competitorAnalysis = null;
++    try {
++      const res = await apiClient.post<CompetitorAnalysisResponse>(`${ADS_API}/ai-competitor-research`, {
++        url,
++        ad_group_resource_name: selectedAdGroup?.resource_name
++      });
++      if (res.success) {
++        competitorAnalysis = res;
++        // Tự động áp dụng display paths nếu chưa có
++        if (!fAd.display_path1 && res.recommended_display_path1) {
++          fAd.display_path1 = res.recommended_display_path1;
++        }
++        if (!fAd.display_path2 && res.recommended_display_path2) {
++          fAd.display_path2 = res.recommended_display_path2;
++        }
++        nanobot.showToast('Phân tích hoàn tất!', 'success');
++      } else {
++        nanobot.showToast(res.message || 'Phân tích thất bại', 'error');
++      }
++    } catch (error: unknown) {
++      const err = error as { response?: { data?: { detail?: string } }; message?: string };
++      const errMsg = err.response?.data?.detail || err.message || 'Lỗi kết nối API';
++      nanobot.showToast(`Lỗi phân tích: ${errMsg}`, 'error');
++    } finally {
++      competitorAnalyzing = false;
++    }
++  }
++
++  function importKeyword(kw: string) {
++    // Thêm từ khóa vào headlines nếu còn chỗ trống
++    const emptyIdx = fAd.headlines.findIndex(h => !h.trim());
++    if (emptyIdx !== -1) {
++      fAd.headlines[emptyIdx] = kw;
++      nanobot.showToast(`Đã thêm "${kw}" vào tiêu đề #${emptyIdx + 1}`, 'success');
++    } else {
++      nanobot.showToast('Tất cả 15 tiêu đề đã đầy', 'warning');
++    }
++  }
++
+ 
+    async function fetchNegativeKeywords() {
+      negativeKeywordsLoading = true;
+@@ -807,6 +942,7 @@ export function createAdsState() {
+     get selectedCampaign() { return selectedCampaign }, set selectedCampaign(v) { selectedCampaign = v },
+     get adGroups() { return adGroups }, 
+     get selectedAdGroup() { return selectedAdGroup }, set selectedAdGroup(v) { selectedAdGroup = v },
++    get selectedAd() { return selectedAd }, set selectedAd(v) { selectedAd = v },
+     get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
+     get blacklistedIPs() { return blacklistedIPs },
+     get aiResult() { return aiResult },
+@@ -843,8 +979,12 @@ export function createAdsState() {
+     get adGroupAds() { return adGroupAds }, set adGroupAds(v) { adGroupAds = v },
+     get loadingCampaigns() { return loadingCampaigns },
+     get loadingAdGroups() { return loadingAdGroups },
++    get competitorAnalysis() { return competitorAnalysis }, set competitorAnalysis(v) { competitorAnalysis = v },
++    get competitorAnalyzing() { return competitorAnalyzing },
++    get competitorUrl() { return competitorUrl }, set competitorUrl(v) { competitorUrl = v },
++    get adGroupKeywords() { return adGroupKeywords }, set adGroupKeywords(v) { adGroupKeywords = v },
+     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
+-    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
++    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+     getDateRange,
+     initSSE, initEdge, solvePoW, dispose,
+     get edgeStatus() { return edgeStatus },
+diff --git a/frontend/src/lib/state/commerce/supportAgent.svelte.ts b/frontend/src/lib/state/commerce/supportAgent.svelte.ts
+index 9f9724df..9675650e 100644
+--- a/frontend/src/lib/state/commerce/supportAgent.svelte.ts
++++ b/frontend/src/lib/state/commerce/supportAgent.svelte.ts
+@@ -155,13 +155,12 @@ class SupportAgentState {
+      */
+     vibrate(pattern: number | number[] = 10) {
+         if (browser && "vibrate" in navigator) {
+-            // ELITE V2.2: Safely vibrate only if interaction is allowed
+             try {
+-                // @ts-ignore - navigator.userActivation is experimental but helpful
+-                if (!navigator.userActivation || navigator.userActivation.isActive) {
++                const nav = navigator as Navigator & { userActivation?: { isActive: boolean } };
++                if (!nav.userActivation || nav.userActivation.isActive) {
+                     navigator.vibrate(pattern);
+                 }
+-            } catch (e) {
++            } catch (error: unknown) {
+                 // Ignore if blocked
+             }
+         }
+@@ -187,6 +186,7 @@ class SupportAgentState {
+      * Trigger a neural pulse for attention
+      */
+     triggerPulse() {
++        if (!browser) return;
+         this.aiPulse = true;
+         this.vibrate([20, 30, 20]);
+         setTimeout(() => {
+@@ -198,6 +198,7 @@ class SupportAgentState {
+      * Update current navigation path for context awareness
+      */
+     setPath(path: string) {
++        if (!browser) return;
+         if (this.currentPath && this.currentPath !== path) {
+             // Elite V2.2: History Ghosting Fix - Context Segregation
+             const isProductToProduct = this.currentPath.length > 20 && path.length > 20;
+@@ -224,6 +225,7 @@ class SupportAgentState {
+      * Fetch Helen AI global status & offline message
+      */
+     async fetchStatus(): Promise<void> {
++        if (!browser) return;
+         try {
+             const res = await apiClient.get<SupportStatusResponse>("/api/v1/client/support/status");
+             if (res) {
+@@ -240,6 +242,7 @@ class SupportAgentState {
+      * Ensures history is loaded if missing, avoiding the "welcome message only" trap.
+      */
+     async ensureHistoryLoaded(limit: number = 20) {
++        if (!browser) return;
+         // If we already have a real conversation (more than just the welcome message), skip
+         if (this.messages.some((m: SupportMessage) => m.role === "user")) {
+             return;
+@@ -262,9 +265,6 @@ class SupportAgentState {
+                     timestamp: new Date()
+                 } as SupportMessage
+             ];
+-        } else {
+-            // We have history, but maybe it only contains old messages. 
+-            // If the last message is very old, we could optionally add a nudge, but for now just keep as is.
+         }
+     }
+ 
+@@ -272,6 +272,7 @@ class SupportAgentState {
+      * Call this inside a root +layout.svelte or onMount to initialize config and load history
+      */
+     async init(envAgentName?: string) {
++        if (!browser) return;
+         if (this.sessionId) return;
+         // Elite V2.2 (R03): Secure Cookie Initialization
+         try {
+@@ -279,8 +280,8 @@ class SupportAgentState {
+             if (res && res.session_id) {
+                 this.sessionId = res.session_id;
+             }
+-        } catch(e) {
+-            logger.warn("[SupportAgent] Failed to init secure session cookie:", e);
++        } catch (error: unknown) {
++            logger.warn("[SupportAgent] Failed to init secure session cookie:", error);
+         }
+ 
+         // Elite V2.2: Fetch global AI toggle state first
+@@ -289,15 +290,13 @@ class SupportAgentState {
+         if (envAgentName) {
+             this.config.agentName = envAgentName;
+         }
+-        
+-        // Elite V2.2: Removed proactive ensureHistoryLoaded to save RAM.
+-        // History will ONLY load when the user actually opens the chat (Zero-Load policy).
+     }
+ 
+     /**
+      * Paginated history loader (Zalo-style)
+      */
+     async loadHistory(limit: number = 20) {
++        if (!browser) return;
+         if (this.isHistoryLoading || !this.hasMoreHistory) return;
+ 
+         this.isHistoryLoading = true;
+@@ -316,7 +315,7 @@ class SupportAgentState {
+ 
+             if (Array.isArray(res)) {
+                 const history: SupportMessage[] = res.map((m: SupportHistoryItem) => ({
+-                    id: m.id,
++                    id: m.id || crypto.randomUUID(),
+                     role: m.role,
+                     content: m.content,
+                     intent: m.intent,
+@@ -333,7 +332,7 @@ class SupportAgentState {
+                     this._mergeMessages(history);
+                 }
+             }
+-        } catch (error) {
++        } catch (error: unknown) {
+             logger.error("[SupportAgent] History load error:", error);
+             getNotificationState().addPendingSignal({
+                 id: crypto.randomUUID(),
+@@ -348,6 +347,7 @@ class SupportAgentState {
+     }
+ 
+     async toggle() {
++        if (!browser) return;
+         this.isOpen = !this.isOpen;
+         if (this.isOpen) {
+             // Re-sync with backend to catch Admin changes without refresh
+@@ -369,6 +369,7 @@ class SupportAgentState {
+     }
+ 
+     async open() {
++        if (!browser) return;
+         if (!this.isOpen) {
+             this.isOpen = true;
+             await this.fetchStatus();
+@@ -384,6 +385,7 @@ class SupportAgentState {
+     }
+ 
+     close() {
++        if (!browser) return;
+         this.isOpen = false;
+         this._disconnectPulse();
+     }
+@@ -479,8 +481,8 @@ class SupportAgentState {
+                         this.isTyping = false;
+                         // Note: We keep the SSE channel active permanently thưa sếp!
+                     }
+-                } catch (e) {
+-                    logger.error("[Pulse] Error parsing response data:", e);
++                } catch (error: unknown) {
++                    logger.error("[Pulse] Error parsing response data:", error);
+                 }
+             });
+ 
+@@ -527,13 +529,13 @@ class SupportAgentState {
+                             this.vibrate(20);
+                         }
+                     }
+-                } catch (e) {
+-                    logger.error("[Pulse] Error parsing update data:", e);
++                } catch (error: unknown) {
++                    logger.error("[Pulse] Error parsing update data:", error);
+                 }
+             });
+ 
+-            this._pulseSource.onerror = (err) => {
+-                logger.warn("[Pulse] SSE connection state changed, auto-recovering...");
++            this._pulseSource.onerror = (err: Event) => {
++                logger.warn("[Pulse] SSE connection state changed, auto-recovering...", err);
+                 // If there's a permanent error or we have no session, disconnect to prevent infinite loop thưa sếp!
+                 if (!this.sessionId) {
+                     this._disconnectPulse();
+@@ -583,6 +585,7 @@ class SupportAgentState {
+         pricingContext?: SupportPricingContext,
+         displayText?: string
+     ) {
++        if (!browser) return;
+         if (!text.trim() || this.isTyping) return;
+ 
+         // Elite V3.6: Client-side duplicate message check — 30s window only (không block vĩnh viễn)
+diff --git a/scripts/watch_sync.py b/scripts/watch_sync.py
+index e05db2b7..d1164671 100755
+--- a/scripts/watch_sync.py
++++ b/scripts/watch_sync.py
+@@ -4,7 +4,26 @@ import time
+ import subprocess
+ 
+ WATCH_DIR = "/media/lv/data/fast-platform-core"
+-EXCLUDE_DIRS = {'.git', 'node_modules', '.venv', 'backups', 'logs', '.pytest_cache', '__pycache__'}
++EXCLUDE_DIRS = {
++    '.git', 'node_modules', '.venv', 'backups', 'logs', '.pytest_cache', 
++    '__pycache__', '.svelte-kit', '.next', '.vscode', '.cursor', '.idea',
++    'temp', 'tmp', 'cache', 'uploads', 'dist', 'build'
++}
++
++def should_ignore(file):
++    # Ignore swap files, log files, lock files, database files, and system/IDE files
++    ignored_extensions = ('.swp', '.swo', '.log', '.pyc', '.pyo', '.db', '.sqlite', '.sqlite3', '.resolved', '.tsbuildinfo')
++    if file.endswith(ignored_extensions):
++        return True
++    
++    ignored_names = {'.DS_Store', '.env', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'uv.lock', 'poetry.lock', 'keys.txt'}
++    if file in ignored_names:
++        return True
++        
++    if file.startswith('.#') or file.startswith('._'):
++        return True
++        
++    return False
+ 
+ def get_file_mtimes():
+     mtimes = {}
+@@ -13,8 +32,7 @@ def get_file_mtimes():
+         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+         
+         for file in files:
+-            # Only ignore temp files, editor swap files, etc.
+-            if file.startswith('.#') or file.endswith('.swp') or file == '.DS_Store':
++            if should_ignore(file):
+                 continue
+             path = os.path.join(root, file)
+             try:
+@@ -36,6 +54,23 @@ def sync_to_vps():
+         "--exclude", "logs/",
+         "--exclude", ".pytest_cache/",
+         "--exclude", "build/",
++        "--exclude", "dist/",
++        "--exclude", ".svelte-kit/",
++        "--exclude", ".next/",
++        "--exclude", ".vscode/",
++        "--exclude", ".cursor/",
++        "--exclude", ".idea/",
++        "--exclude", "temp/",
++        "--exclude", "tmp/",
++        "--exclude", "cache/",
++        "--exclude", "uploads/",
++        "--exclude", "__pycache__/",
++        "--exclude", "*.log",
++        "--exclude", "*.db",
++        "--exclude", "*.sqlite",
++        "--exclude", "*.sqlite3",
++        "--exclude", "*.swp",
++        "--exclude", "*.swo",
+         "-e", "ssh -o StrictHostKeyChecking=no",
+         "./", "mlap@103.1.236.14:/opt/fast-platform/"
+     ]

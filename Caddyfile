@@ -47,7 +47,9 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	# Serve storefront static files directly with long-lived Cache-Control headers (Elite V3.0)
 	@static_files {
 		path *.webp *.png *.jpg *.jpeg *.svg *.gif *.ico *.js *.css *.woff2 *.ttf
-		not path /_app/*
+		not {
+			path /_app/* /wasm/* /vad/* /models/*
+		}
 	}
 	handle @static_files {
 		root * /app/frontend/static
@@ -67,6 +69,15 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 
 	# Backend Routes (Unified)
 	handle /api/* {
+		import service_proxy
+	}
+
+	# WASM & AI Core Static Assets CORS policy (Elite V3.0)
+	@wasm_assets path /wasm/* /vad/* /models/*
+	handle @wasm_assets {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		header Access-Control-Allow-Headers "*"
 		import service_proxy
 	}
 

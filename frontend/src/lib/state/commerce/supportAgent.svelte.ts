@@ -155,13 +155,12 @@ class SupportAgentState {
      */
     vibrate(pattern: number | number[] = 10) {
         if (browser && "vibrate" in navigator) {
-            // ELITE V2.2: Safely vibrate only if interaction is allowed
             try {
-                // @ts-ignore - navigator.userActivation is experimental but helpful
-                if (!navigator.userActivation || navigator.userActivation.isActive) {
+                const nav = navigator as Navigator & { userActivation?: { isActive: boolean } };
+                if (!nav.userActivation || nav.userActivation.isActive) {
                     navigator.vibrate(pattern);
                 }
-            } catch (e) {
+            } catch (error: unknown) {
                 // Ignore if blocked
             }
         }
@@ -187,6 +186,7 @@ class SupportAgentState {
      * Trigger a neural pulse for attention
      */
     triggerPulse() {
+        if (!browser) return;
         this.aiPulse = true;
         this.vibrate([20, 30, 20]);
         setTimeout(() => {
@@ -198,6 +198,7 @@ class SupportAgentState {
      * Update current navigation path for context awareness
      */
     setPath(path: string) {
+        if (!browser) return;
         if (this.currentPath && this.currentPath !== path) {
             // Elite V2.2: History Ghosting Fix - Context Segregation
             const isProductToProduct = this.currentPath.length > 20 && path.length > 20;
@@ -224,6 +225,7 @@ class SupportAgentState {
      * Fetch Helen AI global status & offline message
      */
     async fetchStatus(): Promise<void> {
+        if (!browser) return;
         try {
             const res = await apiClient.get<SupportStatusResponse>("/api/v1/client/support/status");
             if (res) {
@@ -240,6 +242,7 @@ class SupportAgentState {
      * Ensures history is loaded if missing, avoiding the "welcome message only" trap.
      */
     async ensureHistoryLoaded(limit: number = 20) {
+        if (!browser) return;
         // If we already have a real conversation (more than just the welcome message), skip
         if (this.messages.some((m: SupportMessage) => m.role === "user")) {
             return;
@@ -262,9 +265,6 @@ class SupportAgentState {
                     timestamp: new Date()
                 } as SupportMessage
             ];
-        } else {
-            // We have history, but maybe it only contains old messages. 
-            // If the last message is very old, we could optionally add a nudge, but for now just keep as is.
         }
     }
 
@@ -272,6 +272,7 @@ class SupportAgentState {
      * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
     async init(envAgentName?: string) {
+        if (!browser) return;
         if (this.sessionId) return;
         // Elite V2.2 (R03): Secure Cookie Initialization
         try {
@@ -279,8 +280,8 @@ class SupportAgentState {
             if (res && res.session_id) {
                 this.sessionId = res.session_id;
             }
-        } catch(e) {
-            logger.warn("[SupportAgent] Failed to init secure session cookie:", e);
+        } catch (error: unknown) {
+            logger.warn("[SupportAgent] Failed to init secure session cookie:", error);
         }
 
         // Elite V2.2: Fetch global AI toggle state first
@@ -289,15 +290,13 @@ class SupportAgentState {
         if (envAgentName) {
             this.config.agentName = envAgentName;
         }
-        
-        // Elite V2.2: Removed proactive ensureHistoryLoaded to save RAM.
-        // History will ONLY load when the user actually opens the chat (Zero-Load policy).
     }
 
     /**
      * Paginated history loader (Zalo-style)
      */
     async loadHistory(limit: number = 20) {
+        if (!browser) return;
         if (this.isHistoryLoading || !this.hasMoreHistory) return;
 
         this.isHistoryLoading = true;
@@ -316,7 +315,7 @@ class SupportAgentState {
 
             if (Array.isArray(res)) {
                 const history: SupportMessage[] = res.map((m: SupportHistoryItem) => ({
-                    id: m.id,
+                    id: m.id || crypto.randomUUID(),
                     role: m.role,
                     content: m.content,
                     intent: m.intent,
@@ -333,7 +332,7 @@ class SupportAgentState {
                     this._mergeMessages(history);
                 }
             }
-        } catch (error) {
+        } catch (error: unknown) {
             logger.error("[SupportAgent] History load error:", error);
             getNotificationState().addPendingSignal({
                 id: crypto.randomUUID(),
@@ -348,6 +347,7 @@ class SupportAgentState {
     }
 
     async toggle() {
+        if (!browser) return;
         this.isOpen = !this.isOpen;
         if (this.isOpen) {
             // Re-sync with backend to catch Admin changes without refresh
@@ -369,6 +369,7 @@ class SupportAgentState {
     }
 
     async open() {
+        if (!browser) return;
         if (!this.isOpen) {
             this.isOpen = true;
             await this.fetchStatus();
@@ -384,6 +385,7 @@ class SupportAgentState {
     }
 
     close() {
+        if (!browser) return;
         this.isOpen = false;
         this._disconnectPulse();
     }
@@ -479,8 +481,8 @@ class SupportAgentState {
                         this.isTyping = false;
                         // Note: We keep the SSE channel active permanently thưa sếp!
                     }
-                } catch (e) {
-                    logger.error("[Pulse] Error parsing response data:", e);
+                } catch (error: unknown) {
+                    logger.error("[Pulse] Error parsing response data:", error);
                 }
             });
 
@@ -527,13 +529,13 @@ class SupportAgentState {
                             this.vibrate(20);
                         }
                     }
-                } catch (e) {
-                    logger.error("[Pulse] Error parsing update data:", e);
+                } catch (error: unknown) {
+                    logger.error("[Pulse] Error parsing update data:", error);
                 }
             });
 
-            this._pulseSource.onerror = (err) => {
-                logger.warn("[Pulse] SSE connection state changed, auto-recovering...");
+            this._pulseSource.onerror = (err: Event) => {
+                logger.warn("[Pulse] SSE connection state changed, auto-recovering...", err);
                 // If there's a permanent error or we have no session, disconnect to prevent infinite loop thưa sếp!
                 if (!this.sessionId) {
                     this._disconnectPulse();
@@ -583,6 +585,7 @@ class SupportAgentState {
         pricingContext?: SupportPricingContext,
         displayText?: string
     ) {
+        if (!browser) return;
         if (!text.trim() || this.isTyping) return;
 
         // Elite V3.6: Client-side duplicate message check — 30s window only (không block vĩnh viễn)

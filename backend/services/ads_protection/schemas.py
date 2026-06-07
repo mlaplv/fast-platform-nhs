@@ -206,6 +206,7 @@ class ResponsiveSearchAdCreate(BaseModel):
     final_url: str = Field(description="Landing page URL - phải là HTTPS")
     display_path1: Optional[str] = Field(default=None, max_length=15)
     display_path2: Optional[str] = Field(default=None, max_length=15)
+    status: Optional[str] = Field(default="ENABLED", pattern="^(ENABLED|PAUSED)$")
     call_to_action: Optional[str] = None
 
 
@@ -280,6 +281,8 @@ class AdInfo(BaseModel):
     headlines: list[str]
     descriptions: list[str]
     final_url: str
+    display_path1: Optional[str] = None
+    display_path2: Optional[str] = None
     policy_summary: str = "ELIGIBLE"
 
 
@@ -309,6 +312,18 @@ class AISuggestionRequest(BaseModel):
     """Yêu cầu gợi ý từ AI."""
     task: str  # "CAMPAIGN" | "RSA" | "NEGATIVE_KEYWORDS"
     context: str # Nội dung mô tả sản phẩm/mục tiêu của Sếp
+    keywords: Optional[list[str]] = None # [NEW] Các từ khóa hiện có của Ad Group
+    ad_group_resource_name: Optional[str] = None # [NEW] Resource name của Ad Group mục tiêu
+
+
+class AdStrengthDetails(BaseModel):
+    """Chi tiết đánh giá độ mạnh quảng cáo theo tiêu chuẩn Google Ads."""
+    overall_strength: str  # "POOR" | "AVERAGE" | "GOOD" | "EXCELLENT"
+    headline_count_ok: bool
+    keyword_coverage_ok: bool
+    headline_uniqueness_ok: bool
+    description_uniqueness_ok: bool
+    has_sitelinks: bool
 
 
 class AISuggestionResponse(BaseModel):
@@ -323,6 +338,8 @@ class AISuggestionResponse(BaseModel):
     
     headlines: Optional[list[str]] = None
     descriptions: Optional[list[str]] = None
+    display_path1: Optional[str] = None  # [NEW] Đường dẫn hiển thị 1
+    display_path2: Optional[str] = None  # [NEW] Đường dẫn hiển thị 2
     
     negative_keywords: Optional[list[str]] = None
     
@@ -333,3 +350,44 @@ class AISuggestionResponse(BaseModel):
     seo_score: Optional[float] = None
     sge_score: Optional[float] = None
     quality_score: Optional[float] = None
+    ad_strength: Optional[AdStrengthDetails] = None  # [NEW] Đánh giá độ mạnh quảng cáo
+
+
+# ─── Competitor Analysis & Keyword Planning ───────────────────────────────────
+
+class CompetitorAnalysisRequest(BaseModel):
+    """Yêu cầu phân tích đối thủ và gợi ý từ khóa từ URL."""
+    url: str = Field(description="URL landing page của mình hoặc đối thủ")
+    ad_group_resource_name: Optional[str] = None
+
+
+class KeywordSuggestionItem(BaseModel):
+    """Một từ khóa được gợi ý kèm thông tin đánh giá."""
+    keyword: str
+    intent: str          # "COMMERCIAL" | "INFORMATIONAL" | "NAVIGATIONAL"
+    match_type: str      # "EXACT" | "PHRASE" | "BROAD"
+    relevance: str       # "HIGH" | "MEDIUM" | "LOW"
+    estimated_cpc_vnd: Optional[int] = None
+    estimated_volume: Optional[str] = None  # "< 100" | "100-1K" | "1K-10K" | "> 10K"
+
+
+class CompetitorHeadlineItem(BaseModel):
+    """Một dòng tiêu đề/mô tả từ quảng cáo của đối thủ."""
+    source_domain: str
+    headline: str
+    ad_type: str  # "HEADLINE" | "DESCRIPTION"
+
+
+class CompetitorAnalysisResponse(BaseModel):
+    """Kết quả phân tích đối thủ và kế hoạch từ khóa."""
+    success: bool
+    message: str
+    page_title: Optional[str] = None
+    page_summary: Optional[str] = None          # Tóm tắt nội dung trang
+    keyword_suggestions: list[KeywordSuggestionItem] = []
+    competitor_headlines: list[CompetitorHeadlineItem] = []
+    negative_keyword_suggestions: list[str] = []
+    recommended_display_path1: Optional[str] = None
+    recommended_display_path2: Optional[str] = None
+    seo_gaps: Optional[str] = None              # Kẽ hở so với đối thủ
+

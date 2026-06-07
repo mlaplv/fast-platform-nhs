@@ -453,7 +453,7 @@ class CampaignManager:
         ad_op: dict[str, object] = {
             "create": {
                 "adGroup": req.ad_group_resource_name,
-                "status": "ENABLED",
+                "status": req.status or "ENABLED",
                 "ad": {
                     "responsiveSearchAd": {
                         "headlines": [{"text": h} for h in req.headlines],
@@ -477,6 +477,52 @@ class CampaignManager:
             policy_check=policy_result,
         )
 
+    async def update_ad_status(
+        self, ad_group_ad_resource_name: str, status: str
+    ) -> bool:
+        """Cập nhật trạng thái Ad (ENABLED / PAUSED / REMOVED)."""
+        if not self._has_credentials():
+            return False
+        token = await self._get_access_token()
+        if not token:
+            return False
+        op = {
+            "update": {
+                "resourceName": ad_group_ad_resource_name,
+                "status": status,
+            },
+            "updateMask": "status",
+        }
+        result = await self._mutate(token, "adGroupAds", [op])
+        success = bool(result)
+        logger.info("ad_status_update resource=%s status=%s success=%s", ad_group_ad_resource_name, status, success)
+        return success
+
+    async def list_ad_group_keywords(self, ad_group_resource_name: str) -> list[str]:
+        """Danh sách từ khóa (positive keywords) đang hoạt động của một Ad Group."""
+        if not self._has_credentials():
+            return []
+        token = await self._get_access_token()
+        if not token:
+            return []
+        query = f"""
+            SELECT
+                ad_group_criterion.keyword.text
+            FROM ad_group_criterion
+            WHERE ad_group.resource_name = '{ad_group_resource_name}'
+              AND ad_group_criterion.status = 'ENABLED'
+              AND ad_group_criterion.negative = FALSE
+        """
+        rows = await self._search(token, query)
+        keywords = []
+        for r in rows:
+            criterion = r.get("adGroupCriterion", {})
+            kw = criterion.get("keyword", {})
+            text = kw.get("text")
+            if text:
+                keywords.append(text)
+        return keywords
+
     async def list_ads(self, ad_group_resource_name: str) -> list[AdInfo]:
         """Danh sách ads của một Ad Group."""
         if not self._has_credentials():
@@ -492,6 +538,8 @@ class CampaignManager:
                 ad_group_ad.status,
                 ad_group_ad.ad.responsive_search_ad.headlines,
                 ad_group_ad.ad.responsive_search_ad.descriptions,
+                ad_group_ad.ad.responsive_search_ad.path1,
+                ad_group_ad.ad.responsive_search_ad.path2,
                 ad_group_ad.ad.final_urls,
                 ad_group_ad.policy_summary.approval_status
             FROM ad_group_ad
@@ -512,6 +560,8 @@ class CampaignManager:
                 headlines=[h.get("text", "") for h in rsa.get("headlines", [])],
                 descriptions=[d.get("text", "") for d in rsa.get("descriptions", [])],
                 final_url=(ad.get("finalUrls") or [""])[0],
+                display_path1=rsa.get("path1"),
+                display_path2=rsa.get("path2"),
                 policy_summary=a.get("policySummary", {}).get("approvalStatus", "ELIGIBLE"),
             ))
         return result_ads

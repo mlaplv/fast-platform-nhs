@@ -4,7 +4,26 @@ import time
 import subprocess
 
 WATCH_DIR = "/media/lv/data/fast-platform-core"
-EXCLUDE_DIRS = {'.git', 'node_modules', '.venv', 'backups', 'logs', '.pytest_cache', '__pycache__'}
+EXCLUDE_DIRS = {
+    '.git', 'node_modules', '.venv', 'backups', 'logs', '.pytest_cache', 
+    '__pycache__', '.svelte-kit', '.next', '.vscode', '.cursor', '.idea',
+    'temp', 'tmp', 'cache', 'uploads', 'dist', 'build'
+}
+
+def should_ignore(file):
+    # Ignore swap files, log files, lock files, database files, and system/IDE files
+    ignored_extensions = ('.swp', '.swo', '.log', '.pyc', '.pyo', '.db', '.sqlite', '.sqlite3', '.resolved', '.tsbuildinfo')
+    if file.endswith(ignored_extensions):
+        return True
+    
+    ignored_names = {'.DS_Store', '.env', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'uv.lock', 'poetry.lock', 'keys.txt'}
+    if file in ignored_names:
+        return True
+        
+    if file.startswith('.#') or file.startswith('._'):
+        return True
+        
+    return False
 
 def get_file_mtimes():
     mtimes = {}
@@ -13,8 +32,7 @@ def get_file_mtimes():
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
         
         for file in files:
-            # Only ignore temp files, editor swap files, etc.
-            if file.startswith('.#') or file.endswith('.swp') or file == '.DS_Store':
+            if should_ignore(file):
                 continue
             path = os.path.join(root, file)
             try:
@@ -36,6 +54,23 @@ def sync_to_vps():
         "--exclude", "logs/",
         "--exclude", ".pytest_cache/",
         "--exclude", "build/",
+        "--exclude", "dist/",
+        "--exclude", ".svelte-kit/",
+        "--exclude", ".next/",
+        "--exclude", ".vscode/",
+        "--exclude", ".cursor/",
+        "--exclude", ".idea/",
+        "--exclude", "temp/",
+        "--exclude", "tmp/",
+        "--exclude", "cache/",
+        "--exclude", "uploads/",
+        "--exclude", "__pycache__/",
+        "--exclude", "*.log",
+        "--exclude", "*.db",
+        "--exclude", "*.sqlite",
+        "--exclude", "*.sqlite3",
+        "--exclude", "*.swp",
+        "--exclude", "*.swo",
         "-e", "ssh -o StrictHostKeyChecking=no",
         "./", "mlap@103.1.236.14:/opt/fast-platform/"
     ]
