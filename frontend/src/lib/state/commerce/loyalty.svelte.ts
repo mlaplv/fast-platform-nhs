@@ -26,6 +26,9 @@ class LoyaltyStore {
     error = $state<string | null>(null);
 
     async fetchLoyalty() {
+        if (typeof window !== 'undefined') {
+            await authStore.waitForSessionVerification();
+        }
         if (!authStore.user) return;
         
         this.loading = true;

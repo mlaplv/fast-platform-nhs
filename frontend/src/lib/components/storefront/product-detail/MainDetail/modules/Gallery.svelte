@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { Product } from '$lib/types';
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
@@ -40,6 +41,11 @@
     // Reset override when variant changes
     selectedIndices;
     overrideImageIndex = null;
+  });
+
+  let isInitialLcp = $state(true);
+  onMount(() => {
+    isInitialLcp = false;
   });
   
   // Detect video URL
@@ -139,7 +145,7 @@
       </button>
     {:else}
       <img 
-        src={(currentImage === displayImages[0] && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800)} 
+        src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : ((currentImage === displayImages[0] && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800))} 
         alt={product.name} 
         class="w-full h-full object-contain bg-white" 
         fetchpriority="high"

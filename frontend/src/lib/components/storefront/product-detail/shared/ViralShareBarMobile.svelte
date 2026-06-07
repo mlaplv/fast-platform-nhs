@@ -118,23 +118,26 @@
     if (browser) {
       checkinStore.fetchStatus().catch(() => {});
     }
-    if (browser && authStore.isAuthenticated) {
-      try {
-        const ctvProfile = await apiClient.get<{ 
-          ctv_code?: string; 
-          encrypted_code?: string;
-          tier?: { commission_rate_bps: number; commission_rate_pct: string };
-        }>('/client/ctv/profile');
-        if (ctvProfile) {
-          isCtv = true;
-          ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
-          // BPS Fix: API trả commission_rate_bps (integer), không phải commission_rate (float)
-          if (ctvProfile.tier?.commission_rate_bps !== undefined) {
-            ctvRate = ctvProfile.tier.commission_rate_bps / 10000;
+    if (browser) {
+      await authStore.waitForSessionVerification();
+      if (authStore.isAuthenticated) {
+        try {
+          const ctvProfile = await apiClient.get<{ 
+            ctv_code?: string; 
+            encrypted_code?: string;
+            tier?: { commission_rate_bps: number; commission_rate_pct: string };
+          }>('/client/ctv/profile');
+          if (ctvProfile) {
+            isCtv = true;
+            ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
+            // BPS Fix: API trả commission_rate_bps (integer), không phải commission_rate (float)
+            if (ctvProfile.tier?.commission_rate_bps !== undefined) {
+              ctvRate = ctvProfile.tier.commission_rate_bps / 10000;
+            }
           }
+        } catch (e) {
+          // Not ctv, silent
         }
-      } catch (e) {
-        // Not ctv, silent
       }
     }
   });

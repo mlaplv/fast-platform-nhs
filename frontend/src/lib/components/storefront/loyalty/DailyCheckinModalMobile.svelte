@@ -269,8 +269,8 @@
     countdownText = calcCountdown();
     countdownInterval = setInterval(() => { countdownText = calcCountdown(); }, 1000);
     loadProducts();
+    checkinStore.fetchStatus();
     if (authStore.isAuthenticated) {
-      checkinStore.fetchStatus();
       loyaltyStore.fetchLoyalty();
     }
   });

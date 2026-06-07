@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { normalizeSeoMeta, type NormalizedSeoMeta } from '$lib/utils/seo';
 import { browser } from '$app/environment';
-import { resolveOptimizedImageUrl } from '$lib/state/utils';
+import { resolveOptimizedImageUrl, extractIdFromUrl } from '$lib/state/utils';
 
 export const trailingSlash = 'ignore';
 
@@ -18,6 +18,22 @@ async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string,
     return resolvedCache.get(cacheKey)!;
   }
 
+  // 1. Client-side hydration/mount fallback: query matching preloaded link tag from DOM
+  if (browser) {
+    const id = extractIdFromUrl(originalUrl);
+    if (id) {
+      const preloadLink = document.querySelector(`link[rel="preload"][href*="${id}"]`);
+      if (preloadLink) {
+        const href = preloadLink.getAttribute('href');
+        if (href) {
+          resolvedCache.set(cacheKey, href);
+          return href;
+        }
+      }
+    }
+  }
+
+  // 2. Server-side redirect resolution using GET (as HEAD is not allowed by Litestar controller)
   try {
     const res = await fetchFn(optUrl, { method: 'GET', redirect: 'manual' });
     if (res.status === 302 || res.status === 301) {

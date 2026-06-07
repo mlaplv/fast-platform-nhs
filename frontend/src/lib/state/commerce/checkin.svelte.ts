@@ -38,6 +38,9 @@ class CheckinStore {
   );
 
   async fetchStatus() {
+    if (typeof window !== 'undefined') {
+      await authStore.waitForSessionVerification();
+    }
     this.loading = true;
     this.error = null;
     try {

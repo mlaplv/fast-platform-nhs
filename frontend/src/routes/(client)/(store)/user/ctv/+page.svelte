@@ -114,6 +114,8 @@
   });
 
   async function loadCtvData() {
+    await authStore.waitForSessionVerification();
+    if (!authStore.isAuthenticated) return;
     isLoading = true;
     try {
       // 1. Fetch profile

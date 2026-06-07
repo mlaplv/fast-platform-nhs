@@ -133,14 +133,13 @@ class AIStrategist:
                     schema_types = sorted(list(set(schema_types)))
                     
                     # 10. Clean body text for word count and content preview
-                    clean_tree = html.fromstring(content_bytes)
-                    for s in clean_tree.xpath("//script|//style|//noscript|//iframe|//header|//footer|//nav"):
+                    for s in tree.xpath("//script|//style|//noscript|//iframe|//header|//footer|//nav"):
                         try:
                             s.getparent().remove(s)
                         except Exception:
                             pass
                     
-                    body_text = clean_tree.text_content()
+                    body_text = tree.text_content()
                     words = re.findall(r'\b\w+\b', body_text)
                     word_count = len(words)
                     

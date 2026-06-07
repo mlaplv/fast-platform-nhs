@@ -40,6 +40,10 @@ class AuthStore {
   user = $state<User | null>(null);
   token = $state<string | null>(null); // CNS V2.2: Phụ thuộc vào Cookie, token state chỉ để tương thích ngược
   isAuthenticated = $derived(!!this.user); // R00: Elite - Xác thực dựa trên Profile thực
+  isSessionVerified = $state(true);
+
+  #verificationResolver: (() => void) | null = null;
+  #verificationPromise: Promise<void> | null = null;
 
   constructor() {
     if (browser) {
@@ -47,20 +51,40 @@ class AuthStore {
       if (savedUser) {
         try {
           this.user = JSON.parse(savedUser);
+          this.isSessionVerified = false;
+          this.#verificationPromise = new Promise<void>((resolve) => {
+            this.#verificationResolver = resolve;
+          });
         } catch (e) {
           localStorage.removeItem('osmo:auth:user_info');
+          this.isSessionVerified = true;
           console.error("[AuthStore] Corrupted user_info purged.", e);
         }
-        // Chỉ re-verify khi đã có user cache — tránh API call vô ích
-        // cho khách vãng lai và tránh cross-territory session pickup.
-        this.fetchCurrentUser();
+        if (this.user) {
+          this.fetchCurrentUser();
+        } else {
+          this.isSessionVerified = true;
+        }
       }
+    }
+  }
+
+  async waitForSessionVerification(): Promise<void> {
+    if (this.isSessionVerified) return;
+    if (this.#verificationPromise) {
+      await this.#verificationPromise;
     }
   }
 
   setSession(token: string, user: User) {
     this.token = token;
     this.user = user;
+    this.isSessionVerified = true;
+    if (this.#verificationResolver) {
+      this.#verificationResolver();
+      this.#verificationResolver = null;
+      this.#verificationPromise = null;
+    }
     if (browser) {
       // R00: Chỉ lưu User Info để hiển thị nhanh, Token nằm trong HttpOnly Cookie
       localStorage.setItem('osmo:auth:user_info', JSON.stringify(user));
@@ -79,6 +103,12 @@ class AuthStore {
     const name = this.user?.name || 'Quý khách';
     this.token = null;
     this.user = null;
+    this.isSessionVerified = true;
+    if (this.#verificationResolver) {
+      this.#verificationResolver();
+      this.#verificationResolver = null;
+      this.#verificationPromise = null;
+    }
     if (browser) {
       // Purge legacy localStorage tokens
       localStorage.removeItem('access_token');
@@ -168,6 +198,13 @@ class AuthStore {
         if (browser) localStorage.removeItem('osmo:auth:user_info');
       }
       return null;
+    } finally {
+      this.isSessionVerified = true;
+      if (this.#verificationResolver) {
+        this.#verificationResolver();
+        this.#verificationResolver = null;
+        this.#verificationPromise = null;
+      }
     }
   }
 }

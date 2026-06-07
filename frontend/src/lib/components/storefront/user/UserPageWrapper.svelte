@@ -54,25 +54,28 @@
     }
 
     // Async CTV Promo check
-    if (browser && authStore.isAuthenticated && window.location.pathname !== '/user/ctv') {
-      try {
-        const ctvProfile = await apiClient.get<{ is_registered: boolean }>('/client/ctv/profile');
-        isCtvRegistered = ctvProfile?.is_registered ?? false;
-        if (!isCtvRegistered) {
+    if (browser) {
+      await authStore.waitForSessionVerification();
+      if (authStore.isAuthenticated && window.location.pathname !== '/user/ctv') {
+        try {
+          const ctvProfile = await apiClient.get<{ is_registered: boolean }>('/client/ctv/profile');
+          isCtvRegistered = ctvProfile?.is_registered ?? false;
+          if (!isCtvRegistered) {
+            const dismissed = sessionStorage.getItem('ctv_promo_dismissed');
+            if (!dismissed) {
+              setTimeout(() => {
+                showCtvPromo = true;
+              }, 800);
+            }
+          }
+        } catch (e: any) {
+          isCtvRegistered = false;
           const dismissed = sessionStorage.getItem('ctv_promo_dismissed');
           if (!dismissed) {
             setTimeout(() => {
               showCtvPromo = true;
             }, 800);
           }
-        }
-      } catch (e: any) {
-        isCtvRegistered = false;
-        const dismissed = sessionStorage.getItem('ctv_promo_dismissed');
-        if (!dismissed) {
-          setTimeout(() => {
-            showCtvPromo = true;
-          }, 800);
         }
       }
     }

@@ -23,6 +23,9 @@ export function createNotificationState() {
 
 
   async function fetchNotifications(reset: boolean = true) {
+    if (typeof window !== 'undefined') {
+      await authStore.waitForSessionVerification();
+    }
     // CNS V92: Auth guard — admin panel uses osmo:auth:user_info (authStore purges legacy keys on login)
     // authStore.svelte.ts line 84-86: removes admin_token & access_token → must check user_info key
     const hasAdminToken = typeof window !== 'undefined' &&
@@ -271,6 +274,9 @@ export function createNotificationState() {
       return state.trashHasInit;
     },
     fetchTrashNotifications: async (reset: boolean = true) => {
+      if (typeof window !== 'undefined') {
+        await authStore.waitForSessionVerification();
+      }
       const hasAdminToken = typeof window !== 'undefined' &&
         !!(localStorage.getItem('osmo:auth:user_info'));
       const hasAuth = authStore.isAuthenticated || hasAdminToken || !!permissionState.user;

@@ -62,9 +62,11 @@
     const isHomepage = currentPathname === '/' || currentPathname === '/home';
     if (!isHomepage) {
       userDismissed = false; // Reset dismissal when navigating away from the homepage
-      if (checkinStore.showPopup) {
-        checkinStore.closePopup();
-      }
+      untrack(() => {
+        if (checkinStore.showPopup) {
+          checkinStore.closePopup();
+        }
+      });
       return;
     }
 
