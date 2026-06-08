@@ -48,6 +48,8 @@
     analyzeCompetitor,
     importKeyword,
     addNegativeKeyword,
+    addAdGroupKeywords,
+    removeAdGroupKeyword,
     negativeKeywords = $bindable([]),
     competitorAnalysis,
     competitorAnalyzing,
@@ -179,7 +181,7 @@
                bind:fAd={fAd}
                bind:isEditingAd={isEditingAd}
                bind:campaignView={campaignView}
-               bind:bind:adGroupKeywords={adGroupKeywords}
+               bind:adGroupKeywords={adGroupKeywords}
                toggleCampaign={toggleCampaign}
                toggleAdGroup={toggleAdGroup}
                toggleAd={toggleAd}
@@ -293,6 +295,8 @@
                      analyzeCompetitor={analyzeCompetitor}
                      importKeyword={importKeyword}
                      addNegativeKeyword={addNegativeKeyword}
+                     addAdGroupKeywords={addAdGroupKeywords}
+                     removeAdGroupKeyword={removeAdGroupKeyword}
                      bind:adGroupKeywords={adGroupKeywords}
                      bind:negativeKeywords={negativeKeywords}
                   />

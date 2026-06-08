@@ -541,14 +541,44 @@ class AdsProtectionController(Controller):
         try:
             resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
             success = await _campaign_mgr.add_ad_group_keywords(resource, keywords)
+            err_msg = _campaign_mgr.get_last_mutate_error()
+            msg = f"Đã thêm thành công {len(keywords)} từ khóa vào Ad Group." if success else (f"Thêm từ khóa thất bại: {err_msg}" if err_msg else "Thêm từ khóa thất bại.")
             return CampaignOperationResult(
                 success=success,
                 resource_name=resource,
                 operation="CREATE",
-                message=f"Đã thêm thành công {len(keywords)} từ khóa vào Ad Group." if success else "Thêm từ khóa thất bại."
+                message=msg
             )
         except Exception as e:
             raise HTTPException(detail=f"Lỗi khi thêm từ khóa vào nhóm: {str(e)}", status_code=500)
+
+    # ------------------------------------------------------------------
+    # 14.7 Xóa Từ khóa khỏi một Ad Group
+    # ------------------------------------------------------------------
+    @delete("/ad-groups/{ad_group_id:str}/keywords", status_code=200)
+    async def remove_ad_group_keyword(
+        self, ad_group_id: str, keyword: str
+    ) -> CampaignOperationResult:
+        """Xóa từ khóa khỏi Ad Group."""
+        if not keyword:
+            return CampaignOperationResult(
+                success=False,
+                operation="REMOVE",
+                message="Chưa cung cấp từ khóa cần xóa."
+            )
+        try:
+            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
+            success = await _campaign_mgr.remove_ad_group_keyword(resource, keyword)
+            err_msg = _campaign_mgr.get_last_mutate_error()
+            msg = f"Đã xóa từ khóa '{keyword}' khỏi Ad Group." if success else (f"Xóa từ khóa thất bại: {err_msg}" if err_msg else "Xóa từ khóa thất bại.")
+            return CampaignOperationResult(
+                success=success,
+                resource_name=resource,
+                operation="REMOVE",
+                message=msg
+            )
+        except Exception as e:
+            raise HTTPException(detail=f"Lỗi khi xóa từ khóa: {str(e)}", status_code=500)
 
     # ------------------------------------------------------------------
     # 15. Gợi ý từ khóa (Keyword Planner)

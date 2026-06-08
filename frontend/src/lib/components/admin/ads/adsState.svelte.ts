@@ -730,6 +730,7 @@ export function createAdsState() {
 
     adSubmitting = true;
     try {
+      // Publish ad
       const payload = {
         ad_group_resource_name: selectedAdGroup.resource_name,
         headlines,
@@ -739,8 +740,9 @@ export function createAdsState() {
         display_path2: fAd.display_path2 || null,
         status: fAd.status
       };
-
+      console.log("Submitting ad payload:", payload);
       const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ads`, payload);
+      console.log("Submit ad response:", res);
       if (res.success) {
         nanobot.showToast(res.message || 'Tạo quảng cáo thành công!', 'success');
         
@@ -756,26 +758,6 @@ export function createAdsState() {
           }).catch((err: unknown) => {
             console.error('Failed to pause old ad:', err);
           });
-        }
-
-        // Publish new keywords if added
-        const newKeywords = adGroupKeywords.filter(kw => !originalAdGroupKeywords.includes(kw));
-        if (newKeywords.length > 0) {
-          try {
-            const adGroupId = selectedAdGroup.resource_name.split('/').pop();
-            const kwRes = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ad-groups/${adGroupId}/keywords`, {
-              keywords: newKeywords
-            });
-            if (kwRes?.success) {
-              nanobot.showToast(`Đã tự động xuất bản ${newKeywords.length} từ khóa mới vào nhóm quảng cáo.`, 'success');
-              originalAdGroupKeywords = [...adGroupKeywords];
-            } else {
-              nanobot.showToast(`Lỗi đồng bộ từ khóa mới: ${kwRes?.message || 'Lỗi không xác định'}`, 'warning');
-            }
-          } catch (err: unknown) {
-            console.error('Failed to publish keywords:', err);
-            nanobot.showToast('Lỗi kết nối khi xuất bản từ khóa mới', 'error');
-          }
         }
 
         // Reset form
@@ -937,6 +919,69 @@ export function createAdsState() {
     } catch { nanobot.showToast("Lỗi API", "error"); }
   }
 
+  async function addAdGroupKeywords(keywords: string[]) {
+    if (!keywords || keywords.length === 0) return;
+    if (!selectedAdGroup) {
+      nanobot.showToast('Vui lòng chọn nhóm quảng cáo trước', 'warning');
+      return;
+    }
+    const adGroupId = selectedAdGroup.resource_name.split('/').pop();
+    if (!adGroupId) return;
+
+    // Filter out duplicates
+    const cleanKeywords = keywords.map(k => k.trim()).filter(k => k && !adGroupKeywords.includes(k));
+    if (cleanKeywords.length === 0) {
+      nanobot.showToast('Từ khóa đã tồn tại trong nhóm quảng cáo', 'warning');
+      return;
+    }
+
+    nanobot.showToast(`Đang đồng bộ ${cleanKeywords.length} từ khóa lên Google Ads...`, 'info');
+
+    try {
+      const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ad-groups/${adGroupId}/keywords`, {
+        keywords: cleanKeywords
+      });
+      if (res?.success) {
+        nanobot.showToast(`Đã đồng bộ ${cleanKeywords.length} từ khóa lên Google Ads thành công!`, 'success');
+        adGroupKeywords = [...adGroupKeywords, ...cleanKeywords];
+        originalAdGroupKeywords = [...adGroupKeywords];
+      } else {
+        nanobot.showToast(`Lỗi đồng bộ từ khóa: ${res?.message || 'Lỗi không xác định'}`, 'error');
+      }
+    } catch (err: unknown) {
+      console.error('Failed to add ad group keywords:', err);
+      nanobot.showToast('Lỗi kết nối khi đồng bộ từ khóa', 'error');
+    }
+  }
+
+  async function removeAdGroupKeyword(keyword: string) {
+    if (!keyword.trim()) return;
+    if (!selectedAdGroup) {
+      nanobot.showToast('Vui lòng chọn nhóm quảng cáo trước', 'warning');
+      return;
+    }
+    const adGroupId = selectedAdGroup.resource_name.split('/').pop();
+    if (!adGroupId) return;
+
+    nanobot.showToast(`Đang đồng bộ xóa từ khóa "${keyword}" trên Google Ads...`, 'info');
+
+    try {
+      const res = await apiClient.delete<GenericSuccessResponse>(
+        `${ADS_API}/ad-groups/${adGroupId}/keywords?keyword=${encodeURIComponent(keyword)}`
+      );
+      if (res?.success) {
+        nanobot.showToast(`Đã đồng bộ xóa từ khóa "${keyword}" trên Google Ads thành công!`, 'success');
+        adGroupKeywords = adGroupKeywords.filter(k => k !== keyword);
+        originalAdGroupKeywords = [...adGroupKeywords];
+      } else {
+        nanobot.showToast(`Lỗi đồng bộ xóa từ khóa: ${res?.message || 'Lỗi không xác định'}`, 'error');
+      }
+    } catch (err: unknown) {
+      console.error('Failed to remove ad group keyword:', err);
+      nanobot.showToast('Lỗi kết nối khi đồng bộ xóa từ khóa', 'error');
+    }
+  }
+
   async function removeNegativeKeyword(resource: string) {
     const id = resource.split('/').pop();
     if (!id) return;
@@ -1031,7 +1076,7 @@ export function createAdsState() {
     get competitorUrl() { return competitorUrl }, set competitorUrl(v) { competitorUrl = v },
     get adGroupKeywords() { return adGroupKeywords }, set adGroupKeywords(v) { adGroupKeywords = v },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
-    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, addAdGroupKeywords, removeAdGroupKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
     getDateRange,
     initSSE, initEdge, solvePoW, dispose,
     get edgeStatus() { return edgeStatus },

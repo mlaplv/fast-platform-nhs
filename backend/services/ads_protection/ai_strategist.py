@@ -329,10 +329,11 @@ DỮ LIỆU TỪ KHÓA & ĐỐI THỦ TỪ GOOGLE SEARCH:
 YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
 1. page_title: Tiêu đề chính của trang.
 2. page_summary: Tóm tắt sản phẩm/dịch vụ và điểm mạnh/yếu trong 2-3 câu.
-3. keyword_suggestions: Gợi ý 15-20 từ khóa tìm kiếm mua hàng thực tế người dùng VN hay dùng.
-   - Mỗi từ khóa cần: intent (COMMERCIAL/INFORMATIONAL/NAVIGATIONAL), match_type (EXACT/PHRASE/BROAD),
-     relevance (HIGH/MEDIUM/LOW), estimated_cpc_vnd (ước tính CPC theo VNĐ), estimated_volume.
-   - Ưu tiên từ khóa COMMERCIAL + HIGH relevance, bao gồm: từ khóa thương hiệu, từ khóa sản phẩm, từ khóa vấn đề ("trị thâm", "làm hồng"), từ khóa so sánh.
+3. keyword_suggestions: Gợi ý 15-20 từ khóa tìm kiếm mua hàng thực tế chất lượng cao, người dùng VN hay dùng.
+   - Mỗi từ khóa cần: intent (BẮT BUỘC phải là COMMERCIAL), match_type (EXACT/PHRASE/BROAD),
+     relevance (BẮT BUỘC phải là HIGH), estimated_cpc_vnd (ước tính CPC theo VNĐ), estimated_volume.
+   - BẮT BUỘC LOẠI BỎ các từ khóa có lượt tìm kiếm quá thấp (dưới 100 lượt/tháng). Giá trị estimated_volume chỉ được phép chọn trong ('100-1K', '1K-10K', '> 10K'). CẤM chọn '< 100'.
+   - Chỉ chọn từ khóa có ý định mua hàng rõ ràng (như tìm kiếm sản phẩm, tìm kiếm giải pháp điều trị, so sánh giá), loại bỏ các từ khóa mang tính chất tìm thông tin chung chung, tìm việc làm, hoặc chứa tên các đối thủ cạnh tranh khác không phù hợp.
 4. competitor_headlines: Trích xuất 8-10 tiêu đề/mô tả quảng cáo thực tế từ dữ liệu đối thủ tìm được.
    - CHÚ Ý: Tuyệt đối LOẠI BỎ tên miền {domain} (website của chính mình) ra khỏi danh sách đối thủ này. Chỉ được lấy tiêu đề từ các domain của các đối thủ cạnh tranh khác.
 5. negative_keyword_suggestions: 5-8 từ khóa phủ định nên thêm để tránh click ảo (ví dụ: "miễn phí", "tự làm", "công thức").
@@ -348,6 +349,34 @@ YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
                 role="pro",
                 timeout=120.0
             )
+            if result.success and result.keyword_suggestions:
+                try:
+                    from backend.services.ads_protection.campaign_manager import _campaign_mgr
+                    seeds = [item.keyword for item in result.keyword_suggestions]
+                    real_suggestions = await _campaign_mgr.get_keyword_suggestions(seeds)
+                    real_map = {rs.keyword.lower().strip(): rs for rs in real_suggestions} if real_suggestions else {}
+                    
+                    for item in result.keyword_suggestions:
+                        key = item.keyword.lower().strip()
+                        if key in real_map:
+                            rs = real_map[key]
+                            vol = rs.avg_monthly_searches
+                            if vol is not None:
+                                if vol < 100:
+                                    item.estimated_volume = "< 100"
+                                elif vol < 1000:
+                                    item.estimated_volume = "100-1K"
+                                elif vol < 10000:
+                                    item.estimated_volume = "1K-10K"
+                                else:
+                                    item.estimated_volume = "> 10K"
+                            if rs.avg_cpc_vnd is not None:
+                                item.estimated_cpc_vnd = rs.avg_cpc_vnd
+                        else:
+                            if _campaign_mgr._has_credentials():
+                                item.estimated_volume = "< 100"
+                except Exception as enrich_err:
+                    logger.error("Failed to enrich keyword suggestions with Google Ads API: %s", enrich_err)
             return result
         except Exception as e:
             logger.error("competitor_research_failed: %s", e)

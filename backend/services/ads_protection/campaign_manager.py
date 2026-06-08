@@ -6,6 +6,7 @@ Dùng REST API (httpx) thay vì gRPC client để tránh phụ thuộc nặng.
 """
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 from datetime import UTC, datetime
@@ -13,6 +14,8 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import httpx
+
+_last_mutate_error: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("last_mutate_error", default=None)
 
 from backend.services.ads_protection.schemas import (
     AdGroupCreateRequest,
@@ -67,6 +70,10 @@ class CampaignManager:
 
     def __init__(self) -> None:
         self._validator = PolicyValidator()
+
+    def get_last_mutate_error(self) -> Optional[str]:
+        """Lấy lỗi mutate cuối cùng trong context hiện tại."""
+        return _last_mutate_error.get()
 
     # ─────────────────────────────────────────────────────────────────────────
     # PUBLIC: Campaigns
@@ -450,17 +457,21 @@ class CampaignManager:
                 message="Lỗi xác thực Google Ads (Token rỗng).",
                 policy_check=policy_result,
             )
+        rsa_ad: dict[str, object] = {
+            "headlines": [{"text": h} for h in req.headlines],
+            "descriptions": [{"text": d} for d in req.descriptions],
+        }
+        if req.display_path1:
+            rsa_ad["path1"] = req.display_path1
+        if req.display_path2:
+            rsa_ad["path2"] = req.display_path2
+
         ad_op: dict[str, object] = {
             "create": {
                 "adGroup": req.ad_group_resource_name,
                 "status": req.status or "ENABLED",
                 "ad": {
-                    "responsiveSearchAd": {
-                        "headlines": [{"text": h} for h in req.headlines],
-                        "descriptions": [{"text": d} for d in req.descriptions],
-                        "path1": req.display_path1 or "",
-                        "path2": req.display_path2 or "",
-                    },
+                    "responsiveSearchAd": rsa_ad,
                     "finalUrls": [req.final_url],
                 },
             }
@@ -469,11 +480,18 @@ class CampaignManager:
         success = bool(result)
         resource = result[0].get("resourceName", "") if result else ""
         logger.info("rsa_created resource=%s success=%s", resource, success)
+        
+        err_msg = _last_mutate_error.get()
+        if success:
+            msg = "Responsive Search Ad đã tạo thành công."
+        else:
+            msg = f"Tạo Ad thất bại: {err_msg}" if err_msg else "Tạo Ad thất bại."
+            
         return CampaignOperationResult(
             success=success,
             resource_name=resource,
             operation="CREATE",
-            message="Responsive Search Ad đã tạo thành công." if success else "Tạo Ad thất bại.",
+            message=msg,
             policy_check=policy_result,
         )
 
@@ -545,6 +563,42 @@ class CampaignManager:
         success = len(results) > 0
         if success:
             logger.info("ad_group_keywords_added resource=%s count=%d", ad_group_resource_name, len(keywords))
+        return success
+
+    async def remove_ad_group_keyword(self, ad_group_resource_name: str, keyword_text: str) -> bool:
+        """Xóa từ khóa khỏi nhóm quảng cáo bằng cách tìm resource_name và gửi lệnh remove."""
+        if not self._has_credentials() or not keyword_text:
+            return False
+        token = await self._get_access_token()
+        if not token:
+            return False
+
+        # 1. Tìm resource_name của từ khóa
+        query = f"""
+            SELECT
+                ad_group_criterion.resource_name
+            FROM ad_group_criterion
+            WHERE ad_group.resource_name = '{ad_group_resource_name}'
+              AND ad_group_criterion.keyword.text = '{keyword_text}'
+              AND ad_group_criterion.negative = FALSE
+        """
+        rows = await self._search(token, query)
+        if not rows:
+            logger.warning("Keyword '%s' not found in ad group '%s'", keyword_text, ad_group_resource_name)
+            return False
+
+        resource_name = rows[0].get("adGroupCriterion", {}).get("resourceName")
+        if not resource_name:
+            return False
+
+        # 2. Xóa từ khóa
+        op = {
+            "remove": resource_name
+        }
+        results = await self._mutate(token, "adGroupCriteria", [op])
+        success = len(results) > 0
+        if success:
+            logger.info("ad_group_keyword_removed resource=%s text=%s", resource_name, keyword_text)
         return success
 
     async def list_ads(self, ad_group_resource_name: str) -> list[AdInfo]:
@@ -880,14 +934,35 @@ class CampaignManager:
         url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/{resource}:mutate"
         headers = self._build_headers(token)
         try:
+            _last_mutate_error.set(None)
             async with httpx.AsyncClient(timeout=20.0) as client:
                 resp = await client.post(url, headers=headers, json={"operations": operations})
                 resp.raise_for_status()
                 data: dict[str, object] = resp.json()
                 results = data.get("results", [])
                 return results if isinstance(results, list) else []
+        except httpx.HTTPStatusError as e:
+            try:
+                err_data = e.response.json()
+                details = err_data.get("error", {}).get("details", [])
+                err_msg = ""
+                if details:
+                    errors = details[0].get("errors", [])
+                    if errors:
+                        err_msg = errors[0].get("message", "")
+                if not err_msg:
+                    err_msg = err_data.get("error", {}).get("message", "")
+            except Exception:
+                err_msg = ""
+            if not err_msg:
+                err_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+            logger.error("google_ads_mutate_failed resource=%s error=%s", resource, err_msg)
+            _last_mutate_error.set(err_msg)
+            return []
         except Exception as e:
-            logger.error("google_ads_mutate_failed resource=%s error=%s", resource, e)
+            err_msg = str(e)
+            logger.error("google_ads_mutate_failed resource=%s error=%s", resource, err_msg)
+            _last_mutate_error.set(err_msg)
             return []
 
     @staticmethod
