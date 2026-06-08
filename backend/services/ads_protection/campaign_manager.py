@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import httpx
 
-_last_mutate_error: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("last_mutate_error", default=None)
+
 
 from backend.services.ads_protection.schemas import (
     AdGroupCreateRequest,
@@ -47,33 +47,17 @@ def _micros_to_vnd(micros: int) -> float:
     return micros / 1_000_000
 
 
-class CampaignManager:
+from backend.services.ads_protection.google_ads_client import GoogleAdsClient
+
+class CampaignManager(GoogleAdsClient):
     """
     Quản lý chiến dịch Google Ads qua REST API v24.
     Cung cấp CRUD đầy đủ với policy validation tích hợp.
     """
 
-    # Aggressive cleaning (Elite V2.2 Protocol)
-    _raw_cid = os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").split("#")[0].strip()
-    _raw_login_cid = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "").split("#")[0].strip()
-
-    _CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_cid))
-    _LOGIN_CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_login_cid)) or _CUSTOMER_ID
-    _DEVELOPER_TOKEN: str = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "").strip()
-    _OAUTH_CLIENT_ID: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_ID", "").strip()
-    _OAUTH_CLIENT_SECRET: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "").strip()
-    _REFRESH_TOKEN: str = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "").strip()
-
-    _API_VERSION = "v24"
-    _API_BASE = f"https://googleads.googleapis.com/{_API_VERSION}"
-    _OAUTH_URL = "https://oauth2.googleapis.com/token"
-
     def __init__(self) -> None:
+        super().__init__()
         self._validator = PolicyValidator()
-
-    def get_last_mutate_error(self) -> Optional[str]:
-        """Lấy lỗi mutate cuối cùng trong context hiện tại."""
-        return _last_mutate_error.get()
 
     # ─────────────────────────────────────────────────────────────────────────
     # PUBLIC: Campaigns
@@ -250,6 +234,7 @@ class CampaignManager:
                     "targetSearchNetwork": req.search_network,
                     "targetContentNetwork": req.display_network,
                 },
+                "containsEuPoliticalAdvertising": "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
             }
         }
 
@@ -481,7 +466,8 @@ class CampaignManager:
         resource = result[0].get("resourceName", "") if result else ""
         logger.info("rsa_created resource=%s success=%s", resource, success)
         
-        err_msg = _last_mutate_error.get()
+        success = len(results) > 0
+        err_msg = self.get_last_mutate_error()
         if success:
             msg = "Responsive Search Ad đã tạo thành công."
         else:
@@ -559,8 +545,8 @@ class CampaignManager:
             }
             for kw in keywords
         ]
-        results = await self._mutate(token, "adGroupCriteria", kw_ops)
-        success = len(results) > 0
+        results = await self._mutate(token, "adGroupCriteria", kw_ops, partial_failure=True)
+        success = any(r and r.get("resourceName") for r in results)
         if success:
             logger.info("ad_group_keywords_added resource=%s count=%d", ad_group_resource_name, len(keywords))
         return success
@@ -697,280 +683,3 @@ class CampaignManager:
             return []
 
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # PUBLIC: Fraud Mitigation (IP Blacklist & Negative Keywords)
-    # ─────────────────────────────────────────────────────────────────────────
-
-    async def block_ip(self, campaign_resource_name: str, ip_address: str, is_global: bool = False) -> bool:
-        """Chặn một IP tại cấp độ Chiến dịch hoặc Toàn cầu."""
-        if not self._has_credentials(): return False
-        
-        if is_global:
-            # Chế độ Toàn cầu: Lấy toàn bộ chiến dịch và chặn IP
-            campaigns = await self.list_campaigns()
-            success_count = 0
-            for camp in campaigns:
-                if await self._block_single_ip(camp.resource_name, ip_address):
-                    success_count += 1
-            return success_count > 0
-            
-        return await self._block_single_ip(campaign_resource_name, ip_address)
-
-    async def _block_single_ip(self, campaign_resource_name: str, ip_address: str) -> bool:
-        """Helper để chặn IP trên một chiến dịch cụ thể."""
-        token = await self._get_access_token()
-        if not token:
-            return False
-        operation = {
-            "create": {
-                "campaign": campaign_resource_name,
-                "negative": True,
-                "ip_block": {"ip_address": ip_address}
-            }
-        }
-        results = await self._mutate(token, "campaignCriteria", [operation])
-        return len(results) > 0
-
-    async def add_negative_keyword(self, campaign_resource_name: str, keyword: str, match_type: str = "EXACT", is_global: bool = False) -> bool:
-        """Thêm từ khóa phủ định vào Chiến dịch hoặc Toàn cầu."""
-        if not self._has_credentials(): return False
-        
-        if is_global:
-            campaigns = await self.list_campaigns()
-            success_count = 0
-            for camp in campaigns:
-                if await self._add_single_negative_keyword(camp.resource_name, keyword, match_type):
-                    success_count += 1
-            return success_count > 0
-            
-        return await self._add_single_negative_keyword(campaign_resource_name, keyword, match_type)
-
-    async def _add_single_negative_keyword(self, campaign_resource_name: str, keyword: str, match_type: str) -> bool:
-        """Helper để thêm từ khóa phủ định vào một chiến dịch cụ thể."""
-        token = await self._get_access_token()
-        if not token:
-            return False
-        operation = {
-            "create": {
-                "campaign": campaign_resource_name,
-                "negative": True,
-                "keyword": {
-                    "text": keyword,
-                    "match_type": match_type
-                }
-            }
-        }
-        results = await self._mutate(token, "campaignCriteria", [operation])
-        return len(results) > 0
-
-    async def list_negative_keywords(self, campaign_resource_name: str) -> list[dict]:
-        """Lấy danh sách từ khóa phủ định hiện tại của một chiến dịch."""
-        if not self._has_credentials(): return []
-        token = await self._get_access_token()
-        if not token:
-            return []
-        query = f"""
-            SELECT
-                campaign_criterion.criterion_id,
-                campaign_criterion.keyword.text,
-                campaign_criterion.keyword.match_type
-            FROM campaign_criterion
-            WHERE campaign.resource_name = '{campaign_resource_name}'
-              AND campaign_criterion.type = 'KEYWORD'
-              AND campaign_criterion.negative = TRUE
-        """
-        rows = await self._search(token, query)
-        return [
-            {
-                "id": str(r.get("campaignCriterion", {}).get("criterionId", "")),
-                "text": r.get("campaignCriterion", {}).get("keyword", {}).get("text", ""),
-                "match_type": r.get("campaignCriterion", {}).get("keyword", {}).get("matchType", "EXACT")
-            } for r in rows
-        ]
-
-    async def list_account_negative_keywords(self) -> list[dict]:
-        """Lấy danh sách từ khóa phủ định cấp TÀI KHOẢN (Shared Sets & Account Level)."""
-        if not self._has_credentials(): return []
-        token = await self._get_access_token()
-        if not token:
-            return []
-        
-        # Chiến thuật 1: Quét Shared Sets (Phổ biến nhất cho list từ khóa rác)
-        query_shared = """
-            SELECT
-                shared_criterion.criterion_id,
-                shared_criterion.keyword.text,
-                shared_criterion.keyword.match_type,
-                shared_set.name
-            FROM shared_criterion
-        """
-        
-        results = []
-        try:
-            rows = await self._search(token, query_shared)
-            for r in rows:
-                results.append({
-                    "id": str(r.get("sharedCriterion", {}).get("criterionId", "")),
-                    "text": r.get("sharedCriterion", {}).get("keyword", {}).get("text", ""),
-                    "match_type": r.get("sharedCriterion", {}).get("keyword", {}).get("matchType", "EXACT"),
-                    "set_name": r.get("sharedSet", {}).get("name", "Shared Set")
-                })
-        except Exception as e:
-            logger.error(f"Failed to fetch shared_criterion: {e}")
-
-        return results
-
-    async def add_account_negative_keywords(self, keywords: list[str]) -> bool:
-        """
-        Thêm từ khóa phủ định vào toàn bộ chiến dịch (Thay thế cho Account Level do v24 schema change).
-        """
-        if not self._has_credentials() or not keywords: return False
-        
-        campaigns = await self.list_campaigns()
-        total_success = 0
-        for kw in keywords:
-            for camp in campaigns:
-                if await self._add_single_negative_keyword(camp.resource_name, kw, "BROAD"):
-                    total_success += 1
-        
-        logger.info(f"Added {total_success} negative keyword entries across campaigns")
-        return total_success > 0
-
-    async def list_all_blocked_ips(self) -> list[dict]:
-        """Lấy toàn bộ IP bị chặn trên TẤT CẢ các chiến dịch."""
-        if not self._has_credentials(): return []
-        token = await self._get_access_token()
-        if not token: return []
-        query = """
-            SELECT
-                campaign.name,
-                campaign_criterion.ip_block.ip_address,
-                campaign_criterion.criterion_id
-            FROM campaign_criterion
-            WHERE campaign_criterion.type = 'IP_BLOCK'
-        """
-        rows = await self._search(token, query)
-        return [
-            {
-                "campaign_name": r.get("campaign", {}).get("name", ""),
-                "ip": r.get("campaignCriterion", {}).get("ipBlock", {}).get("ipAddress", ""),
-                "id": str(r.get("campaignCriterion", {}).get("criterionId", ""))
-            } for r in rows
-        ]
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # PUBLIC: Policy validation only (không submit)
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def validate_ad_policy(self, req: ResponsiveSearchAdCreate) -> PolicyCheckResult:
-        """Kiểm tra policy cho ad mà không cần credentials."""
-        return self._validator.check_ad(req)
-
-    def validate_campaign_policy(self, req: CampaignCreateRequest) -> PolicyCheckResult:
-        """Kiểm tra policy cho campaign mà không cần credentials."""
-        return self._validator.check_campaign(req)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # PRIVATE: HTTP Helpers
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def _has_credentials(self) -> bool:
-        return all([
-            self._DEVELOPER_TOKEN,
-            self._OAUTH_CLIENT_ID,
-            self._OAUTH_CLIENT_SECRET,
-            self._REFRESH_TOKEN,
-            self._CUSTOMER_ID,
-        ])
-
-    async def _get_access_token(self) -> str:
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(self._OAUTH_URL, data={
-                    "client_id": self._OAUTH_CLIENT_ID,
-                    "client_secret": self._OAUTH_CLIENT_SECRET,
-                    "refresh_token": self._REFRESH_TOKEN,
-                    "grant_type": "refresh_token",
-                })
-                resp.raise_for_status()
-                return str(resp.json()["access_token"])
-        except Exception as e:
-            logger.error("Failed to acquire Google Ads access token: %s", e)
-            return ""
-
-    def _build_headers(self, token: str) -> dict[str, str]:
-        return {
-            "Authorization": f"Bearer {token}",
-            "developer-token": self._DEVELOPER_TOKEN,
-            "login-customer-id": self._LOGIN_CUSTOMER_ID,
-            "Content-Type": "application/json",
-        }
-
-    async def _search(self, token: str, query: str) -> list[dict[str, object]]:
-        if not token:
-            return []
-        url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:searchStream"
-        headers = self._build_headers(token)
-        try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                resp = await client.post(url, headers=headers, json={"query": query})
-                resp.raise_for_status()
-                batches: list[dict[str, object]] = resp.json()
-                rows: list[dict[str, object]] = []
-                for batch in batches:
-                    for result in batch.get("results", []):
-                        if isinstance(result, dict):
-                            rows.append(result)
-                return rows
-        except Exception as e:
-            logger.error("google_ads_search_failed error=%s", e)
-            return []
-
-    async def _mutate(
-        self, token: str, resource: str, operations: list[dict[str, object]]
-    ) -> list[dict[str, object]]:
-        if not token:
-            return []
-        url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/{resource}:mutate"
-        headers = self._build_headers(token)
-        try:
-            _last_mutate_error.set(None)
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                resp = await client.post(url, headers=headers, json={"operations": operations})
-                resp.raise_for_status()
-                data: dict[str, object] = resp.json()
-                results = data.get("results", [])
-                return results if isinstance(results, list) else []
-        except httpx.HTTPStatusError as e:
-            try:
-                err_data = e.response.json()
-                details = err_data.get("error", {}).get("details", [])
-                err_msg = ""
-                if details:
-                    errors = details[0].get("errors", [])
-                    if errors:
-                        err_msg = errors[0].get("message", "")
-                if not err_msg:
-                    err_msg = err_data.get("error", {}).get("message", "")
-            except Exception:
-                err_msg = ""
-            if not err_msg:
-                err_msg = f"HTTP {e.response.status_code}: {e.response.text}"
-            logger.error("google_ads_mutate_failed resource=%s error=%s", resource, err_msg)
-            _last_mutate_error.set(err_msg)
-            return []
-        except Exception as e:
-            err_msg = str(e)
-            logger.error("google_ads_mutate_failed resource=%s error=%s", resource, err_msg)
-            _last_mutate_error.set(err_msg)
-            return []
-
-    @staticmethod
-    def _get_language_id(code: str) -> int:
-        _map = {"vi": 1000, "en": 1000, "zh": 1017, "ja": 1005, "ko": 1012}
-        return _map.get(code.lower(), 1000)
-
-    @staticmethod
-    def _get_geo_id(code: str) -> int:
-        _map = {"VN": 2704, "US": 2840, "TH": 2764, "SG": 2702, "MY": 2458}
-        return _map.get(code.upper(), 2704)

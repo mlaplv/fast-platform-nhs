@@ -299,6 +299,8 @@
                      removeAdGroupKeyword={removeAdGroupKeyword}
                      bind:adGroupKeywords={adGroupKeywords}
                      bind:negativeKeywords={negativeKeywords}
+                     selectedCampaign={selectedCampaign}
+                     selectedAdGroup={selectedAdGroup}
                   />
                </div>
              </div>

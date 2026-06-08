@@ -919,38 +919,48 @@ export function createAdsState() {
     } catch { nanobot.showToast("Lỗi API", "error"); }
   }
 
-  async function addAdGroupKeywords(keywords: string[]) {
-    if (!keywords || keywords.length === 0) return;
+  async function addAdGroupKeywords(keywords: string[], matchType: string = 'EXACT'): Promise<boolean> {
+    if (!keywords || keywords.length === 0) return false;
     if (!selectedAdGroup) {
       nanobot.showToast('Vui lòng chọn nhóm quảng cáo trước', 'warning');
-      return;
+      return false;
     }
     const adGroupId = selectedAdGroup.resource_name.split('/').pop();
-    if (!adGroupId) return;
+    if (!adGroupId) return false;
 
-    // Filter out duplicates
-    const cleanKeywords = keywords.map(k => k.trim()).filter(k => k && !adGroupKeywords.includes(k));
+    // Filter out duplicates case-insensitively
+    const cleanKeywords = keywords
+      .map(k => k.trim())
+      .filter(k => {
+        if (!k) return false;
+        const kLower = k.toLowerCase();
+        return !adGroupKeywords.some(existing => existing.toLowerCase().trim() === kLower);
+      });
     if (cleanKeywords.length === 0) {
       nanobot.showToast('Từ khóa đã tồn tại trong nhóm quảng cáo', 'warning');
-      return;
+      return false;
     }
 
     nanobot.showToast(`Đang đồng bộ ${cleanKeywords.length} từ khóa lên Google Ads...`, 'info');
 
     try {
       const res = await apiClient.post<GenericSuccessResponse>(`${ADS_API}/ad-groups/${adGroupId}/keywords`, {
-        keywords: cleanKeywords
+        keywords: cleanKeywords,
+        match_type: matchType
       });
       if (res?.success) {
         nanobot.showToast(`Đã đồng bộ ${cleanKeywords.length} từ khóa lên Google Ads thành công!`, 'success');
         adGroupKeywords = [...adGroupKeywords, ...cleanKeywords];
         originalAdGroupKeywords = [...adGroupKeywords];
+        return true;
       } else {
         nanobot.showToast(`Lỗi đồng bộ từ khóa: ${res?.message || 'Lỗi không xác định'}`, 'error');
+        return false;
       }
     } catch (err: unknown) {
       console.error('Failed to add ad group keywords:', err);
       nanobot.showToast('Lỗi kết nối khi đồng bộ từ khóa', 'error');
+      return false;
     }
   }
 

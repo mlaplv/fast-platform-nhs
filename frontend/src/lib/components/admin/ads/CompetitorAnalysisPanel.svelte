@@ -4,9 +4,14 @@
   import Brain from "@lucide/svelte/icons/brain";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Search from "@lucide/svelte/icons/search";
-  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
   import Maximize from "@lucide/svelte/icons/maximize";
   import X from "@lucide/svelte/icons/x";
+
+  import GoogleSearchAdMockup from './GoogleSearchAdMockup.svelte';
+  import PolicyShieldSection from './PolicyShieldSection.svelte';
+  import KeywordsScoutSection from './KeywordsScoutSection.svelte';
+  import PMaxUpgradeSection from './PMaxUpgradeSection.svelte';
+  import AdAssetsAndGapsSection from './AdAssetsAndGapsSection.svelte';
 
   let {
     competitorUrl = $bindable(),
@@ -19,7 +24,9 @@
     removeAdGroupKeyword,
     fAd = $bindable(),
     adGroupKeywords = $bindable(),
-    negativeKeywords = $bindable()
+    negativeKeywords = $bindable(),
+    selectedCampaign = null,
+    selectedAdGroup = null
   } = $props<{
     competitorUrl?: string;
     competitorAnalyzing?: boolean;
@@ -27,7 +34,7 @@
     analyzeCompetitor: (url: string) => void;
     importKeyword: (kw: string) => void;
     addNegativeKeyword: (text: string) => void;
-    addAdGroupKeywords: (keywords: string[]) => Promise<void>;
+    addAdGroupKeywords: (keywords: string[], matchType?: string) => Promise<boolean>;
     removeAdGroupKeyword: (keyword: string) => Promise<void>;
     fAd?: {
       final_url: string;
@@ -39,72 +46,28 @@
     };
     adGroupKeywords?: string[];
     negativeKeywords?: string[];
+    selectedCampaign?: any;
+    selectedAdGroup?: any;
   }>();
 
-  const fmt = (n: number) => new Intl.NumberFormat('vi-VN').format(Math.round(n));
-
-  // Tab state: 'keywords' | 'headlines' | 'negatives_gaps'
+  // Match Type and View Mode states
+  let selectedMatchType = $state<'EXACT' | 'PHRASE' | 'BROAD'>('PHRASE');
+  let viewMode = $state<'list' | 'cluster'>('list');
   let activeTab = $state<'keywords' | 'headlines' | 'negatives_gaps'>('keywords');
-
-  // Fullview Modal State
   let showFullview = $state(false);
-
   let importedItems = $state<string[]>([]);
-
   let hideLowQualityKeywords = $state(true);
-
   let deletingKeywords = $state<string[]>([]);
 
-  async function handleRemoveKeyword(keyword: string) {
-    if (deletingKeywords.includes(keyword)) return;
-    deletingKeywords = [...deletingKeywords, keyword];
-    try {
-      await removeAdGroupKeyword(keyword);
-    } finally {
-      deletingKeywords = deletingKeywords.filter(k => k !== keyword);
-    }
-  }
+  // Policy Shield state bound to PolicyShieldSection
+  let policyShieldResults = $state<any>(null);
+  let policyShieldLoading = $state(false);
 
-  function getKeywordInfo(kwText: string) {
-    if (!kwText || !competitorAnalysis?.keyword_suggestions) return null;
-    const kwLower = kwText.toLowerCase().trim();
-    return competitorAnalysis.keyword_suggestions.find(
-      s => s.keyword.toLowerCase().trim() === kwLower
-    ) || null;
-  }
-
-  function parseVolume(volStr: string | number | undefined | null): number {
-    if (!volStr) return 0;
-    const str = String(volStr).toUpperCase().trim();
-    if (str.includes('<')) {
-      const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 0 : num - 1;
-    }
-    if (str.includes('K')) {
-      const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 0 : num * 1000;
-    }
-    if (str.includes('M')) {
-      const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 0 : num * 1000000;
-    }
-    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-    return isNaN(num) ? 0 : num;
-  }
-
-  // Derived filtered keywords
-  const filteredKeywords = $derived(
-    (competitorAnalysis?.keyword_suggestions || [])
-      .filter(kw => {
-        if (!hideLowQualityKeywords) return true;
-        return kw.estimated_volume !== '< 100' && kw.intent === 'COMMERCIAL' && kw.relevance === 'HIGH';
-      })
-      .sort((a, b) => parseVolume(b.estimated_volume) - parseVolume(a.estimated_volume))
-  );
-
+  // Slot states for ad editing
   let activeSlotType = $state<'headline' | 'description'>('headline');
   let activeSlotIndex = $state(0);
   let highlightedSlot = $state<{ type: 'headline' | 'description'; index: number } | null>(null);
+  let dragOverSlot = $state<{ type: 'headline' | 'description'; index: number } | null>(null);
 
   function triggerSlotHighlight(type: 'headline' | 'description', index: number) {
     highlightedSlot = { type, index };
@@ -162,24 +125,6 @@
     }
   }
 
-  function trackImport(text: string, action: () => void) {
-    action();
-    if (!importedItems.includes(text)) {
-      importedItems = [...importedItems, text];
-    }
-  }
-
-  // Drag and Drop State & Handlers
-  let dragOverSlot = $state<{ type: 'headline' | 'description'; index: number } | null>(null);
-  let dragOverAdGroupKeywords = $state(false);
-
-  function handleDragStart(event: DragEvent, text: string) {
-    if (event.dataTransfer) {
-      event.dataTransfer.setData('text/plain', text);
-      event.dataTransfer.effectAllowed = 'copy';
-    }
-  }
-
   function handleDragOverSlot(event: DragEvent, type: 'headline' | 'description', index: number) {
     event.preventDefault();
     dragOverSlot = { type, index };
@@ -208,22 +153,6 @@
     if (!importedItems.includes(text)) {
       importedItems = [...importedItems, text];
     }
-  }
-
-  function handleDragOverAdGroup(event: DragEvent) {
-    event.preventDefault();
-    dragOverAdGroupKeywords = true;
-  }
-
-  function handleDropAdGroup(event: DragEvent) {
-    event.preventDefault();
-    dragOverAdGroupKeywords = false;
-    const text = event.dataTransfer?.getData('text/plain');
-    if (!text) return;
-
-    trackImport(text, () => {
-      addAdGroupKeywords([text]);
-    });
   }
 </script>
 
@@ -278,10 +207,21 @@
   {#if competitorAnalysis}
     <div class="space-y-4 pt-4 border-t border-purple-500/20" transition:slide>
       
+      <!-- AI Policy Shield Box -->
+      <PolicyShieldSection 
+        view="scan"
+        {selectedAdGroup}
+        {fAd}
+        {competitorUrl}
+        {adGroupKeywords}
+        bind:policyShieldResults
+        bind:policyShieldLoading
+      />
+
       <!-- Summary -->
       <div class="space-y-2">
         <span class="text-[9px] text-purple-400 font-mono font-black block text-left">TỔM TẮT TRANG ĐÍCH</span>
-        <p class="text-[10px] text-slate-300 bg-black/40 p-3 border border-white/5 leading-relaxed text-left">
+        <p class="text-[10px] text-slate-300 bg-black/40 p-3 border border-white/5 leading-relaxed text-left font-mono">
           {competitorAnalysis.page_summary || 'Không có tóm tắt.'}
         </p>
       </div>
@@ -314,193 +254,34 @@
       <!-- Tab Content Area -->
       <div class="pt-2">
         {#if activeTab === 'keywords'}
-          <!-- Keyword suggestions table -->
-          <div class="space-y-2" transition:slide>
-            <div class="flex flex-col gap-2 md:flex-row md:justify-between md:items-center px-1 mb-1">
-              <div class="flex items-center gap-2">
-                <span class="text-[9px] text-purple-400 font-mono font-black uppercase">GỢI Ý ({filteredKeywords.length})</span>
-                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    bind:checked={hideLowQualityKeywords} 
-                    class="rounded-none border-purple-500/30 bg-black/60 text-purple-500 focus:ring-0 w-3 h-3" 
-                  />
-                  <span class="text-[8px] text-slate-400 font-mono">Chỉ hiện từ khóa chất lượng cao (Volume >= 100, Intent MUA)</span>
-                </label>
-              </div>
-              <button 
-                type="button"
-                class="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono text-[9px] font-black rounded-none active:scale-95 transition-all self-end md:self-auto"
-                onclick={() => {
-                  const toAdd = filteredKeywords.map(kw => kw.keyword);
-                  addAdGroupKeywords(toAdd);
-                }}
-              >
-                + THÊM TẤT CẢ
-              </button>
-            </div>
-            <div class="overflow-hidden border border-white/5 bg-black/40 rounded-none">
-              <table class="w-full text-left font-mono text-[9px]">
-                <thead class="bg-[#120d1e] z-10">
-                  <tr class="text-slate-500 font-black border-b border-white/5">
-                    <th class="p-2">Từ khóa</th>
-                    <th class="p-2">Intent</th>
-                    <th class="p-2">Volume</th>
-                    <th class="p-2">CPC</th>
-                    <th class="p-2">Trạng thái</th>
-                    <th class="p-2 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="text-slate-300">
-                  {#each filteredKeywords as kw}
-                    <tr class="border-b border-white/5 hover:bg-purple-500/10 group/kw">
-                      <td class="p-2 text-left">
-                        <div 
-                          class="flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:text-purple-300 font-bold text-white" 
-                          draggable="true" 
-                          ondragstart={(e) => handleDragStart(e, kw.keyword)}
-                        >
-                          <span class="inline-block w-1.5 h-1.5 bg-purple-400"></span>
-                          {kw.keyword}
-                        </div>
-                      </td>
-                      <td class="p-2 text-left">
-                        <span class="px-1.5 py-0.5 rounded-none text-[8px] {kw.intent === 'COMMERCIAL' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}">
-                          {kw.intent === 'COMMERCIAL' ? 'MUA' : 'TÌM HIỂU'}
-                        </span>
-                      </td>
-                      <td class="p-2 text-left">{kw.estimated_volume || 'N/A'}</td>
-                      <td class="p-2 text-left">{kw.estimated_cpc_vnd ? fmt(kw.estimated_cpc_vnd) : 'N/A'}₫</td>
-                      <td class="p-2 text-left">
-                        {#if kw.estimated_volume === '< 100'}
-                          <span class="px-1 py-0.5 bg-red-500/10 text-red-400 text-[8px] font-black border border-red-500/20">VOLUME THẤP</span>
-                        {:else if kw.intent !== 'COMMERCIAL'}
-                          <span class="px-1 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black border border-amber-500/20">Ý ĐỊNH THẤP</span>
-                        {:else}
-                          <span class="px-1 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black border border-emerald-500/20">ĐỦ ĐIỀU KIỆN</span>
-                        {/if}
-                      </td>
-                      <td class="p-2 text-right">
-                        <button 
-                          class="px-2 py-1 border rounded-none font-bold transition-all {importedItems.includes(kw.keyword) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-purple-550 text-white hover:bg-purple-500'}"
-                          onclick={() => trackImport(kw.keyword, () => {
-                            addAdGroupKeywords([kw.keyword]);
-                          })}
-                          disabled={importedItems.includes(kw.keyword)}
-                          title={importedItems.includes(kw.keyword) ? "Đã thêm vào nhóm" : "Thêm vào nhóm quảng cáo"}
-                        >
-                          {importedItems.includes(kw.keyword) ? 'ĐÃ THÊM' : '+ THÊM'}
-                        </button>
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        {:else if activeTab === 'headlines'}
-          <!-- Competitor headlines -->
-          <div class="space-y-2 text-left" transition:slide>
-            <div class="space-y-2">
-              {#each competitorAnalysis.competitor_headlines || [] as ch}
-                <div class="bg-black/30 border border-white/5 p-3 flex justify-between items-center gap-3 group/ch hover:border-purple-500/30 cursor-grab active:cursor-grabbing" draggable="true" ondragstart={(e) => handleDragStart(e, ch.headline)}>
-                  <div class="flex flex-col gap-1 min-w-0 text-left">
-                    <span class="text-[10px] text-white font-black truncate">{ch.headline}</span>
-                    <span class="text-[8px] text-purple-400 truncate">{ch.source_domain}</span>
-                  </div>
-                  <button 
-                    class="px-2 py-1 border rounded-none text-[9px] font-mono font-bold shrink-0 transition-all {importedItems.includes(ch.headline) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-purple-500/20 text-purple-300 border-purple-500/30 hover:bg-purple-500 hover:text-white'}"
-                    onclick={() => trackImport(ch.headline, () => handleImportKeyword(ch.headline))}
-                    disabled={importedItems.includes(ch.headline)}
-                  >
-                    {importedItems.includes(ch.headline) ? 'ĐÃ DÙNG' : 'DÙNG'}
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {:else if activeTab === 'negatives_gaps'}
-          <!-- Negative Keywords & Gaps -->
-          <div class="space-y-4 text-left" transition:slide>
-            <!-- Negative Keywords -->
-            <div class="space-y-2">
-              <span class="text-[9px] text-purple-400 font-mono font-black block text-left">GỢI Ý TỪ KHÓA PHỦ ĐỊNH (CLICK ĐỂ THÊM)</span>
-              <div class="flex flex-wrap gap-2 text-left">
-                {#each competitorAnalysis.negative_keyword_suggestions || [] as nk}
-                  <button 
-                    type="button"
-                    class="px-2 py-1 border text-[9px] font-mono transition-all cursor-pointer rounded-none {importedItems.includes(nk) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white'}"
-                    onclick={() => trackImport(nk, () => {
-                      addNegativeKeyword(nk);
-                      negativeKeywords = [...(negativeKeywords || []), { text: nk }];
-                    })}
-                    disabled={importedItems.includes(nk)}
-                    title={importedItems.includes(nk) ? "Đã thêm vào phủ định" : "Thêm vào danh sách phủ định"}
-                  >
-                    {importedItems.includes(nk) ? '✓ ' + nk : '+ ' + nk}
-                  </button>
-                {/each}
-              </div>
-            </div>
-
-            <!-- Gaps warnings -->
-            {#if competitorAnalysis.seo_gaps}
-              <div class="border border-yellow-500/30 bg-yellow-500/5 p-4 rounded-none space-y-2 text-left">
-                <div class="flex items-center gap-2 text-yellow-500">
-                  <AlertTriangle size={14} />
-                  <span class="text-[9px] font-black font-mono uppercase">Kẽ hở so với đối thủ</span>
-                </div>
-                <p class="text-[10px] text-yellow-200/80 leading-relaxed font-mono text-left">
-                  {competitorAnalysis.seo_gaps}
-                </p>
-              </div>
-            {/if}
-          </div>
+          <KeywordsScoutSection 
+            {competitorAnalysis}
+            bind:adGroupKeywords
+            bind:importedItems
+            bind:selectedMatchType
+            bind:viewMode
+            bind:hideLowQualityKeywords
+            bind:deletingKeywords
+            {addAdGroupKeywords}
+            {removeAdGroupKeyword}
+            fullview={false}
+          />
+        {:else}
+          <AdAssetsAndGapsSection 
+            {competitorAnalysis}
+            bind:importedItems
+            bind:negativeKeywords
+            {addNegativeKeyword}
+            {handleImportKeyword}
+            fullview={false}
+            {activeTab}
+          />
         {/if}
       </div>
 
     </div>
-      <!-- Real-time Current Ad Group Keywords (Drop zone) for Mini view -->
-      <div class="pt-4 border-t border-purple-500/20 text-left mt-4">
-        <span class="text-[9px] text-slate-500 font-mono font-black block uppercase mb-2">
-          TỪ KHÓA HIỆN CÓ CỦA NHÓM ({adGroupKeywords?.length || 0})
-          <span class="text-[8px] text-cyan-400/50 normal-case ml-2">(Kéo thả từ khóa vào đây để thêm)</span>
-        </span>
-        <div 
-          class="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto min-h-[48px] border p-2 bg-black/20 transition-all duration-200 {dragOverAdGroupKeywords ? 'border-dashed border-cyan-400 bg-cyan-950/20' : 'border-white/5'}"
-          ondragover={handleDragOverAdGroup}
-          ondragleave={() => dragOverAdGroupKeywords = false}
-          ondrop={handleDropAdGroup}
-        >
-          {#each adGroupKeywords || [] as akw}
-            {@const info = getKeywordInfo(akw)}
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-950/20 border border-cyan-500/20 text-cyan-400 text-[9px] font-mono {dragOverAdGroupKeywords ? 'pointer-events-none' : ''} {deletingKeywords.includes(akw) ? 'opacity-40 select-none' : ''}">
-              <span class="font-bold">{akw}</span>
-              {#if info}
-                <span class="text-[8px] px-1 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300/80">
-                  Vol: {info.estimated_volume}
-                </span>
-              {/if}
-              {#if deletingKeywords.includes(akw)}
-                <span class="animate-spin text-[8px] ml-1">⏳</span>
-              {:else}
-                <button 
-                  type="button" 
-                  class="text-cyan-400/60 hover:text-cyan-300 font-bold ml-1 cursor-pointer focus:outline-none"
-                  onclick={() => handleRemoveKeyword(akw)}
-                  disabled={deletingKeywords.includes(akw)}
-                >
-                  ×
-                </button>
-              {/if}
-            </span>
-          {:else}
-            <span class="text-[9px] text-slate-600 font-mono italic">Kéo thả từ khóa vào đây...</span>
-          {/each}
-        </div>
-      </div>
-    {/if}
-  </div>
+  {/if}
+</div>
 
 <!-- FULLVIEW MODAL OVERLAY -->
 {#if showFullview && competitorAnalysis}
@@ -535,10 +316,44 @@
         {#if fAd}
           <!-- LEFT COLUMN: AD TEMPLATE BUILDER (4 Cols) -->
           <div class="lg:col-span-4 border-r border-purple-500/20 pr-6 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-2">
-            <div class="flex items-center gap-2 text-cyan-400 font-mono font-black text-xs uppercase mb-2">
+            <div class="flex items-center gap-2 text-cyan-400 font-mono font-black text-xs uppercase mb-1">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
               <span>BIÊN TẬP QUẢNG CÁO (REAL-TIME)</span>
             </div>
+
+            <!-- OPTIMIZATION SCORE WIDGET -->
+            <div class="bg-black/60 border border-purple-500/20 p-3 font-mono relative overflow-hidden text-left">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-[9px] text-slate-400 font-black tracking-wider uppercase">ĐIỂM TỐI ƯU HÓA CHÍNH SÁCH</span>
+                <span class="text-xs font-black text-purple-400">
+                  {policyShieldResults?.score !== undefined ? Math.round(policyShieldResults.score) : 100}%
+                </span>
+              </div>
+              <div class="w-full bg-white/10 h-1.5 overflow-hidden relative">
+                <div 
+                  class="h-full transition-all duration-500 bg-gradient-to-r 
+                    { (policyShieldResults?.score || 100) > 80 ? 'from-emerald-500 to-teal-400' :
+                      (policyShieldResults?.score || 100) > 50 ? 'from-amber-500 to-orange-400' : 'from-rose-600 to-red-400'}"
+                  style="width: {policyShieldResults?.score !== undefined ? policyShieldResults.score : 100}%"
+                ></div>
+              </div>
+              <p class="text-[8px] text-slate-500 mt-1 leading-relaxed">
+                {#if policyShieldResults?.score !== undefined}
+                  {policyShieldResults.score === 100 ? 'Hoàn hảo! Quảng cáo đạt điểm chính sách tối đa.' : 'Lưu ý sửa các cảnh báo để cải thiện điểm số.'}
+                {:else}
+                  Chưa có dữ liệu quét chính sách.
+                {/if}
+              </p>
+            </div>
+
+            <!-- REAL-TIME GOOGLE SEARCH AD PREVIEW -->
+            <GoogleSearchAdMockup 
+              final_url={fAd.final_url} 
+              display_path1={fAd.display_path1} 
+              display_path2={fAd.display_path2} 
+              headlines={fAd.headlines} 
+              descriptions={fAd.descriptions} 
+            />
 
             <!-- Final URL & Paths -->
             <div class="space-y-3 bg-black/40 p-4 border border-white/5">
@@ -640,7 +455,7 @@
 
         <!-- RIGHT COLUMN: INTEL SCOUT (8 or 12 Cols) -->
         <div class="space-y-6 max-h-[78vh] overflow-y-auto pr-2 {fAd ? 'lg:col-span-8' : 'lg:col-span-12'}">
-          <!-- Summary Callout -->
+           <!-- Summary Callout -->
           <div class="bg-purple-950/20 border border-purple-500/20 p-5 backdrop-blur-sm rounded-none">
             <span class="text-[10px] text-purple-400 font-mono font-black block text-left mb-2 tracking-wider">🎯 TỔM TẮT TRANG ĐÍCH ĐỐI THỦ</span>
             <p class="text-xs text-slate-300 leading-relaxed text-left font-mono">
@@ -648,207 +463,41 @@
             </p>
           </div>
 
+          <!-- AI MAX UPGRADE DASHBOARD / HUD -->
+          <PMaxUpgradeSection {selectedCampaign} />
+
+          <!-- HISTORICAL POLICY AUDIT LOGS -->
+          <PolicyShieldSection 
+            view="history"
+            {selectedAdGroup}
+          />
+
           <!-- Section 1: Target Keywords (Full Width of Right Column) -->
-          <div class="space-y-3 bg-black/40 p-5 border border-white/5 rounded-none">
-            <div class="flex justify-between items-center border-b border-purple-500/10 pb-2 mb-2">
-              <div class="flex items-center gap-4">
-                <span class="text-[11px] text-purple-400 font-mono font-black block text-left uppercase tracking-widest">🎯 DANH SÁCH TỪ KHÓA MỤC TIÊU ({filteredKeywords.length})</span>
-                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    bind:checked={hideLowQualityKeywords} 
-                    class="rounded-none border-purple-500/30 bg-black/60 text-purple-500 focus:ring-0 w-3 h-3" 
-                  />
-                  <span class="text-[9px] text-slate-400 font-mono">Chỉ hiện từ khóa chất lượng cao (Volume >= 100, Intent MUA)</span>
-                </label>
-              </div>
-              <button 
-                type="button"
-                class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono text-[10px] font-black rounded-none active:scale-95 transition-all"
-                onclick={() => {
-                  const toAdd = filteredKeywords.map(kw => kw.keyword);
-                  addAdGroupKeywords(toAdd);
-                }}
-              >
-                + THÊM TẤT CẢ
-              </button>
-            </div>
-            <div class="overflow-hidden border border-white/5 bg-black/60 rounded-none max-h-[280px] overflow-y-auto">
-              <table class="w-full text-left font-mono text-[10px]">
-                <thead class="bg-[#0f0b1a] sticky top-0 z-10">
-                  <tr class="text-slate-500 font-black border-b border-white/5">
-                    <th class="p-3">Từ khóa</th>
-                    <th class="p-3">Intent</th>
-                    <th class="p-3">Volume</th>
-                    <th class="p-3">CPC</th>
-                    <th class="p-3">Trạng thái</th>
-                    <th class="p-3 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="text-slate-300">
-                  {#each filteredKeywords as kw}
-                    <tr class="border-b border-white/5 hover:bg-purple-500/10 group/kw">
-                      <td class="p-3 text-left">
-                        <div 
-                          class="cursor-grab active:cursor-grabbing hover:text-purple-300 flex items-center gap-1.5 font-bold text-white" 
-                          draggable="true" 
-                          ondragstart={(e) => handleDragStart(e, kw.keyword)}
-                        >
-                          <span class="inline-block w-1.5 h-1.5 bg-purple-400"></span>
-                          {kw.keyword}
-                        </div>
-                      </td>
-                      <td class="p-3 text-left">
-                        <span class="px-1.5 py-0.5 rounded-none text-[8px] {kw.intent === 'COMMERCIAL' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}">
-                          {kw.intent === 'COMMERCIAL' ? 'MUA' : 'TÌM HIỂU'}
-                        </span>
-                      </td>
-                      <td class="p-3 text-left">{kw.estimated_volume || 'N/A'}</td>
-                      <td class="p-3 text-left">{kw.estimated_cpc_vnd ? fmt(kw.estimated_cpc_vnd) : 'N/A'}₫</td>
-                      <td class="p-3 text-left">
-                        {#if kw.estimated_volume === '< 100'}
-                          <span class="px-1.5 py-0.5 bg-red-500/10 text-red-400 text-[8px] font-black border border-red-500/20">VOLUME THẤP</span>
-                        {:else if kw.intent !== 'COMMERCIAL'}
-                          <span class="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black border border-amber-500/20">Ý ĐỊNH THẤP</span>
-                        {:else}
-                          <span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black border border-emerald-500/20">ĐỦ ĐIỀU KIỆN</span>
-                        {/if}
-                      </td>
-                      <td class="p-3 text-right">
-                        <button 
-                          class="px-2.5 py-1 border rounded-none text-[9px] font-bold transition-all {importedItems.includes(kw.keyword) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-purple-550 text-white hover:bg-purple-500'}"
-                          onclick={() => trackImport(kw.keyword, () => {
-                            addAdGroupKeywords([kw.keyword]);
-                          })}
-                          disabled={importedItems.includes(kw.keyword)}
-                        >
-                          {importedItems.includes(kw.keyword) ? 'ĐÃ THÊM' : '+ THÊM'}
-                        </button>
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-            
-            <!-- Real-time Current Ad Group Keywords (Drop zone) -->
-            <div class="pt-4 border-t border-white/5 text-left">
-              <span class="text-[9px] text-slate-500 font-mono font-black block uppercase mb-2">
-                TỪ KHÓA HIỆN CÓ CỦA NHÓM ({adGroupKeywords?.length || 0})
-                <span class="text-[8px] text-cyan-400/50 normal-case ml-2">(Kéo thả từ khóa vào đây để thêm)</span>
-              </span>
-              <div 
-                class="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto min-h-[48px] border p-2 bg-black/20 transition-all duration-200 {dragOverAdGroupKeywords ? 'border-dashed border-cyan-400 bg-cyan-950/20' : 'border-white/5'}"
-                ondragover={handleDragOverAdGroup}
-                ondragleave={() => dragOverAdGroupKeywords = false}
-                ondrop={handleDropAdGroup}
-              >
-                 {#each adGroupKeywords || [] as akw}
-                    {@const info = getKeywordInfo(akw)}
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-950/20 border border-cyan-500/20 text-cyan-400 text-[9px] font-mono {dragOverAdGroupKeywords ? 'pointer-events-none' : ''} {deletingKeywords.includes(akw) ? 'opacity-40 select-none' : ''}">
-                      <span class="font-bold">{akw}</span>
-                      {#if info}
-                        <span class="text-[8px] px-1 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300/80">
-                          Vol: {info.estimated_volume}
-                        </span>
-                      {/if}
-                      {#if deletingKeywords.includes(akw)}
-                        <span class="animate-spin text-[8px] ml-1">⏳</span>
-                      {:else}
-                        <button 
-                          type="button" 
-                          class="text-cyan-400/60 hover:text-cyan-300 font-bold ml-1 cursor-pointer focus:outline-none"
-                          onclick={() => handleRemoveKeyword(akw)}
-                          disabled={deletingKeywords.includes(akw)}
-                        >
-                          ×
-                        </button>
-                      {/if}
-                    </span>
-                {:else}
-                  <span class="text-[9px] text-slate-600 font-mono italic">Kéo thả từ khóa vào đây...</span>
-                {/each}
-              </div>
-            </div>
+          <div class="space-y-3 bg-black/40 p-5 border border-white/5 rounded-none font-mono">
+            <span class="text-[11px] text-purple-400 font-black block text-left uppercase tracking-widest border-b border-purple-500/10 pb-2">🎯 TỪ KHÓA ĐỀ XUẤT</span>
+            <KeywordsScoutSection 
+              {competitorAnalysis}
+              bind:adGroupKeywords
+              bind:importedItems
+              bind:selectedMatchType
+              bind:viewMode
+              bind:hideLowQualityKeywords
+              bind:deletingKeywords
+              {addAdGroupKeywords}
+              {removeAdGroupKeyword}
+              fullview={true}
+            />
           </div>
 
-          <!-- Section 2: Competitor Headlines (Full Width of Right Column, 2-Column Grid Layout) -->
-          <div class="space-y-3 bg-black/40 p-5 border border-white/5 rounded-none">
-            <span class="text-[11px] text-purple-400 font-mono font-black block text-left uppercase tracking-widest border-b border-purple-500/10 pb-2">📢 TIÊU ĐỀ QUẢNG CÁO ĐỐI THỦ ({competitorAnalysis.competitor_headlines?.length || 0})</span>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-1 text-left">
-              {#each competitorAnalysis.competitor_headlines || [] as ch}
-                <div class="bg-black/30 border border-white/5 p-3 flex justify-between items-center gap-3 group/ch hover:border-purple-500/30 rounded-none transition-all cursor-grab active:cursor-grabbing" draggable="true" ondragstart={(e) => handleDragStart(e, ch.headline)}>
-                  <div class="flex flex-col gap-1 min-w-0 text-left">
-                    <span class="text-xs text-white font-black truncate">{ch.headline}</span>
-                    <span class="text-[9px] text-purple-400 truncate">{ch.source_domain}</span>
-                  </div>
-                  <button 
-                    class="px-2.5 py-1 border rounded-none text-[10px] font-mono font-bold shrink-0 transition-all {importedItems.includes(ch.headline) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-purple-600 text-white hover:bg-purple-500'}"
-                    onclick={() => trackImport(ch.headline, () => handleImportKeyword(ch.headline))}
-                    disabled={importedItems.includes(ch.headline)}
-                  >
-                    {importedItems.includes(ch.headline) ? 'ĐÃ DÙNG' : 'DÙNG'}
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </div>
-
-          <!-- Section 3: Negatives & Gaps (2-Column Split Layout) -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/40 p-5 border border-white/5 rounded-none">
-            <!-- Left: Negatives -->
-            <div class="space-y-3 md:border-r md:border-white/5 md:pr-6">
-              <span class="text-[10px] text-purple-400 font-mono font-black block text-left uppercase tracking-wider mb-2">🛑 GỢI Ý TỪ KHÓA PHỦ ĐỊNH (CLICK ĐỂ THÊM)</span>
-              <div class="flex flex-wrap gap-2 text-left">
-                {#each competitorAnalysis.negative_keyword_suggestions || [] as nk}
-                  <button 
-                    type="button"
-                    class="px-2.5 py-1 border text-[10px] font-mono transition-all cursor-pointer rounded-none {importedItems.includes(nk) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white'}"
-                    onclick={() => trackImport(nk, () => {
-                      addNegativeKeyword(nk);
-                      negativeKeywords = [...(negativeKeywords || []), { text: nk }];
-                    })}
-                    disabled={importedItems.includes(nk)}
-                    title={importedItems.includes(nk) ? "Đã thêm vào phủ định" : "Thêm vào danh sách phủ định"}
-                  >
-                    {importedItems.includes(nk) ? '✓ ' + nk : '+ ' + nk}
-                  </button>
-                {/each}
-              </div>
-              
-              <!-- Real-time Current Campaign Negatives -->
-              {#if negativeKeywords && negativeKeywords.length > 0}
-                <div class="mt-4 pt-4 border-t border-white/10 text-left">
-                  <span class="text-[9px] text-slate-500 font-mono font-black block uppercase mb-2">PHỦ ĐỊNH CHIẾN DỊCH ĐÃ CÓ ({negativeKeywords.length})</span>
-                  <div class="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
-                    {#each negativeKeywords as nk}
-                      <span class="px-2 py-0.5 bg-red-950/20 border border-red-500/20 text-red-400 text-[9px] font-mono">
-                        {nk.text || nk}
-                      </span>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-            </div>
-
-            <!-- Right: Gaps -->
-            <div class="space-y-3 md:pl-2">
-              <span class="text-[10px] text-yellow-500 font-mono font-black block text-left uppercase tracking-wider mb-2">⚠️ KẼ HỞ CẠNH TRANH (SEO GAPS)</span>
-              {#if competitorAnalysis.seo_gaps}
-                <div class="border border-yellow-500/30 bg-yellow-500/5 p-4 rounded-none space-y-2 text-left">
-                  <div class="flex items-center gap-2 text-yellow-500">
-                    <AlertTriangle size={14} />
-                    <span class="text-[10px] font-black font-mono uppercase">Phân tích khoảng trống</span>
-                  </div>
-                  <p class="text-xs text-yellow-200/80 leading-relaxed font-mono text-left">
-                    {competitorAnalysis.seo_gaps}
-                  </p>
-                </div>
-              {:else}
-                <p class="text-xs text-slate-500 font-mono text-left">Không phát hiện kẽ hở cạnh tranh nào.</p>
-              {/if}
-            </div>
-          </div>
+          <!-- Section 2 & 3: Competitor Headlines, Negatives & Gaps -->
+          <AdAssetsAndGapsSection 
+            {competitorAnalysis}
+            bind:importedItems
+            bind:negativeKeywords
+            {addNegativeKeyword}
+            {handleImportKeyword}
+            fullview={true}
+          />
 
         </div>
       </div>

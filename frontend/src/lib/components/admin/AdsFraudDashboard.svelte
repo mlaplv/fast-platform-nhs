@@ -367,7 +367,26 @@
           {:else if ads.activeTab === 'google'}
             <AdsGoogleMetrics {...ads} />
           {:else if ads.activeTab === 'campaigns'}
-            <AdsCampaignManager {...ads} bind:campaignView={ads.campaignView} bind:isEditingAd={ads.isEditingAd} bind:fAd={ads.fAd} bind:fAdGroup={ads.fAdGroup} bind:competitorUrl={ads.competitorUrl} bind:adGroupKeywords={ads.adGroupKeywords} bind:negativeKeywords={ads.negativeKeywords} aiResult={ads.aiResult} analyzeCompetitor={ads.analyzeCompetitor} importKeyword={ads.importKeyword} competitorAnalysis={ads.competitorAnalysis} competitorAnalyzing={ads.competitorAnalyzing} />
+            <AdsCampaignManager 
+              {...ads} 
+              bind:campaignView={ads.campaignView} 
+              bind:isEditingAd={ads.isEditingAd} 
+              bind:fAd={ads.fAd} 
+              bind:fAdGroup={ads.fAdGroup} 
+              bind:competitorUrl={ads.competitorUrl} 
+              bind:adGroupKeywords={ads.adGroupKeywords} 
+              bind:negativeKeywords={ads.negativeKeywords} 
+              bind:selectedCampaign={ads.selectedCampaign}
+              bind:selectedAdGroup={ads.selectedAdGroup}
+              bind:fCampaign={ads.fCampaign}
+              bind:activeTab={ads.activeTab}
+              bind:selectedAd={ads.selectedAd}
+              aiResult={ads.aiResult} 
+              analyzeCompetitor={ads.analyzeCompetitor} 
+              importKeyword={ads.importKeyword} 
+              competitorAnalysis={ads.competitorAnalysis} 
+              competitorAnalyzing={ads.competitorAnalyzing} 
+            />
           {:else if ads.activeTab === 'merchant'}
             <div class="max-w-5xl mx-auto py-2">
               <GoogleMerchantWidget />

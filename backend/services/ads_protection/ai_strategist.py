@@ -15,6 +15,7 @@ from backend.services.ads_protection.schemas import (
     AISuggestionResponse,
     CompetitorAnalysisRequest,
     CompetitorAnalysisResponse,
+    PMaxAssetGroupResponse,
 )
 
 logger = logging.getLogger("ads_protection.ai_strategist")
@@ -40,6 +41,10 @@ class AIStrategist:
     def __init__(self) -> None:
         self._agent = Agent(
             output_type=AISuggestionResponse,
+            retries=2
+        )
+        self._pmax_agent = Agent(
+            output_type=PMaxAssetGroupResponse,
             retries=2
         )
 
@@ -138,12 +143,46 @@ class AIStrategist:
                             s.getparent().remove(s)
                         except Exception:
                             pass
+                            
+                    # Strip common boilerplate classes and IDs to prevent noise in the SGE analysis
+                    for el in list(tree.iter()):
+                        if el.getparent() is None:
+                            continue
+                        
+                        classes = [c.strip().lower() for c in el.get("class", "").split() if c.strip()]
+                        el_id = el.get("id", "").strip().lower()
+                        
+                        remove_el = False
+                        
+                        # Match boilerplate identifiers (with substring matching)
+                        for token in ['header', 'footer', 'menu', 'nav', 'sidebar']:
+                            if any(token in c for c in classes) or token in el_id:
+                                remove_el = True
+                                break
+                        
+                        # Also target common compound boilerplate wrappers
+                        for bp_class in ['site-header', 'site-footer', 'global-header', 'global-footer', 'main-nav', 'navbar', 'main-menu', 'sidebar-container', 'widget-area', 'social-links', 'footer-links', 'header-links', 'site-navigation']:
+                            if bp_class in classes or bp_class in el_id:
+                                remove_el = True
+                                break
+                                
+                        # Do not remove if it looks like main product/content section
+                        if remove_el:
+                            protect_keywords = ['product', 'content', 'article', 'main', 'detail', 'body', 'page-title', 'description', 'review', 'comment']
+                            if any(any(pk in c for pk in protect_keywords) for c in classes) or any(pk in el_id for pk in protect_keywords):
+                                remove_el = False
+                        
+                        if remove_el:
+                            try:
+                                el.getparent().remove(el)
+                            except Exception:
+                                pass
                     
                     body_text = tree.text_content()
                     words = re.findall(r'\b\w+\b', body_text)
                     word_count = len(words)
                     
-                    preview_text = " ".join(body_text.split())[:3000]
+                    preview_text = " ".join(body_text.split())[:25000]
                     
                     audit_report = (
                         f"=== ON-PAGE SEO & SGE REAL-TIME AUDIT ===\n"
@@ -351,7 +390,8 @@ YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
             )
             if result.success and result.keyword_suggestions:
                 try:
-                    from backend.services.ads_protection.campaign_manager import _campaign_mgr
+                    from backend.services.ads_protection.campaign_manager import CampaignManager
+                    _campaign_mgr = CampaignManager()
                     seeds = [item.keyword for item in result.keyword_suggestions]
                     real_suggestions = await _campaign_mgr.get_keyword_suggestions(seeds)
                     real_map = {rs.keyword.lower().strip(): rs for rs in real_suggestions} if real_suggestions else {}
@@ -383,6 +423,180 @@ YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
             return CompetitorAnalysisResponse(
                 success=False,
                 message=f"Phân tích thất bại: {str(e)}"
+            )
+
+    async def generate_pmax_assets(self, landing_page_url: str) -> PMaxAssetGroupResponse:
+        """Tự động sinh Asset Group và Search Themes cho chiến dịch PMax từ trang đích."""
+        logger.info("generate_pmax_assets url=%s", landing_page_url)
+        
+        # Scrape image candidates first
+        marketing_imgs = []
+        square_imgs = []
+        logo_imgs = []
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                resp = await client.get(landing_page_url, headers=headers)
+                if resp.status_code == 200:
+                    from lxml import html
+                    from urllib.parse import urljoin
+                    tree = html.fromstring(resp.content)
+                    
+                    # 1. Get og:image
+                    og = tree.xpath("//meta[@property='og:image']/@content")
+                    if og:
+                        full_og = urljoin(landing_page_url, og[0])
+                        marketing_imgs.append(full_og)
+                        square_imgs.append(full_og)
+
+                    # 2. Get all images and classify by priority
+                    all_img_elements = tree.xpath("//img")
+                    priority_imgs = []
+                    other_imgs = []
+                    
+                    exclude_keywords = [
+                        "icon", "svg", "tracker", "sprite", "favicon", "badge", "trust", 
+                        "payment", "card", "shield", "star", "arrow", "next", "prev", 
+                        "close", "menu", "cart", "search", "avatar", "user", "author", 
+                        "comment", "facebook", "zalo", "youtube", "tiktok", "instagram", 
+                        "messenger", "pinterest", "thumb", "thumbnail", "small", "mini", 
+                        "button", "gif", "banner", "slider", "slide", "bg", "background",
+                        "policy", "chinh-sach", "cam-ket", "shipping", "delivery"
+                    ]
+
+                    for img in all_img_elements:
+                        src = img.get("src") or img.get("data-src") or img.get("data-lazy-src") or img.get("data-original")
+                        if not src:
+                            continue
+                        
+                        full_src = urljoin(landing_page_url, src)
+                        src_lower = src.lower()
+                        class_lower = (img.get("class") or "").lower()
+                        id_lower = (img.get("id") or "").lower()
+                        alt_lower = (img.get("alt") or "").lower()
+                        
+                        # Check for logo
+                        if "logo" in src_lower or "logo" in class_lower or "logo" in id_lower:
+                            if full_src not in logo_imgs:
+                                logo_imgs.append(full_src)
+                            continue
+                            
+                        # Exclude icons, UI decorations, etc.
+                        if any(x in src_lower or x in class_lower or x in id_lower or x in alt_lower for x in exclude_keywords):
+                            continue
+                            
+                        # Detect priority product images
+                        is_priority = any(
+                            x in src_lower or x in class_lower or x in id_lower or x in alt_lower 
+                            for x in ["product", "prod", "main", "detail", "gallery", "featured", "item"]
+                        )
+                        
+                        if is_priority:
+                            if full_src not in priority_imgs:
+                                priority_imgs.append(full_src)
+                        else:
+                            if full_src not in other_imgs:
+                                other_imgs.append(full_src)
+                    
+                    # Combine: priority product images first, then other valid images
+                    for img_url in priority_imgs:
+                        if img_url not in marketing_imgs:
+                            marketing_imgs.append(img_url)
+                        if img_url not in square_imgs:
+                            square_imgs.append(img_url)
+                            
+                    for img_url in other_imgs:
+                        if img_url not in marketing_imgs:
+                            marketing_imgs.append(img_url)
+                        if img_url not in square_imgs:
+                            square_imgs.append(img_url)
+        except Exception as img_err:
+            logger.warning(f"Error scraping images in generate_pmax_assets: {img_err}")
+
+        # Limit sizes and enforce high quality fallbacks
+        marketing_imgs = marketing_imgs[:10]
+        square_imgs = square_imgs[:10]
+        logo_imgs = logo_imgs[:3]
+
+        if not marketing_imgs:
+            marketing_imgs = ["/v65_assets/cache/t_800_75_e2dedb54-cabe-4c49-a81f-a6b988e7efbe.webp?w=1200&h=628&fit=crop"]
+        if not square_imgs:
+            square_imgs = ["/v65_assets/cache/t_800_75_b2e65771-e14e-4ec1-a95b-ffd577e7cc6b.webp?w=1200&h=1200&fit=crop"]
+        if not logo_imgs:
+            logo_imgs = ["/v65_assets/cache/t_800_75_553d62fa-3e54-4544-9739-839920617e75.webp?w=512&h=512&fit=crop"]
+
+        page_content = ""
+        try:
+            page_content = await self._fetch_page(landing_page_url)
+        except Exception as e:
+            logger.error("Failed to fetch landing page in generate_pmax_assets: %s", e)
+            page_content = "Không thể lấy nội dung trang đích. Hãy sử dụng kiến thức chung."
+
+        prompt = f"""
+        NỘI DUNG TRANG ĐÍCH CỦA SẾP:
+        {page_content[:20000]}
+        
+        URL Trang Đích: {landing_page_url}
+ 
+        YÊU CẦU:
+        Hãy phân tích nội dung trang đích trên và tự động tạo Asset Group và Search Themes tối ưu cho chiến dịch Google Ads Performance Max (AI Max):
+        1. headlines: Sinh đúng ĐỦ 5 tiêu đề ngắn, mỗi tiêu đề dài TỐI ĐA 30 ký tự.
+        2. descriptions: Sinh đúng ĐỦ 5 mô tả, mỗi mô tả dài TỐI ĐA 90 ký tự.
+        3. search_themes: Sinh đúng ĐỦ 10 chủ đề tìm kiếm (Search Themes) dưới dạng hội thoại ngữ cảnh hoặc từ khóa dài (đại diện cho hành vi tìm kiếm AI Mode), mỗi chủ đề dài từ 3 đến 7 từ.
+        4. landing_page_url: Trả về chính xác URL trang đích được cung cấp.
+
+        Chú ý: Tuyệt đối tuân thủ độ dài ký tự! Không chứa các từ cam kết quá mức hoặc hoạt chất nhạy cảm bị cấm y tế.
+        """
+
+        try:
+            result = await trinity_bridge.run(
+                self._pmax_agent,
+                prompt,
+                system_prompt=self.SYSTEM_PROMPT,
+                role="pro",
+                timeout=120.0
+            )
+            result.marketing_images = marketing_imgs
+            result.square_marketing_images = square_imgs
+            result.logo_images = logo_imgs
+            return result
+        except Exception as e:
+            logger.error("generate_pmax_assets_failed: %s", e)
+            # Trả về giá trị fallback hợp lệ để không bị crash
+            return PMaxAssetGroupResponse(
+                headlines=[
+                    "Kem Dưỡng Da Xohi",
+                    "Phục Hồi Sáng Da Toàn Thân",
+                    "Mỹ Phẩm Lành Tính Tự Nhiên",
+                    "Dưỡng Ẩm Chuyên Sâu",
+                    "Ưu Đãi Hôm Nay"
+                ],
+                descriptions=[
+                    "Kem dưỡng sáng da toàn thân từ thảo duyệt thiên nhiên Nhật Bản an toàn cho mọi loại da.",
+                    "Sản phẩm dưỡng ẩm chuyên sâu giúp da mềm mịn tự nhiên không kích ứng da nhạy cảm.",
+                    "Mua ngay hôm nay để nhận ưu đãi giảm giá đặc biệt và miễn phí vận chuyển toàn quốc.",
+                    "Giải pháp phục hồi làn da xỉn màu hư tổn mang lại vẻ rạng rỡ tự nhiên cho bạn.",
+                    "Được kiểm nghiệm da liễu an toàn và hiệu quả nhanh chóng cho phụ nữ sau sinh."
+                ],
+                search_themes=[
+                    "kem dưỡng sáng da toàn thân loại nào tốt",
+                    "kem phục hồi da lành tính sau sinh",
+                    "mỹ phẩm dưỡng ẩm sâu tự nhiên",
+                    "cách làm sáng da nách bẹn mông an toàn",
+                    "review kem dưỡng trắng da tốt nhất",
+                    "kem dưỡng ẩm cho da nhạy cảm",
+                    "sản phẩm chăm sóc da thương hiệu xohi",
+                    "kem bôi làm mờ vết thâm sạm",
+                    "kem dưỡng sáng da chính hãng",
+                    "bí quyết phục hồi làn da xỉn màu"
+                ],
+                landing_page_url=landing_page_url,
+                marketing_images=marketing_imgs,
+                square_marketing_images=square_imgs,
+                logo_images=logo_imgs
             )
 
 

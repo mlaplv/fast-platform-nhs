@@ -148,3 +148,21 @@ class NegativeKeyword(Base, AuditMixin):
     match_type: Mapped[str] = mapped_column(String(16), default="EXACT") # BROAD | PHRASE | EXACT
     
     is_synced: Mapped[bool] = mapped_column(Boolean, default=False) # Đã đồng bộ lên Google Ads chưa
+
+
+class AIPolicyAuditLog(Base, AuditMixin):
+    """
+    Nhật ký quét kiểm duyệt chính sách (Policy Shield Audit Logs).
+    Ghi nhận lịch sử vi phạm, cảnh báo và điểm tối ưu hóa của ad group.
+    """
+    __tablename__ = "ads_policy_audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ad_group_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    landing_page_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    score: Mapped[float] = mapped_column(Float, default=100.0)
+    violations_count: Mapped[int] = mapped_column(Integer, default=0)
+    sensitive_count: Mapped[int] = mapped_column(Integer, default=0)
+    mismatch_count: Mapped[int] = mapped_column(Integer, default=0)
+    low_volume_count: Mapped[int] = mapped_column(Integer, default=0)
+    details: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON serialized details of alerts

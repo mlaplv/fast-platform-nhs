@@ -42,9 +42,22 @@ from backend.services.ads_protection.click_fraud_service import ClickFraudServic
 from backend.services.ads_protection.fraud_analytics_service import FraudAnalyticsService
 from backend.services.ads_protection.google_ads_reporter import GoogleAdsReporter
 from backend.services.ads_protection.campaign_manager import CampaignManager
+from backend.services.ads_protection.ads_fraud_manager import AdsFraudManager
+from backend.services.ads_protection.pmax_upgrader import PMaxUpgrader
 from backend.services.ads_protection.ai_strategist import ai_strategist
-from backend.services.ads_protection.schemas import AISuggestionRequest, AISuggestionResponse, CampaignOperationResult, CompetitorAnalysisRequest, CompetitorAnalysisResponse
-from backend.database.models.ads import IPBlacklist, NegativeKeyword
+from backend.services.ads_protection.schemas import (
+    AISuggestionRequest,
+    AISuggestionResponse,
+    CampaignOperationResult,
+    CompetitorAnalysisRequest,
+    CompetitorAnalysisResponse,
+    PolicyShieldValidateRequest,
+    PMaxUpgradeRequest,
+    PMaxAssetGroupResponse,
+    PolicyAuditHistoryItem,
+)
+from backend.services.ads_protection.policy_shield import policy_shield
+from backend.database.models.ads import IPBlacklist, NegativeKeyword, AIPolicyAuditLog
 from sqlalchemy import select, delete as sa_delete
 
 from backend.services.xohi_memory import xohi_memory
@@ -56,6 +69,8 @@ logger = logging.getLogger("api-gateway")
 _fraud_svc      = ClickFraudService()
 _reporter       = GoogleAdsReporter()
 _campaign_mgr   = CampaignManager()
+_fraud_mgr      = AdsFraudManager()
+_pmax_mgr       = PMaxUpgrader()
 
 # HUB cho Real-time Analytics (SSE)
 _stream_producer = RedisStreamProducer(xohi_memory.client)
@@ -181,9 +196,9 @@ class AdsProtectionController(Controller):
                     logger.info("🛡️ [Auto-Block] IP %s blacklisted locally", result.ip_address)
                     
                     # Async block in Google Ads if customer_id is configured
-                    if _campaign_mgr._has_credentials():
-                        # run in background task to avoid blocking response latency
-                        asyncio.create_task(_campaign_mgr.block_ip(campaign_resource_name="", ip_address=result.ip_address, is_global=True))
+                    if _fraud_mgr._has_credentials():
+                        # Lệnh block IP thật trên Google Ads
+                        asyncio.create_task(_fraud_mgr.block_ip(campaign_resource_name="", ip_address=result.ip_address, is_global=True))
             except Exception as ex:
                 logger.error("Auto-block IP failed for %s: %s", result.ip_address, ex)
 
@@ -532,6 +547,7 @@ class AdsProtectionController(Controller):
     ) -> CampaignOperationResult:
         """Thêm từ khóa vào Ad Group."""
         keywords = data.get("keywords", [])
+        match_type = data.get("match_type", "EXACT")
         if not keywords:
             return CampaignOperationResult(
                 success=False,
@@ -540,7 +556,7 @@ class AdsProtectionController(Controller):
             )
         try:
             resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/adGroups/{ad_group_id}"
-            success = await _campaign_mgr.add_ad_group_keywords(resource, keywords)
+            success = await _campaign_mgr.add_ad_group_keywords(resource, keywords, match_type=match_type)
             err_msg = _campaign_mgr.get_last_mutate_error()
             msg = f"Đã thêm thành công {len(keywords)} từ khóa vào Ad Group." if success else (f"Thêm từ khóa thất bại: {err_msg}" if err_msg else "Thêm từ khóa thất bại.")
             return CampaignOperationResult(
@@ -643,6 +659,139 @@ class AdsProtectionController(Controller):
         return await ai_strategist.competitor_research(data)
 
     # ------------------------------------------------------------------
+    # 17.6 Chốt chặn kiểm duyệt AI (Policy Shield)
+    # ------------------------------------------------------------------
+    @post("/validate-policy-shield")
+    async def validate_policy_shield(
+        self,
+        data: PolicyShieldValidateRequest,
+        db_session: AsyncSession
+    ) -> dict:
+        """
+        Quét chốt chặn kiểm duyệt AI cho từ khóa và ad copy.
+        Tính toán điểm số tối ưu và lưu vào lịch sử audit.
+        """
+        policy_result = await policy_shield.validate(
+            headlines=data.headlines,
+            descriptions=data.descriptions,
+            keywords=data.keywords,
+            landing_page_url=data.landing_page_url
+        )
+        
+        sensitive_count = len(policy_result.get("sensitive_warnings", []))
+        mismatch_count = len(policy_result.get("landing_page_warnings", []))
+        low_volume_count = len(policy_result.get("low_volume_warnings", []))
+        violations_count = sensitive_count + mismatch_count + low_volume_count
+        
+        # Công thức tính điểm tối ưu hóa (Optimization Score)
+        score = max(0.0, 100.0 - (sensitive_count * 15 + mismatch_count * 10 + low_volume_count * 5))
+        
+        policy_result["score"] = score
+        policy_result["violations_count"] = violations_count
+        
+        # Xác định trạng thái an toàn
+        if violations_count == 0:
+            policy_result["status"] = "SAFE"
+        elif any(v.get("severity") == "ERROR" for v in policy_result.get("sensitive_warnings", [])):
+            policy_result["status"] = "DANGER"
+        else:
+            policy_result["status"] = "WARNING"
+            
+        # Lưu vào cơ sở dữ liệu
+        log = AIPolicyAuditLog(
+            ad_group_id=data.ad_group_id or "default_ad_group",
+            landing_page_url=data.landing_page_url,
+            score=score,
+            violations_count=violations_count,
+            sensitive_count=sensitive_count,
+            mismatch_count=mismatch_count,
+            low_volume_count=low_volume_count,
+            details=json.dumps(policy_result, ensure_ascii=False)
+        )
+        db_session.add(log)
+        await db_session.commit()
+        
+        return policy_result
+
+    # ------------------------------------------------------------------
+    # 17.7 Nâng cấp chiến dịch DSA lên AI Max (Performance Max)
+    # ------------------------------------------------------------------
+    @post("/campaigns/{campaign_id:str}/upgrade-to-aimax")
+    async def upgrade_to_aimax(
+        self,
+        campaign_id: str,
+        data: PMaxUpgradeRequest
+    ) -> CampaignOperationResult:
+        """
+        Nâng cấp chiến dịch DSA lên AI Max (Performance Max).
+        """
+        return await _pmax_mgr.upgrade_dsa_to_pmax(
+            dsa_campaign_id=campaign_id,
+            budget_vnd=data.daily_budget_vnd,
+            pmax_name=data.name,
+            assets=data.assets
+        )
+
+    # ------------------------------------------------------------------
+    # 17.7.5 Xem trước nội dung PMax AI sinh ra trước khi đăng
+    # ------------------------------------------------------------------
+    @get("/campaigns/{campaign_id:str}/preview-aimax-assets")
+    async def preview_aimax_assets(
+        self,
+        campaign_id: str
+    ) -> PMaxAssetGroupResponse:
+        """
+        Xem trước nội dung AI sinh ra cho chiến dịch PMax trước khi xác nhận đăng.
+        """
+        token = await _pmax_mgr._get_access_token()
+        landing_page_url = "https://xohi.vn/pages/kem-duong-phuc-hoi-body" # fallback
+        try:
+            query = f"""
+                SELECT ad_group_ad.ad.final_urls 
+                FROM ad_group_ad 
+                WHERE campaign.id = '{campaign_id}' 
+                  AND ad_group_ad.status = 'ENABLED'
+                LIMIT 1
+            """
+            ad_res = await _pmax_mgr._search(token, query)
+            if ad_res and len(ad_res) > 0:
+                urls = ad_res[0].get("adGroupAd", {}).get("ad", {}).get("finalUrls", [])
+                if urls:
+                    landing_page_url = urls[0]
+        except Exception as e:
+            logger.warning(f"Error fetching campaign final urls: {e}")
+            
+        return await ai_strategist.generate_pmax_assets(landing_page_url)
+
+    # ------------------------------------------------------------------
+    # 17.8 Lấy lịch sử điểm tối ưu hóa của nhóm quảng cáo
+    # ------------------------------------------------------------------
+    @get("/ad-groups/{ad_group_id:str}/policy-history")
+    async def get_policy_history(
+        self,
+        ad_group_id: str,
+        db_session: AsyncSession
+    ) -> list[PolicyAuditHistoryItem]:
+        """
+        Lấy danh sách lịch sử điểm số tối ưu hóa của ad group.
+        """
+        stmt = select(AIPolicyAuditLog).where(AIPolicyAuditLog.ad_group_id == ad_group_id).order_by(AIPolicyAuditLog.created_at.desc())
+        res = await db_session.execute(stmt)
+        logs = res.scalars().all()
+        return [
+            PolicyAuditHistoryItem(
+                id=log.id,
+                score=log.score,
+                violations_count=log.violations_count,
+                sensitive_count=log.sensitive_count,
+                mismatch_count=log.mismatch_count,
+                low_volume_count=log.low_volume_count,
+                created_at=log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else ""
+            ) for log in logs
+        ]
+
+
+    # ------------------------------------------------------------------
     # 18. IP Blacklist Management
     # ------------------------------------------------------------------
     @get("/blacklist")
@@ -651,7 +800,7 @@ class AdsProtectionController(Controller):
     ) -> list[dict]:
         """Lấy danh sách IP bị chặn từ Google Ads (Real-time)."""
         # 1. Lấy từ Google Ads
-        google_blocked = await _campaign_mgr.list_all_blocked_ips()
+        google_blocked = await _fraud_mgr.list_all_blocked_ips()
         
         # 2. Lấy thêm từ local DB để đối soát
         stmt = select(IPBlacklist).order_by(IPBlacklist.created_at.desc())
@@ -697,8 +846,8 @@ class AdsProtectionController(Controller):
         # 1. Submit lên Google Ads (Nếu có campaign_id hoặc Global)
         success_google = False
         if campaign_id or is_global:
-            resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/campaigns/{campaign_id}" if campaign_id else ""
-            success_google = await _campaign_mgr.block_ip(resource, ip, is_global=is_global)
+            resource = f"customers/{_fraud_mgr._CUSTOMER_ID}/campaigns/{campaign_id}" if campaign_id else ""
+            success_google = await _fraud_mgr.block_ip(resource, ip, is_global=is_global)
         
         # 2. Lưu vào local DB để quản lý tập trung
         new_bl = IPBlacklist(ip_address=ip, reason=reason, fraud_score=1.0)
@@ -727,7 +876,7 @@ class AdsProtectionController(Controller):
     @get("/negative-keywords")
     async def list_global_negative_keywords(self) -> list[dict]:
         """Lấy danh sách từ khóa phủ định cấp tài khoản từ Google Ads."""
-        return await _campaign_mgr.list_account_negative_keywords()
+        return await _fraud_mgr.list_account_negative_keywords()
 
     @post("/negative-keywords")
     async def add_global_negative_keywords(self, data: dict) -> dict:
@@ -736,7 +885,7 @@ class AdsProtectionController(Controller):
         if not keywords:
             return {"success": False, "message": "No keywords provided"}
         
-        success = await _campaign_mgr.add_account_negative_keywords(keywords)
+        success = await _fraud_mgr.add_account_negative_keywords(keywords)
         return {"success": success}
 
     @get("/campaigns/{campaign_id:str}/negative-keywords")
@@ -744,8 +893,8 @@ class AdsProtectionController(Controller):
         self, campaign_id: str
     ) -> list[dict]:
         """Lấy danh sách từ khóa phủ định trực tiếp từ Google Ads."""
-        resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
-        return await _campaign_mgr.list_negative_keywords(resource)
+        resource = f"customers/{_fraud_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
+        return await _fraud_mgr.list_negative_keywords(resource)
 
     @post("/campaigns/{campaign_id:str}/negative-keywords")
     async def add_negative_keyword(
@@ -757,14 +906,14 @@ class AdsProtectionController(Controller):
         if not text:
             return CampaignOperationResult(success=False, operation="ADD_NEGATIVE", message="Thiếu từ khóa")
         
-        resource = f"customers/{_campaign_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
+        resource = f"customers/{_fraud_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
         # Tách danh sách nếu Sếp nhập nhiều dòng
         keywords = [k.strip() for k in text.split("\n") if k.strip()]
         
         success_count = 0
         for kw in keywords:
-            # Lưu ý: CampaignManager hiện tại nhận campaign_id thay vì resource
-            if await _campaign_mgr.add_negative_keyword(campaign_id, kw, is_global=is_global):
+            # Lưu ý: AdsFraudManager hiện tại nhận campaign_id thay vì resource
+            if await _fraud_mgr.add_negative_keyword(campaign_id, kw, is_global=is_global):
                 success_count += 1
         
         return CampaignOperationResult(

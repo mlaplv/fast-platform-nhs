@@ -391,3 +391,40 @@ class CompetitorAnalysisResponse(BaseModel):
     recommended_display_path2: Optional[str] = None
     seo_gaps: Optional[str] = None              # Kẽ hở so với đối thủ
 
+
+class PolicyShieldValidateRequest(BaseModel):
+    """Yêu cầu quét chốt chặn kiểm duyệt AI."""
+    headlines: list[str] = []
+    descriptions: list[str] = []
+    keywords: list[str] = []
+    landing_page_url: str = ""
+    ad_group_id: Optional[str] = None
+
+
+class PMaxUpgradeRequest(BaseModel):
+    dsa_campaign_id: str
+    daily_budget_vnd: float
+    name: str
+    assets: Optional[PMaxAssetGroupResponse] = None
+
+
+class PMaxAssetGroupResponse(BaseModel):
+    headlines: list[str]
+    descriptions: list[str]
+    search_themes: list[str]
+    landing_page_url: str
+    marketing_images: list[str] = Field(default_factory=list)
+    square_marketing_images: list[str] = Field(default_factory=list)
+    logo_images: list[str] = Field(default_factory=list)
+
+
+class PolicyAuditHistoryItem(BaseModel):
+    id: int
+    score: float
+    violations_count: int
+    sensitive_count: int
+    mismatch_count: int
+    low_volume_count: int
+    created_at: str
+
+
