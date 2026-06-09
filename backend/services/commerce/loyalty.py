@@ -193,7 +193,8 @@ class LoyaltyService:
             "rewards": [1, 1, 1, 1, 1, 1, 2],  # Sếp Standard: 1 point = 10k VND. Days 1-6 give 1 point, Day 7 gives 2 points.
             "is_active": True,
             "start_date": None,
-            "end_date": None
+            "end_date": None,
+            "points_expiration_days": 30
         }
         if setting and setting.value and isinstance(setting.value, dict):
             rewards = setting.value.get("rewards") or default_config["rewards"]
@@ -204,7 +205,8 @@ class LoyaltyService:
                 "rewards": cleaned_rewards,
                 "is_active": setting.value.get("is_active", True),
                 "start_date": setting.value.get("start_date"),
-                "end_date": setting.value.get("end_date")
+                "end_date": setting.value.get("end_date"),
+                "points_expiration_days": setting.value.get("points_expiration_days", 30)
             }
         return default_config
 
@@ -432,3 +434,110 @@ class LoyaltyService:
             "reward_amount": reward_amount * 10000,  # Return VND value to client
             "current_streak": loyalty.current_checkin_streak
         }
+
+    @staticmethod
+    async def expire_inactive_points(db_session: AsyncSession) -> dict:
+        """
+        Scan all users with points earned older than the configured expiration days,
+        calculate how many points are expired via FIFO computation, deduct them,
+        and write EXPIRED transactions to ledger.
+        """
+        logger.info("[Loyalty-Expiration] Starting points expiration check...")
+        config = await LoyaltyService._get_checkin_config(db_session)
+        expiration_days = config.get("points_expiration_days", 30)
+        
+        cutoff = datetime.now(timezone.utc) - timedelta(days=expiration_days)
+        
+        # Select distinct user_ids that have positive transactions before the cutoff date
+        stmt = select(PointTransaction.user_id).where(
+            PointTransaction.amount > 0,
+            PointTransaction.status == "COMPLETED",
+            PointTransaction.created_at < cutoff
+        ).distinct()
+        
+        res = await db_session.execute(stmt)
+        user_ids = res.scalars().all()
+        
+        total_users_processed = 0
+        total_points_expired = 0
+        
+        for user_id in user_ids:
+            # 1. Fetch user loyalty
+            loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
+            loyalty_res = await db_session.execute(loyalty_stmt)
+            loyalty = loyalty_res.scalar_one_or_none()
+            if not loyalty or loyalty.available_points <= 0:
+                continue
+                
+            # Verify integrity
+            is_intact = await LoyaltyService.verify_loyalty_integrity(db_session, user_id)
+            if not is_intact:
+                logger.error(f"[SECURITY-FATAL] Loyalty balance tampering detected for user {user_id} during points expiration check. Skipping.")
+                continue
+                
+            # 2. Fetch all completed positive transactions ordered by created_at ASC
+            pos_stmt = select(PointTransaction).where(
+                PointTransaction.user_id == user_id,
+                PointTransaction.amount > 0,
+                PointTransaction.status == "COMPLETED"
+            ).order_by(PointTransaction.created_at.asc())
+            pos_res = await db_session.execute(pos_stmt)
+            pos_txs = pos_res.scalars().all()
+            
+            # 3. Fetch all completed negative transactions
+            neg_stmt = select(PointTransaction).where(
+                PointTransaction.user_id == user_id,
+                PointTransaction.amount < 0,
+                PointTransaction.status == "COMPLETED"
+            )
+            neg_res = await db_session.execute(neg_stmt)
+            neg_txs = neg_res.scalars().all()
+            
+            total_spent = sum(abs(tx.amount) for tx in neg_txs)
+            
+            # 4. FIFO calculation
+            expired_points = 0
+            remaining_spent = total_spent
+            for tx in pos_txs:
+                tx_created_at = tx.created_at
+                if tx_created_at.tzinfo is None:
+                    tx_created_at = tx_created_at.replace(tzinfo=timezone.utc)
+                    
+                if remaining_spent >= tx.amount:
+                    remaining_spent -= tx.amount
+                    points_remaining = 0
+                else:
+                    points_remaining = tx.amount - remaining_spent
+                    remaining_spent = 0
+                    
+                if points_remaining > 0 and tx_created_at < cutoff:
+                    expired_points += points_remaining
+                    
+            if expired_points > 0:
+                # Limit expired points to actual available points to prevent negative balances
+                expired_points = min(expired_points, loyalty.available_points)
+                
+                # 5. Deduct points and log transaction
+                loyalty.available_points -= expired_points
+                pt = PointTransaction(
+                    user_id=user_id,
+                    amount=-expired_points,
+                    transaction_type="EXPIRED",
+                    notes=f"Hết hạn sử dụng điểm tích lũy ({expired_points} điểm)"
+                )
+                pt.integrity_token = LoyaltyService._create_transaction_token(pt)
+                db_session.add(pt)
+                
+                # Update seal
+                loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
+                
+                total_users_processed += 1
+                total_points_expired += expired_points
+                
+                logger.info(f"[Loyalty-Expiration] Expired {expired_points} points for user {user_id}. New balance: {loyalty.available_points}")
+                
+        if total_points_expired > 0:
+            await db_session.commit()
+            
+        logger.info(f"[Loyalty-Expiration] Completed. Processed {total_users_processed} users, expired {total_points_expired} points total.")
+        return {"users_affected": total_users_processed, "points_expired": total_points_expired}

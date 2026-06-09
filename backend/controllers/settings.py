@@ -184,6 +184,7 @@ class SettingsController(Controller):
         is_active = data.get("is_active", True)
         start_date = data.get("start_date")
         end_date = data.get("end_date")
+        points_expiration_days = data.get("points_expiration_days", 30)
         
         if len(rewards) != cycle_days:
             raise HTTPException(status_code=400, detail="Rewards array size must match cycle days count")
@@ -201,7 +202,8 @@ class SettingsController(Controller):
             "rewards": rewards,
             "is_active": is_active,
             "start_date": start_date,
-            "end_date": end_date
+            "end_date": end_date,
+            "points_expiration_days": points_expiration_days
         }
         await db_session.commit()
         return SuccessResponse(ok=True, id="LOYALTY_CHECKIN_CONFIG")

@@ -260,7 +260,7 @@
                     </div>
                     <p class="text-[13px] text-stone-600 font-medium">1 {loyaltyStore.data?.point_unit ?? "điểm"} = 10,000đ chiết khấu</p>
                     <p class="text-[10px] text-stone-400 italic font-medium leading-relaxed">
-                        Chính sách bảo vệ biên lợi nhuận: Áp dụng tối đa 1% giá trị mỗi đơn hàng.
+                        Chính sách bảo vệ biên lợi nhuận: Áp dụng tối đa 1% giá trị mỗi đơn hàng. Điểm tự động hết hạn sau 30 ngày kể từ ngày tích lũy.
                     </p>
                 </div>
             </div>

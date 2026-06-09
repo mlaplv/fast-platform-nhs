@@ -782,7 +782,7 @@
                 <div class="flex-1">
                   <h4 class="font-black text-[13.5px] text-[#475569] tracking-wide mb-1">CHÍNH SÁCH BẢO VỆ</h4>
                   <p class="text-[11.5px] text-gray-500 leading-relaxed font-medium">
-                    Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng. Điểm thưởng có thời hạn sử dụng theo quy định của hệ thống.
+                    Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng. Điểm thưởng tự động hết hạn sau 30 ngày kể từ ngày tích lũy.
                   </p>
                 </div>
               </div>

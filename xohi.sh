@@ -821,6 +821,57 @@ function purge_full_database() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function reset_db_for_marketing() {
+    echo -e "${RED}[RESET] GIAO THỨC RESET DATABASE TIẾP THỊ (MARKETING RESET) !!!${NC}"
+    echo -e "${YELLOW}[WARNING] Thao tác này sẽ xóa sạch dữ liệu đơn hàng, điểm loyalty, logs CTV và các tài khoản khách hàng thử nghiệm.${NC}"
+    echo -e "${YELLOW}Chỉ tài khoản admin duy nhất (mlap) và dữ liệu sản phẩm, phân loại, bài viết, cấu hình, vouchers,... được giữ lại.${NC}"
+    
+    read -s -p "Nhập mã quản trị để xác nhận (Admin Password): " confirm_pass
+    echo ""
+    
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+        echo -e "${CYAN}-> Xác thực thành công. Bắt đầu thực thi script reset...${NC}"
+        if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+            docker exec -it fast_platform_api /opt/venv/bin/python3 backend/scripts/reset_db_marketing.py
+        else
+            echo -e "${YELLOW}[INFO] Container API chưa chạy. Khởi động môi trường tạm thời...${NC}"
+            docker compose run --rm api /opt/venv/bin/python3 backend/scripts/reset_db_marketing.py
+        fi
+        
+        echo -e "${CYAN}-> Đồng bộ lại liên kết hình ảnh (Media Sync)...${NC}"
+        if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+            docker exec -t fast_platform_api /opt/venv/bin/python3 backend/scripts/sync_all_media.py
+        else
+            docker compose run --rm api /opt/venv/bin/python3 backend/scripts/sync_all_media.py
+        fi
+        
+        echo -e "${CYAN}-> Làm sạch bộ nhớ đệm (Redis)...${NC}"
+        if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
+            docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+            docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+        fi
+        
+        echo -e "${GREEN}[OK] Đã hoàn tất quy trình reset database phục vụ Marketing.${NC}"
+    else
+        echo -e "${RED}[ERROR] Sai mật mã quản trị! Thao tác bị từ chối.${NC}"
+    fi
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+function optimize_database() {
+    echo -e "${CYAN}=== [OPTIMIZE] TỐI ƯU & CHỐNG PHÂN MẢNH DATABASE ZERO-LOCKING (POSTGRESQL) ===${NC}"
+    echo -e "${YELLOW}-> Khởi động quy trình tối ưu hóa không gây khóa (Zero-Locking)...${NC}"
+    
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        docker exec -t fast_platform_api /opt/venv/bin/python3 backend/scripts/optimize_db_concurrently.py
+    else
+        echo -e "${YELLOW}[INFO] Container API chưa chạy. Khởi động môi trường tạm thời...${NC}"
+        docker compose run --rm api /opt/venv/bin/python3 backend/scripts/optimize_db_concurrently.py
+    fi
+    
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 function deploy_security_index() {
     echo -e "${YELLOW}=== [SECURITY] DEPLOY GIN INDEX (POSTGRESQL PRODUCTION) ===${NC}"
     echo -e "${RED}[IMPORTANT] Thao tác này nên chạy vào GIỜ THẤP TẢI để đảm bảo hiệu năng tốt nhất.${NC}"
@@ -1062,6 +1113,14 @@ if [[ -n "$1" ]]; then
             update_storefront_ssr
             exit 0
             ;;
+        reset-marketing|marketing-reset|23)
+            reset_db_for_marketing
+            exit 0
+            ;;
+        optimize-db|db-optimize|24)
+            optimize_database
+            exit 0
+            ;;
     esac
 fi
 
@@ -1100,6 +1159,8 @@ while true; do
     echo "20) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
     echo "21) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
     echo "22) CẬP NHẬT STOREFRONT SSR (Build SvelteKit & Restart UI)"
+    echo "23) RESET DATABASE MARKETING (Khởi tạo lại dữ liệu khách hàng/CTV)"
+    echo "24) TỐI ƯU & CHỐNG PHÂN MẢNH DB (Tăng tốc truy vấn)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1185,6 +1246,12 @@ while true; do
             ;;
         22)
             update_storefront_ssr
+            ;;
+        23)
+            reset_db_for_marketing
+            ;;
+        24)
+            optimize_database
             ;;
         0)
             exit 0

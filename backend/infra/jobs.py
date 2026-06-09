@@ -226,3 +226,20 @@ async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
             logger.error(f"[Cleanup Notifications] Failed during cleanup execution: {e}")
             await db.rollback()
 
+
+async def expire_loyalty_points_job(ctx: Dict[str, object]) -> None:
+    """
+    Elite V2.2: Daily loyalty points expiration cron job.
+    Executes the FIFO-based point expiration routine to prune stale points.
+    """
+    logger.info("[Loyalty Points Expiration Job] Commencing expiration sequence...")
+    session_maker = alchemy_config.create_session_maker()
+    async with session_maker() as db:
+        try:
+            from backend.services.commerce.loyalty import LoyaltyService
+            stats = await LoyaltyService.expire_inactive_points(db)
+            logger.info(f"[Loyalty Points Expiration Job] Completed. Stats: {stats}")
+        except Exception as e:
+            logger.error(f"[Loyalty Points Expiration Job] Execution failed: {e}")
+            await db.rollback()
+

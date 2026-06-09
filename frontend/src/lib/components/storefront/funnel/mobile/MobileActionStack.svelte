@@ -52,33 +52,35 @@
   class:HUD-hidden={isScrollingDown}
 >
   <!-- 7. Điểm danh nhận quà (Top-most check-in utility) -->
-  <button
-    class="action-btn-mini group"
-    onclick={() => checkinStore.openPopup()}
-    aria-label="Điểm danh nhận quà"
-  >
-    <div class="relative flex items-center justify-center">
-      {#if !isCheckedIn}
-        <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff9900] rounded-full animate-pulse z-10"></div>
-        <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🎁</span>
-      {:else}
-        <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🪙</span>
-        <!-- Orange/Green badge overlay with z-10 to ensure it renders on top of the emoji -->
-        <div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-[#111014] flex items-center justify-center z-10 shadow-sm">
-          <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-      {/if}
-    </div>
-    <span class="btn-label-mini text-center leading-[1.1]">
-      {#if isCheckedIn}
-        Đã nhận<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
-      {:else}
-        Nhận quà<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
-      {/if}
-    </span>
-  </button>
+  {#if checkinStore.status?.is_event_enabled === true}
+    <button
+      class="action-btn-mini group"
+      onclick={() => checkinStore.openPopup()}
+      aria-label="Điểm danh nhận quà"
+    >
+      <div class="relative flex items-center justify-center">
+        {#if !isCheckedIn}
+          <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff9900] rounded-full animate-pulse z-10"></div>
+          <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🎁</span>
+        {:else}
+          <span class="text-2xl drop-shadow-xl group-active:scale-90 transition-transform block">🪙</span>
+          <!-- Orange/Green badge overlay with z-10 to ensure it renders on top of the emoji -->
+          <div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-[#111014] flex items-center justify-center z-10 shadow-sm">
+            <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        {/if}
+      </div>
+      <span class="btn-label-mini text-center leading-[1.1]">
+        {#if isCheckedIn}
+          Đã nhận<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
+        {:else}
+          Nhận quà<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Điểm danh</span>
+        {/if}
+      </span>
+    </button>
+  {/if}
 
   <!-- 6. Tra cứu (Top-most utility) -->
   <a

@@ -18,7 +18,7 @@ import backend.services.xohi.creative_studio.operatives.plagiarism_cop
 import backend.services.xohi.creative_studio.operatives.seo_analyzer
 import backend.services.xohi.creative_studio.operatives.ai_inspector
 import backend.services.xohi.creative_studio.operatives.content_enricher
-from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications
+from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job
 logger = logging.getLogger("arq.worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
@@ -445,17 +445,19 @@ class WorkerSettings:
 class WorkerHighSettings(WorkerSettings):
     """Priority Worker for Helen (Client Support)."""
     queue_name = "high"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 15
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [
+        # Schedule points expiration at 0:00 AM every day
+        cron(expire_loyalty_points_job, hour=0, minute=0),
         # Schedule self-learning scan at 2:00 AM every day
         cron(helen_self_learning_job, hour=2, minute=0),
         # Schedule cleanup at 3:00 AM every day

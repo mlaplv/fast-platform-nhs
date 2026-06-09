@@ -425,7 +425,7 @@
         pointer-events: {hideRatio > 0.8 ? 'none' : 'auto'};
       "
     >
-      {#if checkinStore.status?.is_event_enabled !== false}
+      {#if checkinStore.status?.is_event_enabled === true}
         {@const hasCheckedIn = checkinStore.status?.is_checked_in_today ?? false}
         <button
           onclick={() => checkinStore.openPopup()}

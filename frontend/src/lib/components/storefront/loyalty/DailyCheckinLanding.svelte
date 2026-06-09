@@ -9,6 +9,7 @@
   import { scale } from 'svelte/transition';
   import { page } from '$app/state';
   import { browser } from '$app/environment';
+  import { afterNavigate } from '$app/navigation';
   import { checkinStore } from '$lib/state/commerce/checkin.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import DailyCheckinModalMobile from './DailyCheckinModalMobile.svelte';
@@ -34,6 +35,10 @@
     if (browser) {
       window.addEventListener('scroll', handleScroll, { passive: true });
       handleScroll();
+      // Fetch status globally to determine campaign visibility
+      if (!checkinStore.status && !checkinStore.loading) {
+        checkinStore.fetchStatus();
+      }
     }
     return () => {
       window.removeEventListener('resize', updateIsMobile);
@@ -58,61 +63,43 @@
     // Read reactive variables synchronously to register them as Svelte 5 dependencies
     const currentPathname = page.url.pathname;
     const isAuthenticated = authStore.isAuthenticated;
+    const status = checkinStore.status;
+    const loading = checkinStore.loading;
 
-    const isHomepage = currentPathname === '/' || currentPathname === '/home';
-    if (!isHomepage) {
-      userDismissed = false; // Reset dismissal when navigating away from the homepage
-      untrack(() => {
-        if (checkinStore.showPopup) {
-          checkinStore.closePopup();
-        }
-      });
+    // Elite V2.2: Exclude critical checkout and auth pages from auto-triggering the checkin popup
+    const isExcludedPage = currentPathname.startsWith('/checkout') || currentPathname.startsWith('/auth');
+    if (isExcludedPage) {
+      userDismissed = false;
       return;
     }
 
-    return untrack(() => {
-      const dismissedDate = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date');
-      const isDismissed = dismissedDate === getVnDateString();
-      if (isDismissed || userDismissed) return;
+    if (loading || !status) return;
 
-      if (checkinStore.showPopup) return;
+    if (status.is_event_enabled === false) return;
 
-      let timerId: ReturnType<typeof setTimeout> | null = null;
+    const dismissedDate = localStorage.getItem('osmo:storefront:daily_checkin_dismissed_date');
+    const isDismissed = dismissedDate === getVnDateString();
+    if (isDismissed || userDismissed) return;
 
-      const runAutoPopup = (statusData: typeof checkinStore.status) => {
-        if (statusData && statusData.is_event_enabled === false) return;
-        if (page.url.pathname !== currentPathname || userDismissed || checkinStore.showPopup) return;
+    if (checkinStore.showPopup) return;
 
-        if (isAuthenticated) {
-          // If logged in, only show if they haven't checked in today yet
-          if (statusData && statusData.is_checked_in_today) return;
-        }
+    if (isAuthenticated && status.is_checked_in_today) return;
 
-        timerId = setTimeout(() => {
-          if (!userDismissed && page.url.pathname === currentPathname && !checkinStore.showPopup) {
-            checkinStore.openPopup();
-          }
-        }, 1500); // 1.5s as per design spec
-      };
-
-      const st = checkinStore.status;
-      if (st) {
-        runAutoPopup(st);
-      } else if (!checkinStore.loading) {
-        checkinStore.fetchStatus().then(() => {
-          runAutoPopup(checkinStore.status);
-        }).catch((err) => {
-          console.error('[DailyCheckinLanding] fetchStatus error fallback:', err);
-          // Fallback if API fails
-          runAutoPopup(null);
-        });
+    const timerId = setTimeout(() => {
+      if (!userDismissed && page.url.pathname === currentPathname && !checkinStore.showPopup) {
+        checkinStore.openPopup();
       }
+    }, 1500); // 1.5s as per design spec
 
-      // Cleanup: Clear active timers when route or authentication state changes, or on component unmount
-      return () => {
-        if (timerId) clearTimeout(timerId);
-      };
-    });
+    return () => {
+      clearTimeout(timerId);
+    };
+  });
+
+  afterNavigate(() => {
+    if (checkinStore.showPopup) {
+      checkinStore.closePopup();
+    }
   });
 
   // Auto-reopen reward center modal immediately after successful login
@@ -135,7 +122,7 @@
 </script>
 
 <!-- Floating Trigger (Gift 🎁) - Back up trigger to reopen Reward Center anytime (Desktop Only) -->
-{#if !isMobile && !checkinStore.showPopup && (checkinStore.status?.is_event_enabled !== false)}
+{#if !isMobile && !checkinStore.showPopup && checkinStore.status?.is_event_enabled === true}
   {@const hasCheckedIn = checkinStore.status?.is_checked_in_today ?? false}
   <button
     onclick={() => { userDismissed = false; checkinStore.openPopup(); }}

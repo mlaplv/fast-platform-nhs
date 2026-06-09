@@ -184,7 +184,8 @@
     rewards: [1, 1, 1, 1, 1, 1, 2] as number[],
     is_active: true,
     start_date: "" as string | null,
-    end_date: "" as string | null
+    end_date: "" as string | null,
+    points_expiration_days: 30
   });
 
   // Notification Retention State
@@ -208,7 +209,8 @@
           rewards: checkinRes.rewards || [1, 1, 1, 1, 1, 1, 2],
           is_active: checkinRes.is_active !== undefined ? checkinRes.is_active : true,
           start_date: checkinRes.start_date || "",
-          end_date: checkinRes.end_date || ""
+          end_date: checkinRes.end_date || "",
+          points_expiration_days: checkinRes.points_expiration_days !== undefined ? checkinRes.points_expiration_days : 30
         };
       }
 
@@ -236,7 +238,8 @@
           rewards: loyaltyConfig.rewards,
           is_active: loyaltyConfig.is_active,
           start_date: loyaltyConfig.start_date || null,
-          end_date: loyaltyConfig.end_date || null
+          end_date: loyaltyConfig.end_date || null,
+          points_expiration_days: loyaltyConfig.points_expiration_days !== undefined ? loyaltyConfig.points_expiration_days : 30
         });
         nanobot.showToast("Cấu hình điểm danh hàng ngày đã được lưu.", "success");
       } else if (activeTab === 'notification_retention') {
@@ -930,7 +933,7 @@
                   </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <!-- Cycle Days -->
                   <div class="space-y-1">
                     <label for="cycle_days" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Số ngày chu kỳ</label>
@@ -973,6 +976,20 @@
                       type="date" 
                       bind:value={loyaltyConfig.end_date}
                       class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                    />
+                  </div>
+
+                  <!-- Points Expiration Days -->
+                  <div class="space-y-1">
+                    <label for="points_expiration_days" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Hạn dùng điểm (ngày)</label>
+                    <input 
+                      id="points_expiration_days" 
+                      type="number" 
+                      bind:value={loyaltyConfig.points_expiration_days} 
+                      min="1" 
+                      max="365"
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="30"
                     />
                   </div>
                 </div>
