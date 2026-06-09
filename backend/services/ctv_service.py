@@ -425,7 +425,8 @@ class CtvService:
                     "name": t.name,
                     "commission_rate_bps": t.commission_rate_bps,
                     "commission_rate_pct": f"{t.commission_rate_bps / 100:.1f}%",
-                    "bonus_rate_bps": t.bonus_rate_bps
+                    "bonus_rate_bps": t.bonus_rate_bps,
+                    "min_revenue_threshold": t.min_revenue_threshold,
                 }
                 for t in tiers_list
             ],

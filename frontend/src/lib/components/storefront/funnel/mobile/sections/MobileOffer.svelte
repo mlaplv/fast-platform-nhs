@@ -153,12 +153,45 @@
   });
 
   function getVariantTitle(v: ProductVariant): string {
-    if (!product?.tierVariations?.length || !v.tierIndex?.length) return v.sku || 'Combo';
-    return v.tierIndex.map((optIdx: number, tierIdx: number) => {
+    const qty = v.attributes?.combo_qty || 1;
+    let totalQty = qty;
+    if (qty === 3) {
+      const gifts = v.attributes?.gifts?.length
+        ? v.attributes.gifts
+        : v.gifts?.length
+          ? v.gifts
+          : product?.gifts || [];
+      const giftQty = gifts.reduce((acc: number, g: any) => acc + (g.qty || g.quantity || 1), 0);
+      totalQty += giftQty;
+    }
+    const qtySuffix = qty > 1 ? ` - BỘ ${totalQty} MÓN` : "";
+
+    if (!product?.tierVariations?.length || !v.tierIndex?.length) {
+      return (v.sku || 'Combo') + qtySuffix;
+    }
+    const title = v.tierIndex.map((optIdx: number, tierIdx: number) => {
       const option = product.tierVariations![tierIdx]?.options[optIdx] as string | { name?: string; label?: string } | undefined;
       return typeof option === 'string' ? option : (typeof option === 'object' && option ? (option.name || option.label || '') : '');
-    }).filter(Boolean).join(' - ') || v.sku || 'Combo';
+    }).filter(Boolean).join(' - ');
+
+    return (title || v.sku || 'Combo') + qtySuffix;
   }
+
+  const currentVariantGifts = $derived(
+    shopStore.variant?.attributes?.gifts?.length
+      ? shopStore.variant.attributes.gifts
+      : shopStore.variant?.gifts?.length
+        ? shopStore.variant.gifts
+        : product?.gifts || []
+  );
+  const currentVariantGiftQty = $derived(
+    shopStore.variant?.attributes?.combo_qty === 3
+      ? currentVariantGifts.reduce((acc: number, g: any) => acc + (g.qty || g.quantity || 1), 0)
+      : 0
+  );
+  const ctaDisplayQty = $derived(
+    (shopStore.variant?.attributes?.combo_qty || 1) + currentVariantGiftQty
+  );
 
   const handleSelect = (i: number) => {
     const v = variants[i];
@@ -261,10 +294,13 @@
       {#each variants as variant, i (variant.id || i)}
          {@const cQty = variant.attributes?.combo_qty || 1}
          {@const priceData = shopStore.calculateAdjustedPrice(variant, 1)}
-         {@const vPrice = priceData.final}
+         {@const vPrice = priceData.final * cQty}
+         {@const originalPrice = variant.price * cQty}
          {@const isActive = selectedIndex === i}
          {@const variantTitle = getVariantTitle(variant)}
          {@const resolvedGifts = variant.attributes?.gifts?.length ? variant.attributes.gifts : variant?.gifts?.length ? variant.gifts : product?.gifts || []}
+         {@const giftQty = cQty === 3 ? resolvedGifts.reduce((acc, g) => acc + (g.qty || g.quantity || 1), 0) : 0}
+         {@const displayQty = cQty + giftQty}
          
            <div 
             role="button"
@@ -303,7 +339,7 @@
                       </div>
                    {/if}
                    {#if cQty > 1}
-                      <div class="offer-badge combo-badge bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-bold text-[10px] tracking-widest">Combo x{cQty}</div>
+                      <div class="offer-badge combo-badge bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-bold text-[10px] tracking-widest">Combo x{displayQty}</div>
                    {/if}
                 </div>
 
@@ -312,8 +348,8 @@
                 <div class="flex flex-col mt-0.5 w-full">
                     <div class="flex items-baseline gap-2">
                        <span class="font-black text-[20px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
-                       {#if variant.price > vPrice}
-                         <span class="text-[12px] text-white/20 line-through font-bold">{formatCurrency(variant.price)}</span>
+                       {#if originalPrice > vPrice}
+                         <span class="text-[12px] text-white/20 line-through font-bold">{formatCurrency(originalPrice)}</span>
                        {/if}
                     </div>
                     
@@ -459,7 +495,7 @@
            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/20 via-transparent to-[#FFB7C5]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="relative z-10 flex items-center justify-between w-full px-4 gap-2">
               <div class="flex flex-col text-left leading-tight">
-                <span class="cta-selection-label text-white text-[11px] font-black italic">Chọn combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
+                <span class="cta-selection-label text-white text-[11px] font-black italic">Chọn combo x{ctaDisplayQty}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="cta-points-label text-[9px] text-[#FFB7C5] font-bold tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20 whitespace-nowrap">Tích +{Math.floor(shopStore.totalAmount / 100000)} điểm</span>
                    <span class="cta-ship-label text-[10px] text-white/30 font-bold tracking-widest italic">• {metadata.offer_shipping_label || 'Freeship'}</span>

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotAuthorizedException, ClientException
 
 from backend.database.models import User, Role, SystemOTP
+from backend.database import current_tenant_id
 from backend.schemas.auth import (
     LoginRequest, TokenResponse, RegisterRequest,
     SocialLoginResponse, OTPRequestResponse, OTPVerifyResponse
@@ -46,7 +47,7 @@ class AuthService:
             name=data.name,
             password=hashed,
             status="ACTIVE",
-            tenant_id="default"
+            tenant_id=current_tenant_id.get() or "default"
         )
         db_session.add(new_user)
         # Flush to get the user inserted before adding notification/signal
@@ -172,7 +173,7 @@ class AuthService:
                 "email": email,
                 "name": name,
                 "status": "ACTIVE",
-                "tenant_id": "default"
+                "tenant_id": current_tenant_id.get() or "default"
             }
             if hasattr(User, "avatar_url"):
                 user_kwargs["avatar_url"] = avatar
@@ -234,7 +235,7 @@ class AuthService:
             code=code,
             token=otp_token,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
-            tenant_id="default"
+            tenant_id=current_tenant_id.get() or "default"
         )
         db_session.add(new_otp)
         
@@ -318,7 +319,7 @@ class AuthService:
                 phone=identifier if "@" not in identifier else None,
                 name=str(data.get("name") or identifier.split("@")[0]),
                 status="ACTIVE",
-                tenant_id = "default"
+                tenant_id=current_tenant_id.get() or "default"
             )
             db_session.add(user)
             await db_session.flush()

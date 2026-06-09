@@ -102,6 +102,8 @@ class HelenSelfLearningService:
             product_slug = None
             customer_name = "Khách hàng"
             
+            session_tenant = msgs[0].tenant_id if msgs else "default"
+            
             for m in msgs:
                 role_label = "Customer" if m.role == "user" else "Helen (Assistant)"
                 transcript_lines.append(f"{role_label}: {m.content}")
@@ -144,7 +146,7 @@ class HelenSelfLearningService:
                     similar_matches = await knowledge_vector_service.search_semantic(
                         db_session=db,
                         query=item.question,
-                        tenant_id="default",
+                        tenant_id=session_tenant,
                         limit=1
                     )
                     
@@ -178,7 +180,8 @@ class HelenSelfLearningService:
                             "session_id": session_id,
                             "product_slug": product_slug
                         },
-                        priority=0
+                        priority=0,
+                        tenant_id=session_tenant
                     )
                     
                     db.add(new_knowledge)

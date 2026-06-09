@@ -21,6 +21,12 @@ class SoftDeleteMixin:
     """Standardized soft delete logic (Rule R38)."""
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+from backend.database import current_tenant_id
+
 class TenantMixin:
     """Standardized multi-tenancy support."""
-    tenant_id: Mapped[str] = mapped_column(String, default="default", index=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String, 
+        default=lambda: current_tenant_id.get() or "default", 
+        index=True
+    )
