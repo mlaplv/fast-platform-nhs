@@ -12,6 +12,17 @@ import {
     type FaqItem
 } from '$lib/utils/seo';
 
+interface KnowledgeGraphEntity {
+    name: string;
+    description: string;
+}
+
+interface KnowledgeGraph {
+    knowledge_graph?: {
+        entities?: KnowledgeGraphEntity[];
+    };
+}
+
 /**
  * Elite V2.2: SEO Schema Factory (Runes-based)
  * Centralized state management for structured data.
@@ -39,9 +50,9 @@ class SchemaFactory {
             try {
                 const json = JSON.parse(rawLd);
                 // Elite V2.2: SGE Knowledge Graph Injection (mentions)
-                const kg = (this.productData as any)?.knowledge_graph;
+                const kg = (this.productData as Partial<ProductLdConfig> & KnowledgeGraph)?.knowledge_graph;
                 if (kg && Array.isArray(kg.entities)) {
-                    json.mentions = kg.entities.map((e: any) => ({
+                    json.mentions = kg.entities.map((e: KnowledgeGraphEntity) => ({
                         "@type": "Thing",
                         "name": e.name,
                         "description": e.description
@@ -62,9 +73,9 @@ class SchemaFactory {
             try {
                 const json = JSON.parse(rawLd);
                 // Elite V2.2: SGE Knowledge Graph Injection (mentions)
-                const kg = (this.articleData as any)?.knowledge_graph;
+                const kg = (this.articleData as Partial<ArticleLdConfig> & KnowledgeGraph)?.knowledge_graph;
                 if (kg && Array.isArray(kg.entities)) {
-                    json.mentions = kg.entities.map((e: any) => ({
+                    json.mentions = kg.entities.map((e: KnowledgeGraphEntity) => ({
                         "@type": "Thing",
                         "name": e.name,
                         "description": e.description

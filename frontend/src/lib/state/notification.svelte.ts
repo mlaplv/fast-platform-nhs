@@ -5,6 +5,17 @@ import { permissionState } from "./permissions.svelte";
 import { vuiController } from "$lib/vui";
 import { isAdminDomain } from "./nanobot/env";
 
+export interface RawNotification {
+  id: string;
+  type?: string;
+  message?: string;
+  isRead?: boolean;
+  is_read?: boolean;
+  createdAt?: string;
+  created_at?: string;
+  signal_type?: string;
+}
+
 export function createNotificationState() {
   const state = $state({
     notifications: [] as Notification[],
@@ -50,9 +61,9 @@ export function createNotificationState() {
         const url = cursor
           ? `/api/v1/notifications/paginated?cursor=${encodeURIComponent(cursor)}&limit=20`
           : `/api/v1/notifications/paginated?limit=20`;
-        const res = await apiClient.get<{ data: any[], next_cursor: string | null, has_more: boolean }>(url);
+        const res = await apiClient.get<{ data: RawNotification[], next_cursor: string | null, has_more: boolean }>(url);
         
-        parsedData = (res.data || []).map((note: Record<string, any>) => {
+        parsedData = (res.data || []).map((note: RawNotification) => {
           let msg = (note.message || "") as string;
           let payload: Record<string, unknown> = {};
           if (msg.includes(" |metadata:")) {
@@ -80,8 +91,8 @@ export function createNotificationState() {
         state.hasMore = !!res.has_more;
       } else {
         // Client side simple fetch
-        const res = await apiClient.get<{ data: any[] }>("/api/v1/client/notifications");
-        parsedData = (res.data || []).map((note: Record<string, any>) => {
+        const res = await apiClient.get<{ data: RawNotification[] }>("/api/v1/client/notifications");
+        parsedData = (res.data || []).map((note: RawNotification) => {
           let msg = (note.message || "") as string;
           let payload: Record<string, unknown> = {};
           if (msg.includes(" |metadata:")) {
@@ -207,7 +218,7 @@ export function createNotificationState() {
       state.notifications = val;
     },
     // CNS V91: Real-time Bell sync — add from SSE, dedup by ID, no API round-trip
-    addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, any>; signal_type?: string }): boolean => {
+    addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, unknown>; signal_type?: string }): boolean => {
       // SECURITY FILTER: Block internal system/security signals on client (storefront) domain.
       // These are admin-only signals that should never appear in a customer's notification bell.
       if (!isAdminDomain()) {
@@ -297,9 +308,9 @@ export function createNotificationState() {
           const url = cursor
             ? `/api/v1/notifications/trash?cursor=${encodeURIComponent(cursor)}&limit=20`
             : `/api/v1/notifications/trash?limit=20`;
-          const res = await apiClient.get<{ data: any[], next_cursor: string | null, has_more: boolean }>(url);
+          const res = await apiClient.get<{ data: RawNotification[], next_cursor: string | null, has_more: boolean }>(url);
           
-          const parsedData = (res.data || []).map((note: Record<string, any>) => {
+          const parsedData = (res.data || []).map((note: RawNotification) => {
             let msg = (note.message || "") as string;
             let payload: Record<string, unknown> = {};
             if (msg.includes(" |metadata:")) {

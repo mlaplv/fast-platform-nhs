@@ -22,7 +22,7 @@ export interface Notification {
   message: string;
   isRead: boolean;
   created_at: string;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
   signal_type?: string;
 }
 

@@ -47,9 +47,9 @@
     });
 
     // Grouping by type (Single Pass O(N) optimization)
-    const viralVouchers: any[] = [];
-    const regularDiscount: any[] = [];
-    const regularShipping: any[] = [];
+    const viralVouchers: Voucher[] = [];
+    const regularDiscount: Voucher[] = [];
+    const regularShipping: Voucher[] = [];
 
     for (const v of sorted) {
       if (isViralVoucher(v)) {

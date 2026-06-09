@@ -136,7 +136,6 @@
   onMount(() => {
     isMounted = true;
 
-
     // Elite V2.2: Lazy Defer Daily Check-in component by 3 seconds to protect initial hydration TBT/LCP
     if (!isAdmin) {
       setTimeout(() => {

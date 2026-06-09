@@ -78,9 +78,9 @@ export class CartStore {
             try {
                 const parsed = JSON.parse(saved);
                 if (parsed.items) {
-                    this.items = parsed.items
-                        .filter((i: any): i is CartItem => !!(i.id && i.product))
-                        .map((item: any) => ({
+                    this.items = (parsed.items as Partial<CartItem>[] || [])
+                        .filter((i): i is CartItem => !!(i?.id && i?.product))
+                        .map((item) => ({
                             ...item,
                             selected: item.selected ?? true
                         } as CartItem));
@@ -100,9 +100,9 @@ export class CartStore {
                 try {
                     const parsed = JSON.parse(legacySaved);
                     if (parsed.items) {
-                        this.items = parsed.items
-                            .filter((i: any): i is CartItem => !!(i.id && i.product))
-                            .map((item: any) => ({
+                        this.items = (parsed.items as Partial<CartItem>[])
+                            .filter((i): i is CartItem => !!(i?.id && i?.product))
+                            .map((item) => ({
                                 ...item,
                                 selected: item.selected ?? true
                             } as CartItem));
@@ -355,7 +355,7 @@ export class CartStore {
             .filter(i => i.product.id === item.product.id)
             .reduce((acc, i) => acc + i.quantity, 0);
 
-        const getQty = (attrs: any): number => 
+        const getQty = (attrs: ProductVariant['attributes']): number => 
             Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
 
         if (item.variant) {

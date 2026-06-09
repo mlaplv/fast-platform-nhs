@@ -439,7 +439,7 @@
                   ? activeVariant.gifts 
                   : [];
             if (gifts.length > 0) {
-               const giftStrings = gifts.map((g: any) => `${g.qty || g.quantity || 1} ${g.name}`);
+               const giftStrings = gifts.map((g: { qty?: number; quantity?: number; name?: string }) => `${g.qty || g.quantity || 1} ${g.name || ''}`);
                giftMessage += ` (Nhận ngay quà tặng: ${giftStrings.join(', ')} miễn phí!)`;
             }
          }

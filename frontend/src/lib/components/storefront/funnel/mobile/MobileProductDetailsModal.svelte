@@ -92,14 +92,14 @@
 
   let showVerification = $state(false);
   let isScanning = $state(false);
-  let verificationData = $state(null);
+  let verificationData = $state<import("$lib/types").BarcodeVerificationResponse | null>(null);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: any) {
+  function handleScanComplete(event: { verificationData: import("$lib/types").BarcodeVerificationResponse }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;

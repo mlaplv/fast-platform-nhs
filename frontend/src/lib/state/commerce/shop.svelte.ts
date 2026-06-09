@@ -136,7 +136,7 @@ export class ShopStore {
     effectiveVariant = $derived.by((): ProductVariant | null => {
         if (!this.product?.variants || this.product.variants.length === 0) return this.variant;
         
-        const getQty = (attrs: any): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
+        const getQty = (attrs: ProductVariant['attributes']): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
         const currentVariant = this.variant;
 
         if (currentVariant) {

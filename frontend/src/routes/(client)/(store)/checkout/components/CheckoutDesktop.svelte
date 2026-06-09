@@ -2,6 +2,28 @@
   import type { Voucher } from "$lib/types";
   import type { CustomItem } from "$lib/types/commerce/checkout";
 
+  interface CheckoutForm {
+    name: string;
+    phone: string;
+    province: string;
+    ward: string;
+    street: string;
+    paymentMethod: "cod" | "bank";
+    shippingMethod: "standard" | "express";
+    securePackaging: boolean;
+    pointsRedeemed: number;
+    usePoints: boolean;
+    note: string;
+  }
+
+  interface Division {
+    id: string | number;
+    name: string;
+    has_express?: boolean;
+    express_supported_wards?: string[];
+    express_fee?: number;
+  }
+
   let {
     // State
     form = $bindable(),
@@ -33,7 +55,7 @@
     handleSubmit,
     lookupCustomer,
   } = $props<{
-    form: any;
+    form: CheckoutForm;
     customItems: CustomItem[];
     showCustomItemForm: boolean;
     newCustomItem: CustomItem;
@@ -46,7 +68,7 @@
     showNote: boolean;
     isAddressFormVisible: boolean;
     canExpress: boolean;
-    selectedProvinceData: any;
+    selectedProvinceData: Division | undefined;
     showCoInspectionModal: boolean;
     availablePoints: number;
     pointsToRedeem: number;

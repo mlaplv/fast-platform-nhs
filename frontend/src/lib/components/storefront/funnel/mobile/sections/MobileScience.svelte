@@ -79,11 +79,17 @@
   ]);
 
   const faqs = $derived.by(() => {
-    if (metadata?.faqs && metadata.faqs.length > 0) {
-      return metadata.faqs.map((f: any) => ({
-        q: f.question || f.q || "",
-        a: f.answer || f.a || "",
-      }));
+    try {
+      if (metadata && typeof metadata === 'object' && Array.isArray(metadata.faqs)) {
+        return metadata.faqs
+          .filter((f: any) => f && typeof f === 'object')
+          .map((f: any) => ({
+            q: String(f.question || f.q || ""),
+            a: String(f.answer || f.a || ""),
+          }));
+      }
+    } catch (err) {
+      console.error("[FAQ] Error parsing metadata faqs:", err);
     }
     return [
       {
@@ -127,12 +133,18 @@
 
   async function openFaq(index: number) {
     const faq = faqs[index];
-    await ui.openConfirm({
-      title: faq.q,
-      message: faq.a,
-      confirmLabel: "ĐÃ HIỂU",
-      cancelLabel: "ĐÓNG",
-    });
+    if (!faq) return;
+
+    try {
+      await ui.openConfirm({
+        title: faq.q,
+        message: faq.a,
+        confirmLabel: "ĐÃ HIỂU",
+        cancelLabel: "ĐÓNG",
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 </script>
 
@@ -246,7 +258,7 @@
     <div class="footer-inner">
       <div class="footer-text">
         <span class="footer-top-label">Bảo chứng an toàn</span>
-        <span class="footer-main-label">& Chất lượng quốc tế</span>
+        <span class="footer-main-label">&amp; Chất lượng quốc tế</span>
       </div>
       <div class="footer-badges">
         <div class="footer-badge badge-sakura">
@@ -259,3 +271,4 @@
     </div>
   </div>
 </div>
+

@@ -168,7 +168,7 @@
         : v.gifts?.length
           ? v.gifts
           : product?.gifts || [];
-      const giftQty = gifts.reduce((acc: number, g: any) => acc + (g.qty || g.quantity || 1), 0);
+      const giftQty = gifts.reduce((acc: number, g: { qty?: number; quantity?: number }) => acc + (g.qty || g.quantity || 1), 0);
       totalQty += giftQty;
     }
     const qtySuffix = qty > 1 ? ` - BỘ ${totalQty} MÓN` : "";
@@ -193,7 +193,7 @@
   );
   const currentVariantGiftQty = $derived(
     shopStore.variant?.attributes?.combo_qty === 3
-      ? currentVariantGifts.reduce((acc: number, g: any) => acc + (g.qty || g.quantity || 1), 0)
+      ? currentVariantGifts.reduce((acc: number, g: { qty?: number; quantity?: number }) => acc + (g.qty || g.quantity || 1), 0)
       : 0
   );
   const ctaDisplayQty = $derived(
@@ -421,15 +421,10 @@
                 </div>
                 <span class="offer-info-label text-[10px] font-bold text-white/30 tracking-widest group-hover/info:text-white/60">Chi tiết</span>
              </button>
-
-
           </div>
        {/each}
     </div>
-
-
-
-     <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
+    <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
      {#if productVouchers.length > 0}
      <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
         <div class="flex items-center justify-between mb-1.5 px-1">
