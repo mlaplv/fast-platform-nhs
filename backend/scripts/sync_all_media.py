@@ -66,7 +66,12 @@ async def sync_all_entities():
             stmt_banners = select(Banner).where(Banner.deleted_at == None)
             banners = (await session.execute(stmt_banners)).scalars().all()
             for b in banners:
-                urls = extract_media_urls(b.image_url)
+                # Elite V2.2: Extract both desktop and mobile image URLs to protect them from GC deletion
+                banner_data = {
+                    "image_url": b.image_url,
+                    "mobile_image_url": b.mobile_image_url
+                }
+                urls = extract_media_urls(banner_data)
                 if urls:
                     await media_service.sync_links(repo, str(b.id), "banner", list(urls))
             logger.info(f"✅ Đã đồng bộ {len(banners)} banners.")

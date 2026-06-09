@@ -442,4 +442,22 @@ body.live-edit-mode .editable-wrapper.is-disabled {
     width: 50% !important;
     flex: 0 0 50% !important;
   }
+}
+
+/* Prevent iOS auto-zoom on input focus for mobile viewports (<= 767px) */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="url"],
+  input[type="search"],
+  input[type="password"],
+  input:not([type]),
+  select,
+  textarea,
+  .tiptap-simple-content,
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
 }

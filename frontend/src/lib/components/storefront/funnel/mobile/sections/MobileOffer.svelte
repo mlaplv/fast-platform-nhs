@@ -127,6 +127,13 @@
     }
   });
 
+  // 🚀 SYNC VOUCHERS TO SHOPSTORE (Elite V2.2)
+  $effect(() => {
+    if (cartStore.vouchers && cartStore.vouchers.length > 0) {
+      shopStore.setVouchers(cartStore.vouchers);
+    }
+  });
+
   import { processProductVouchers, getVoucherDisplayValue } from '$lib/utils/commerce/voucher';
 
   const productVouchers = $derived.by(() => {
@@ -293,8 +300,8 @@
     <div class="flex flex-col">
       {#each variants as variant, i (variant.id || i)}
          {@const cQty = variant.attributes?.combo_qty || 1}
-         {@const priceData = shopStore.calculateAdjustedPrice(variant, 1)}
-         {@const vPrice = priceData.final * cQty}
+         {@const priceData = shopStore.calculateAdjustedPrice(variant, cQty)}
+         {@const vPrice = priceData.final}
          {@const originalPrice = variant.price * cQty}
          {@const isActive = selectedIndex === i}
          {@const variantTitle = getVariantTitle(variant)}

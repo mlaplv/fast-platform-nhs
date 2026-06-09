@@ -136,15 +136,37 @@ export class ShopStore {
     effectiveVariant = $derived.by((): ProductVariant | null => {
         if (!this.product?.variants || this.product.variants.length === 0) return this.variant;
         
+        const getQty = (attrs: any): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
+        const currentVariant = this.variant;
+
+        if (currentVariant) {
+            const currentVariantQty = getQty(currentVariant.attributes);
+            if (currentVariantQty === this.quantity) {
+                return currentVariant;
+            }
+        }
+        
         // Find variants with combo_qty
-        const comboVariants = this.product.variants.filter(v => v.attributes && v.attributes.combo_qty);
+        const comboVariants = this.product.variants.filter(v => v.attributes && getQty(v.attributes) > 0);
         if (comboVariants.length === 0) return this.variant;
 
         // Find best tier for current quantity
-        const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
-        const bestTier = sortedTiers.find(v => Number(v.attributes.combo_qty) <= this.quantity);
+        const sortedTiers = [...comboVariants].sort((a, b) => getQty(b.attributes) - getQty(a.attributes));
+        const eligibleTiers = sortedTiers.filter(v => getQty(v.attributes) <= this.quantity);
+        if (eligibleTiers.length === 0) return this.variant || this.product.variants[0];
+
+        // Try to find a tier with matching non-combo attributes
+        if (currentVariant) {
+            const matchingTier = eligibleTiers.find(v => {
+                const attrs1 = currentVariant.attributes || {};
+                const attrs2 = v.attributes || {};
+                const keys = Object.keys(attrs1).filter(k => k !== 'combo_qty' && k !== 'comboQty' && k !== 'gifts');
+                return keys.every(key => attrs1[key] === attrs2[key]);
+            });
+            if (matchingTier) return matchingTier;
+        }
         
-        return bestTier || this.variant || this.product.variants[0];
+        return eligibleTiers[0];
     });
 
     currentPrice = $derived.by((): number => {
@@ -364,9 +386,7 @@ export class ShopStore {
     selectVariant(v: ProductVariant): void {
         this.variant = v;
         const comboQty = v.attributes?.combo_qty ?? v.attributes?.comboQty;
-        if (comboQty != null) {
-            this.setQuantity(Number(comboQty));
-        }
+        this.setQuantity(Number(comboQty) || 1);
     }
 
     selectVariantByTier(indices: number[]): void {

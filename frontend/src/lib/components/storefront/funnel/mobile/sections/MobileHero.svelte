@@ -95,9 +95,11 @@
   let variantScroller: HTMLDivElement | undefined = $state();
 
   let scrollTickingVariant = false;
+  let isProgrammaticScroll = false;
+  let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
   function syncVariantOnScroll() {
-    if (!variantScroller || scrollTickingVariant) return;
+    if (!variantScroller || scrollTickingVariant || isProgrammaticScroll) return;
     scrollTickingVariant = true;
     requestAnimationFrame(() => {
       if (variantScroller) {
@@ -113,12 +115,18 @@
   $effect(() => {
     if (variantScroller && currentVariant) {
       const targetX = currentVariant.tierIndex[0] * scrollerWidth;
-      requestAnimationFrame(() => {
-        if (variantScroller && Math.abs(variantScroller.scrollLeft - targetX) > 10) {
-          variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
-        }
-      });
+      if (Math.abs(variantScroller.scrollLeft - targetX) > 10) {
+        isProgrammaticScroll = true;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
+        scrollTimeout = setTimeout(() => {
+          isProgrammaticScroll = false;
+        }, 500);
+      }
     }
+    return () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
   });
 
   // Elite V2.2: Gifts Interface for Static Typing

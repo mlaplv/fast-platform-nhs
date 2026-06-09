@@ -212,7 +212,9 @@ class MediaService(
                     MediaRegistry.deleted_at == None,
                     MediaRegistry.created_at < cutoff,
                     ~MediaRegistry.file_path.contains("client_uploads/"),
-                    ~MediaRegistry.file_path.contains("avatars/")
+                    ~MediaRegistry.file_path.contains("avatars/"),
+                    ~MediaRegistry.file_path.contains("uploads/img/"),
+                    ~MediaRegistry.file_path.contains("uploads/video/")
                 )
             )
             

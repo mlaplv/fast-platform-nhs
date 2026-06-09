@@ -152,16 +152,14 @@
   const unitOriginalPrice = $derived(variant.price || 0);
 
   // Adjusted prices (including vouchers) - Grid shows UNIT price as primary
-  const unitPriceInfo = $derived(
-    shopStore.calculateAdjustedPrice(variant, 1, shopStore.selectedVoucherIds),
+  const packagePriceInfo = $derived(
+    shopStore.calculateAdjustedPrice(variant, comboQty, shopStore.selectedVoucherIds),
   );
-  const finalUnitPrice = $derived(unitPriceInfo.final);
-
-  // Total package values
-  const totalPackagePrice = $derived(finalUnitPrice * comboQty);
+  const totalPackagePrice = $derived(packagePriceInfo.final);
   const totalOriginalPackagePrice = $derived(unitOriginalPrice * comboQty);
 
-  const voucherDiscountPerUnit = $derived(unitPriceInfo.voucherDiscount);
+  const finalUnitPrice = $derived(comboQty > 0 ? totalPackagePrice / comboQty : 0);
+  const voucherDiscountPerUnit = $derived(comboQty > 0 ? packagePriceInfo.voucherDiscount / comboQty : 0);
   const totalSavings = $derived(totalOriginalPackagePrice - totalPackagePrice);
   const discountPercent = $derived(
     totalOriginalPackagePrice > 0

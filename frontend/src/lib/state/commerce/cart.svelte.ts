@@ -339,35 +339,8 @@ export class CartStore {
         const item = this.items.find(i => i.id === itemId);
         if (!item) return 0;
         
-        // Use aggregate product quantity for tier resolution across all selected lines of same product
-        const selectedItems = this.items.filter(i => i.selected);
-        const totalQtyForProduct = selectedItems
-            .filter(i => i.product.id === item.product.id)
-            .reduce((acc, i) => acc + i.quantity, 0);
-            
-        // Elite V2.2: Standardized attribute resolution
-        const getQty = (attrs: NonNullable<ProductVariant['attributes']>): number => 
-            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
-
-        const comboVariants = item.product?.variants?.filter(v => {
-            if (!v.attributes) return false;
-            return getQty(v.attributes) > 0;
-        }) || [];
-        
-        if (comboVariants.length > 0) {
-            const sortedTiers = [...comboVariants].sort((a, b) => 
-                getQty(b.attributes as NonNullable<ProductVariant['attributes']>) - 
-                getQty(a.attributes as NonNullable<ProductVariant['attributes']>)
-            );
-            const bestTier = sortedTiers.find(v => 
-                getQty(v.attributes as NonNullable<ProductVariant['attributes']>) <= totalQtyForProduct
-            );
-            
-            const resolvedVariant = bestTier || item.variant || item.product.variants?.[0];
-            return Number(resolvedVariant?.discountPrice) || Number(item.product.discountPrice) || Number(resolvedVariant?.price) || Number(item.product.price) || 0;
-        }
-        
-        return Number(item.variant?.discountPrice) || Number(item.variant?.price) || Number(item.product.discountPrice) || Number(item.product.price) || 0;
+        const resolvedVariant = this.getEffectiveVariant(itemId);
+        return Number(resolvedVariant?.discountPrice) || Number(item.product.discountPrice) || Number(resolvedVariant?.price) || Number(item.product.price) || 0;
     }
 
     /**
@@ -382,27 +355,42 @@ export class CartStore {
             .filter(i => i.product.id === item.product.id)
             .reduce((acc, i) => acc + i.quantity, 0);
 
-        const getQty = (attrs: NonNullable<ProductVariant['attributes']>): number => 
-            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
+        const getQty = (attrs: any): number => 
+            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
+
+        if (item.variant) {
+            const currentVariantQty = getQty(item.variant.attributes);
+            if (currentVariantQty === totalQtyForProduct) {
+                return item.variant;
+            }
+        }
 
         const comboVariants = item.product?.variants?.filter(v => {
             if (!v.attributes) return false;
             return getQty(v.attributes) > 0;
         }) || [];
 
-        if (comboVariants.length > 0) {
-            const sortedTiers = [...comboVariants].sort((a, b) => 
-                getQty(b.attributes as NonNullable<ProductVariant['attributes']>) - 
-                getQty(a.attributes as NonNullable<ProductVariant['attributes']>)
-            );
-            const bestTier = sortedTiers.find(v => 
-                getQty(v.attributes as NonNullable<ProductVariant['attributes']>) <= totalQtyForProduct
-            );
+        if (comboVariants.length === 0) return item.variant || item.product.variants?.[0];
 
-            return bestTier || item.variant || item.product.variants?.[0];
+        const sortedTiers = [...comboVariants].sort((a, b) => 
+            getQty(b.attributes) - getQty(a.attributes)
+        );
+        const eligibleTiers = sortedTiers.filter(v => getQty(v.attributes) <= totalQtyForProduct);
+        if (eligibleTiers.length === 0) return item.variant || item.product.variants?.[0];
+
+        // Try to find a tier with matching non-combo attributes
+        const currentVariant = item.variant;
+        if (currentVariant) {
+            const matchingTier = eligibleTiers.find(v => {
+                const attrs1 = currentVariant.attributes || {};
+                const attrs2 = v.attributes || {};
+                const keys = Object.keys(attrs1).filter(k => k !== 'combo_qty' && k !== 'comboQty' && k !== 'gifts');
+                return keys.every(key => attrs1[key] === attrs2[key]);
+            });
+            if (matchingTier) return matchingTier;
         }
 
-        return item.variant || item.product.variants?.[0];
+        return eligibleTiers[0];
     }
 
     /**
