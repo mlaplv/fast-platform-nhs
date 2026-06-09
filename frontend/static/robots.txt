@@ -1,124 +1,90 @@
-# ------------------------------------------------------------------------------
-# FAST PLATFORM — ELITE V2.2 ROBOTS.TXT
-# Domain: osmo.vn & admin.osmo.vn
-# Updated: 2026-06-09 | AI LLM Control Layer Active
-# ------------------------------------------------------------------------------
+# robots.txt - osmo.vn
+# https://www.robotstxt.org/robotstxt.html
 
-# ══════════════════════════════════════════════════════════════════════════════
-# AI AGENTS — KIỂM SOÁT LUỒNG AI LLMs
-# Chặn các AI training bots để bảo vệ dữ liệu nội dung
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
+# AI TRAINING BOTS - Block all major AI scrapers
+# ==============================================================================
 
-# OpenAI — GPT Training Bot
 User-agent: GPTBot
 Disallow: /
 
-# OpenAI — ChatGPT Browsing
 User-agent: ChatGPT-User
 Disallow: /
 
-# OpenAI — Search Bot
 User-agent: OAI-SearchBot
 Disallow: /
 
-# Anthropic — Claude Training Bot
 User-agent: ClaudeBot
 Disallow: /
 
-# Anthropic — Claude Web Crawler
 User-agent: Claude-Web
 Disallow: /
 
-# Anthropic — Anthropic AI Bot
 User-agent: anthropic-ai
 Disallow: /
 
-# Perplexity AI
 User-agent: PerplexityBot
 Disallow: /
 
-# Google — AI Training (Gemini/Bard) — KHÔNG ảnh hưởng Google Search
 User-agent: Google-Extended
 Disallow: /
 
-# Meta AI
 User-agent: FacebookBot
 Disallow: /
 
-# Apple AI
 User-agent: Applebot-Extended
 Disallow: /
 
-# Cohere AI
 User-agent: cohere-ai
 Disallow: /
 
-# Common Crawl (dữ liệu huấn luyện AI tổng quát)
 User-agent: CCBot
 Disallow: /
 
-# AI2 (Allen Institute for AI)
 User-agent: allenai-bot
 Disallow: /
 
-# Bytedance / TikTok AI
 User-agent: Bytespider
 Disallow: /
 
-# Diffbot (AI data extraction)
 User-agent: Diffbot
 Disallow: /
 
-# Omgili / Webz.io AI
 User-agent: omgili
 Disallow: /
 
-# ImagesiftBot
 User-agent: ImagesiftBot
 Disallow: /
 
-# DataForSeoBot
 User-agent: DataForSeoBot
 Disallow: /
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STANDARD CRAWLERS — Search Engines & Legitimate Bots
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
+# STANDARD CRAWLERS - Google, Bing, and other search engines
+# ==============================================================================
 
 User-agent: *
-# Transactional & private user flows — không có giá trị SEO
-Disallow: /checkout/
-Disallow: /checkout*
+
+# Transactional flows - no SEO value
+Disallow: /checkout
 Disallow: /cart
-Disallow: /cart*
 Disallow: /track
-Disallow: /track*
 Disallow: /search
-Disallow: /search*
-Disallow: /user/
-Disallow: /user*
-Disallow: /auth/
-Disallow: /auth*
+Disallow: /user
+Disallow: /auth
 
-# Admin panels, API gateways, WebSockets
-Disallow: /admin/
-Disallow: /admin*
-Disallow: /api/
-Disallow: /api*
-Disallow: /ws/
-Disallow: /ws*
+# Admin and internal APIs
+Disallow: /admin
+Disallow: /api
+Disallow: /ws
 
-# Trang nội bộ & tiện ích không cần index
-Disallow: /sitemap*
-Disallow: /google-merchant*
-Disallow: /thank-you*
-Disallow: /payment*
-Disallow: /*.json$
-Disallow: /*.xml$
+# Internal utility pages
+Disallow: /google-merchant.xml
+Disallow: /thank-you
+Disallow: /payment
 
-# Allow all public storefront routes and static assets
+# Allow public storefront
 Allow: /sitemap.xml
 Allow: /
 
-# XML Sitemap Link for search indexing
 Sitemap: https://osmo.vn/sitemap.xml

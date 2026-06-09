@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   // Svelte 5 safe slide transition workaround to prevent NaNpx errors
   function slide(node: HTMLElement, { duration = 200 } = {}) {
@@ -434,50 +435,50 @@
 
   <!-- GEO 2026: FAQ Section (Full Width Redesign) -->
   {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
-    <div class="py-10 border-t border-gray-100">
-      <h2
-        class="px-[5px] text-[12px] font-black tracking-[0.2em] text-[#0f172a] mb-6 flex items-center gap-3"
-      >
-        <div class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full"></div>
-        Câu hỏi kỹ thuật
-      </h2>
-      <div class="divide-y divide-gray-50 border-y border-gray-50">
+    <div class="py-8 px-4 bg-gray-50/50 border-y border-gray-100/80">
+      <div class="mb-6 flex flex-col gap-1.5 px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-[1.5px] bg-[#C18F7E]"></span>
+          <span class="text-[9px] font-black tracking-[0.25em] text-[#C18F7E] uppercase">Hỏi đáp chuyên môn</span>
+        </div>
+        <h2 class="text-[16px] font-black text-[#0f172a] tracking-tight">
+          Câu hỏi thường gặp
+        </h2>
+      </div>
+
+      <div class="space-y-3">
         {#each article.metadata.faqs as faq, i}
-          <div class="bg-white">
+          <div
+            class="bg-white border border-gray-100/90 rounded-xl overflow-hidden transition-all duration-300 {activeFaq === i ? 'shadow-[0_8px_20px_rgba(193,143,126,0.06)] border-[#C18F7E]/25' : 'shadow-sm'}"
+          >
             <button
-              class="w-full flex items-center justify-between px-[5px] py-6 cursor-pointer select-none text-left bg-transparent border-none outline-none active:bg-gray-50/50 transition-colors"
+              class="w-full flex items-start justify-between p-4 cursor-pointer select-none text-left bg-transparent border-none outline-none active:bg-gray-50/40 transition-colors"
               onclick={() => toggleFaq(i)}
             >
               <span
-                class="text-[14px] font-bold {activeFaq === i
+                class="text-[14px] font-bold leading-snug transition-colors duration-200 {activeFaq === i
                   ? 'text-[#C18F7E]'
-                  : 'text-[#0f172a]'} pr-4 leading-snug transition-colors"
-                >{faq.question}</span
+                  : 'text-[#0f172a]'} pr-4"
               >
-              <svg
-                class="w-4 h-4 text-[#C18F7E] shrink-0 transition-transform duration-300 {activeFaq ===
-                i
-                  ? 'rotate-180'
-                  : ''}"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="3"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+                {faq.question}
+              </span>
+              <ChevronDown
+                size={16}
+                class="text-[#C18F7E]/80 shrink-0 transition-transform duration-300 mt-0.5 {activeFaq === i ? 'rotate-180' : ''}"
+              />
             </button>
 
             {#if activeFaq === i}
               <div
-                class="px-[5px] pb-8 pt-0 text-[14px] text-gray-600 leading-relaxed italic"
+                class="px-4 pb-4 pt-0 text-[13.5px] text-gray-600 leading-relaxed"
                 transition:slide={{ duration: 200 }}
               >
-                {faq.answer}
+                <div class="pt-3 border-t border-gray-50 flex gap-3">
+                  <div class="w-1 bg-gradient-to-b from-[#C18F7E]/40 to-[#C18F7E]/10 rounded-full shrink-0"></div>
+                  <div class="flex-1 text-[#344054] leading-relaxed font-medium">
+                    {faq.answer}
+                  </div>
+                </div>
               </div>
             {/if}
           </div>

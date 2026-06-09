@@ -19,9 +19,11 @@
       content="black-translucent"
     />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+    <!-- Favicon chuẩn cho Googlebot (SVG hỗ trợ scaling) -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.svg" sizes="any" />
+    <!-- Fallback/Apple Touch Icon (nên dùng PNG, tạm dùng SVG nhưng thêm rel chuẩn) -->
     <link rel="apple-touch-icon" href="/favicon.svg" />
-
     %sveltekit.head%
     <!-- Ads Protection: Click Shield V1.0 -->
     <script src="/js/click-shield.js" defer></script>
