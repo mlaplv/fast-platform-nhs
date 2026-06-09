@@ -394,9 +394,9 @@
   const totalSavings = $derived(originalSubtotal - cartStore.totalAmount);
 
   const availablePoints = $derived(loyaltyStore.data?.available_points || 0);
-  const maxPointsAllowed = $derived(Math.floor((cartStore.totalAmount * 0.01) / 1000));
+  const maxPointsAllowed = $derived(Math.floor((cartStore.totalAmount * LOYALTY_CONFIG.MAX_DISCOUNT_PERCENT) / LOYALTY_CONFIG.POINT_VALUE));
   const pointsToRedeem = $derived(form.usePoints ? Math.min(availablePoints, maxPointsAllowed) : 0);
-  const pointDiscount = $derived(pointsToRedeem * 1000);
+  const pointDiscount = $derived(pointsToRedeem * LOYALTY_CONFIG.POINT_VALUE);
   const finalTotal = $derived(cartStore.totalAmount + shippingFee - pointDiscount);
 
   $effect.pre(() => {

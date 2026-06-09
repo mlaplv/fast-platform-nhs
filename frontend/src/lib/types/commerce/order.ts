@@ -92,6 +92,10 @@ export interface Order {
   name_masked?: string;
   address_masked?: string;
   order_metadata?: OrderMetadata;
+
+  points_earned?: number;
+  points_redeemed?: number;
+  point_discount_amount?: number;
 }
 
 export interface OrderDetail extends Order {

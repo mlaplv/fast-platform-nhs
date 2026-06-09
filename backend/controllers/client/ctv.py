@@ -19,8 +19,8 @@ from backend.database.models.auth import User
 
 # SECURITY: Anti-brute force and code harvesting limit (10 requests/min per IP)
 ctv_validate_rate_limit = RateLimitConfig(rate_limit=("minute", 10), store="memory_store")
-# SECURITY: Anti-scraping limit for shipping configs (30 requests/min per IP)
-shipping_rate_limit = RateLimitConfig(rate_limit=("minute", 30), store="memory_store")
+# SECURITY: Anti-scraping limit for shipping configs (120 requests/min per IP)
+shipping_rate_limit = RateLimitConfig(rate_limit=("minute", 120), store="memory_store")
 
 
 def _require_user(request: Request) -> dict:

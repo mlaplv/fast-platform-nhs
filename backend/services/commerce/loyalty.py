@@ -241,8 +241,24 @@ class LoyaltyService:
 
         is_checked_in_today = False
         current_streak = 0
+        is_completed = False
 
         if user_id:
+            # Check if user has already completed the cycle in this campaign
+            campaign_start = datetime.strptime(start_date_str, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone(timedelta(hours=7))) if start_date_str else datetime.min.replace(tzinfo=timezone(timedelta(hours=7)))
+            campaign_end = datetime.strptime(end_date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone(timedelta(hours=7))) if end_date_str else datetime.max.replace(tzinfo=timezone(timedelta(hours=7)))
+            
+            comp_stmt = select(PointTransaction).where(
+                PointTransaction.user_id == user_id,
+                PointTransaction.transaction_type == "DAILY_CHECKIN",
+                PointTransaction.created_at >= campaign_start,
+                PointTransaction.created_at <= campaign_end,
+                PointTransaction.notes.like(f"%(Ngày {cycle_days})")
+            )
+            comp_res = await db_session.execute(comp_stmt)
+            if comp_res.scalar_one_or_none():
+                is_completed = True
+
             stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
             res = await db_session.execute(stmt)
             loyalty = res.scalar_one_or_none()
@@ -262,14 +278,18 @@ class LoyaltyService:
         for i in range(cycle_days):
             day_num = i + 1
             reward_pts = rewards[i] if i < len(rewards) else 1
-            is_completed = day_num <= current_streak if not is_checked_in_today else day_num <= current_streak
-            is_today = day_num == (current_streak if is_checked_in_today else current_streak + 1)
+            if is_completed:
+                day_completed = True
+                day_today = False
+            else:
+                day_completed = day_num <= current_streak and (day_num < current_streak or (is_checked_in_today and day_num <= current_streak))
+                day_today = day_num == (current_streak if is_checked_in_today else current_streak + 1)
             is_bonus = (day_num == cycle_days)  # Last day is bonus
             days.append({
                 "day": day_num,
                 "reward": reward_pts * 10000 if reward_pts < 10000 else reward_pts,  # Convert to VND for Frontend (e.g. 1 pt = 10,000 VND)
-                "is_completed": is_completed and (day_num < current_streak or (is_checked_in_today and day_num <= current_streak)),
-                "is_today": is_today,
+                "is_completed": day_completed,
+                "is_today": day_today,
                 "is_bonus": is_bonus,
             })
 
@@ -306,7 +326,8 @@ class LoyaltyService:
             "total_checkin_today": total_today,
             "is_event_enabled": is_event_enabled,
             "start_date": start_date_str,
-            "end_date": end_date_str
+            "end_date": end_date_str,
+            "is_completed": is_completed
         }
 
 
@@ -352,6 +373,22 @@ class LoyaltyService:
         if not loyalty:
             loyalty = UserLoyalty(user_id=user_id, available_points=0, total_spent=0, current_checkin_streak=0)
             db_session.add(loyalty)
+
+        # Check if user has already completed the cycle in this campaign
+        cycle_days = config.get("cycle_days", 7)
+        campaign_start = datetime.strptime(start_date_str, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone(timedelta(hours=7))) if start_date_str else datetime.min.replace(tzinfo=timezone(timedelta(hours=7)))
+        campaign_end = datetime.strptime(end_date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone(timedelta(hours=7))) if end_date_str else datetime.max.replace(tzinfo=timezone(timedelta(hours=7)))
+        
+        comp_stmt = select(PointTransaction).where(
+            PointTransaction.user_id == user_id,
+            PointTransaction.transaction_type == "DAILY_CHECKIN",
+            PointTransaction.created_at >= campaign_start,
+            PointTransaction.created_at <= campaign_end,
+            PointTransaction.notes.like(f"%(Ngày {cycle_days})")
+        )
+        comp_res = await db_session.execute(comp_stmt)
+        if comp_res.scalar_one_or_none():
+            raise Exception("Bạn đã hoàn thành chu kỳ điểm danh của chiến dịch này.")
             
         now_hcm = datetime.now(timezone(timedelta(hours=7)))
         today_date = now_hcm.date()
@@ -367,10 +404,9 @@ class LoyaltyService:
         else:
             loyalty.current_checkin_streak = 1
             
-        # Cycle reset
-        cycle_days = config.get("cycle_days", 7)
+        # Cycle reset (DEPRECATED for single campaign: do not wrap around)
         if loyalty.current_checkin_streak > cycle_days:
-            loyalty.current_checkin_streak = 1
+            loyalty.current_checkin_streak = cycle_days
             
         # Determine reward (Clean points representation: 1 point = 10,000 VND value)
         rewards = config.get("rewards", [])

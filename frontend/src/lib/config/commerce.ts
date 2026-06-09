@@ -10,14 +10,20 @@ export const SHIPPING_CONFIG = {
 };
 
 export const LOYALTY_CONFIG = {
-  POINT_VALUE: 1000, // 1 point = 1000 VND
+  POINT_VALUE: 10000, // 1 point = 10000 VND
   MAX_DISCOUNT_PERCENT: 0.01, // Max 1% of total
   EARNING_RATE_VND: 100000,
+  LABELS: {
+    POINTS_UNIT: "điểm",
+    EARN_PREFIX: "Dự kiến tích lũy: +",
+    REDEEM_LABEL: "Dùng điểm tích lũy",
+    AVAILABLE_POINTS: "Số điểm khả dụng:"
+  }
 };
 
 export const LOYALTY_TIERS = {
-  SILVER: 10000000,
-  GOLD: 20000000,
-  PLATINUM: 50000000, // Elite tier
+  SILVER: 5000000,
+  GOLD: 10000000,
+  PLATINUM: 20000000, // Elite tier
 };
 

@@ -95,22 +95,17 @@
         }, 1500); // 1.5s as per design spec
       };
 
-      if (isAuthenticated) {
-        const st = checkinStore.status;
-        if (st) {
-          runAutoPopup(st);
-        } else if (!checkinStore.loading) {
-          checkinStore.fetchStatus().then(() => {
-            runAutoPopup(checkinStore.status);
-          }).catch((err) => {
-            console.error('[DailyCheckinLanding] fetchStatus error fallback:', err);
-            // Fallback if API fails
-            runAutoPopup(null);
-          });
-        }
-      } else {
-        // Guest user fallback (always show after 1.5s if not checked in/dismissed)
-        runAutoPopup(null);
+      const st = checkinStore.status;
+      if (st) {
+        runAutoPopup(st);
+      } else if (!checkinStore.loading) {
+        checkinStore.fetchStatus().then(() => {
+          runAutoPopup(checkinStore.status);
+        }).catch((err) => {
+          console.error('[DailyCheckinLanding] fetchStatus error fallback:', err);
+          // Fallback if API fails
+          runAutoPopup(null);
+        });
       }
 
       // Cleanup: Clear active timers when route or authentication state changes, or on component unmount

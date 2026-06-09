@@ -345,7 +345,13 @@
       ? (meta?.voucher_ids || meta?.voucherIds) as string[]
       : []
   );
-  const totalSavings = $derived(voucherDiscount + comboDiscount);
+  const pointDiscount = $derived(
+    Number(order?.point_discount_amount || order?.pointDiscountAmount || 0),
+  );
+  const pointsRedeemed = $derived(
+    Number(order?.points_redeemed || order?.pointsRedeemed || 0),
+  );
+  const totalSavings = $derived(voucherDiscount + comboDiscount + pointDiscount);
   const displayNote = $derived.by(() => {
     // Elite V2.2: Dual-Key Resolver (CamelCase API vs SnakeCase Schema)
     const meta = order.order_metadata || order.orderMetadata;
@@ -612,6 +618,21 @@
                 <div class="flex justify-between text-[11px] font-black text-[#fe2c55] italic">
                   <span>Voucher giảm giá:</span>
                   <span>-{formatCurrency(voucherDiscount)}</span>
+                </div>
+              {/if}
+
+              {#if pointDiscount > 0}
+                <div class="flex justify-between text-[11px] font-black text-amber-600 italic">
+                  <span class="flex items-center gap-1">
+                    Dùng điểm ({pointsRedeemed} điểm):
+                    <span class="group relative cursor-help text-slate-400">
+                      <svg class="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden w-48 bg-slate-900 text-white text-[9px] font-medium p-2 rounded shadow-md group-hover:block z-50 text-center leading-normal normal-case not-italic border border-slate-800">
+                        Đổi thành công {pointsRedeemed} điểm loyalty thành {formatCurrency(pointDiscount)} giảm trực tiếp vào đơn hàng.
+                      </span>
+                    </span>
+                  </span>
+                  <span>-{formatCurrency(pointDiscount)}</span>
                 </div>
               {/if}
 

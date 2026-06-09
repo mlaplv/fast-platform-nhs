@@ -6,6 +6,9 @@
 export const LOYALTY_CONFIG = {
     // 1 point = 10000 VND discount (Sếp Standard: 1 điểm = 10k VND)
     POINT_VALUE: 10000,
+
+    // Marketing FOMO value for check-in display
+    DAILY_CHECKIN_FOMO_VAL: 10000,
     
     // 1 point earned per 100k VND spent
     EARNING_RATE_VND: 100000,

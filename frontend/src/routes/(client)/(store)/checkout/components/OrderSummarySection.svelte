@@ -3,7 +3,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import { formatCurrency } from "$lib/utils/format";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
-  import { LOYALTY_CONFIG } from "$lib/constants/loyalty";
+  import { LOYALTY_CONFIG } from "$lib/config/commerce";
 
   interface FormState {
     securePackaging: boolean;

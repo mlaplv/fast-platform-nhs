@@ -72,7 +72,7 @@
   import { resolveMediaUrl } from "$lib/state/utils";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { loyaltyStore } from "$lib/state/commerce/loyalty.svelte";
-  import { LOYALTY_CONFIG } from "$lib/constants/loyalty";
+  import { LOYALTY_CONFIG } from "$lib/config/commerce";
 
   const cartStore = getCartStore();
 </script>

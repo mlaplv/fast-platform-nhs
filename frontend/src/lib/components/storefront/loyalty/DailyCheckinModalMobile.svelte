@@ -86,7 +86,7 @@
    * DB lưu: available_points=1 (điểm), tx.amount=1 (điểm)
    */
   function fmtPts(pts: number): string {
-    return fmtVnd(pts * LOYALTY_CONFIG.POINT_VALUE);
+    return fmtVnd(pts * LOYALTY_CONFIG.DAILY_CHECKIN_FOMO_VAL);
   }
 
   function calcCountdown(): string {
@@ -205,6 +205,7 @@
 
   let displayDays = $derived(checkinStore.status?.days ?? []);
   let isCheckedIn  = $derived(checkinStore.status?.is_checked_in_today ?? false);
+  let isCompleted  = $derived(checkinStore.status?.is_completed ?? false);
   let todayReward  = $derived(checkinStore.status?.today_reward ?? 10000);
   let balance      = $derived(loyaltyStore.data?.available_points ?? 0);
 
@@ -462,47 +463,56 @@
 
     <!-- CTA BẰNG NÚT CAPSULE TỐI MỸ THUẬT -->
     <div class="mt-4 flex flex-col items-center">
-      {#if isCheckedIn && authStore.isAuthenticated}
-        <div class="w-full py-4 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center gap-2">
-          <svg class="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 20 20">
+      {#if isCompleted && authStore.isAuthenticated}
+        <div class="w-full py-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
           </svg>
-          <span class="text-gray-400 text-[14px] font-bold">Đã nhận phần thưởng hôm nay</span>
+          <span class="text-emerald-400 text-[14px] font-bold">Bạn đã hoàn thành chu kỳ điểm danh</span>
         </div>
       {:else}
-        <!-- Dark capsule CTA with gold peach text -->
-        <button
-          bind:this={claimButtonEl}
-          onclick={handleClaim}
-          disabled={checkinStore.claiming}
-          class="relative w-full py-4 rounded-full overflow-visible
-            text-[#f5d7af] font-black text-[15px] tracking-wide
-            shadow-[0_8px_25px_rgba(35,27,21,0.25)]
-            hover:brightness-110 active:scale-[0.98]
-            disabled:opacity-60 transition-all duration-150
-            flex items-center justify-center gap-2"
-          style="
-            background: #231b15;
-            border: 1.5px solid #2e241d;
-          "
-        >
-          {#if checkinStore.claiming}
-            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        {#if isCheckedIn && authStore.isAuthenticated}
+          <div class="w-full py-4 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
-            Đang nhận thưởng...
-          {:else if authStore.isAuthenticated}
-            <span>Nhận phần thưởng của hôm nay</span>
-          {:else}
-            <span>Đăng nhập để nhận thưởng</span>
-          {/if}
-
-          <!-- Micro-animated bouncy pointing hand 👉 at bottom right -->
-          <div class="absolute -right-1.5 -bottom-2.5 w-11 h-11 pointer-events-none animate-bounce-hand">
-            <span class="text-[32px] block" style="transform: rotate(-135deg);">👉</span>
+            <span class="text-gray-400 text-[14px] font-bold">Đã nhận phần thưởng hôm nay</span>
           </div>
-        </button>
+        {:else}
+          <!-- Dark capsule CTA with gold peach text -->
+          <button
+            bind:this={claimButtonEl}
+            onclick={handleClaim}
+            disabled={checkinStore.claiming}
+            class="relative w-full py-4 rounded-full overflow-visible
+              text-[#f5d7af] font-black text-[15px] tracking-wide
+              shadow-[0_8px_25px_rgba(35,27,21,0.25)]
+              hover:brightness-110 active:scale-[0.98]
+              disabled:opacity-60 transition-all duration-150
+              flex items-center justify-center gap-2"
+            style="
+              background: #231b15;
+              border: 1.5px solid #2e241d;
+            "
+          >
+            {#if checkinStore.claiming}
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+              Đang nhận thưởng...
+            {:else if authStore.isAuthenticated}
+              <span>Nhận phần thưởng của hôm nay</span>
+            {:else}
+              <span>Đăng nhập để nhận thưởng</span>
+            {/if}
+
+            <!-- Micro-animated bouncy pointing hand 👉 at bottom right -->
+            <div class="absolute -right-1.5 -bottom-2.5 w-11 h-11 pointer-events-none animate-bounce-hand">
+              <span class="text-[32px] block" style="transform: rotate(-135deg);">👉</span>
+            </div>
+          </button>
+        {/if}
       {/if}
 
       <!-- Opt-out option checkbox below CTA (Always visible to ensure UI consistency and prevent layout confusion) -->
@@ -683,7 +693,7 @@
                   </div>
                   <div class="flex flex-col items-end">
                     <span class="text-[14.5px] font-black text-green-600 tracking-tight">
-                      +{(tx.amount * LOYALTY_CONFIG.POINT_VALUE).toLocaleString('vi-VN')}đ
+                      +{(tx.amount * LOYALTY_CONFIG.DAILY_CHECKIN_FOMO_VAL).toLocaleString('vi-VN')}đ
                     </span>
                     <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Tiền thưởng</span>
                   </div>

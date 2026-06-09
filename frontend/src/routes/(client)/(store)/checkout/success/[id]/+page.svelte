@@ -257,6 +257,35 @@
           status: order.status
         });
         isLocked = false;
+
+        // conversion tracking push
+        if (typeof window !== 'undefined' && window.dataLayer) {
+          const isTracking = new URLSearchParams(window.location.search).has('lookup');
+          const sessionKey = `purchase_fired_${orderId}`;
+          const alreadyFired = sessionStorage.getItem(sessionKey);
+          
+          if (!isTracking && !alreadyFired && !window.__clickShieldBlocked) {
+            sessionStorage.setItem(sessionKey, 'true');
+            
+            // Push purchase event with transaction details
+            window.dataLayer.push({
+              event: 'purchase',
+              ecommerce: {
+                transaction_id: orderId,
+                value: Number(order?.total_amount || order?.total || 0),
+                currency: 'VND',
+                items: (order?.items || []).map(item => ({
+                  item_id: item.id || item.variant_id,
+                  item_name: item.name,
+                  price: item.unit_price,
+                  quantity: item.qty || item.quantity || 1
+                }))
+              }
+            });
+            console.log('[Analytics] Pushed purchase event to dataLayer:', orderId);
+          }
+        }
+
         // Persist the unlock!
         if (phoneToUse && typeof localStorage !== "undefined") {
           localStorage.setItem(`order_verify_${orderId}`, phoneToUse);
@@ -450,7 +479,13 @@
       ? (meta?.voucher_ids || meta?.voucherIds) as string[]
       : []
   );
-  const totalSavings = $derived(voucherDiscount + comboDiscount);
+  const pointDiscount = $derived(
+    Number(order?.point_discount_amount || order?.pointDiscountAmount || 0),
+  );
+  const pointsRedeemed = $derived(
+    Number(order?.points_redeemed || order?.pointsRedeemed || 0),
+  );
+  const totalSavings = $derived(voucherDiscount + comboDiscount + pointDiscount);
   const finalTotal = $derived(
     order?.total_amount ||
       order?.total ||
@@ -954,6 +989,23 @@
                     >
                       <span>Voucher giảm giá:</span>
                       <span>-{formatCurrency(voucherDiscount)}</span>
+                    </div>
+                  {/if}
+
+                  {#if pointDiscount > 0}
+                    <div
+                      class="flex justify-between text-[11px] font-black text-amber-600 italic"
+                    >
+                      <span class="flex items-center gap-1">
+                        Dùng điểm ({pointsRedeemed} điểm):
+                        <span class="group relative cursor-help text-slate-400">
+                          <svg class="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden w-48 bg-slate-950 text-white text-[9px] font-medium p-2.5 rounded shadow-xl group-hover:block z-50 text-center leading-normal normal-case not-italic border border-slate-800">
+                            Đổi thành công {pointsRedeemed} điểm loyalty thành {formatCurrency(pointDiscount)} giảm trực tiếp vào đơn hàng.
+                          </span>
+                        </span>
+                      </span>
+                      <span>-{formatCurrency(pointDiscount)}</span>
                     </div>
                   {/if}
 
