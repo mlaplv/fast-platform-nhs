@@ -66,8 +66,8 @@
     product?.orderCountText ||
       metadata?.reviews_count_text ||
       (product?.orderCount || product?.order_count
-        ? `${(product.orderCount || product.order_count).toLocaleString()}+ LƯỢT MUA`
-        : ""),
+        ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua`
+        : "")
   );
 
   // Elite V2.2: Live FOMO Pulse Logic
@@ -383,7 +383,7 @@
         </div>
         <span
           class="text-[10px] font-black text-red-500 tracking-[0.3em] font-mono whitespace-nowrap"
-          >LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span
+          >TRỰC TIẾP: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span
         >
       </div>
 
@@ -440,8 +440,8 @@
           >
             <div class="flex flex-col items-center sm:items-start gap-1">
               <span
-                class="text-[9px] font-black text-white/30 tracking-[0.3em] font-mono"
-                >PRECISION_RATING</span
+                class="text-[9px] font-black text-white/30 tracking-[0.3em]"
+                >Điểm đánh giá</span
               >
               <div class="flex items-center gap-4">
                 <EditableWrapper
@@ -475,8 +475,8 @@
 
           <div class="flex flex-col items-center sm:items-start gap-1">
             <span
-              class="text-[9px] font-black text-white/30 tracking-[0.3em] font-mono"
-              >GLOBAL_VOLUME</span
+              class="text-[9px] font-black text-white/30 tracking-[0.3em]"
+              >Tổng số lượt mua</span
             >
             <EditableWrapper
               path="metadata.reviews_count_text"
@@ -509,13 +509,13 @@
                 /></svg
               >
             </div>
-            <div class="flex flex-col">
-              <span class="text-[8px] font-black text-white/40 tracking-[0.2em]"
-                >ELITE_PROTECTED</span
+            <div class="flex flex-col items-center sm:items-start gap-1">
+              <span class="text-[9px] font-black text-white/30 tracking-[0.3em]"
+                >Bảo mật</span
               >
               <span
                 class="text-[10px] font-black text-luxury-sakura tracking-widest"
-                >VERIFIED SERVICE</span
+                >Dịch vụ đã xác thực</span
               >
             </div>
           </div>
@@ -646,8 +646,8 @@
                 class="w-12 h-12 border-2 border-luxury-sakura/20 border-t-luxury-sakura rounded-full animate-spin"
               ></div>
               <span
-                class="text-luxury-sakura/40 font-mono text-[10px] tracking-[0.4em]"
-                >Syncing_Real_Voices...</span
+                class="text-luxury-sakura/40 text-[10px] tracking-[0.4em]"
+                >ĐANG TẢI ĐÁNH GIÁ...</span
               >
             </div>
           {:else if realReviews.length === 0}
@@ -666,8 +666,8 @@
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 /></svg
               >
-              <span class="text-[10px] font-mono tracking-widest"
-                >No_Signal_Detected</span
+              <span class="text-[10px] tracking-widest"
+                >CHƯA CÓ ĐÁNH GIÁ</span
               >
             </div>
           {:else}
@@ -797,7 +797,7 @@
                     <div class="flex flex-col">
                       <span
                         class="text-[7px] font-black text-luxury-sakura/50 tracking-[0.2em] leading-none mb-0.5"
-                        >AUTH_STATUS</span
+                        >XÁC THỰC</span
                       >
                       <EditableWrapper
                         path="metadata.reviews_label_store_verified"
@@ -1143,7 +1143,7 @@
                             <div
                               class="py-16 text-center text-[10px] font-black text-white/20 tracking-[0.3em] italic"
                             >
-                              NO_RESULTS_FOUND
+                              KHÔNG TÌM THẤY KẾT QUẢ
                             </div>
                           {/if}
                         </div>
@@ -1267,7 +1267,7 @@
                       class="w-5 h-5 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin"
                     ></div>
                     <span class="text-sm font-black tracking-[0.4em]"
-                      >PROCESSING_DATA...</span
+                      >ĐANG XỬ LÝ...</span
                     >
                   </div>
                 {:else}

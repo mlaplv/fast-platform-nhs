@@ -142,18 +142,6 @@ class PMaxUpgrader(GoogleAdsClient):
 
         # 3. Tạo danh sách thao tác gộp (Atomic Mutate Operations)
         mutate_ops = []
-        
-        # A. Tạm dừng chiến dịch DSA cũ
-        dsa_resource = f"customers/{self._CUSTOMER_ID}/campaigns/{dsa_campaign_id}"
-        mutate_ops.append({
-            "campaignOperation": {
-                "update": {
-                    "resourceName": dsa_resource,
-                    "status": "PAUSED"
-                },
-                "updateMask": "status"
-            }
-        })
 
         # Thiết lập temporary resource names
         budget_temp_resource = f"customers/{self._CUSTOMER_ID}/campaignBudgets/-1"
@@ -329,8 +317,8 @@ class PMaxUpgrader(GoogleAdsClient):
         # Tìm resource name của chiến dịch PMax được sinh ra thực tế từ kết quả trả về
         pmax_resource = ""
         try:
-            if len(batch_result) > 2:
-                pmax_resource = batch_result[2].get("campaignResult", {}).get("resourceName", "")
+            if len(batch_result) > 1:
+                pmax_resource = batch_result[1].get("campaignResult", {}).get("resourceName", "")
         except Exception:
             pass
 

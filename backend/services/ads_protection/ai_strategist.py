@@ -103,8 +103,36 @@ class AIStrategist:
                     author_list = tree.xpath("//meta[@name='author']/@content") or tree.xpath("//meta[@property='article:author']/@content")
                     author = author_list[0].strip() if author_list else ""
                     
-                    # 9. JSON-LD Schema
+                    # 9. JSON-LD Schema & Content JSON Extraction
                     schema_types = []
+                    json_data_texts = []
+                    
+                    def extract_text_from_json(obj):
+                        text_parts = []
+                        if isinstance(obj, str):
+                            s = obj.strip()
+                            if s and not s.startswith("http") and not any(s.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]):
+                                if "<" in s and ">" in s:
+                                    try:
+                                        sub_tree = html.fromstring(s)
+                                        t = sub_tree.text_content().strip()
+                                        if t:
+                                            text_parts.append(t)
+                                    except Exception:
+                                        cleaned = re.sub(r'<[^>]+>', ' ', s)
+                                        text_parts.append(cleaned)
+                                else:
+                                    text_parts.append(s)
+                        elif isinstance(obj, dict):
+                            for k, v in obj.items():
+                                if k in ['id', 'status', 'statusText', 'headers', 'type', 'sku', 'image', 'images', 'thumbnail', 'url', 'href', 'class', 'style', 'color', 'background', 'logo']:
+                                    continue
+                                text_parts.extend(extract_text_from_json(v))
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                text_parts.extend(extract_text_from_json(item))
+                        return text_parts
+
                     json_ld_nodes = tree.xpath("//script[@type='application/ld+json']")
                     for node in json_ld_nodes:
                         try:
@@ -132,11 +160,34 @@ class AIStrategist:
                                     return t_list
                                 
                                 schema_types.extend(extract_types(data))
+                                # Also extract text for SGE content analysis
+                                json_data_texts.extend(extract_text_from_json(data))
                         except Exception as je:
                             logger.warning(f"Error parsing JSON-LD in _fetch_page: {je}")
                     
                     schema_types = sorted(list(set(schema_types)))
-                    
+
+                    # Extract regular JSON scripts containing page data/reviews/faqs
+                    json_nodes = tree.xpath("//script[@type='application/json']")
+                    for node in json_nodes:
+                        try:
+                            js_text = node.text_content().strip()
+                            if js_text:
+                                data = json.loads(js_text)
+                                if isinstance(data, dict) and 'body' in data:
+                                    try:
+                                        body_data = json.loads(data['body'])
+                                        if isinstance(body_data, dict):
+                                            if any(k in body_data for k in ['description', 'metadata', 'reviews', 'items', 'blocks', 'faqs']):
+                                                json_data_texts.extend(extract_text_from_json(body_data))
+                                    except Exception:
+                                        pass
+                                else:
+                                    if isinstance(data, dict) and any(k in data for k in ['description', 'metadata', 'reviews', 'items', 'blocks', 'faqs']):
+                                        json_data_texts.extend(extract_text_from_json(data))
+                        except Exception as je:
+                            logger.warning(f"Error parsing application/json in _fetch_page: {je}")
+
                     # 10. Clean body text for word count and content preview
                     for s in tree.xpath("//script|//style|//noscript|//iframe|//header|//footer|//nav"):
                         try:
@@ -178,7 +229,19 @@ class AIStrategist:
                             except Exception:
                                 pass
                     
-                    body_text = tree.text_content()
+                    static_text = tree.text_content()
+                    
+                    # Deduplicate and combine all text parts to construct the full page representation
+                    all_text_parts = [static_text] + json_data_texts
+                    seen = set()
+                    unique_text_parts = []
+                    for part in all_text_parts:
+                        part_clean = " ".join(part.split())
+                        if part_clean and part_clean not in seen:
+                            seen.add(part_clean)
+                            unique_text_parts.append(part)
+                            
+                    body_text = "\n\n".join(unique_text_parts)
                     words = re.findall(r'\b\w+\b', body_text)
                     word_count = len(words)
                     
@@ -402,19 +465,30 @@ YÊU CẦU PHÂN TÍCH (trả về CompetitorAnalysisResponse):
                             rs = real_map[key]
                             vol = rs.avg_monthly_searches
                             if vol is not None:
-                                if vol < 100:
+                                try:
+                                    vol_val = int(vol)
+                                except (TypeError, ValueError):
+                                    vol_val = 0
+                                if vol_val < 100:
                                     item.estimated_volume = "< 100"
-                                elif vol < 1000:
+                                elif vol_val < 1000:
                                     item.estimated_volume = "100-1K"
-                                elif vol < 10000:
+                                elif vol_val < 10000:
                                     item.estimated_volume = "1K-10K"
                                 else:
                                     item.estimated_volume = "> 10K"
+                            else:
+                                item.estimated_volume = "< 100"
                             if rs.avg_cpc_vnd is not None:
                                 item.estimated_cpc_vnd = rs.avg_cpc_vnd
                         else:
-                            if _campaign_mgr._has_credentials():
-                                item.estimated_volume = "< 100"
+                            item.estimated_volume = "< 100"
+                            
+                    # Lọc bỏ các từ khóa có lượng tìm kiếm dưới 100 (Google Ads 2026 compliance)
+                    result.keyword_suggestions = [
+                        item for item in result.keyword_suggestions 
+                        if item.estimated_volume != "< 100"
+                    ]
                 except Exception as enrich_err:
                     logger.error("Failed to enrich keyword suggestions with Google Ads API: %s", enrich_err)
             return result

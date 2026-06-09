@@ -70,7 +70,17 @@
 
   function getVariantTitle(v: ProductVariant) {
     const qty = v.attributes?.combo_qty || 1;
-    const qtySuffix = qty > 1 ? ` - BỘ ${qty} MÓN` : "";
+    let totalQty = qty;
+    if (qty === 3) {
+      const gifts = v.attributes?.gifts?.length
+        ? v.attributes.gifts
+        : v.gifts?.length
+          ? v.gifts
+          : product?.gifts || [];
+      const giftQty = gifts.reduce((acc: number, g: any) => acc + (g.qty || g.quantity || 1), 0);
+      totalQty += giftQty;
+    }
+    const qtySuffix = qty > 1 ? ` - BỘ ${totalQty} MÓN` : "";
     if (product?.tierVariations?.length && v.tierIndex?.length) {
       const title = v.tierIndex
         .map((optIdx, tierIdx) => {
@@ -153,6 +163,11 @@
 
   const voucherDiscountPerUnit = $derived(unitPriceInfo.voucherDiscount);
   const totalSavings = $derived(totalOriginalPackagePrice - totalPackagePrice);
+  const discountPercent = $derived(
+    totalOriginalPackagePrice > 0
+      ? Math.round(((totalOriginalPackagePrice - totalPackagePrice) / totalOriginalPackagePrice) * 100)
+      : 0
+  );
 
   const selectedVouchers = $derived(
     (shopStore.vouchers || []).filter((v) =>
@@ -479,13 +494,32 @@
         class="elite-price-cluster flex flex-col items-center md:items-start gap-0 mb-2"
       >
         {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
+          {@const gifts = variant.attributes?.gifts?.length
+            ? variant.attributes.gifts
+            : variant.gifts?.length
+              ? variant.gifts
+              : product?.gifts || []}
+          {@const giftQty = variant.attributes.combo_qty === 3
+            ? gifts.reduce((acc, g) => acc + (g.qty || g.quantity || 1), 0)
+            : 0}
+          {@const displayCount = variant.attributes.combo_qty + giftQty}
           <div
             class="combo-volume-badge mb-1.5 flex items-center gap-1 px-2.5 py-1 rounded-md bg-luxury-sakura/10 border border-luxury-sakura/20"
           >
             <Ticket class="w-2.5 h-2.5 text-luxury-sakura" />
             <span
               class="text-[9px] font-black text-luxury-sakura tracking-[0.2em]"
-              >Số lượng: {variant.attributes.combo_qty} Sản phẩm</span
+              >Số lượng: {displayCount} Sản phẩm</span
+            >
+          </div>
+        {:else}
+          <div
+            class="combo-volume-badge mb-1.5 flex items-center gap-1 px-2.5 py-1 rounded-md bg-luxury-sakura/10 border border-luxury-sakura/20"
+          >
+            <Flame class="w-2.5 h-2.5 text-luxury-sakura animate-pulse" />
+            <span
+              class="text-[9px] font-black text-luxury-sakura tracking-[0.2em] uppercase"
+              >Hệ thống giảm: {discountPercent}%</span
             >
           </div>
         {/if}
@@ -494,37 +528,19 @@
         >
           {getVariantTitle(variant)}
         </h2>
-        <div class="flex items-baseline gap-2 leading-none mt-1">
+        <div class="flex items-baseline gap-1.5 leading-none mt-1">
           <span
             class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter"
-            >{formatCurrency(finalUnitPrice)}</span
+            >{formatCurrency(totalPackagePrice)}</span
           >
-          <span class="text-[10px] font-bold text-white/40 tracking-widest"
-            >/ Sản phẩm</span
-          >
+          {#if totalOriginalPackagePrice > totalPackagePrice}
+            <span class="text-[12px] font-bold text-white/30">/</span>
+            <span
+              class="text-[13px] font-bold text-white/30 line-through decoration-white/30 tabular-nums"
+              >{formatCurrency(totalOriginalPackagePrice)}</span
+            >
+          {/if}
         </div>
-
-        {#if comboQty > 1}
-          <div class="flex items-center gap-2 mt-1 mb-1">
-            <span
-              class="text-[11px] font-bold text-luxury-sakura/80 tabular-nums"
-              >Tổng gói: {formatCurrency(totalPackagePrice)}</span
-            >
-            {#if totalOriginalPackagePrice > totalPackagePrice}
-              <span
-                class="text-[10px] text-white/20 line-through tabular-nums decoration-white/20"
-                >{formatCurrency(totalOriginalPackagePrice)}</span
-              >
-            {/if}
-          </div>
-        {:else if unitOriginalPrice > finalUnitPrice}
-          <div class="mt-1 mb-1">
-            <span
-              class="text-[11px] text-white/20 line-through tabular-nums decoration-white/20"
-              >{formatCurrency(unitOriginalPrice)}</span
-            >
-          </div>
-        {/if}
 
         <div
           class="flex flex-wrap items-center gap-2 mt-1.5 min-h-[20px] relative z-20"
@@ -625,7 +641,7 @@
       <p
         class="flex items-center gap-2 text-[8px] font-bold tracking-[0.1em] text-white/40 border-t border-white/5 pt-2"
       >
-        <span class="text-luxury-sakura">●</span> SPECS:
+        <span class="text-luxury-sakura">●</span> Trọng lượng:
         <EditableWrapper
           path="metadata.weight"
           type="text"
@@ -633,7 +649,7 @@
           class="inline"
           as="span"
         >
-          {product?.metadata?.weight || "30G"}
+          {product?.metadata?.weight || "30g"}
         </EditableWrapper>
         <span class="mx-1">-</span>
         <EditableWrapper
@@ -643,9 +659,9 @@
           class="inline"
           as="span"
         >
-          {product?.metadata?.origin || "JAPAN"}
+          {product?.metadata?.origin || "Japan"}
         </EditableWrapper>
-        <span class="mx-1">|</span> MÃ VẠCH: {variant.sku ||
+        <span class="mx-1">|</span> Mã vạch: {variant.sku ||
           product?.sku ||
           "N/A"}
       </p>

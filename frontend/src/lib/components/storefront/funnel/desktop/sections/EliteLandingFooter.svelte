@@ -309,14 +309,14 @@
       <div
         class="flex items-center gap-2 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 transition-all"
       >
-        <img
+        <!--<img
           src="/uploads/img/bocongthuong.webp"
           alt="Bộ Công Thương"
           class="h-6 object-contain"
           onerror={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
-        />
+        />-->
         <span
           class="border border-white/10 px-2 py-0.5 rounded text-[8px] font-mono tracking-wider opacity-60"
           >Secure SSL Encrypted</span

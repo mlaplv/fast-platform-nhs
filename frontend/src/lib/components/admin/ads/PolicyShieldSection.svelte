@@ -6,6 +6,7 @@
   import Info from "@lucide/svelte/icons/info";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { apiClient } from "$lib/utils/apiClient";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
 
   let {
     view = 'scan',
@@ -27,6 +28,7 @@
 
   let policyHistory = $state<any[]>([]);
   let loadingHistory = $state(false);
+  const nanobot = useNanobot();
 
   let debounceTimer: any = null;
   function debouncedScan() {
@@ -80,6 +82,31 @@
       console.error("Failed to fetch policy history:", err);
     } finally {
       loadingHistory = false;
+    }
+  }
+
+  async function clearPolicyHistory() {
+    if (!selectedAdGroup?.resource_name) return;
+    const agId = selectedAdGroup.resource_name.split('/').pop();
+    
+    // Sử dụng modal xác nhận hệ thống thay vì confirm của trình duyệt
+    const confirmed = await nanobot.showConfirm({
+      title: "XÁC NHẬN XÓA LỊCH SỬ",
+      message: "Sếp có chắc chắn muốn xóa toàn bộ lịch sử quét chính sách cho nhóm quảng cáo này?",
+      confirmLabel: "XÓA NGAY",
+      cancelLabel: "HỦY BỎ"
+    });
+    if (!confirmed) return;
+    
+    try {
+      const res = await apiClient.delete<{success: boolean}>(`/api/v1/ads-protection/ad-groups/${agId}/policy-history`);
+      if (res && res.success) {
+        policyHistory = [];
+        nanobot.showToast("Đã xóa lịch sử quét chính sách thành công.", "success");
+      }
+    } catch (err) {
+      console.error("Failed to clear policy history:", err);
+      nanobot.showToast("Không thể xóa lịch sử quét chính sách.", "error");
     }
   }
 
@@ -198,13 +225,23 @@
   <div class="bg-black/40 border border-white/5 p-5 font-mono text-left">
     <div class="flex justify-between items-center mb-3">
       <span class="text-[10px] text-slate-400 font-black tracking-wider uppercase">LỊCH SỬ KIỂM DUYỆT CHÍNH SÁCH</span>
-      <button 
-        type="button"
-        class="text-[8px] text-purple-400 hover:text-purple-300 underline font-black"
-        onclick={fetchPolicyHistory}
-      >
-        LÀM MỚI
-      </button>
+      <div class="flex items-center gap-2">
+        <button 
+          type="button"
+          class="text-[8px] text-purple-400 hover:text-purple-300 underline font-black"
+          onclick={fetchPolicyHistory}
+        >
+          LÀM MỚI
+        </button>
+        <span class="text-slate-600 text-[8px]">|</span>
+        <button 
+          type="button"
+          class="text-[8px] text-rose-400 hover:text-rose-300 underline font-black"
+          onclick={clearPolicyHistory}
+        >
+          XÓA LỊCH SỬ
+        </button>
+      </div>
     </div>
 
     {#if loadingHistory}

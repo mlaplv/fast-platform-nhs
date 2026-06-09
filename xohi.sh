@@ -126,6 +126,11 @@ function deep_clean() {
     sudo rm -rf static
     sudo find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
 
+    # === DOCKER CLEANUP ===
+    echo -e "${YELLOW}-> [Docker] Đang dọn dẹp Build Cache & Dangling Images...${NC}"
+    docker builder prune -a -f &>/dev/null || true
+    docker image prune -f &>/dev/null || true
+
     echo -e "${GREEN}[OK] Đã dọn dẹp hệ thống sạch bóng!${NC}"
 }
 
@@ -653,10 +658,10 @@ function show_elite_guide() {
     echo -e "${CYAN}   HƯỚNG DẪN VẬN HÀNH PHÁO ĐÀI (ELITE V2.2)      ${NC}"
     echo -e "${CYAN}==================================================${NC}"
     echo ""
-    echo -e "${YELLOW}1. BẢO MẬT & SSH (Mục 13):${NC}"
-    echo -e "   - BƯỚC 1: Tạo User mới (Mục 13.1). Nhớ kỹ mật khẩu!"
+    echo -e "${YELLOW}1. BẢO MẬT & SSH (Mục 12):${NC}"
+    echo -e "   - BƯỚC 1: Tạo User mới (Mục 12.1). Nhớ kỹ mật khẩu!"
     echo -e "   - BƯỚC 2: Thử SSH bằng User mới (Mở tab mới, gõ: ssh user@ip)."
-    echo -e "   - BƯỚC 3: Nếu vào được, mới chọn Khóa Root (Mục 13.2)."
+    echo -e "   - BƯỚC 3: Nếu vào được, mới chọn Khóa Root (Mục 12.2)."
     echo -e "   - CẤP CỨU: Nếu quên pass hoặc muốn mở lại Root, dùng user mới gõ:"
     echo -e "     sudo sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config"
     echo -e "     sudo systemctl restart ssh"
@@ -665,11 +670,7 @@ function show_elite_guide() {
     echo -e "   - Sau khi chạy Mục 11, VPS sẽ tự dọn rác lúc 04:00 sáng hàng ngày."
     echo -e "   - Sếp không cần lo đầy ổ 60GB SSD."
     echo ""
-    echo -e "${YELLOW}3. LƯU TRỮ SAS 120GB (Mục 12):${NC}"
-    echo -e "   - Luôn mount ổ SAS vào thư mục /backups để lưu dữ liệu an toàn."
-    echo -e "   - Password mặc định của Mục 12 là: ELITE_V22"
-    echo ""
-    echo -e "${YELLOW}4. KIỂM TRA SỨC KHỎE (Mục 4):${NC}"
+    echo -e "${YELLOW}3. KIỂM TRA SỨC KHỎE (Mục 4):${NC}"
     echo -e "   - Xem log để biết AI có đang 'overloaded' hay không."
     echo -e "   - Nếu thấy lag, hãy Restart API (Mục 8)."
     echo ""
@@ -679,7 +680,7 @@ function show_elite_guide() {
 function setup_vps() {
     echo -e "${YELLOW}=== [LOCKDOWN] THIẾT LẬP VPS TRẮNG (PROVISIONING - ELITE V2.2) ===${NC}"
     echo -e "${RED}[WARNING] Thao tác này sẽ thiết lập Tường lửa, Fail2Ban và cài đặt Docker/UV/PNPM.${NC}"
-    echo -e "${CYAN}Thông số phát hiện: CPU Xeon 4-Cores | RAM 4GB | SSD 60GB + SAS 120GB${NC}"
+    echo -e "${CYAN}Thông số phát hiện: CPU Xeon 4-Cores | RAM 4GB | SSD 60GB${NC}"
     read -p "Sếp muốn tiến hành thiết lập VPS? (y/n): " confirm
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then return 1; fi
 
@@ -767,89 +768,11 @@ function setup_vps() {
     sudo systemctl restart fail2ban
     
     echo -e "${GREEN}[SUCCESS] VPS đã được khóa bảo vệ và sẵn sàng chạy Mục 3 (FULL INIT)!${NC}"
-    echo -e "${YELLOW}[TIP] Sếp nên mount ổ SAS 120GB vào thư mục 'backups/' để lưu trữ lâu dài.${NC}"
     echo -e "${YELLOW}[TIP] Sếp hãy Logout và Login lại để quyền truy cập Docker có hiệu lực.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
 
-function mount_sas() {
-    echo -e "${YELLOW}=== [STORAGE] MOUNT Ổ CỨNG SAS (120GB - ELITE V2.2) ===${NC}"
-    echo -e "${RED}[SECURITY] Yêu cầu mã xác thực để tiếp tục...${NC}"
-    read -s -p "Nhập mã khóa (Lockdown Key): " lockdown_key
-    echo ""
-    
-    if [[ "$lockdown_key" != "ELITE_V22" ]]; then
-        echo -e "${RED}[ERROR] Sai mã khóa! Thao tác bị từ chối để bảo vệ dữ liệu.${NC}"
-        read -p "Nhấn Enter để quay lại..."
-        return 1
-    fi
 
-    echo -e "${CYAN}Đang quét danh sách phân vùng khả dụng...${NC}"
-    echo ""
-    
-    # Hiển thị danh sách ổ đĩa để sếp nhận diện
-    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE | grep -E "disk|part" | grep -v "loop"
-    echo ""
-    
-    echo -e "${YELLOW}[TIP] Sếp tìm phân vùng khoảng 110G-120G (ví dụ: sda1).${NC}"
-    echo -e "${RED}[WARNING] CẨN THẬN: Nhập sai có thể làm mất dữ liệu OS!${NC}"
-    read -p "Nhập TÊN phân vùng Sếp chọn (ví dụ: sda1): " disk_name
-    
-    if [ -z "$disk_name" ]; then
-        echo -e "${RED}[ERROR] Không có phân vùng nào được chọn.${NC}"
-        read -p "Nhấn Enter để quay lại..."
-        return 1
-    fi
-
-    DEVICE="/dev/$disk_name"
-    if [ ! -b "$DEVICE" ]; then
-        echo -e "${RED}[ERROR] Phân vùng $DEVICE không tồn tại.${NC}"
-        read -p "Nhấn Enter để quay lại..."
-        return 1
-    fi
-
-    # Kiểm tra xem phân vùng đã được mount chưa
-    if grep -q "$DEVICE" /proc/mounts; then
-        echo -e "${RED}[ERROR] Phân vùng $DEVICE đang được sử dụng ở nơi khác!${NC}"
-        read -p "Nhấn Enter để quay lại..."
-        return 1
-    fi
-
-    # Kiểm tra định dạng (FSTYPE)
-    FSTYPE=$(lsblk -no FSTYPE "$DEVICE")
-    if [ -z "$FSTYPE" ]; then
-        echo -e "${RED}[WARNING] Phân vùng $DEVICE chưa có định dạng (Trắng).${NC}"
-        read -p "Sếp muốn Format sang EXT4 (Xóa sạch dữ liệu)? (y/n): " confirm_format
-        if [[ "$confirm_format" =~ ^[Yy]$ ]]; then
-            echo -e "${CYAN}-> Đang định dạng $DEVICE sang EXT4...${NC}"
-            sudo mkfs.ext4 "$DEVICE"
-        else
-            echo -e "${YELLOW}-> Đã hủy thao tác.${NC}"
-            return 1
-        fi
-    fi
-
-    # Tiến hành Mount vào thư mục backups/ của dự án
-    BACKUP_PATH="$(pwd)/backups"
-    echo -e "${CYAN}-> Đang tiến hành Mount $DEVICE vào $BACKUP_PATH...${NC}"
-    mkdir -p "$BACKUP_PATH"
-    sudo mount "$DEVICE" "$BACKUP_PATH"
-    sudo chown -R $USER:$USER "$BACKUP_PATH"
-
-    # Thiết lập Persistence (fstab) bằng UUID để tránh lỗi khi đổi tên thiết bị
-    UUID=$(lsblk -no UUID "$DEVICE")
-    if [ -n "$UUID" ]; then
-        echo -e "${CYAN}-> Ghi danh vào hệ thống (fstab) bằng UUID: $UUID...${NC}"
-        if ! grep -q "$UUID" /etc/fstab; then
-            # Sử dụng nofail để VPS vẫn khởi động được nếu ổ cứng có vấn đề
-            echo "UUID=$UUID  $BACKUP_PATH  ext4  defaults,nofail,user  0  2" | sudo tee -a /etc/fstab
-        fi
-    fi
-
-    echo -e "${GREEN}[SUCCESS] Đã liên kết ổ SAS 120GB thành công vào: $BACKUP_PATH${NC}"
-    df -h | grep backups
-    read -p "Nhấn Enter để quay lại menu..."
-}
 
 
 
@@ -994,6 +917,11 @@ function update_storefront_ssr() {
     
     echo -e "${YELLOW}-> 2. Đang build lại Docker Image cho UI...${NC}"
     docker compose build ui
+    
+    # [CLEANUP] Giải phóng ngay Build Cache của Docker để không bị phình ổ đĩa sau khi build
+    echo -e "${YELLOW}-> [Docker] Đang giải phóng bộ nhớ đệm Build Cache...${NC}"
+    docker builder prune -a -f &>/dev/null || true
+    docker image prune -f &>/dev/null || true
     
     echo -e "${YELLOW}-> 3. Đang khởi động lại UI Container...${NC}"
     docker compose stop ui
@@ -1161,18 +1089,17 @@ while true; do
     echo "9) CẬP NHẬT MODEL AI (~250MB)"
     echo "10) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
     echo "11) CÀI ĐẶT VPS (LOCKDOWN - Dành cho máy mới)"
-    echo "12) MOUNT Ổ SAS 120GB (Vào backups/)"
-    echo "13) QUẢN TRỊ USER & SSH (Lockdown Root)"
-    echo "14) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
-    echo "15) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
-    echo "16) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
-    echo "17) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
-    echo "18) DI CƯ TENANT (Đổi Domain -> Update DB)"
-    echo "19) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
-    echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
-    echo "21) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
-    echo "22) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
-    echo "23) CẬP NHẬT STOREFRONT SSR (Build SvelteKit & Restart UI)"
+    echo "12) QUẢN TRỊ USER & SSH (Lockdown Root)"
+    echo "13) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
+    echo "14) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
+    echo "15) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
+    echo "16) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
+    echo "17) DI CƯ TENANT (Đổi Domain -> Update DB)"
+    echo "18) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
+    echo "19) DEPLOY GIN INDEX (PostgreSQL Security Index)"
+    echo "20) NÂNG CẤP GÓI THƯ VIỆN PYTHON (Upgrade Dependencies)"
+    echo "21) DỌN RÁC TOÀN DIỆN (Clean Cache, Logs & Old Packages)"
+    echo "22) CẬP NHẬT STOREFRONT SSR (Build SvelteKit & Restart UI)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -1224,42 +1151,39 @@ while true; do
             setup_vps
             ;;
         12)
-            mount_sas
-            ;;
-        13)
             manage_security_users
             ;;
-        14)
+        13)
             show_elite_guide
             ;;
-        15)
+        14)
             create_superuser
             read -p "Nhấn Enter để quay lại menu..."
             ;;
-        16)
+        15)
             purge_helen_data
             read -p "Nhấn Enter để quay lại menu..."
             ;;
-        17)
+        16)
             rotate_encryption_key
             read -p "Nhấn Enter để quay lại menu..."
             ;;
-        18)
+        17)
             migrate_tenant_id
             ;;
-        19)
+        18)
             purge_full_database
             ;;
-        20)
+        19)
             deploy_security_index
             ;;
-        21)
+        20)
             upgrade_python_packages
             ;;
-        22)
+        21)
             total_garbage_clean
             ;;
-        23)
+        22)
             update_storefront_ssr
             ;;
         0)

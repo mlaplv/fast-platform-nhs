@@ -4,6 +4,7 @@
   import { createAdsState } from './ads/adsState.svelte';
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
+  import { portal } from '$lib/core/actions/portal';
 
   const nanobot = useNanobot();
   import AdsKpiGrid from './ads/AdsKpiGrid.svelte';
@@ -29,11 +30,16 @@
   import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
   import Eye from "@lucide/svelte/icons/eye";
   import EyeOff from "@lucide/svelte/icons/eye-off";
+  import Maximize from "@lucide/svelte/icons/maximize";
+  import Minimize from "@lucide/svelte/icons/minimize";
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import Ban from "@lucide/svelte/icons/ban";
 
   const ads = createAdsState();
   let showTimeMenu = $state(false);
   let showIntelDropdown = $state(false);
   let showStats = $state(true);
+  let isFullView = $state(false);
 
   onMount(() => {
     ads.fetchAll();
@@ -44,7 +50,17 @@
 
   onDestroy(() => {
      ads.dispose();
+     if (typeof window !== 'undefined') {
+       document.body.style.overflow = '';
+     }
   });
+
+  function toggleFullView(): void {
+    isFullView = !isFullView;
+    if (typeof window !== 'undefined') {
+      document.body.style.overflow = isFullView ? 'hidden' : '';
+    }
+  }
 
   function close() {
     nanobot.closeUniversalModal();
@@ -58,7 +74,13 @@
   }
 </script>
 
-<div class="relative w-full h-full text-white font-sans overflow-hidden flex flex-col ads-premium-hud bg-[#050505]">
+<div 
+  use:portal={isFullView}
+  class={isFullView 
+    ? "fixed inset-0 w-screen h-screen p-5 flex flex-col overflow-hidden text-white bg-[#050505] ads-premium-hud z-[9999]" 
+    : "relative w-full h-full text-white font-sans overflow-hidden flex flex-col ads-premium-hud bg-[#050505]"}
+  style={isFullView ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN};` : ""}
+>
   <!-- HUD BACKGROUND EFFECTS (Elite V2.6 Standard) -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
     <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[150px] rounded-none animate-pulse"></div>
@@ -277,6 +299,19 @@
             {/if}
           </button>
 
+          <!-- Fullscreen Button -->
+          <button 
+            onclick={toggleFullView}
+            class="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+            title={isFullView ? "Thu nhỏ" : "Phóng to toàn màn hình"}
+          >
+            {#if isFullView}
+               <Minimize size={18} class="text-cyan-400 group-hover:scale-110 transition-transform" />
+            {:else}
+               <Maximize size={18} class="text-cyan-400 group-hover:scale-110 transition-transform" />
+            {/if}
+          </button>
+
           <button 
             onclick={close}
             class="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
@@ -311,28 +346,26 @@
          </div>
       {/if}
 
-      <!-- NAVIGATION (Elite V2.6 Standard) -->
-      <nav class="flex justify-center mb-10" in:fade={{delay: 200}}>
-        <div class="inline-flex bg-white/[0.03] p-2 rounded-none border border-white/10 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.4)] relative overflow-hidden group/nav">
-          <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-rose-500/5 opacity-50"></div>
+      <!-- NAVIGATION (Sleek Glassmorphic Tabs) -->
+      <nav class="flex justify-center mb-6" in:fade={{delay: 200}}>
+        <div class="inline-flex items-center gap-1 bg-black/60 border border-white/5 rounded-full p-1 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] relative overflow-hidden group/nav">
+          <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-rose-500/5 opacity-30"></div>
           {#each [
-            { id: 'overview', label: 'Tổng quan', fetch: () => ads.fetchAll() },
-            { id: 'insights', label: 'Cố vấn AI' },
-            { id: 'investigation', label: 'Pháp y' },
-            { id: 'google', label: 'Google Live', fetch: () => ads.fetchGoogleMetrics() },
-            { id: 'campaigns', label: 'Điều phối', fetch: () => ads.fetchCampaigns() },
-            { id: 'merchant', label: 'Google Merchant' },
-            { id: 'blacklist', label: 'Danh sách đen' },
-            { id: 'negative_keywords', label: 'Từ khóa phủ định', fetch: () => ads.fetchNegativeKeywords() }
+            { id: 'overview', label: 'Tổng quan', icon: Activity, fetch: () => ads.fetchAll() },
+            { id: 'insights', label: 'Cố vấn AI', icon: Brain },
+            { id: 'investigation', label: 'Pháp y', icon: AlertTriangle },
+            { id: 'google', label: 'Google Live', icon: ShieldCheck, fetch: () => ads.fetchGoogleMetrics() },
+            { id: 'campaigns', label: 'Điều phối', icon: Zap, fetch: () => ads.fetchCampaigns() },
+            { id: 'merchant', label: 'Google Merchant', icon: ShoppingBag },
+            { id: 'blacklist', label: 'Danh sách đen', icon: EyeOff },
+            { id: 'negative_keywords', label: 'Từ khóa phủ định', icon: Ban, fetch: () => ads.fetchNegativeKeywords() }
           ] as tab}
             <button 
-              class="px-7 py-3.5 text-[10px] font-black tracking-[0.15em] transition-all relative rounded-none {ads.activeTab === tab.id ? 'text-white bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}"
+              class="px-4 py-2 text-[9px] font-bold tracking-wider transition-all duration-300 relative rounded-full flex items-center gap-1.5 border {ads.activeTab === tab.id ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-black' : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/5'}"
               onclick={() => { ads.activeTab = tab.id; if (tab.fetch) tab.fetch(); }}
             >
-              {tab.label}
-              {#if ads.activeTab === tab.id}
-                <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-cyan-400 shadow-[0_0_15px_#00f3ff] rounded-none" in:scale></div>
-              {/if}
+              <svelte:component this={tab.icon} size={11} class={ads.activeTab === tab.id ? 'text-cyan-400 animate-pulse' : 'text-slate-500 group-hover/nav:text-slate-300'} />
+              <span>{tab.label}</span>
             </button>
           {/each}
         </div>
@@ -408,61 +441,6 @@
           {/if}
         </div>
       </main>
-    {#if ads.activeTab === 'overview'}
-    <!-- [Elite V3.0] System Status & Changelog Footer -->
-    <footer class="mt-12 pt-8 border-t border-white/5 flex flex-col gap-6 opacity-40 hover:opacity-100 transition-opacity duration-700">
-      <div class="flex justify-between items-start">
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-3">
-             <span class="text-[9px] font-black text-cyan-400 tracking-[0.3em]">System_Infrastructure_V3.0_λ</span>
-             <div class="h-px w-12 bg-cyan-400/20"></div>
-          </div>
-          <p class="text-[10px] text-slate-400 max-w-2xl leading-relaxed">
-            Hệ thống bảo vệ đa tầng tích hợp Edge Intelligence (Fast Path) và Agentic C.O.R.E (Slow Path). 
-            Tự động phản ứng với Botnet 2026 thông qua thử thách mật mã PoW và phân tích đặc vụ AI.
-          </p>
-        </div>
-        <div class="text-right">
-          <span class="text-[9px] font-mono text-slate-600 ">Last_Deployment: 2026-05-12_18:40</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-4 gap-8">
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-cyan-500 pl-2">Sprint 1: Edge Core</span>
-          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
-            <li>• ONNX Runtime Wasm Behavior Scoring</li>
-            <li>• Cryptographic PoW (SHA-256) Integration</li>
-            <li>• Zero-latency client-side heuristics</li>
-          </ul>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-amber-500 pl-2">Sprint 2: Agentic C.O.R.E</span>
-          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
-            <li>• PydanticAI Forensic Investigation Agent</li>
-            <li>• Redis Streams Event-driven Architecture</li>
-            <li>• RAG Integration (Obsidian & GraphDB)</li>
-          </ul>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-emerald-500 pl-2">Sprint 3: Elite HUD</span>
-          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
-            <li>• AdsPowHud Real-time Mitigation Display</li>
-            <li>• Simple Pro Header Optimization</li>
-            <li>• Multi-layered Forensic Archive UI</li>
-          </ul>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-rose-500 pl-2">Hygiene & Safety</span>
-          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
-            <li>• LiteLLM Cost & Model Management</li>
-            <li>• SSR Stealth Asset Injection (CORS Fix)</li>
-            <li>• Real-time SSE Sync (Zero-noise Logging)</li>
-          </ul>
-        </div>
-      </div>
-      </footer>
-    {/if}
     </div>
     {/if}
   </div>

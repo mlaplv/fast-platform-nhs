@@ -255,8 +255,8 @@
             />
          {:else if campaignView === 'create_ad'}
             <div class="grid grid-cols-12 gap-8 p-4 lg:p-6" in:fade>
-               <!-- LEFT PANEL: RSA FORM (7/8 Cols) -->
-               <div class="col-span-12 lg:col-span-7 xl:col-span-8 space-y-6 lg:space-y-8">
+               <!-- LEFT PANEL: RSA FORM (7 Cols) -->
+               <div class="col-span-12 lg:col-span-7 xl:col-span-7 space-y-6 lg:space-y-8">
                   <AdFormSection
                      bind:fAd={fAd}
                      aiGenerating={aiGenerating}
@@ -268,8 +268,8 @@
                   />
                </div>
 
-               <!-- RIGHT PANEL: PREVIEW, STRENGTH & COMPETITOR (5/4 Cols) -->
-               <div class="col-span-12 lg:col-span-5 xl:col-span-4 space-y-6 lg:space-y-8">
+               <!-- RIGHT PANEL: PREVIEW, STRENGTH & COMPETITOR (5 Cols) -->
+               <div class="col-span-12 lg:col-span-5 xl:col-span-5 space-y-6 lg:space-y-8">
                   <!-- GOOGLE SEARCH AD MOCKUP -->
                   <GoogleSearchAdMockup
                      final_url={fAd.final_url}

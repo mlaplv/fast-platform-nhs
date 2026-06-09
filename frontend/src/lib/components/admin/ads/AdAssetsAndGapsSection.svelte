@@ -34,6 +34,8 @@
       event.dataTransfer.effectAllowed = 'copy';
     }
   }
+  let showFullviewTip = $state(false);
+  let showMiniTip = $state(false);
 </script>
 
 {#if fullview}
@@ -104,11 +106,19 @@
             <div class="flex items-center gap-2 text-yellow-500 relative">
               <AlertTriangle size={14} />
               <span class="text-[10px] font-black uppercase">Phân tích khoảng trống</span>
-              <div class="relative group cursor-pointer inline-flex items-center">
-                <Info size={12} class="text-yellow-500/60 hover:text-yellow-400 transition-colors" />
-                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-64 bg-slate-950 border border-yellow-500/30 text-yellow-200 text-[9px] p-2 rounded shadow-2xl leading-normal z-50 whitespace-normal">
-                  So sánh trực tiếp trang đích với đối thủ trên Google Search để tìm khoảng trống về: Social Proof, CTA, và độ dài/độ sâu nội dung tối ưu cho Google SGE.
-                </span>
+              <div class="relative inline-flex items-center">
+                <button 
+                  type="button" 
+                  class="focus:outline-none cursor-pointer flex items-center" 
+                  onclick={(e) => { e.stopPropagation(); showFullviewTip = !showFullviewTip; }}
+                >
+                  <Info size={12} class="text-yellow-500/60 hover:text-yellow-400 transition-colors" />
+                </button>
+                {#if showFullviewTip}
+                  <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-64 bg-slate-950 border border-yellow-500/30 text-yellow-200 text-[9px] p-2 rounded shadow-2xl leading-normal z-50 whitespace-normal">
+                    So sánh trực tiếp trang đích với đối thủ trên Google Search để tìm khoảng trống về: Social Proof, CTA, và độ dài/độ sâu nội dung tối ưu cho Google SGE.
+                  </span>
+                {/if}
               </div>
             </div>
             <p class="text-xs text-yellow-200/80 leading-relaxed text-left">
@@ -171,11 +181,19 @@
             <div class="flex items-center gap-2 text-yellow-500 relative">
               <AlertTriangle size={14} />
               <span class="text-[9px] font-black uppercase">Kẽ hở so với đối thủ</span>
-              <div class="relative group cursor-pointer inline-flex items-center">
-                <Info size={11} class="text-yellow-500/60 hover:text-yellow-400 transition-colors" />
-                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-48 bg-slate-950 border border-yellow-500/30 text-yellow-200 text-[8px] p-2 rounded shadow-2xl leading-normal z-50 whitespace-normal">
-                  So sánh trực tiếp trang đích với đối thủ trên Google Search để tìm khoảng trống về: Social Proof, CTA, và độ dài/độ sâu nội dung tối ưu cho Google SGE.
-                </span>
+              <div class="relative inline-flex items-center">
+                <button 
+                  type="button" 
+                  class="focus:outline-none cursor-pointer flex items-center" 
+                  onclick={(e) => { e.stopPropagation(); showMiniTip = !showMiniTip; }}
+                >
+                  <Info size={11} class="text-yellow-500/60 hover:text-yellow-400 transition-colors" />
+                </button>
+                {#if showMiniTip}
+                  <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 bg-slate-950 border border-yellow-500/30 text-yellow-200 text-[8px] p-2 rounded shadow-2xl leading-normal z-50 whitespace-normal">
+                    So sánh trực tiếp trang đích với đối thủ trên Google Search để tìm khoảng trống về: Social Proof, CTA, và độ dài/độ sâu nội dung tối ưu cho Google SGE.
+                  </span>
+                {/if}
               </div>
             </div>
             <p class="text-[10px] text-yellow-200/80 leading-relaxed text-left">

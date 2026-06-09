@@ -212,8 +212,19 @@
   </p>
 
   {#if selectedCampaign}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div>
+    {#if upgradeSuccessMessage}
+      <div class="border border-emerald-500/30 bg-emerald-950/20 p-8 text-center space-y-4 relative overflow-hidden backdrop-blur-md animate-fade-in font-mono mt-2">
+        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+        <div class="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl animate-bounce">✓</div>
+        <h3 class="text-emerald-400 font-black text-xs tracking-widest uppercase">NÂNG CẤP CHIẾN DỊCH AI MAX THÀNH CÔNG</h3>
+        <p class="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">{upgradeSuccessMessage}</p>
+        <div class="pt-2">
+          <button type="button" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] tracking-widest transition-all uppercase" onclick={() => { upgradeSuccessMessage = null; pmaxAssetsLoaded = false; newPMaxName = ''; pmaxBudget = 150000; pmaxMarketingImages = []; pmaxSquareImages = []; pmaxLogoImages = []; userConfirmedReview = false; }}>ĐỒNG Ý & ĐÓNG TRÌNH BIÊN TẬP</button>
+        </div>
+      </div>
+    {:else}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
         <span class="block text-[8px] text-slate-500 font-black tracking-widest uppercase mb-1">TÊN CHIẾN DỊCH AI MAX MỚI</span>
         <input 
           type="text" 
@@ -448,13 +459,6 @@
     <!-- Error & Success Messages -->
     {#if validationError}<div class="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-bold mb-4">❌ {validationError}</div>{/if}
     {#if upgradeError}<div class="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-bold mb-4">❌ {upgradeError}</div>{/if}
-    {#if upgradeSuccessMessage}
-      {#if upgradeSuccessMessage.toLowerCase().includes('thất bại')}
-        <div class="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold mb-4">⚠️ {upgradeSuccessMessage}</div>
-      {:else}
-        <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold mb-4">✅ {upgradeSuccessMessage}</div>
-      {/if}
-    {/if}
 
     <!-- Danger Alert and Chốt Chặn Checkbox -->
     <div class="p-4 bg-amber-500/5 border border-amber-500/20 mb-4 space-y-3">
@@ -480,6 +484,7 @@
           <span>XÁC NHẬN NỘI DUNG VÀ ĐĂNG LÊN GOOGLE ADS MỚI</span>
         {/if}
       </button>
+    {/if}
     {/if}
   {:else}
     <div class="text-[9px] text-amber-400/70 bg-amber-500/5 border border-amber-500/10 p-3 italic">⚠️ Vui lòng chọn chiến dịch DSA để thực hiện di cư nâng cấp.</div>

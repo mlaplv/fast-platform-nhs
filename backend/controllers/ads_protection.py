@@ -775,7 +775,11 @@ class AdsProtectionController(Controller):
         """
         Lấy danh sách lịch sử điểm số tối ưu hóa của ad group.
         """
-        stmt = select(AIPolicyAuditLog).where(AIPolicyAuditLog.ad_group_id == ad_group_id).order_by(AIPolicyAuditLog.created_at.desc())
+        stmt = select(AIPolicyAuditLog).where(
+            (AIPolicyAuditLog.ad_group_id == ad_group_id) |
+            (AIPolicyAuditLog.ad_group_id.like(f"%/{ad_group_id}")) |
+            (AIPolicyAuditLog.ad_group_id.like(f"%{ad_group_id}%"))
+        ).order_by(AIPolicyAuditLog.created_at.desc())
         res = await db_session.execute(stmt)
         logs = res.scalars().all()
         return [
@@ -789,6 +793,28 @@ class AdsProtectionController(Controller):
                 created_at=log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else ""
             ) for log in logs
         ]
+
+    # ------------------------------------------------------------------
+    # 17.8.2 Xóa lịch sử điểm tối ưu hóa của nhóm quảng cáo
+    # ------------------------------------------------------------------
+    @delete("/ad-groups/{ad_group_id:str}/policy-history", status_code=200)
+    async def clear_policy_history(
+        self,
+        ad_group_id: str,
+        db_session: AsyncSession
+    ) -> dict:
+        """
+        Xóa lịch sử quét chính sách của nhóm quảng cáo.
+        """
+        stmt = sa_delete(AIPolicyAuditLog).where(
+            (AIPolicyAuditLog.ad_group_id == ad_group_id) |
+            (AIPolicyAuditLog.ad_group_id.like(f"%/{ad_group_id}")) |
+            (AIPolicyAuditLog.ad_group_id.like(f"%{ad_group_id}%"))
+        )
+        await db_session.execute(stmt)
+        await db_session.commit()
+        return {"success": True, "message": "Đã xóa lịch sử quét chính sách."}
+
 
 
     # ------------------------------------------------------------------
