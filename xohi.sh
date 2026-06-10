@@ -92,6 +92,20 @@ function run_backend() {
 }
 
 
+# Helper: Flush Caddy Cache (SEO/HTML stale content)
+function flush_caddy_cache() {
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_caddy"; then
+        echo -e "${CYAN}[CADDY] Đang xóa cache Caddy (Reverse Proxy)...${NC}"
+        # Xóa cache nội bộ của Caddy container
+        docker exec fast_platform_caddy sh -c 'rm -rf /data/caddy/cache/* /tmp/caddy_cache/* 2>/dev/null' || true
+        # Restart Caddy để flush toàn bộ in-memory cache + stale SSR HTML
+        docker compose restart caddy 2>/dev/null || true
+        echo -e "${GREEN}   ✔ Đã xóa sạch Caddy Cache và restart gateway!${NC}"
+    else
+        echo -e "${YELLOW}[SKIP] Container Caddy không chạy. Bỏ qua.${NC}"
+    fi
+}
+
 # Helper: Deep Clean function
 function deep_clean() {
     echo -e "${CYAN}[CLEAN] Đang dọn dẹp hệ thống (Code artifacts & Caches)...${NC}"
@@ -117,14 +131,18 @@ function deep_clean() {
     fi
 
     # === LOCK FILES, LOGS, OS JUNK ===
-    echo -e "${YELLOW}-> [5/6] Đang xóa Logs, .DS_Store... (Giữ lại Lock files)${NC}"
+    echo -e "${YELLOW}-> [5/7] Đang xóa Logs, .DS_Store... (Giữ lại Lock files)${NC}"
     sudo rm -f vad.slice kehoach.txt
     sudo find . -maxdepth 3 -type f \( -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
 
     # === ORPHAN EMPTY DIRS ===
-    echo -e "${YELLOW}-> [6/6] Đang xóa thư mục rỗng...${NC}"
+    echo -e "${YELLOW}-> [6/7] Đang xóa thư mục rỗng...${NC}"
     sudo rm -rf static
     sudo find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
+
+    # === CADDY CACHE FLUSH ===
+    echo -e "${YELLOW}-> [7/7] Đang xóa Caddy Cache (SEO/HTML cũ)...${NC}"
+    flush_caddy_cache
 
     # === DOCKER CLEANUP ===
     echo -e "${YELLOW}-> [Docker] Đang dọn dẹp Build Cache & Dangling Images...${NC}"
@@ -978,6 +996,9 @@ function update_storefront_ssr() {
     docker compose stop ui
     docker compose rm -f ui
     docker compose up -d ui
+
+    echo -e "${YELLOW}-> 4. Đang xóa Caddy Cache (SEO/HTML cũ)...${NC}"
+    flush_caddy_cache
     
     echo -e "${GREEN}✔ Cập nhật Storefront SSR hoàn tất! UI Container đã chạy bản mới nhất.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
@@ -1042,8 +1063,12 @@ function total_garbage_clean() {
     sudo journalctl --vacuum-time=3d &>/dev/null || true
     echo -e "${GREEN}   ✔ Đã dọn dẹp sạch sẽ npm, pnpm, apt cache và system journals!${NC}"
 
-    # 7. Flush Redis & Force Client Reset Cache
-    echo -e "${YELLOW}-> [7/7] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
+    # 7. Flush Caddy Cache (SEO/HTML stale content)
+    echo -e "${YELLOW}-> [7/8] Đang xóa Caddy Cache (SEO/HTML cũ)...${NC}"
+    flush_caddy_cache
+
+    # 8. Flush Redis & Force Client Reset Cache
+    echo -e "${YELLOW}-> [8/8] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
         docker exec fast_platform_redis redis-cli flushall || true
     fi
@@ -1111,6 +1136,10 @@ if [[ -n "$1" ]]; then
             ;;
         ui-ssr|ssr-update|update-ui|ui|dist-ro|caddy-ro|update-ro|ro)
             update_storefront_ssr
+            exit 0
+            ;;
+        caddy-cache|flush-cache|clear-cache)
+            flush_caddy_cache
             exit 0
             ;;
         reset-marketing|marketing-reset|23)

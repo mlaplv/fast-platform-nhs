@@ -1,5 +1,5 @@
 /**
- * Elite V2.2: SEO Utility Functions — GEO 2026
+ * Elite V2.4: SEO Utility Functions — GEO 2026
  *
  * Centralized JSON-LD builders for Schema.org structured data.
  * Used by SeoHead.svelte and page components to generate
@@ -333,26 +333,6 @@ export function buildArticleLd(config: ArticleLdConfig): string {
 
     if (config.image) article.image = config.image;
     
-    // Elite V2.2: SGE Hybrid Entity (Article + Product + Review)
-    // Add Audit rating to Article to satisfy AI signals
-    article.aggregateRating = {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "24",
-        "bestRating": "5",
-        "worstRating": "1"
-    };
-
-    // If headline mentions a product name (detected via keywords or logic), attach about Product
-    article.about = {
-        "@type": "Product",
-        "name": config.headline, // Fallback to headline if no specific product
-        "brand": {
-            "@type": "Brand",
-            "name": "Miccosmo"
-        }
-    };
-
     if (config.publisherLogo) {
         (article.publisher as Record<string, unknown>).logo = {
             "@type": "ImageObject",
@@ -446,40 +426,133 @@ export function truncateDescription(text: string, maxLen: number = 160): string 
 }
 
 /**
- * osmo Elite V2.2: @graph Builder (AI-First)
+ * Elite V2.4: containsSchemaType — Deep Scanner
+ * Kiểm tra JSON-LD string có chứa @type cụ thể không.
+ * Quét được cả cấu trúc flat và nested @graph (backend inject kiểu mảng).
+ *
+ * @param script - JSON-LD string (có thể chứa đơn lẻ hoặc mảng @graph)
+ * @param type   - @type cần kiểm tra, ví dụ 'FAQPage'
+ */
+export function containsSchemaType(script: string, type: string): boolean {
+    if (!script || !type) return false;
+
+    // Fast path: regex check (catches 99% of cases quickly)
+    const fastRegex = new RegExp(`["']@type["']\\s*:\\s*["']${type}["']`, 'i');
+    if (!fastRegex.test(script)) return false;
+
+    // Deep path: parse JSON and walk @graph array (backend may nest types)
+    try {
+        const parsed = JSON.parse(script);
+        const typeLower = type.toLowerCase();
+
+        const matchesType = (val: unknown): boolean => {
+            if (!val) return false;
+            if (typeof val === 'string') return val.toLowerCase() === typeLower;
+            if (Array.isArray(val)) return val.some(v => typeof v === 'string' && v.toLowerCase() === typeLower);
+            return false;
+        };
+
+        // Check top-level entity
+        if (matchesType(parsed['@type'])) return true;
+
+        // Check @graph array (backend often wraps multiple entities in one @graph block)
+        if (Array.isArray(parsed['@graph'])) {
+            for (const entity of parsed['@graph']) {
+                if (entity && matchesType(entity['@type'])) return true;
+            }
+        }
+
+        // Check if the script IS a raw array of entities
+        if (Array.isArray(parsed)) {
+            for (const entity of parsed) {
+                if (entity && matchesType(entity['@type'])) return true;
+                if (entity?.['@graph'] && Array.isArray(entity['@graph'])) {
+                    for (const inner of entity['@graph']) {
+                        if (inner && matchesType(inner['@type'])) return true;
+                    }
+                }
+            }
+        }
+    } catch {
+        // JSON parse failed — regex already returned true above, trust it
+    }
+
+    return true; // regex matched even if parse failed
+}
+
+/**
+ * Elite V2.4: @graph Builder (AI-First, Zero-Duplicate)
  * Hợp nhất nhiều JSON-LD strings thành một siêu cấu trúc @graph duy nhất.
- * Giảm phân mảnh, tăng tốc độ phân tích cho Google AI Review.
+ * Deduplicate by @type — frontend entity (append LAST) luôn thắng backend.
+ * Hỗ trợ: flat entity, @graph array, top-level array of entities.
  */
 export function buildGraphLd(scripts: (string | null | undefined)[]): string {
     const validScripts = scripts.filter(Boolean) as string[];
-    if (validScripts.length === 0) return "";
+    if (validScripts.length === 0) return '';
 
-    // Nếu chỉ có 1 script, không cần @graph
+    // If only 1 script with no siblings, skip @graph wrapper
     if (validScripts.length === 1) return validScripts[0];
 
-    const graphEntities: unknown[] = [];
+    const rawEntities: Record<string, unknown>[] = [];
 
     for (const script of validScripts) {
         try {
             const parsed = JSON.parse(script);
-            // Nếu bản thân nó đã là @graph, merge mảng đó vào
-            if (parsed["@graph"] && Array.isArray(parsed["@graph"])) {
-                graphEntities.push(...parsed["@graph"]);
+
+            // Unwrap top-level @graph
+            if (parsed['@graph'] && Array.isArray(parsed['@graph'])) {
+                for (const entity of parsed['@graph']) {
+                    delete entity['@context'];
+                    rawEntities.push(entity);
+                }
+            // Unwrap top-level array of entities
+            } else if (Array.isArray(parsed)) {
+                for (const entity of parsed) {
+                    delete entity['@context'];
+                    if (entity['@graph'] && Array.isArray(entity['@graph'])) {
+                        for (const inner of entity['@graph']) {
+                            delete inner['@context'];
+                            rawEntities.push(inner);
+                        }
+                    } else {
+                        rawEntities.push(entity);
+                    }
+                }
             } else {
-                // Xóa @context cấp độ con (để chuyển lên root)
-                delete parsed["@context"];
-                graphEntities.push(parsed);
+                delete parsed['@context'];
+                rawEntities.push(parsed);
             }
-        } catch (e) {
-            console.error("Failed to parse JSON-LD script for @graph:", e);
+        } catch {
+            // Skip malformed scripts silently
         }
     }
 
-    if (graphEntities.length === 0) return "";
+    if (rawEntities.length === 0) return '';
+
+    // Deduplicate by normalised @type string.
+    // If @type is an Array (e.g. ["Article","NewsArticle"]), use joined string as key.
+    // Last entity with same key wins (frontend-built is appended LAST → wins).
+    const deduped = new Map<string, Record<string, unknown>>();
+    const noTypeEntities: Record<string, unknown>[] = [];
+
+    for (const entity of rawEntities) {
+        const raw = entity['@type'];
+        if (raw) {
+            const key = Array.isArray(raw)
+                ? raw.map((t: string) => String(t).toLowerCase()).sort().join('+')
+                : String(raw).toLowerCase();
+            deduped.set(key, entity);
+        } else {
+            noTypeEntities.push(entity);
+        }
+    }
+
+    const graphEntities = [...deduped.values(), ...noTypeEntities];
+    if (graphEntities.length === 0) return '';
 
     return JSON.stringify({
-        "@context": "https://schema.org",
-        "@graph": graphEntities
+        '@context': 'https://schema.org',
+        '@graph': graphEntities,
     }).replace(/</g, '\\u003C');
 }
 

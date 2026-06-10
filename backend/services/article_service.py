@@ -149,25 +149,27 @@ class ArticleService:
             rc_res = await db_session.execute(rc_stmt)
             review_counts = {r[0]: r[1] for r in rc_res.all()}
 
-            appt_stmt = select(
-                Appointment.id, Appointment.start_time, Appointment.status, Appointment.metadata_json
-            ).where(
-                and_(
-                    Appointment.deleted_at == None,
-                    Appointment.status == "UPCOMING"
+            draft_ids = [str(r.id) for r in rows if r.status != "PUBLISHED"]
+            if draft_ids:
+                appt_stmt = select(
+                    Appointment.id, Appointment.start_time, Appointment.status, Appointment.metadata_json
+                ).where(
+                    and_(
+                        Appointment.deleted_at == None,
+                        Appointment.status == "UPCOMING"
+                    )
                 )
-            )
-            appt_res = await db_session.execute(appt_stmt)
-            for appt in appt_res.all():
-                meta = appt.metadata_json or {}
-                if meta.get("action") == "publish_article":
-                    aid = meta.get("article_id")
-                    if aid in [str(r.id) for r in rows]:
-                        upcoming_appts[str(aid)] = {
-                            "id": appt.id,
-                            "start_time": appt.start_time.isoformat() if appt.start_time else None,
-                            "status": appt.status
-                        }
+                appt_res = await db_session.execute(appt_stmt)
+                for appt in appt_res.all():
+                    meta = appt.metadata_json or {}
+                    if meta.get("action") == "publish_article":
+                        aid = meta.get("article_id")
+                        if aid in draft_ids:
+                            upcoming_appts[str(aid)] = {
+                                "id": appt.id,
+                                "start_time": appt.start_time.isoformat() if appt.start_time else None,
+                                "status": appt.status
+                            }
 
         data = []
         for row in rows:

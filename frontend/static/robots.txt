@@ -1,19 +1,17 @@
 # robots.txt - osmo.vn
-# https://www.robotstxt.org/robotstxt.html
+# https://robotstxt.org
 
 # ==============================================================================
-# AI SEARCH & CRAWLER BOT GROUP - Allow public crawling for search index/SGE
+# GROUP 1: BLOCK AI TRAINING CRAWLERS (Chống lấy dữ liệu dạy học AI)
 # ==============================================================================
 User-agent: GPTBot
 User-agent: ChatGPT-User
-User-agent: OAI-SearchBot
 User-agent: ClaudeBot
 User-agent: Claude-Web
 User-agent: anthropic-ai
-User-agent: PerplexityBot
 User-agent: Google-Extended
-User-agent: FacebookBot
 User-agent: Applebot-Extended
+User-agent: FacebookBot
 User-agent: cohere-ai
 User-agent: CCBot
 User-agent: allenai-bot
@@ -22,33 +20,15 @@ User-agent: Diffbot
 User-agent: omgili
 User-agent: ImagesiftBot
 User-agent: DataForSeoBot
-
-# Transactional flows - no SEO value
-Disallow: /checkout
-Disallow: /cart
-Disallow: /track
-Disallow: /search
-Disallow: /user
-Disallow: /auth
-
-# Admin and internal APIs
-Disallow: /admin
-Disallow: /api
-Disallow: /ws
-
-# Internal utility pages
-Disallow: /google-merchant.xml
-Disallow: /thank-you
-Disallow: /payment
-
-# Allow public storefront
-Allow: /sitemap.xml
-Allow: /
+Disallow: /
 
 # ==============================================================================
-# STANDARD CRAWLERS - Google, Bing, and other search engines
+# GROUP 2: ALLOW AI SEARCH & STANDARD CRAWLERS (Cho phép AI tìm kiếm quét để lấy Traffic)
 # ==============================================================================
-
+User-agent: OAI-SearchBot
+User-agent: PerplexityBot
+User-agent: Googlebot
+User-agent: Bingbot
 User-agent: *
 
 # Transactional flows - no SEO value
@@ -73,4 +53,7 @@ Disallow: /payment
 Allow: /sitemap.xml
 Allow: /
 
+# ==============================================================================
+# SITEMAP DECLARATION
+# ==============================================================================
 Sitemap: https://osmo.vn/sitemap.xml
