@@ -21,6 +21,7 @@
     onEdit,
     onDelete,
     onOpenReviewLab,
+    onSchedule,
   } = $props<{
     articles: Article[];
     selectedIds: Set<string>;
@@ -29,6 +30,7 @@
     onEdit: (a: Article) => void;
     onDelete: (id: string | string[]) => void;
     onOpenReviewLab: (article: { id: string; name: string }) => void;
+    onSchedule: (a: Article) => void;
   }>();
 
   const isAllSelected = $derived(articles.length > 0 && articles.every(a => selectedIds.has(a.id)));
@@ -193,6 +195,13 @@
               id="news-review-lab-btn-{article.id}"
             >
               <StarIcon size={14} />
+            </button>
+            <button
+              onclick={(e: MouseEvent) => { e.stopPropagation(); onSchedule(article); }}
+              class="p-2 text-gray-500 hover:text-cyan-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-cyan-500/20"
+              title="Đặt lịch đăng bài"
+            >
+              <Calendar size={14} />
             </button>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(article); }}

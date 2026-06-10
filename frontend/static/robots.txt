@@ -2,62 +2,48 @@
 # https://www.robotstxt.org/robotstxt.html
 
 # ==============================================================================
-# AI TRAINING BOTS - Block all major AI scrapers
+# AI SEARCH & CRAWLER BOT GROUP - Allow public crawling for search index/SGE
 # ==============================================================================
-
 User-agent: GPTBot
-Disallow: /
-
 User-agent: ChatGPT-User
-Disallow: /
-
 User-agent: OAI-SearchBot
-Disallow: /
-
 User-agent: ClaudeBot
-Disallow: /
-
 User-agent: Claude-Web
-Disallow: /
-
 User-agent: anthropic-ai
-Disallow: /
-
 User-agent: PerplexityBot
-Disallow: /
-
 User-agent: Google-Extended
-Disallow: /
-
 User-agent: FacebookBot
-Disallow: /
-
 User-agent: Applebot-Extended
-Disallow: /
-
 User-agent: cohere-ai
-Disallow: /
-
 User-agent: CCBot
-Disallow: /
-
 User-agent: allenai-bot
-Disallow: /
-
 User-agent: Bytespider
-Disallow: /
-
 User-agent: Diffbot
-Disallow: /
-
 User-agent: omgili
-Disallow: /
-
 User-agent: ImagesiftBot
-Disallow: /
-
 User-agent: DataForSeoBot
-Disallow: /
+
+# Transactional flows - no SEO value
+Disallow: /checkout
+Disallow: /cart
+Disallow: /track
+Disallow: /search
+Disallow: /user
+Disallow: /auth
+
+# Admin and internal APIs
+Disallow: /admin
+Disallow: /api
+Disallow: /ws
+
+# Internal utility pages
+Disallow: /google-merchant.xml
+Disallow: /thank-you
+Disallow: /payment
+
+# Allow public storefront
+Allow: /sitemap.xml
+Allow: /
 
 # ==============================================================================
 # STANDARD CRAWLERS - Google, Bing, and other search engines

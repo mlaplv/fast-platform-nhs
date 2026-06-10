@@ -81,6 +81,15 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		import service_proxy
 	}
 
+	@robots_txt {
+		host {$APP_DOMAIN} {$ADMIN_DOMAIN}
+		path /robots.txt
+	}
+	handle @robots_txt {
+		root * /app/frontend/static
+		file_server
+	}
+
 	handle /sitemap.xml {
 		import service_proxy
 	}

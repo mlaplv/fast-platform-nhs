@@ -2,7 +2,7 @@
   import { fade, fly } from "svelte/transition";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import Newspaper from "@lucide/svelte/icons/newspaper";
-  import type { Article, BaseWidgetProps } from "$lib/types";
+  import type { Article, BaseWidgetProps, Appointment } from "$lib/types";
   import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
@@ -15,6 +15,7 @@
   import OrderPagination from "./OrderPagination.svelte";
   import NewsForm from "./NewsForm.svelte";
   import ReviewSeedingModal from "./ReviewSeedingModal.svelte";
+  import AppointmentDrawer from "./AppointmentDrawer.svelte";
 
   let { data = {} } = $props<BaseWidgetProps>();
 
@@ -65,6 +66,35 @@
   function openReviewLab(article: { id: string; name: string }) {
     reviewArticle = { id: article.id, name: article.name };
     showReviewModal = true;
+  }
+
+  // Scheduling states
+  let showScheduleDrawer = $state(false);
+  let currentScheduleAppt = $state<Partial<Appointment>>({});
+
+  function openSchedule(article: Article) {
+    const now = new Date();
+    const start = new Date(now.getTime() + 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const formatLocal = (d: Date) => 
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      
+    currentScheduleAppt = {
+      title: `Đăng bài: ${article.title}`,
+      description: `Tự động chuyển trạng thái bài viết '${article.title}' sang PUBLISHED.`,
+      start_time: formatLocal(start),
+      end_time: formatLocal(end),
+      type: 'DEPLOYMENT',
+      status: 'UPCOMING',
+      recurring_type: 'none',
+      metadata_json: {
+        action: 'publish_article',
+        article_id: article.id
+      }
+    };
+    showScheduleDrawer = true;
   }
 
   // --- SERVER-SIDE FETCH ---
@@ -418,6 +448,7 @@
           onEdit={openEdit}
           onDelete={confirmDelete}
           onOpenReviewLab={openReviewLab}
+          onSchedule={openSchedule}
         />
       </div>
     {/if}
@@ -507,6 +538,17 @@
       </div>
     </div>
   {/if}
+
+  <!-- APPOINTMENT DRAWER -->
+  <AppointmentDrawer
+    bind:isOpen={showScheduleDrawer}
+    bind:appointment={currentScheduleAppt}
+    onClose={() => showScheduleDrawer = false}
+    onSave={() => {
+      showScheduleDrawer = false;
+      loadArticles();
+    }}
+  />
 </div>
 
 <style>

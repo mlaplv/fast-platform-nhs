@@ -197,36 +197,83 @@ async def _autopilot_scheduler_loop():
     [Elite Engine] CNS V82.1: Neural Autopilot Coordinator.
     Scans for due appointments and triggers automated content factory pipelines.
     """
-    from backend.database.models import Appointment
-    from backend.database.repositories import ContentCampaignRepository
+    import json
+    from backend.database.models import Appointment, Article
+    from backend.services.xohi_memory import xohi_memory
     
     # Wait for system to stabilize
     await _aio.sleep(30)
     
     while True:
         try:
+            # Check if current time is between configured hours (Vietnamese timezone UTC+7)
+            from datetime import timezone, timedelta
+            
+            # Fetch config from Redis with fallback
+            start_hour_str = await xohi_memory.client.get("system:autopilot:scan_start_hour")
+            end_hour_str = await xohi_memory.client.get("system:autopilot:scan_end_hour")
+            
+            start_hour = int(start_hour_str) if start_hour_str else 2
+            end_hour = int(end_hour_str) if end_hour_str else 4
+            
+            tz_vn = timezone(timedelta(hours=7))
+            now_vn = datetime.now(tz_vn)
+            
+            if start_hour <= end_hour:
+                is_active_hour = start_hour <= now_vn.hour < end_hour
+            else:  # Overnight span, e.g. 22:00 to 02:00
+                is_active_hour = now_vn.hour >= start_hour or now_vn.hour < end_hour
+                
+            if not is_active_hour:
+                await _aio.sleep(60)
+                continue
+
             now = datetime.now(timezone.utc)
             async with alchemy_config.create_session_maker()() as session:
-                # 1. Fetch due appointments
+                # 1. Fetch due appointments (UPCOMING and start_time <= now)
                 stmt = select(Appointment).where(
                     Appointment.status == "UPCOMING",
-                    Appointment.start_time <= now,
-                    Appointment.campaign_id.is_not(None)
+                    Appointment.start_time <= now
                 )
                 result = await session.execute(stmt)
                 due_apps = result.scalars().all()
                 
                 if due_apps:
-                    logger.info(f"🚀 [Autopilot] Found {len(due_apps)} due appointments. Launching Neural Factory...")
+                    logger.info(f"🚀 [Autopilot] Found {len(due_apps)} due appointments. Processing...")
                 
                 for app in due_apps:
                     campaign_id = app.campaign_id
+                    metadata = app.metadata_json or {}
                     
-                    # 2. Trigger the Factory (Starting from Step 1)
-                    # We use create_task to ensure non-blocking execution of the pipeline
-                    _aio.create_task(content_factory.engine.trigger_step(campaign_id, force_step=1))
+                    if isinstance(metadata, str):
+                        try:
+                            metadata = json.loads(metadata)
+                        except Exception:
+                            metadata = {}
+                            
+                    action = metadata.get("action")
+                    article_id = metadata.get("article_id")
                     
-                    # 3. Handle Recurrence or Completion
+                    # Process based on type
+                    if action == "publish_article" and article_id:
+                        try:
+                            stmt_article = select(Article).where(Article.id == article_id)
+                            article_result = await session.execute(stmt_article)
+                            article = article_result.scalar_one_or_none()
+                            
+                            if article:
+                                article.status = "PUBLISHED"
+                                logger.info(f"📰 [Autopilot] Published article: '{article.title}' (ID: {article_id})")
+                            else:
+                                logger.warning(f"⚠️ [Autopilot] Article ID {article_id} not found for appointment {app.id}")
+                        except Exception as ex:
+                            logger.error(f"❌ [Autopilot] Failed to publish article {article_id}: {ex}")
+                    elif campaign_id:
+                        # Trigger the Factory (Starting from Step 1)
+                        # We use create_task to ensure non-blocking execution of the pipeline
+                        _aio.create_task(content_factory.engine.trigger_step(campaign_id, force_step=1))
+                    
+                    # Handle Recurrence or Completion
                     if app.recurring_type and app.recurring_type != "none":
                         # Reschedule for next occurrence
                         delta = timedelta(days=1)
@@ -235,10 +282,10 @@ async def _autopilot_scheduler_loop():
                         
                         app.start_time += delta
                         app.end_time += delta
-                        logger.info(f"📅 [Autopilot] Rescheduled campaign {campaign_id} for {app.start_time}")
+                        logger.info(f"📅 [Autopilot] Rescheduled job {app.id} for {app.start_time}")
                     else:
                         app.status = "COMPLETED"
-                        logger.info(f"✅ [Autopilot] Job completed for {campaign_id}")
+                        logger.info(f"✅ [Autopilot] Job completed for appointment {app.id}")
                 
                 await session.commit()
                 

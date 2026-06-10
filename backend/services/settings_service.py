@@ -273,6 +273,10 @@ class SettingsService:
         await xohi_memory.client.set("system:messenger_enabled", "1" if data.support_bot.messenger_integration_enabled else "0")
         await xohi_memory.client.set("system:fomo_enabled", "1" if data.conversions.fomo_enabled else "0")
         
+        # Cache Autopilot settings in Redis
+        await xohi_memory.client.set("system:autopilot:scan_start_hour", str(data.autopilot.scan_start_hour))
+        await xohi_memory.client.set("system:autopilot:scan_end_hour", str(data.autopilot.scan_end_hour))
+        
         # Elite V2.2: Sync Currency
         await xohi_memory.client.set("system:currency:symbol", data.currency.symbol)
         await xohi_memory.client.set("system:currency:position", data.currency.position)

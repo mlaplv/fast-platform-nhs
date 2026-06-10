@@ -100,6 +100,11 @@
     lexical_sanitizer_enabled: boolean;
   }
 
+  interface AutopilotSettings {
+    scan_start_hour: number;
+    scan_end_hour: number;
+  }
+
   interface SystemSettings {
     basic_info: BasicInfo;
     contact_info: ContactInfo;
@@ -111,6 +116,7 @@
     conversions: ConversionSettings;
     currency: CurrencySettings;
     entropy: EntropySettings;
+    autopilot: AutopilotSettings;
   }
 
   let settings = $state<SystemSettings>({
@@ -142,6 +148,10 @@
       structure_override: null,
       schema_drop_probability: 0.2,
       lexical_sanitizer_enabled: true
+    },
+    autopilot: {
+      scan_start_hour: 2,
+      scan_end_hour: 4
     }
   });
 
@@ -155,7 +165,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy" | "loyalty" | "notification_retention";
+  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy" | "loyalty" | "notification_retention" | "autopilot";
 
   interface TabDefinition {
     id: TabId;
@@ -175,7 +185,8 @@
     { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
     { id: "entropy", label: "SGE Shield", icon: ShieldCheck },
     { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins },
-    { id: "notification_retention", label: "Lưu trữ thông báo", icon: Bell }
+    { id: "notification_retention", label: "Lưu trữ thông báo", icon: Bell },
+    { id: "autopilot", label: "Neural Autopilot", icon: Sparkles }
   ];
 
   // Loyalty Config State
@@ -198,7 +209,10 @@
     try {
       const res = await apiClient.get<{ settings: SystemSettings }>("/api/v1/settings/general");
       if (res?.settings) {
-        settings = res.settings;
+        settings = {
+          ...res.settings,
+          autopilot: res.settings.autopilot || { scan_start_hour: 2, scan_end_hour: 4 }
+        };
       }
       
       // Load loyalty config
@@ -1063,6 +1077,48 @@
                       placeholder="14"
                     />
                     <p class="text-[9px] text-zinc-600 mt-1 italic">Thông báo đã xóa mềm cũ hơn số ngày này sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu để giải phóng dung lượng.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {:else if activeTab === 'autopilot'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-cyan-400 tracking-[0.2em] flex items-center gap-2">
+                <Sparkles size={16} /> Cấu hình Neural Autopilot
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8">
+                <div class="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4">
+                  <p class="text-[11px] text-zinc-300 leading-relaxed font-mono">
+                    <span class="text-cyan-400 font-bold">INFO:</span> Thiết lập khung giờ vàng cho hệ thống tự động quét và kích hoạt lịch hẹn (Đăng bài viết, chạy chiến dịch quảng cáo).
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-1">
+                    <label for="scan_start_hour" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Giờ bắt đầu quét (0 - 23h)</label>
+                    <input 
+                      id="scan_start_hour" 
+                      type="number" 
+                      bind:value={settings.autopilot.scan_start_hour} 
+                      min="0" 
+                      max="23"
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="2"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <label for="scan_end_hour" class="text-[10px] font-mono text-zinc-500 tracking-widest block">Giờ kết thúc quét (0 - 23h)</label>
+                    <input 
+                      id="scan_end_hour" 
+                      type="number" 
+                      bind:value={settings.autopilot.scan_end_hour} 
+                      min="0" 
+                      max="23"
+                      class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-cyan-500/50 outline-none transition-colors"
+                      placeholder="4"
+                    />
                   </div>
                 </div>
               </div>

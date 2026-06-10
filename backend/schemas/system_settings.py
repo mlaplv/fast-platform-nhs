@@ -72,6 +72,10 @@ class CurrencySettings(BaseModel):
     thousand_separator: str = "."
     show_symbol: bool = True
 
+class AutopilotSettings(BaseModel):
+    scan_start_hour: int = Field(default=2, ge=0, le=23)
+    scan_end_hour: int = Field(default=4, ge=0, le=23)
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -83,6 +87,7 @@ class SystemSettingsPayload(BaseModel):
     support_bot: SupportBotSettings = Field(default_factory=SupportBotSettings)
     conversions: ConversionSettings = Field(default_factory=ConversionSettings)
     entropy: EntropySettings = Field(default_factory=EntropySettings)
+    autopilot: AutopilotSettings = Field(default_factory=AutopilotSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
