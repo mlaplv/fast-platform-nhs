@@ -58,6 +58,7 @@ class ArticleService:
         limit: int = 20,
         offset: int = 0,
         status: Optional[str] = None,
+        exclude_status: Optional[str] = None,
         search: Optional[str] = None,
         category: Optional[str] = None,
         cursor: Optional[str] = None,
@@ -66,6 +67,8 @@ class ArticleService:
         conditions = [Article.deleted_at == None]
         if status and status != "all":
             conditions.append(Article.status == status.upper())
+        if exclude_status:
+            conditions.append(Article.status != exclude_status.upper())
         if category and category != "all":
             conditions.append(Article.category == category)
         if search:
@@ -135,8 +138,9 @@ class ArticleService:
 
         # Elite V2.2: Fast bulk fetch for review counts
         review_counts = {}
+        upcoming_appts = {}
         if rows:
-            from backend.database.models import SystemReview
+            from backend.database.models import SystemReview, Appointment
             rc_stmt = select(SystemReview.entity_id, func.count(SystemReview.id)).where(
                 SystemReview.entity_id.in_([str(r.id) for r in rows]),
                 SystemReview.entity_type == "NEWS",
@@ -145,10 +149,31 @@ class ArticleService:
             rc_res = await db_session.execute(rc_stmt)
             review_counts = {r[0]: r[1] for r in rc_res.all()}
 
+            appt_stmt = select(
+                Appointment.id, Appointment.start_time, Appointment.status, Appointment.metadata_json
+            ).where(
+                and_(
+                    Appointment.deleted_at == None,
+                    Appointment.status == "UPCOMING"
+                )
+            )
+            appt_res = await db_session.execute(appt_stmt)
+            for appt in appt_res.all():
+                meta = appt.metadata_json or {}
+                if meta.get("action") == "publish_article":
+                    aid = meta.get("article_id")
+                    if aid in [str(r.id) for r in rows]:
+                        upcoming_appts[str(aid)] = {
+                            "id": appt.id,
+                            "start_time": appt.start_time.isoformat() if appt.start_time else None,
+                            "status": appt.status
+                        }
+
         data = []
         for row in rows:
             row_dict = dict(row._mapping)
             row_dict["review_count"] = review_counts.get(str(row.id), 0)
+            row_dict["upcoming_appointment"] = upcoming_appts.get(str(row.id))
             data.append(ArticleResponse.model_validate(row_dict))
 
         next_cursor = None

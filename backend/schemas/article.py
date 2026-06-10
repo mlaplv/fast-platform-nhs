@@ -105,6 +105,7 @@ class ArticleResponse(BaseModel):
     authorId: Optional[str] = Field(None, alias="author_id")
     review_count: int = 0
     createdAt: datetime = Field(alias="created_at")
+    upcoming_appointment: Optional[dict] = Field(None, alias="upcoming_appointment")
 
     @field_validator("author", mode="before")
     @classmethod

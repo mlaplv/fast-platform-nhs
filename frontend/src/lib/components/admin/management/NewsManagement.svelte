@@ -72,29 +72,53 @@
   let showScheduleDrawer = $state(false);
   let currentScheduleAppt = $state<Partial<Appointment>>({});
 
-  function openSchedule(article: Article) {
-    const now = new Date();
-    const start = new Date(now.getTime() + 60 * 60 * 1000);
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
-    
-    const pad = (num: number) => String(num).padStart(2, '0');
-    const formatLocal = (d: Date) => 
-      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      
-    currentScheduleAppt = {
-      title: `Đăng bài: ${article.title}`,
-      description: `Tự động chuyển trạng thái bài viết '${article.title}' sang PUBLISHED.`,
-      start_time: formatLocal(start),
-      end_time: formatLocal(end),
-      type: 'DEPLOYMENT',
-      status: 'UPCOMING',
-      recurring_type: 'none',
-      metadata_json: {
-        action: 'publish_article',
-        article_id: article.id
+  async function openSchedule(article: Article) {
+    if (article.upcoming_appointment) {
+      try {
+        nanobot.showToast("Đang tải thông tin lịch hẹn...", "info");
+        const res = await apiClient.get<Appointment>(`/api/v1/appointments/${article.upcoming_appointment.id}`);
+        
+        // Convert ISO string to local datetime-local input string format
+        const formatLocal = (isoStr: string) => {
+          if (!isoStr) return "";
+          const d = new Date(isoStr);
+          const pad = (num: number) => String(num).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
+        
+        currentScheduleAppt = {
+          ...res,
+          start_time: formatLocal(res.start_time),
+          end_time: formatLocal(res.end_time)
+        };
+        showScheduleDrawer = true;
+      } catch (e) {
+        nanobot.showToast("Không thể tải thông tin lịch hẹn sếp ơi", "error");
       }
-    };
-    showScheduleDrawer = true;
+    } else {
+      const now = new Date();
+      const start = new Date(now.getTime() + 60 * 60 * 1000);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      
+      const pad = (num: number) => String(num).padStart(2, '0');
+      const formatLocal = (d: Date) => 
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        
+      currentScheduleAppt = {
+        title: `Đăng bài: ${article.title}`,
+        description: `Tự động chuyển trạng thái bài viết '${article.title}' sang PUBLISHED.`,
+        start_time: formatLocal(start),
+        end_time: formatLocal(end),
+        type: 'DEPLOYMENT',
+        status: 'UPCOMING',
+        recurring_type: 'none',
+        metadata_json: {
+          action: 'publish_article',
+          article_id: article.id
+        }
+      };
+      showScheduleDrawer = true;
+    }
   }
 
   // --- SERVER-SIDE FETCH ---

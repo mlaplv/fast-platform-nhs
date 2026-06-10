@@ -1,14 +1,40 @@
 from __future__ import annotations
+import asyncio
+import logging
 import os
 import re
-from typing import Optional
+import urllib.parse
+import urllib.request
+from datetime import datetime
+from typing import TypedDict
 from litestar import Controller, route, Response, MediaType
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from backend.database.models.commerce import ProductBase
 from backend.database.models.content import Article, Category
+
+logger = logging.getLogger(__name__)
+
+
+class SitemapUrl(TypedDict):
+    loc: str
+    priority: str
+    changefreq: str
+    lastmod: str | None
+
+
+class MerchantSyncDetails(TypedDict):
+    feed_url: str
+    ping_url: str
+    google_response: str
+
+
+class MerchantSyncResponse(TypedDict):
+    status: str
+    message: str
+    details: MerchantSyncDetails
 
 
 class PublicSeoController(Controller):
@@ -23,12 +49,12 @@ class PublicSeoController(Controller):
     async def get_sitemap(
         self,
         db_session: AsyncSession,
-    ) -> Response:
+    ) -> Response[str]:
         """Generates dynamic sitemap.xml via direct DB queries."""
         app_domain = os.getenv("APP_DOMAIN", "osmo.vn")
         site_url = f"https://{app_domain}"
 
-        urls: list[dict] = []
+        urls: list[SitemapUrl] = []
 
         # 1. Static Pages
         urls.append(self._url(f"{site_url}/", "1.0", "daily"))
@@ -44,7 +70,7 @@ class PublicSeoController(Controller):
             .limit(2000)
         )
         for row in result.mappings():
-            lastmod = row["updated_at"] or row["created_at"]
+            lastmod: datetime | None = row.get("updated_at") or row.get("created_at")
             urls.append(self._url(
                 f"{site_url}/{row['slug']}",
                 "0.8",
@@ -58,8 +84,8 @@ class PublicSeoController(Controller):
             .where(Category.slug.isnot(None))
             .limit(200)
         )
-        for row in cat_result.scalars():
-            urls.append(self._url(f"{site_url}/{row}/", "0.7", "weekly"))
+        for row_cat in cat_result.scalars():
+            urls.append(self._url(f"{site_url}/{row_cat}/", "0.7", "weekly"))
 
         # 4. Articles (Published) — direct query
         art_result = await db_session.execute(
@@ -68,13 +94,13 @@ class PublicSeoController(Controller):
             .where(Article.slug.isnot(None))
             .limit(500)
         )
-        for row in art_result.mappings():
-            lastmod = row["updated_at"] or row["created_at"]
+        for row_art in art_result.mappings():
+            lastmod_art: datetime | None = row_art.get("updated_at") or row_art.get("created_at")
             urls.append(self._url(
-                f"{site_url}/{row['slug']}.html",
+                f"{site_url}/{row_art['slug']}.html",
                 "0.8",
                 "daily",
-                lastmod.strftime("%Y-%m-%d") if lastmod else None,
+                lastmod_art.strftime("%Y-%m-%d") if lastmod_art else None,
             ))
 
         xml_content = self._generate_xml(urls)
@@ -90,10 +116,10 @@ class PublicSeoController(Controller):
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
-    def _url(self, loc: str, priority: str, changefreq: str, lastmod: Optional[str] = None) -> dict:
+    def _url(self, loc: str, priority: str, changefreq: str, lastmod: str | None = None) -> SitemapUrl:
         return {"loc": loc, "priority": priority, "changefreq": changefreq, "lastmod": lastmod}
 
-    def _generate_xml(self, urls: list[dict]) -> str:
+    def _generate_xml(self, urls: list[SitemapUrl]) -> str:
         entries: list[str] = []
         for u in urls:
             entry = f"  <url>\n    <loc>{self._escape(u['loc'])}</loc>\n"
@@ -133,7 +159,7 @@ class PublicGoogleMerchantController(Controller):
     async def get_google_merchant_feed(
         self,
         db_session: AsyncSession,
-    ) -> Response:
+    ) -> Response[str]:
         """Generates dynamic Google Merchant Center Product XML feed."""
         app_domain = os.getenv("APP_DOMAIN", "osmo.vn")
         site_url = f"https://{app_domain}"
@@ -306,12 +332,8 @@ class PublicGoogleMerchantController(Controller):
         )
 
     @route(["/sync"], http_method=["GET", "POST"])
-    async def submit_merchant_feed(self) -> dict:
+    async def submit_merchant_feed(self) -> MerchantSyncResponse:
         """Notifies Google to crawl the merchant feed URL immediately (Google Ping Protocol)."""
-        import urllib.request
-        import urllib.parse
-        import asyncio
-
         app_domain = os.getenv("APP_DOMAIN", "osmo.vn")
         feed_url = f"https://{app_domain}/google-merchant.xml"
         ping_url = f"https://www.google.com/ping?sitemap={urllib.parse.quote(feed_url)}"
@@ -329,6 +351,7 @@ class PublicGoogleMerchantController(Controller):
 
         loop = asyncio.get_event_loop()
         ping_res = await loop.run_in_executor(None, do_ping)
+        logger.info("Google Merchant Center ping result: %s", ping_res)
 
         return {
             "status": "success",

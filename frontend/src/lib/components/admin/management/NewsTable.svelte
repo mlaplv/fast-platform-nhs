@@ -168,12 +168,22 @@
         </div>
 
         <!-- Status -->
-        <div class="pl-[72px] md:pl-0 mt-2 md:mt-0">
+        <div class="pl-[72px] md:pl-0 mt-2 md:mt-0 flex flex-col gap-1 items-start">
           <span
             class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono tracking-widest inline-flex border {article.status.toLowerCase() === 'published' ? 'text-[#39FF14] border-[#39FF14]/30 bg-[#39FF14]/10' : 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10'}"
           >
             {article.status.toLowerCase() === 'published' ? 'ĐÃ ĐĂNG' : 'BẢN NHÁP'}
           </span>
+          {#if article.upcoming_appointment}
+            {@const appt = article.upcoming_appointment}
+            {@const localTime = new Date(appt.start_time).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+            <span
+              class="px-1.5 py-0.5 rounded bg-cyan-500/5 border border-cyan-500/20 text-[8px] font-black text-cyan-400 tracking-wider flex items-center gap-1 cursor-help mt-1"
+              title="Tự động đăng lúc: {localTime}"
+            >
+              📅 {localTime}
+            </span>
+          {/if}
         </div>
 
         <!-- Operations -->
@@ -198,8 +208,8 @@
             </button>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onSchedule(article); }}
-              class="p-2 text-gray-500 hover:text-cyan-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-cyan-500/20"
-              title="Đặt lịch đăng bài"
+              class="p-2 transition-colors rounded-xl md:bg-black/40 bg-white/5 border {article.upcoming_appointment ? 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10' : 'text-gray-500 border-transparent hover:border-cyan-500/20 hover:text-cyan-400'}"
+              title={article.upcoming_appointment ? "Xem/Sửa lịch đăng bài" : "Đặt lịch đăng bài"}
             >
               <Calendar size={14} />
             </button>

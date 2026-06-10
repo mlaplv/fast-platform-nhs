@@ -196,6 +196,11 @@ export interface Article {
   createdAt: string;
   analysis_report?: Record<string, unknown>;
   metadata?: ArticleMetadata;
+  upcoming_appointment?: {
+    id: string;
+    start_time: string | null;
+    status: string;
+  } | null;
 }
 
 export interface PromotionDeal {
