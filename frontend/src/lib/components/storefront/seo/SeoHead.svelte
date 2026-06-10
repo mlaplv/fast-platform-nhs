@@ -360,34 +360,6 @@
     syncSeo();
   });
 
-  // Client-side JSON-LD injection and dynamic updates to prevent Svelte hydration duplication
-  // $effect(() => {
-  //   if (browser) {
-  //     const script = document.getElementById("seo-schema-graph");
-  //     if (seoFactory.finalLd) {
-  //       let activeScript = script;
-  //       if (!activeScript) {
-  //         activeScript = document.createElement("script");
-  //         activeScript.id = "seo-schema-graph";
-  //         activeScript.setAttribute("type", "application/ld+json");
-  //         document.head.appendChild(activeScript);
-  //       }
-  //       activeScript.textContent = seoFactory.finalLd;
-  //     } else if (script) {
-  //       script.remove();
-  //     }
-  //   }
-  // 
-  //   return () => {
-  //     if (browser) {
-  //       const script = document.getElementById("seo-schema-graph");
-  //       if (script) {
-  //         script.remove();
-  //       }
-  //     }
-  //   };
-  // });
-
   // Prevent Duplicate Headers (Fallback only renders if no page-level SEO is active)
   const shouldRender = $derived(!isFallback || seoFactory.pageType === "default");
 </script>

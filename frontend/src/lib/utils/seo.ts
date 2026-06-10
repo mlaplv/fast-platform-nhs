@@ -242,7 +242,7 @@ export function buildOrganizationLd(config: OrganizationConfig): string {
     const org: Record<string, unknown> = {
         "@context": "https://schema.org/",
         "@type": "Organization",
-        "@id": "https://osmo.vn/#organization",
+        "@id": `${config.url.endsWith('/') ? config.url : config.url + '/'}#organization`,
         "name": config.name,
         "url": config.url,
         "image": config.logo,
@@ -306,6 +306,14 @@ export function buildWebSiteLd(siteName: string, siteUrl: string): string {
  * AI crawlers heavily weight structured article data for citation.
  */
 export function buildArticleLd(config: ArticleLdConfig): string {
+    let origin = "https://osmo.vn";
+    try {
+        origin = new URL(config.url).origin;
+    } catch {
+        // Fallback
+    }
+    const siteUrl = origin.endsWith('/') ? origin : `${origin}/`;
+
     const article: Record<string, unknown> = {
         "@context": "https://schema.org/",
         "@type": "Article",
@@ -325,8 +333,8 @@ export function buildArticleLd(config: ArticleLdConfig): string {
         "publisher": {
             "@type": "Organization",
             "name": config.publisherName,
-            "@id": "https://osmo.vn/#organization",
-            "url": "https://osmo.vn"
+            "@id": `${siteUrl}#organization`,
+            "url": origin
         },
         "inLanguage": "vi"
     };

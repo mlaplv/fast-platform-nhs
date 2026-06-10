@@ -5,7 +5,6 @@ import {
     buildBreadcrumbLd, 
     buildFaqLd, 
     buildGraphLd,
-    containsSchemaType,
     type ProductLdConfig,
     type ArticleLdConfig,
     type CategoryLdConfig,

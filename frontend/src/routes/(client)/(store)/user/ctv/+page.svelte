@@ -7,6 +7,7 @@
   import UserPageWrapper from '$lib/components/storefront/user/UserPageWrapper.svelte';
   import Award from "@lucide/svelte/icons/award";
   import Lock from "@lucide/svelte/icons/lock";
+  import { page } from "$app/state";
 
   import { exportLedgerToExcel } from './utils/excelExport';
   import CtvDashboard from './components/CtvDashboard.svelte';
@@ -75,6 +76,16 @@
   }
 
   const ui = getClientUi();
+
+  const resolvedSiteName = $derived.by(() => {
+    const dbSiteName = page.data.shopInfo?.basic_info?.site_name;
+    if (dbSiteName) return dbSiteName;
+    if (page.url?.hostname) {
+      const name = page.url.hostname.split(".")[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return "SmartShop";
+  });
 
   // CTV profile state
   let profile = $state<CtvProfile | null>(null);
@@ -287,7 +298,7 @@
       ...item,
       ctv_code: profile?.ctv_code || ''
     }));
-    exportLedgerToExcel(itemsToExport, `DoiSoat_CTV_${profile?.ctv_code || 'User'}`, profile?.ctv_code || '');
+    exportLedgerToExcel(itemsToExport, `DoiSoat_CTV_${profile?.ctv_code || 'User'}`, profile?.ctv_code || '', resolvedSiteName);
     ui.showToast('Đã xuất file đối soát hoa hồng thành công!', 'success');
   }
 

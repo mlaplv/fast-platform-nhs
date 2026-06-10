@@ -18,6 +18,17 @@
 
   import { authStore } from '$lib/state/authStore.svelte';
   import { logger } from '$lib/utils/logger';
+  import { page } from "$app/state";
+
+  const resolvedSiteName = $derived.by(() => {
+    const dbSiteName = page.data.shopInfo?.basic_info?.site_name;
+    if (dbSiteName) return dbSiteName;
+    if (page.url?.hostname) {
+      const name = page.url.hostname.split(".")[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return "SmartShop";
+  });
 
   let {
     profile,
@@ -476,7 +487,7 @@
                         
                         <h4 class="font-bold text-white mb-2 pb-1 border-b border-stone-850 flex items-center justify-between">
                           <span>📝 Chi tiết đối soát</span>
-                          <span class="text-[8px] font-mono font-bold text-luxury-copper uppercase tracking-wider">Micsmo V2.2</span>
+                          <span class="text-[8px] font-mono font-bold text-luxury-copper uppercase tracking-wider">{resolvedSiteName} V2.2</span>
                         </h4>
                         
                         <div class="space-y-1.5 font-mono text-[9px]">
@@ -614,7 +625,7 @@
                 <div class="bg-stone-50 border border-stone-200/50 rounded-xl p-3 space-y-2.5 mt-2">
                   <div class="flex items-center justify-between text-[8px] text-stone-400 font-bold uppercase tracking-wider">
                     <span>📊 Chi tiết đối soát</span>
-                    <span class="text-luxury-copper font-mono">Micsmo V2.2</span>
+                    <span class="text-luxury-copper font-mono">{resolvedSiteName} V2.2</span>
                   </div>
                   <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[9px] text-stone-600">
                     <div class="flex justify-between">

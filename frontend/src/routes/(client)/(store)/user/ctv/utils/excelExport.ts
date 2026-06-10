@@ -1,4 +1,4 @@
-export function exportLedgerToExcel(items: any[], fileName: string, ctvCode: string) {
+export function exportLedgerToExcel(items: any[], fileName: string, ctvCode: string, siteName: string = "Osmo") {
   const BOM = '\uFEFF';
   let html = `
     <html>
@@ -25,7 +25,7 @@ export function exportLedgerToExcel(items: any[], fileName: string, ctvCode: str
           <td colspan="11" class="title-row">${fileName.toUpperCase()}</td>
         </tr>
         <tr>
-          <td colspan="11" class="header-meta">Ngày xuất báo cáo: ${new Date().toLocaleString('vi-VN')} | Micsmo Elite Financial Protection</td>
+          <td colspan="11" class="header-meta">Ngày xuất báo cáo: ${new Date().toLocaleString('vi-VN')} | ${siteName} Elite Financial Protection</td>
         </tr>
         <tr><td colspan="11"></td></tr>
         <tr>
