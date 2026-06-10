@@ -28,6 +28,9 @@
     blockClicks = $bindable(),
     imageMenuVisible = $bindable(),
     linkMenuVisible = $bindable(),
+    isHoveringLinkMenu = $bindable(),
+    linkHoverTimeout = $bindable(),
+    linkPos = $bindable(),
     isSyncLocked = $bindable(),
     content = $bindable(),
     onChange,
@@ -57,6 +60,9 @@
     blockClicks: boolean;
     imageMenuVisible: boolean;
     linkMenuVisible: boolean;
+    isHoveringLinkMenu: boolean;
+    linkHoverTimeout: ReturnType<typeof setTimeout> | null;
+    linkPos: number | null;
     isSyncLocked: boolean;
     content: string;
     onChange: (val: string) => void;
@@ -156,9 +162,25 @@
     class="fixed pointer-events-auto link-bubble-menu"
     style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%); z-index: {Z_INDEX_ADMIN.TIPTAP_LINK_BUBBLE};"
     role="tooltip"
+    onmouseenter={() => {
+      isHoveringLinkMenu = true;
+      if (linkHoverTimeout) {
+        clearTimeout(linkHoverTimeout);
+        linkHoverTimeout = null;
+      }
+    }}
+    onmouseleave={() => {
+      isHoveringLinkMenu = false;
+      linkHoverTimeout = setTimeout(() => {
+        linkMenuVisible = false;
+      }, 400);
+    }}
   >
     <LinkBubbleMenu
       {editor}
+      {linkPos}
+      {currentLinkData}
+      bind:linkMenuVisible={linkMenuVisible}
       onEdit={() => { showLinkDialog = true; linkMenuVisible = false; }}
       onClose={() => linkMenuVisible = false}
     />

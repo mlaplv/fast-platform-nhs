@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
+  import { beforeNavigate } from "$app/navigation";
   import type { Product } from "$lib/types";
   import X from "@lucide/svelte/icons/x";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
@@ -359,6 +361,14 @@
     }
     wasActive = active;
   });
+
+  beforeNavigate(() => {
+    stopSpeech();
+  });
+
+  onDestroy(() => {
+    stopSpeech();
+  });
 </script>
 
 <div use:portal class="mobile-product-details-modal">
@@ -426,7 +436,7 @@
             <AudioLines size={14} strokeWidth={2} class="text-white" />
           {/if}
           <span class="text-[11px] font-medium tracking-tight leading-none"
-            >{isBuffering ? "..." : isReading ? "Stop" : "Listen"}</span
+            >{isBuffering ? "Loading..." : isReading ? "Reading..." : "Listen"}</span
           >
         </button>
 

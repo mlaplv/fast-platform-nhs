@@ -258,6 +258,9 @@
   let linkMenuVisible = $state(false);
   let linkMenuX = $state(0);
   let linkMenuY = $state(0);
+  let linkPos = $state<number | null>(null);
+  let isHoveringLinkMenu = $state(false);
+  let linkHoverTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
   let blockClicks = $state(false);
 
   const handlers = createEditorHandlers({
@@ -378,10 +381,71 @@
     window.addEventListener('annotation-leave', annManager.handleAnnotationLeave);
   });
 
+  function handleMouseMove(e: MouseEvent) {
+    if (!editor || !editable) return;
+    const target = e.target as HTMLElement;
+    const linkEl = target.closest('.tiptap-content a') as HTMLAnchorElement | null;
+    
+    if (linkEl) {
+      if (linkHoverTimeout) {
+        clearTimeout(linkHoverTimeout);
+        linkHoverTimeout = null;
+      }
+      
+      const href = linkEl.getAttribute('href') || '';
+      const title = linkEl.getAttribute('title') || '';
+      const targetAttr = linkEl.getAttribute('target') || '';
+      const rel = linkEl.getAttribute('rel') || '';
+      
+      currentLinkData = { 
+        url: href, 
+        title, 
+        target: targetAttr || null, 
+        rel: rel || null 
+      };
+      
+      try {
+        const pos = editor.view.posAtDOM(linkEl, 0);
+        if (pos >= 0) {
+          linkPos = pos;
+        }
+      } catch (err) {
+        console.warn("[Link Hover] posAtDOM failed:", err);
+      }
+      
+      const rect = linkEl.getBoundingClientRect();
+      linkMenuX = rect.left + rect.width / 2;
+      linkMenuY = rect.top;
+      linkMenuVisible = true;
+    } else {
+      if (!isHoveringLinkMenu && linkMenuVisible) {
+        if (!linkHoverTimeout) {
+          linkHoverTimeout = setTimeout(() => {
+            if (!isHoveringLinkMenu) {
+              linkMenuVisible = false;
+            }
+          }, 400);
+        }
+      }
+    }
+  }
+
+  function handleMouseLeave() {
+    if (!isHoveringLinkMenu && linkMenuVisible) {
+      if (linkHoverTimeout) clearTimeout(linkHoverTimeout);
+      linkHoverTimeout = setTimeout(() => {
+        if (!isHoveringLinkMenu) {
+          linkMenuVisible = false;
+        }
+      }, 400);
+    }
+  }
+
   onDestroy(() => {
     if (editor) editor.destroy();
     if (metricsTimer) clearTimeout(metricsTimer);
     if (imageScanTimer) clearTimeout(imageScanTimer);
+    if (linkHoverTimeout) clearTimeout(linkHoverTimeout);
     window.removeEventListener('annotation-hover', annManager.handleAnnotationHover);
     window.removeEventListener('annotation-leave', annManager.handleAnnotationLeave);
   });
@@ -606,6 +670,8 @@
     }}
     ondblclick={handlers.handleDoubleClick}
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlers.handleImageClick(e); }}
+    onmousemove={handleMouseMove}
+    onmouseleave={handleMouseLeave}
     role="button"
     tabindex="0"
   >
@@ -650,6 +716,9 @@
   bind:blockClicks={blockClicks}
   bind:imageMenuVisible={imageMenuVisible}
   bind:linkMenuVisible={linkMenuVisible}
+  bind:isHoveringLinkMenu={isHoveringLinkMenu}
+  bind:linkHoverTimeout={linkHoverTimeout}
+  bind:linkPos={linkPos}
   bind:isSyncLocked={isSyncLocked}
   bind:content={content}
   {onChange}

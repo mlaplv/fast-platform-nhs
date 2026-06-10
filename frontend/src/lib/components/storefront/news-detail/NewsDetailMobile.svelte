@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { beforeNavigate } from "$app/navigation";
   import { cubicOut } from "svelte/easing";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
@@ -313,6 +314,10 @@
 
   // Dispose TTS on page leave / component destroy
   $effect(() => () => cleanup());
+
+  beforeNavigate(() => {
+    stopSpeech();
+  });
 </script>
 
 <svelte:element this={outerWrapper} class="bg-white min-h-screen text-gray-900">
@@ -356,7 +361,7 @@
             <div class="absolute inset-0 border-[1.5px] border-white/30 rounded-full"></div>
             <div class="absolute inset-0 border-[1.5px] border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <span class="text-[11px] font-bold text-white">...</span>
+          <span class="text-[11px] font-bold text-white">Đang tải...</span>
         {:else if isReading}
           <div class="flex items-end gap-[2px] h-[14px] shrink-0">
             <div class="w-[2.5px] bg-white rounded-full news-bar-1"></div>
@@ -365,7 +370,7 @@
             <div class="w-[2.5px] bg-white/80 rounded-full news-bar-2"></div>
             <div class="w-[2.5px] bg-white rounded-full news-bar-1"></div>
           </div>
-          <span class="text-[11px] font-bold text-white">Dừng</span>
+          <span class="text-[11px] font-bold text-white">Đang đọc...</span>
         {:else}
           <span class="relative flex shrink-0">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C18F7E] opacity-50"></span>

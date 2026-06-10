@@ -18,6 +18,7 @@
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
+  import { portal } from "$lib/core/actions/portal";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Plus from "@lucide/svelte/icons/plus";
   import type { MediaAsset } from "$lib/types";
@@ -166,6 +167,7 @@
   let isSuggestingSeo = $state(false);
   let isSuggestingExcerpt = $state(false);
   let isSuggestingContent = $state(false);
+  let isEditorFullScreen = $state(false);
 
   async function handleAiSuggestSeo() {
     if (!formTitle) {
@@ -490,6 +492,7 @@
         bind:analysisCache={formAnalysisCache}
         bind:analysisMetrics={formAnalysisMetrics}
         bind:analysisReport={formAnalysisReport}
+        bind:fullScreen={isEditorFullScreen}
       />
     </div>
   </section>
@@ -736,34 +739,33 @@
   </section>
 
   <!-- ── ACTION BAR ─────────────────── -->
-  <section class="relative px-5 pt-3" style="z-index: {Z_INDEX_ADMIN.LAYOUT_HEADER}">
-    <div class="flex items-center justify-between gap-4 py-2">
-      <div class="flex items-center gap-2 text-[9px] font-black tracking-widest text-white/20">
-        <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
-        Hệ thống Neural LIVE đang đồng bộ
-      </div>
-
-      <div class="flex items-center gap-3">
+  <div use:portal={isEditorFullScreen}>
+    <section 
+      class="{isEditorFullScreen ? 'fixed bottom-0 left-0 right-0 z-[950000]' : 'relative mt-auto'} px-8 py-10 flex justify-end items-center pointer-events-none" 
+    >
+      <div class="flex items-center gap-4 pointer-events-auto">
         <button
           onclick={onClose}
-          class="px-5 py-2.5 text-[10px] font-black tracking-wider text-white/30 hover:text-white cursor-pointer"
+          class="px-8 py-3 bg-[#1a1a1a] text-white/60 hover:text-white rounded-xl text-[10px] font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(0,0,0,0.5)] cursor-pointer active:scale-95 transition-all"
         >Hủy bỏ</button>
 
         <button
           onclick={onSave}
           disabled={isSaving}
-          class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black tracking-wider cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
+          class="px-10 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black tracking-wider shadow-[0_10px_40px_rgba(6,182,212,0.3)] disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all"
         >
           {#if isSaving}
-            <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-            Syncing...
+            <div class="flex items-center gap-3">
+              <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+              <span>Syncing...</span>
+            </div>
           {:else}
             {editingId ? "Cập nhật" : "Đăng tải"}
           {/if}
         </button>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 </div>
 </MissionControlShell>
 

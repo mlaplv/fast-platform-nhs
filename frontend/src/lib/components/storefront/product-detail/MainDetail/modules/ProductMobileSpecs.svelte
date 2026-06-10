@@ -73,6 +73,7 @@
 
   import AudioLines from "@lucide/svelte/icons/audio-lines";
   import { onDestroy } from "svelte";
+  import { beforeNavigate } from "$app/navigation";
 
   // 🎙️ TTS: WEB AUDIO ENGINE (Elite V7.0 - OS-Codec-Free)
   let isReading = $state(false);
@@ -254,6 +255,10 @@
   }
 
   onDestroy(() => {
+    stopSpeech();
+  });
+
+  beforeNavigate(() => {
     stopSpeech();
   });
 </script>
@@ -441,7 +446,7 @@
         <AudioLines size={13} strokeWidth={2.5} class="text-gray-500" />
       {/if}
       <span class="text-[11px] font-extrabold tracking-tight leading-none">
-        {isBuffering ? "..." : isReading ? "Dừng" : "Nghe"}
+        {isBuffering ? "Đang tải..." : isReading ? "Đang đọc..." : "Nghe"}
       </span>
     </button>
   </div>

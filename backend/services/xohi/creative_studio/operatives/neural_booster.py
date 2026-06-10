@@ -29,18 +29,60 @@ _MAX_SNIPPETS_PER_QUERY = 4       # Lấy tối đa 4 snippets mỗi query
 
 # Các miền uy tín để filter và display
 _TRUSTED_DOMAINS = {
+    # Nhật Bản (Cốt lõi)
     "jstage.jst.go.jp": "J-STAGE (Nhật Bản)",
-    "pubmed.ncbi.nlm.nih.gov": "PubMed",
-    "ncbi.nlm.nih.gov": "PubMed / NCBI",
-    "who.int": "WHO",
     "pmda.go.jp": "PMDA (Nhật Bản)",
     "nihs.go.jp": "NIHS (Nhật Bản)",
     "cosme.net": "Cosme (Nhật Bản)",
+    "jcia-net.or.jp": "JCIA (Nhật Bản)",
+    
+    # Tổ chức Y tế & Quản lý Y tế toàn cầu
+    "who.int": "WHO (Tổ chức Y tế Thế giới)",
+    "fda.gov": "FDA (Cục quản lý Thực phẩm và Dược phẩm Mỹ)",
+    "cdc.gov": "CDC (Trung tâm kiểm soát và phòng ngừa dịch bệnh Mỹ)",
+    "ema.europa.eu": "EMA (Cơ quan Quản lý Dược phẩm Châu Âu)",
+    "nhs.uk": "NHS (Dịch vụ Y tế Quốc gia Anh)",
+    "echa.europa.eu": "ECHA (Cơ quan Hóa chất Châu Âu)",
+    "ec.europa.eu": "European Commission (Ủy ban Châu Âu)",
+    "tga.gov.au": "TGA (Cục Quản lý Hàng hóa Trị liệu Úc)",
+    "health.gov": "U.S. Department of Health and Human Services",
+    
+    # Thư viện Y học & Cơ sở dữ liệu khoa học uy tín toàn cầu
+    "pubmed.ncbi.nlm.nih.gov": "PubMed",
+    "ncbi.nlm.nih.gov": "PubMed / NCBI",
+    "europepmc.org": "Europe PMC",
     "sciencedirect.com": "ScienceDirect",
     "nature.com": "Nature",
     "springer.com": "Springer",
-    "europepmc.org": "Europe PMC",
     "mdpi.com": "MDPI",
+    "wiley.com": "Wiley Online Library",
+    "onlinelibrary.wiley.com": "Wiley Online Library",
+    "tandfonline.com": "Taylor & Francis Online",
+    "plos.org": "PLOS",
+    "frontiersin.org": "Frontiers",
+    "cell.com": "Cell Press",
+    "academic.oup.com": "Oxford Academic",
+    "cambridge.org": "Cambridge Core",
+    
+    # Y khoa / Lâm sàng danh tiếng
+    "thelancet.com": "The Lancet",
+    "nejm.org": "NEJM (New England Journal of Medicine)",
+    "jamanetwork.com": "JAMA Network",
+    "bmj.com": "The BMJ (British Medical Journal)",
+    "cochranelibrary.com": "Cochrane Library",
+    "mayoclinic.org": "Mayo Clinic",
+    
+    # Da liễu & Mỹ phẩm / Thành phần hóa chất chuyên sâu
+    "cir-safety.org": "Cosmetic Ingredient Review (CIR)",
+    "ewg.org": "EWG (Environmental Working Group)",
+    "cosmeticsandtoiletries.com": "Cosmetics & Toiletries",
+    "cosmeticsdesign.com": "Cosmetics Design",
+    "chemicalsafetyfacts.org": "Chemical Safety Facts",
+    
+    # Các trang tin khoa học & cộng đồng nghiên cứu
+    "sciencedaily.com": "ScienceDaily",
+    "researchgate.net": "ResearchGate",
+    "scholar.google.com": "Google Scholar",
 }
 
 

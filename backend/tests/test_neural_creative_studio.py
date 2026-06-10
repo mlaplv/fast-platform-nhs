@@ -9,7 +9,7 @@ os.environ["FAST_PLATFORM_TEST"] = "true"
 
 from unittest.mock import AsyncMock, patch, MagicMock
 from backend.services.xohi.creative_studio.models.schemas import (
-    SeoReport, PlagiarismResult, SurgeonBoosterReport, AutoFixResponse, AgentResponse, AgentSignal
+    SeoReport, PlagiarismResult, NeuralBoosterReport, AutoFixResponse, AgentResponse, AgentSignal
 )
 
 async def mock_trinity_run(*args, **kwargs):
@@ -30,8 +30,8 @@ async def mock_trinity_run(*args, **kwargs):
         return SeoReport(total_score=98, grade="A+", signals=[], summary="OK", quick_wins=[], seo_annotations=[])
     elif "PlagiarismResult" in schema_str:
         return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="OK")
-    elif "SurgeonBoosterReport" in schema_str:
-        return SurgeonBoosterReport(patches=[], summary="Boosted")
+    elif "NeuralBoosterReport" in schema_str:
+        return NeuralBoosterReport(patches=[], summary="Boosted")
     elif "AutoFixResponse" in schema_str:
         return AutoFixResponse(old_text="A\u0301o", new_text="\u00c1o")
     return None
@@ -141,7 +141,7 @@ async def test_surgeon_auto_fix_stream():
 @pytest.mark.asyncio
 async def test_surgeon_boost():
     """Test 4: AI Booster (Bơm Nhiên Liệu Viral)"""
-    res = await content_factory.analyst.surgeon_boost(
+    res = await content_factory.analyst.neural_boost(
         content="<p>A simple product.</p>",
         topic="Awesome Gadget"
     )

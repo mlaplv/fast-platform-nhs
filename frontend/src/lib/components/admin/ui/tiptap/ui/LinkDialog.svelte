@@ -5,6 +5,8 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import Shield from "@lucide/svelte/icons/shield";
   import Type from "@lucide/svelte/icons/type";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Users from "@lucide/svelte/icons/users";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   interface LinkData {
@@ -28,6 +30,8 @@
   let linkTitle = $state('');
   let isTargetBlank = $state(false);
   let isNoFollow = $state(false);
+  let isSponsored = $state(false);
+  let isUgc = $state(false);
   
   $effect(() => {
     if (show) {
@@ -36,16 +40,28 @@
         linkTitle = currentData.title || '';
         isTargetBlank = currentData.target === '_blank';
         isNoFollow = !!currentData.rel?.includes('nofollow');
+        isSponsored = !!currentData.rel?.includes('sponsored');
+        isUgc = !!currentData.rel?.includes('ugc');
       });
     }
   });
 
   function handleApply() {
+    const relParts = [];
+    if (isNoFollow) relParts.push('nofollow');
+    if (isSponsored) relParts.push('sponsored');
+    if (isUgc) relParts.push('ugc');
+    if (isTargetBlank) {
+      relParts.push('noopener');
+      relParts.push('noreferrer');
+    }
+    const relValue = relParts.length > 0 ? relParts.join(' ') : null;
+
     onApply({
       url: linkUrl.trim(),
       title: linkTitle.trim(),
       target: isTargetBlank ? '_blank' : null,
-      rel: isNoFollow ? 'nofollow noopener noreferrer' : null
+      rel: relValue
     });
     show = false;
   }
@@ -131,6 +147,32 @@
           <span class="text-[10px] font-black tracking-widest">No Follow</span>
         </div>
         <div class="w-2 h-2 rounded-full {isNoFollow ? 'bg-orange-500 animate-pulse' : 'bg-white/10'}"></div>
+      </button>
+
+      <!-- Sponsored -->
+      <button 
+        onclick={() => isSponsored = !isSponsored}
+        class="flex-1 min-w-[140px] flex items-center justify-between px-4 py-3 rounded-xl border transition-all
+          {isSponsored ? 'bg-purple-500/10 border-purple-500/40 text-purple-400' : 'bg-white/[0.02] border-white/5 text-white/20'}"
+      >
+        <div class="flex items-center gap-3">
+          <Sparkles size={14} />
+          <span class="text-[10px] font-black tracking-widest">Sponsored</span>
+        </div>
+        <div class="w-2 h-2 rounded-full {isSponsored ? 'bg-purple-500 animate-pulse' : 'bg-white/10'}"></div>
+      </button>
+
+      <!-- UGC -->
+      <button 
+        onclick={() => isUgc = !isUgc}
+        class="flex-1 min-w-[140px] flex items-center justify-between px-4 py-3 rounded-xl border transition-all
+          {isUgc ? 'bg-pink-500/10 border-pink-500/40 text-pink-400' : 'bg-white/[0.02] border-white/5 text-white/20'}"
+      >
+        <div class="flex items-center gap-3">
+          <Users size={14} />
+          <span class="text-[10px] font-black tracking-widest">UGC</span>
+        </div>
+        <div class="w-2 h-2 rounded-full {isUgc ? 'bg-pink-500 animate-pulse' : 'bg-white/10'}"></div>
       </button>
     </div>
 

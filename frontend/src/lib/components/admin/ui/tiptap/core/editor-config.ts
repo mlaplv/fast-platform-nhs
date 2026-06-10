@@ -52,6 +52,19 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
   Typography,
   Underline,
   Link.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        title: {
+          default: null,
+          parseHTML: element => element.getAttribute('title'),
+          renderHTML: attributes => {
+            if (!attributes.title) return {};
+            return { title: attributes.title };
+          },
+        },
+      }
+    },
     addKeyboardShortcuts() {
       return {
         'Mod-Shift-k': () => this.editor.commands.unsetLink(),
