@@ -88,6 +88,7 @@ class AdsFraudManager(GoogleAdsClient):
             return []
         query = f"""
             SELECT
+                campaign_criterion.resource_name,
                 campaign_criterion.keyword.text,
                 campaign_criterion.keyword.match_type
             FROM campaign_criterion
@@ -101,6 +102,8 @@ class AdsFraudManager(GoogleAdsClient):
             crit = row.get("campaignCriterion", {})
             kw = crit.get("keyword", {})
             results.append({
+                "resource_name": crit.get("resourceName", ""),
+                "campaign_id": campaign_resource_name,
                 "text": kw.get("text", ""),
                 "match_type": kw.get("matchType", "")
             })
@@ -110,19 +113,40 @@ class AdsFraudManager(GoogleAdsClient):
         token = await self._get_access_token()
         if not token:
             return []
+        # Query for existing SharedSet of type ACCOUNT_LEVEL_NEGATIVE_KEYWORDS
         query = """
-            SELECT customer_negative_criterion.criterion_id, customer_negative_criterion.type, customer_negative_criterion.keyword.text, customer_negative_criterion.keyword.match_type
-            FROM customer_negative_criterion
-            WHERE customer_negative_criterion.type = 'KEYWORD'
+            SELECT shared_set.resource_name, shared_set.id, shared_set.name
+            FROM shared_set
+            WHERE shared_set.type = 'ACCOUNT_LEVEL_NEGATIVE_KEYWORDS'
         """
-        rows = await self._search(token, query)
+        shared_sets = await self._search(token, query)
+        if not shared_sets:
+            return []
+        
+        shared_set_resource = shared_sets[0].get("sharedSet", {}).get("resourceName")
+        if not shared_set_resource:
+            return []
+            
+        # Retrieve all keywords inside this SharedSet
+        q2 = f"""
+            SELECT
+                shared_criterion.resource_name,
+                shared_criterion.keyword.text,
+                shared_criterion.keyword.match_type,
+                shared_criterion.shared_set
+            FROM shared_criterion
+            WHERE shared_criterion.shared_set = '{shared_set_resource}'
+        """
+        rows = await self._search(token, q2)
         results = []
         for row in rows:
-            crit = row.get("customerNegativeCriterion", {})
+            crit = row.get("sharedCriterion", {})
             kw = crit.get("keyword", {})
             results.append({
+                "resource_name": crit.get("resourceName", ""),
                 "text": kw.get("text", ""),
-                "match_type": kw.get("matchType", "")
+                "match_type": kw.get("matchType", ""),
+                "set_name": "TÀI KHOẢN"
             })
         return results
 
@@ -130,16 +154,76 @@ class AdsFraudManager(GoogleAdsClient):
         token = await self._get_access_token()
         if not token:
             return False
+            
+        # 1. Check if the SharedSet of type ACCOUNT_LEVEL_NEGATIVE_KEYWORDS already exists
+        query = """
+            SELECT shared_set.resource_name, shared_set.id, shared_set.name
+            FROM shared_set
+            WHERE shared_set.type = 'ACCOUNT_LEVEL_NEGATIVE_KEYWORDS'
+        """
+        shared_sets = await self._search(token, query)
+        
+        shared_set_resource = None
+        if shared_sets:
+            shared_set_resource = shared_sets[0].get("sharedSet", {}).get("resourceName")
+        else:
+            # Create a new SharedSet
+            op = {
+                "create": {
+                    "name": "Global Account Negative Keywords Set",
+                    "type": "ACCOUNT_LEVEL_NEGATIVE_KEYWORDS"
+                }
+            }
+            res = await self._mutate(token, "sharedSets", [op])
+            if res:
+                shared_set_resource = res[0].get("resourceName")
+                # Link it to the customer account via CustomerNegativeCriterion
+                link_op = {
+                    "create": {
+                        "negativeKeywordList": {
+                            "sharedSet": shared_set_resource
+                        }
+                    }
+                }
+                await self._mutate(token, "customerNegativeCriteria", [link_op])
+            else:
+                return False
+                
+        if not shared_set_resource:
+            return False
+            
+        # 2. Add keywords to the SharedSet
         operations = []
         for kw in keywords:
             operations.append({
                 "create": {
-                    "type": "KEYWORD",
+                    "sharedSet": shared_set_resource,
                     "keyword": {
                         "text": kw,
                         "matchType": "EXACT"
                     }
                 }
             })
-        res = await self._mutate(token, "customerNegativeCriteria", operations, partial_failure=True)
+            
+        res = await self._mutate(token, "sharedCriteria", operations, partial_failure=True)
         return len(res) > 0
+
+    async def remove_negative_keyword(self, id: str) -> bool:
+        if not self._has_credentials():
+            return False
+        token = await self._get_access_token()
+        if not token:
+            return False
+            
+        # Try removing as shared criterion (account negative keyword)
+        shared_resource = f"customers/{self._CUSTOMER_ID}/sharedCriteria/{id}"
+        op_shared = {"remove": shared_resource}
+        res_shared = await self._mutate(token, "sharedCriteria", [op_shared])
+        if res_shared:
+            return True
+            
+        # Try removing as campaign criterion (campaign negative keyword)
+        camp_resource = f"customers/{self._CUSTOMER_ID}/campaignCriteria/{id}"
+        op_camp = {"remove": camp_resource}
+        res_camp = await self._mutate(token, "campaignCriteria", [op_camp])
+        return len(res_camp) > 0

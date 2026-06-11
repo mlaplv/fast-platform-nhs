@@ -437,6 +437,7 @@
               aiLoading={ads.aiLoading}
               addNegativeKeyword={ads.addNegativeKeyword}
               removeNegativeKeyword={ads.removeNegativeKeyword}
+              updateNegativeKeywordMatchType={ads.updateNegativeKeywordMatchType}
             />
           {/if}
         </div>

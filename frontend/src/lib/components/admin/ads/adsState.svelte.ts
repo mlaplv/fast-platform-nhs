@@ -1001,6 +1001,22 @@ export function createAdsState() {
     } catch { nanobot.showToast('Lỗi xóa', 'error'); }
   }
 
+  async function updateNegativeKeywordMatchType(resource: string, matchType: string) {
+    const id = resource.split('/').pop();
+    if (!id) return;
+    try {
+      const res = await apiClient.patch<GenericSuccessResponse>(`${ADS_API}/negative-keywords/${id}`, { match_type: matchType });
+      if (res.success) {
+        nanobot.showToast(res.message || 'Đã cập nhật kiểu khớp thành công', 'success');
+        fetchNegativeKeywords();
+      } else {
+        nanobot.showToast(res.message || 'Lỗi cập nhật kiểu khớp', 'error');
+      }
+    } catch {
+      nanobot.showToast('Lỗi cập nhật kiểu khớp', 'error');
+    }
+  }
+
   async function blockIP(ip: string, reason = 'Phát hiện click fraud') {
     try {
       const id = selectedCampaign?.resource_name.split('/').pop();
@@ -1086,7 +1102,7 @@ export function createAdsState() {
     get competitorUrl() { return competitorUrl }, set competitorUrl(v) { competitorUrl = v },
     get adGroupKeywords() { return adGroupKeywords }, set adGroupKeywords(v) { adGroupKeywords = v },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
-    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, addAdGroupKeywords, removeAdGroupKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+    updateCampaignStatus, submitCampaign, submitAdGroup, submitAd, aiSuggestRSA, analyzeCompetitor, importKeyword, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, updateNegativeKeywordMatchType, addAdGroupKeywords, removeAdGroupKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
     getDateRange,
     initSSE, initEdge, solvePoW, dispose,
     get edgeStatus() { return edgeStatus },

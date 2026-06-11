@@ -927,23 +927,35 @@ class AdsProtectionController(Controller):
         self, campaign_id: str, data: dict
     ) -> CampaignOperationResult:
         """Thêm từ khóa phủ định lên Google Ads."""
-        text = data.get("text")
         is_global = data.get("is_global", False)
-        if not text:
+        keywords = data.get("keywords", [])
+        if not keywords:
+            text = data.get("text")
+            if text:
+                keywords = [k.strip() for k in text.split("\n") if k.strip()]
+                
+        if not keywords:
             return CampaignOperationResult(success=False, operation="ADD_NEGATIVE", message="Thiếu từ khóa")
         
         resource = f"customers/{_fraud_mgr._CUSTOMER_ID}/campaigns/{campaign_id}"
-        # Tách danh sách nếu Sếp nhập nhiều dòng
-        keywords = [k.strip() for k in text.split("\n") if k.strip()]
         
         success_count = 0
         for kw in keywords:
-            # Lưu ý: AdsFraudManager hiện tại nhận campaign_id thay vì resource
-            if await _fraud_mgr.add_negative_keyword(campaign_id, kw, is_global=is_global):
+            if await _fraud_mgr.add_negative_keyword(resource, kw, is_global=is_global):
                 success_count += 1
         
         return CampaignOperationResult(
             success=success_count > 0,
             operation="ADD_NEGATIVE",
             message=f"Đã thêm thành công {success_count}/{len(keywords)} từ khóa phủ định." + (" (Toàn cầu)" if is_global else "")
+        )
+
+    @delete("/negative-keywords/{id:str}", status_code=200)
+    async def remove_negative_keyword(self, id: str) -> CampaignOperationResult:
+        """Xóa từ khóa phủ định khỏi Google Ads (hỗ trợ cả Campaign và Account level)."""
+        success = await _fraud_mgr.remove_negative_keyword(id)
+        return CampaignOperationResult(
+            success=success,
+            operation="REMOVE_NEGATIVE",
+            message="Đã xóa từ khóa phủ định thành công." if success else "Xóa từ khóa phủ định thất bại."
         )
