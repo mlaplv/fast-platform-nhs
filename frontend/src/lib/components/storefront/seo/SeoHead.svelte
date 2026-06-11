@@ -135,6 +135,16 @@
     toAbsolute(image || page.data.shopInfo?.basic_info?.logo_desktop || "/images/default-og.png")
   );
 
+  const absImageType = $derived.by(() => {
+    if (!absImage) return "image/jpeg";
+    const lower = absImage.toLowerCase();
+    if (lower.endsWith(".webp")) return "image/webp";
+    if (lower.endsWith(".png")) return "image/png";
+    if (lower.endsWith(".gif")) return "image/gif";
+    if (lower.endsWith(".svg")) return "image/svg+xml";
+    return "image/jpeg";
+  });
+
   const absCanonical = $derived(
     canonical ? toAbsolute(canonical) : `${seoOrigin}${page.url.pathname}`
   );
@@ -417,7 +427,7 @@
     {#if absImage}
       <meta property="og:image" content={absImage} />
       <meta property="og:image:secure_url" content={absImage} />
-      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:type" content={absImageType} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={finalTitle} />

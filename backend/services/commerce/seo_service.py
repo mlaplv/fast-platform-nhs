@@ -493,7 +493,7 @@ class SeoService:
         """GEO 2026: Tạo SEO + FAQPage JSON-LD cho trang bài viết."""
         from backend.schemas.article import ArticleSeoMeta
 
-        canonical_url = f"{_SITE_URL}/{slug}"
+        canonical_url = f"{_SITE_URL}/{slug}.html"
         final_seo_title = seo_title or SeoService._build_title(title)
         
         # Elite V2.2: Prioritize DB-configured seo_description, fallback to excerpt

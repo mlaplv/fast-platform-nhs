@@ -1,19 +1,27 @@
 <script lang="ts">
-  import { page } from "$app/stores";
-  import { goto } from "$app/navigation";
-  
-  // Svelte 5 Runes for atomic reactivity
-  let status = $derived($page.status ?? 404);
-  let message = $derived($page.error?.message ?? "Trang bạn đang tìm hiện không khả dụng.");
-  
-  // Custom logic to handle 503 specifically
+  import { page } from '$app/state';
+  import { goto } from '$app/navigation';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
+  const ui = getClientUi();
+  let status = $derived(page.status ?? 404);
+  let message = $derived(page.error?.message ?? "Trang bạn đang tìm hiện không khả dụng.");
+
+  let siteName = $derived(
+    ui.settings?.basic_info?.site_name || 
+    ui.settings?.name || 
+    page.data?.shopInfo?.basic_info?.site_name || 
+    page.data?.shopInfo?.name || 
+    "SmartShop"
+  );
+
   let isBackendDown = $derived(status === 503 || message.includes("Backend Connection Failed"));
 </script>
 
 <svelte:head>
-  <title>{status} - SmartShop Error</title>
+  <title>{status} - {siteName} Error</title>
   <meta name="description" content="{status} - {message}" />
-  <meta property="og:title" content="{status} - SmartShop Error" />
+  <meta property="og:title" content="{status} - {siteName} Error" />
   <meta property="og:description" content="{message}" />
 </svelte:head>
 
