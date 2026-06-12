@@ -160,6 +160,8 @@ class AiInspector(BaseAgentOperative):
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'new_text'):
                 raw = raw.data
+            if raw and hasattr(raw, 'new_text') and raw.new_text:
+                raw.new_text = self.clean_ai_html(raw.new_text)
             return raw
         except Exception as e:
             logger.error(f"[AiInspector] Auto-fix failed: {e}")

@@ -165,6 +165,14 @@ STRUCTURE_SEEDS: list[dict[str, str]] = [
             "Xen kẽ câu hỏi thường gặp với câu trả lời chi tiết."
         ),
     },
+    {
+        "id": "qa_focused",
+        "label": "Hỏi đáp tập trung",
+        "instruction": (
+            "Cấu trúc tập trung vào câu hỏi và câu trả lời ngắn gọn, "
+            "đáp ứng kỳ vọng của người đọc cần tìm hiểu."
+        ),
+    },
 ]
 
 

@@ -1036,7 +1036,8 @@ function total_garbage_clean() {
 
     # 4. Prune unused Docker builds & caches
     echo -e "${YELLOW}-> [4/6] Đang dọn dẹp Docker rác (Dangling images, build caches, networks)...${NC}"
-    docker system prune -f 2>/dev/null || true
+    docker system prune -af 2>/dev/null || true
+    docker volume prune -f 2>/dev/null || true
     docker network prune -f 2>/dev/null || true
     docker builder prune -a -f 2>/dev/null || true
     echo -e "${GREEN}   ✔ Đã giải phóng toàn bộ tài nguyên Docker dư thừa!${NC}"

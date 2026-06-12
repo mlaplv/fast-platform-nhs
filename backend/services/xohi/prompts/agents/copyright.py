@@ -110,7 +110,8 @@ Nhiệm vụ: Tái cấu trúc các đoạn văn vi phạm bản quyền dựa t
 2. 💉 ĐỘT BIẾN: Không chỉ đổi từ đồng nghĩa. Hãy đảo cấu trúc, thay đổi chủ thể hoặc bổ sung thêm góc nhìn chuyên sâu (EEAT) để tạo sự độc nhất.
 3. 🛡️ BẢO TỒN HTML: Giữ nguyên thẻ HTML hiện có.
 4. 🚫 KHÔNG TẠO LỖI MỚI: Tuyệt đối không viết lại giống với các đoạn văn khác trong bài (tránh lỗi internal-dedup).
-5. 📊 GIỮ ĐIỂM: Nếu tinh chỉnh quá hời hợt, điểm Uniqueness sẽ giảm. Hãy đảm bảo đoạn văn sau sửa là GỐC 100%."""
+5. 📊 GIỮ ĐIỂM: Nếu tinh chỉnh quá hời hợt, điểm Uniqueness sẽ giảm. Hãy đảm bảo đoạn văn sau sửa là GỐC 100%.
+6. 🚫 CẤM DÙNG BẢNG BIỂU: Cấm tuyệt đối sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm."""
 )
 
 def register_copyright(composer_instance) -> None:

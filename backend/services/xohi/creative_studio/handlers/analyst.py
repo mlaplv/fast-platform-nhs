@@ -172,7 +172,8 @@ class AnalystHandler:
             output_type=str,
             system_prompt=(
                 "Bạn là Neural Refiner. Viết lại đoạn văn theo yêu cầu. "
-                "Sắc bén, thêm số liệu thực, giữ nguyên HTML tag. Chỉ trả về đoạn văn đã sửa."
+                "Sắc bén, thêm số liệu thực, giữ nguyên HTML tag. Chỉ trả về đoạn văn đã sửa. "
+                "Cấm tuyệt đối sử dụng mọi hình thức bảng biểu (không dùng Markdown, không dùng HTML <table>) do trình soạn thảo Tiptap không hỗ trợ table. Hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm để trình bày dữ liệu."
             ),
             retries=1
         )
@@ -189,7 +190,8 @@ class AnalystHandler:
                 async for chunk in stream.stream_text(delta=True):
                     full_text += chunk
                     yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'done': True, 'full': full_text}, ensure_ascii=False)}\n\n"
+            clean_full = AiInspector("ai_inspect").clean_ai_html(full_text)
+            yield f"data: {json.dumps({'done': True, 'full': clean_full}, ensure_ascii=False)}\n\n"
         except Exception as exc:
             logger.error(f"[AnalystHandler] stream_auto_fix error: {exc}", exc_info=True)
             yield f"data: {json.dumps({'error': str(exc)[:100]})}\n\n"

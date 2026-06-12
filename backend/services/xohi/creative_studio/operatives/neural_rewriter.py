@@ -15,40 +15,6 @@ from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
-# ══════════════════════════════════════════════════════════════
-# Elite V2.2: Markdown Table → HTML Table Converter
-# Safety net for AI model disobedience (Gemini outputs | --- | despite prompt ban)
-# ══════════════════════════════════════════════════════════════
-_MD_TABLE_RE = re.compile(
-    r'(\|[^\n]+\|[ \t]*\n)'           # Group 1: Header row
-    r'(\|[\s:\-|]+\|[ \t]*\n)'        # Group 2: Separator row (---/:---)
-    r'((?:\|[^\n]+\|[ \t]*(?:\n|$))+)',  # Group 3: Data rows (1+)
-)
-
-def _md_table_to_html(match: re.Match[str]) -> str:
-    """Convert a single Markdown table match to Tiptap-ready HTML <table>."""
-    header_line = match.group(1).strip()
-    data_block = match.group(3).strip()
-
-    headers = [c.strip() for c in header_line.strip('|').split('|')]
-    rows: list[list[str]] = []
-    for line in data_block.split('\n'):
-        line = line.strip()
-        if line and '|' in line:
-            rows.append([c.strip() for c in line.strip('|').split('|')])
-
-    parts = ['<table class="table-auto w-full">', '<thead>', '<tr>']
-    for h in headers:
-        parts.append(f'<th>{h}</th>')
-    parts.extend(['</tr>', '</thead>', '<tbody>'])
-    for row in rows:
-        parts.append('<tr>')
-        for cell in row:
-            parts.append(f'<td>{cell}</td>')
-        parts.append('</tr>')
-    parts.extend(['</tbody>', '</table>'])
-    return '\n'.join(parts)
-
 
 class ComponentData(BaseModel):
     title: str = Field(..., description="Tiêu đề thành phần hoặc công dụng")
@@ -257,12 +223,8 @@ class NeuralRewriter(BaseAgentOperative):
         """Elite V2.2: Ultra-Clean HTML (Post-processing for Neural Rewriter)."""
         if not html: return ""
         
-        # 1. Remove Markdown blocks (Inherited from Base)
-        clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
-        clean = re.sub(r'```\s*', '', clean)
-        
-        # 1.5 Elite V2.2: Convert Markdown Tables → HTML Tables (Anti-Gemini Disobedience)
-        clean = _MD_TABLE_RE.sub(_md_table_to_html, clean)
+        # Call base class to clean Markdown blocks and convert Markdown tables to HTML
+        clean = super().clean_ai_html(html)
         
         # 2. Loại bỏ các nhãn phân đoạn dư thừa [LUẬN ĐIỂM], [PHƯƠNG ÁN], v.v.
         clean = re.sub(r'\[.*?\]', '', clean)

@@ -107,6 +107,7 @@ class XoHiProgressMixin:
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
+
 class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
     """
     V2.2 Heritage Core: Standardized AI Orchestration.
@@ -289,6 +290,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         # Remove ```html ... ``` blocks if present
         clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
         clean = re.sub(r'```\s*', '', clean)
+        
         return clean.strip()
 
     def detect_enrichment_annotations(self, draft: str) -> list["SeoAnnotation"]:
