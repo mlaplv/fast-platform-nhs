@@ -18,7 +18,7 @@ import backend.services.xohi.creative_studio.operatives.plagiarism_cop
 import backend.services.xohi.creative_studio.operatives.seo_analyzer
 import backend.services.xohi.creative_studio.operatives.ai_inspector
 import backend.services.xohi.creative_studio.operatives.content_enricher
-from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job
+from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job, seo_nightly_reconciliation_job, seo_match_entity_job
 logger = logging.getLogger("arq.worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
@@ -433,7 +433,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, seo_match_entity_job, seo_nightly_reconciliation_job]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -463,6 +463,8 @@ class WorkerDefaultSettings(WorkerSettings):
         # Schedule cleanup at 3:00 AM every day
         cron(cleanup_old_tasks, hour=3, minute=0),
         # Schedule notification retention cleanup at 4:00 AM every day
-        cron(cleanup_old_notifications, hour=4, minute=0)
+        cron(cleanup_old_notifications, hour=4, minute=0),
+        # Schedule SEO orphan cleanup at 1:00 AM every day
+        cron(seo_nightly_reconciliation_job, hour=1, minute=0),
     ]
 

@@ -89,6 +89,7 @@ from backend.controllers.admin_ctv import AdminCtvController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.auditor import AuditorController
+from backend.controllers.seo import SeoController
 
 # Client Storefront Controllers
 from backend.controllers.client.barcode import BarcodeController
@@ -235,6 +236,7 @@ public_routes = [
     SchedulerController,
     DiagnosticController,
     PromotionController,
+    SeoController,
 ]
 
 # Ordered middleware – authentication early

@@ -25,10 +25,45 @@ from backend.services.viral_share_service import viral_share_service as _viral_s
 
 logger = logging.getLogger("api-gateway")
 
+
+def _setup_seo_subscriptions() -> None:
+    """
+    SEO Pillar & Cluster — Event Bus hooks.
+    Listens for ARTICLE_PUBLISHED and PRODUCT_PUBLISHED events
+    and queues seo_match_entity_job via ARQ for background processing.
+    """
+    import asyncio
+    from backend.database import current_tenant_id
+
+    async def _on_entity_published(payload: dict) -> None:
+        try:
+            from backend.infra.arq_config import get_redis_settings
+            from arq import create_pool
+            entity_type = payload.get("entity_type", "article")
+            redis = await create_pool(get_redis_settings())
+            await redis.enqueue_job(
+                "seo_match_entity_job",
+                entity_type=entity_type,
+                entity_id=str(payload.get("entity_id", "")),
+                title=str(payload.get("title", "")),
+                excerpt=str(payload.get("excerpt", ""))[:400],
+                slug=str(payload.get("slug", "")),
+                tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
+                _queue_name="default",
+            )
+            logger.info(f"[SEO] Queued seo_match_entity_job for {entity_type}:{payload.get('entity_id')}")
+        except Exception as e:
+            logger.warning(f"[SEO] Failed to queue seo_match_entity_job: {e}")
+
+    event_bus.subscribe("ARTICLE_PUBLISHED", _on_entity_published)
+    event_bus.subscribe("PRODUCT_PUBLISHED", _on_entity_published)
+    logger.info("[SEO] Event Bus subscriptions registered (ARTICLE_PUBLISHED, PRODUCT_PUBLISHED)")
+
 @asynccontextmanager
 async def lifespan(app: Litestar):
     # 1. Start Infrastructure & AI Core (V76.2)
     setup_subscriptions()
+    _setup_seo_subscriptions()
     
     # [Elite V2.2] Test Environment Optimization: Skip heavy AI & DB pre-load
     if os.getenv("FAST_PLATFORM_TEST") == "true":

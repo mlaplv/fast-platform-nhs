@@ -243,3 +243,57 @@ async def expire_loyalty_points_job(ctx: Dict[str, object]) -> None:
             logger.error(f"[Loyalty Points Expiration Job] Execution failed: {e}")
             await db.rollback()
 
+
+async def seo_nightly_reconciliation_job(ctx: Dict[str, object]) -> None:
+    """
+    SEO Pillar & Cluster — Nightly Orphan Cleanup.
+    Soft-deletes seo_nodes whose core entity (article/product) was deleted.
+    Runs at 01:00 AM daily. Can be toggled via system settings 'seo_nightly_reconciliation'.
+    """
+    logger.info("[SEO Reconcile Job] Starting nightly orphan cleanup...")
+    session_maker = alchemy_config.create_session_maker()
+    async with session_maker() as db:
+        try:
+            from backend.services.seo_graph_service import seo_graph_service
+            result = await seo_graph_service.reconcile_orphan_nodes(db)
+            await db.commit()
+            logger.info(f"[SEO Reconcile Job] Done. Cleaned: {result['orphans_cleaned']} orphan node(s).")
+        except Exception as e:
+            logger.error(f"[SEO Reconcile Job] Failed: {e}", exc_info=True)
+            await db.rollback()
+
+
+async def seo_match_entity_job(
+    ctx: Dict[str, object],
+    entity_type: str,
+    entity_id: str,
+    title: str,
+    excerpt: str,
+    slug: str,
+    tenant_id: str,
+) -> None:
+    """
+    SEO Pillar & Cluster — On-Demand AI Matching (event-driven).
+    Triggered by Event Bus when article/product is published.
+    """
+    logger.info(f"[SEO Match Job] Matching {entity_type}:{entity_id} tenant={tenant_id}")
+    from backend.database import current_tenant_id
+    token = current_tenant_id.set(tenant_id)
+    session_maker = alchemy_config.create_session_maker()
+    try:
+        async with session_maker() as db:
+            from backend.services.seo_matching_service import seo_matching_service
+            result = await seo_matching_service.match_entity(
+                db=db,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                title=title,
+                content_excerpt=excerpt,
+                slug=slug,
+            )
+            await db.commit()
+            logger.info(f"[SEO Match Job] {entity_id}: tier={result.match_tier}, conf={result.ai_confidence}")
+    except Exception as e:
+        logger.error(f"[SEO Match Job] Failed for {entity_id}: {e}", exc_info=True)
+    finally:
+        current_tenant_id.reset(token)
