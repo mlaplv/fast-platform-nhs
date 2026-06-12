@@ -55,6 +55,7 @@ export type WidgetType =
   | "CTV_MANAGEMENT"
   | "NOTIFICATION_MANAGEMENT"
   | "NOTIFICATION_LIST"
+  | "SEO_GRAPH"
   | "VOUCHER_MANAGEMENT";
 
 export type NanoBotState =

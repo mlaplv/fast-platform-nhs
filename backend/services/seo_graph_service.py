@@ -45,10 +45,11 @@ class SeoGraphService:
     async def register_node(self, db: AsyncSession, data: RegisterNodeRequest) -> SeoNode:
         """Đăng ký entity vào SEO graph. Upsert nếu đã tồn tại."""
         tenant = current_tenant_id.get() or "default"
+        db_entity_type = SeoEntityType(data.entity_type.upper())
 
         existing = await db.scalar(
             select(SeoNode).where(
-                SeoNode.entity_type == data.entity_type,
+                SeoNode.entity_type == db_entity_type,
                 SeoNode.entity_id == data.entity_id,
                 SeoNode.tenant_id == tenant,
                 SeoNode.deleted_at.is_(None),
@@ -57,7 +58,7 @@ class SeoGraphService:
 
         if existing:
             # Upsert
-            existing.is_pillar = data.is_pillar if data.is_pillar is not None else existing.is_pillar
+            existing.is_pillar = existing.is_pillar or (data.is_pillar if data.is_pillar is not None else False)
             existing.pillar_topic = data.pillar_topic or existing.pillar_topic
             existing.node_label = data.node_label or existing.node_label
             existing.node_slug = data.node_slug or existing.node_slug
@@ -68,7 +69,7 @@ class SeoGraphService:
 
         node = SeoNode(
             id=new_id_default(),
-            entity_type=data.entity_type,
+            entity_type=db_entity_type,
             entity_id=data.entity_id,
             is_pillar=data.is_pillar,
             pillar_topic=data.pillar_topic,
@@ -105,10 +106,11 @@ class SeoGraphService:
         """Gọi từ Event Bus khi core entity bị soft-delete."""
         tenant = current_tenant_id.get() or "default"
         now = datetime.now(timezone.utc)
+        db_entity_type = SeoEntityType(entity_type.upper())
         res = await db.execute(
             update(SeoNode)
             .where(
-                SeoNode.entity_type == entity_type,
+                SeoNode.entity_type == db_entity_type,
                 SeoNode.entity_id == entity_id,
                 SeoNode.tenant_id == tenant,
                 SeoNode.deleted_at.is_(None),
@@ -287,7 +289,7 @@ class SeoGraphService:
         res_art = await db.execute(text("""
             UPDATE seo_nodes sn
             SET deleted_at = :now, updated_at = :now
-            WHERE sn.entity_type = 'article'
+            WHERE sn.entity_type = 'ARTICLE'
               AND sn.deleted_at IS NULL
               AND NOT EXISTS (
                   SELECT 1 FROM articles a
@@ -300,7 +302,7 @@ class SeoGraphService:
         res_prod = await db.execute(text("""
             UPDATE seo_nodes sn
             SET deleted_at = :now, updated_at = :now
-            WHERE sn.entity_type = 'product'
+            WHERE sn.entity_type = 'PRODUCT'
               AND sn.deleted_at IS NULL
               AND NOT EXISTS (
                   SELECT 1 FROM product_bases p

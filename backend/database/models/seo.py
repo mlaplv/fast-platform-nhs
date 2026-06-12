@@ -21,8 +21,8 @@ import enum
 
 
 class SeoEntityType(str, enum.Enum):
-    ARTICLE = "article"
-    PRODUCT = "product"
+    ARTICLE = "ARTICLE"
+    PRODUCT = "PRODUCT"
 
 
 class SeoLinkType(str, enum.Enum):

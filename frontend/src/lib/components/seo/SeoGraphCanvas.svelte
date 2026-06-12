@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { graphData, selectedNodeId, filterGroup, filteredNodes, overrideEdge } from '$lib/stores/seoGraph.svelte';
+	import { graphData, selectedNodeId, filterGroup, overrideEdge, isSidebarOpen } from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
 
@@ -16,9 +16,28 @@
 		}
 	});
 
+	// Reactive: Zoom & center on selected node
+	$effect(() => {
+		const nodeId = selectedNodeId.value;
+		if (graph && nodeId) {
+			const simulatedNodes = graph.graphData().nodes;
+			const node = simulatedNodes.find((n: any) => n.id === nodeId);
+			if (node) {
+				setTimeout(() => {
+					if (node.x !== undefined && node.y !== undefined) {
+						graph.centerAt(node.x, node.y, 800);
+						graph.zoom(2.5, 800);
+					}
+				}, 50);
+			}
+		}
+	});
+
 	onMount(async () => {
 		// Dynamic import — force-graph cần browser environment
 		const ForceGraph = (await import('force-graph')).default;
+
+		if (!canvasEl) return;
 
 		graph = ForceGraph()(canvasEl)
 			.width(canvasEl.offsetWidth)
@@ -38,6 +57,7 @@
 				</div>
 			`)
 			.nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+				if (node.x === undefined || node.y === undefined || isNaN(node.x) || isNaN(node.y)) return;
 				const radius = node.val ?? 6;
 				// Glow effect cho pillar nodes
 				if (node.is_pillar) {
@@ -83,7 +103,12 @@
 			.linkDirectionalParticleSpeed(0.004)
 			// Interactions
 			.onNodeClick((node: any) => {
-				selectedNodeId.value = node.id === selectedNodeId.value ? null : node.id;
+				if (node.id === selectedNodeId.value) {
+					selectedNodeId.value = null;
+				} else {
+					selectedNodeId.value = node.id;
+					isSidebarOpen.value = true;
+				}
 			})
 			.onBackgroundClick(() => {
 				selectedNodeId.value = null;

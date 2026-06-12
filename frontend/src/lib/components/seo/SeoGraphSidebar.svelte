@@ -1,12 +1,13 @@
 <script lang="ts">
 	import {
 		selectedNodeId,
-		activeNode,
-		pillarNodes,
+		getActiveNode,
+		getPillarNodes,
 		graphData,
 		togglePillar,
 		triggerMatch,
-		overrideEdge
+		overrideEdge,
+		isSidebarOpen
 	} from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
@@ -17,7 +18,7 @@
 
 	// Reset khi active node thay đổi
 	$effect(() => {
-		if (activeNode) {
+		if (getActiveNode()) {
 			selectedPillarId = '';
 			matchResult = null;
 		}
@@ -25,25 +26,25 @@
 
 	// Tìm edge hiện tại của active node (source là pillar → target là node)
 	const currentEdge = $derived(
-		activeNode
-			? graphData.links.find((l) => l.target === activeNode!.id || l.source === activeNode!.id)
+		getActiveNode()
+			? graphData.links.find((l) => l.target === getActiveNode()!.id || l.source === getActiveNode()!.id)
 			: null
 	);
 
 	async function handleTogglePillar() {
-		if (!activeNode) return;
-		await togglePillar(apiBase, activeNode.id, !activeNode.is_pillar, activeNode.pillar_topic ?? undefined);
+		if (!getActiveNode()) return;
+		await togglePillar(apiBase, getActiveNode()!.id, !getActiveNode()!.is_pillar, getActiveNode()!.pillar_topic ?? undefined);
 	}
 
 	async function handleReassign() {
-		if (!activeNode || !selectedPillarId || !currentEdge) return;
-		await overrideEdge(apiBase, currentEdge.id, selectedPillarId, activeNode.id);
+		if (!getActiveNode() || !selectedPillarId || !currentEdge) return;
+		await overrideEdge(apiBase, currentEdge.id, selectedPillarId, getActiveNode()!.id);
 	}
 
 	async function handleManualMatch() {
-		if (!activeNode) return;
+		if (!getActiveNode()) return;
 		isMatching = true;
-		matchResult = await triggerMatch(apiBase, activeNode.entity_type as 'article' | 'product', activeNode.entity_id);
+		matchResult = await triggerMatch(apiBase, getActiveNode()!.entity_type as 'article' | 'product', getActiveNode()!.entity_id);
 		isMatching = false;
 	}
 
@@ -58,27 +59,35 @@
 </script>
 
 <div class="sidebar">
-	{#if !activeNode}
+	{#if !getActiveNode()}
 		<div class="empty-hint">
+			<button class="collapse-btn absolute" onclick={() => (isSidebarOpen.value = false)} title="Thu gọn sidebar">
+				✕
+			</button>
 			<span class="hint-icon">👆</span>
 			<p>Nhấp vào một node<br />để xem chi tiết</p>
 		</div>
 	{:else}
 		<!-- Node Info -->
-		<div class="node-card" class:pillar={activeNode.is_pillar}>
-			<div class="node-type-badge" class:is-pillar={activeNode.is_pillar}>
-				{activeNode.is_pillar ? '⭐ Pillar Page' : activeNode.group === 'unclassified' ? '⚠️ Chưa phân loại' : '🔗 Cluster'}
+		<div class="node-card" class:pillar={getActiveNode()?.is_pillar}>
+			<div class="header-row">
+				<div class="node-type-badge" class:is-pillar={getActiveNode()?.is_pillar}>
+					{getActiveNode()?.is_pillar ? '⭐ Pillar Page' : getActiveNode()?.group === 'unclassified' ? '⚠️ Chưa phân loại' : '🔗 Cluster'}
+				</div>
+				<button class="collapse-btn" onclick={() => (isSidebarOpen.value = false)} title="Thu gọn sidebar">
+					✕
+				</button>
 			</div>
-			<h2 class="node-title">{activeNode.label}</h2>
+			<h2 class="node-title">{getActiveNode()?.label}</h2>
 			<div class="node-meta">
-				<span class="meta-chip">{activeNode.entity_type}</span>
-				{#if activeNode.pillar_topic}
-					<span class="meta-chip topic">{activeNode.pillar_topic}</span>
+				<span class="meta-chip">{getActiveNode()?.entity_type}</span>
+				{#if getActiveNode()?.pillar_topic}
+					<span class="meta-chip topic">{getActiveNode()?.pillar_topic}</span>
 				{/if}
 			</div>
-			{#if activeNode.url}
-				<a href={activeNode.url} target="_blank" class="node-url">
-					🔗 {activeNode.slug}
+			{#if getActiveNode()?.url}
+				<a href={getActiveNode()?.url} target="_blank" class="node-url">
+					🔗 {getActiveNode()?.slug}
 				</a>
 			{/if}
 		</div>
@@ -106,17 +115,17 @@
 			<h3 class="section-title">Hành động</h3>
 
 			<!-- Toggle Pillar -->
-			<button class="action-btn" class:active={activeNode.is_pillar} onclick={handleTogglePillar}>
-				{activeNode.is_pillar ? '⭐ Bỏ Pillar' : '⭐ Đặt làm Pillar'}
+			<button class="action-btn" class:active={getActiveNode()?.is_pillar} onclick={handleTogglePillar}>
+				{getActiveNode()?.is_pillar ? '⭐ Bỏ Pillar' : '⭐ Đặt làm Pillar'}
 			</button>
 
 			<!-- Reassign Pillar -->
-			{#if !activeNode.is_pillar && pillarNodes.length > 0}
+			{#if !getActiveNode()?.is_pillar && getPillarNodes().length > 0}
 				<div class="reassign-group">
 					<label for="pillar-select" class="select-label">Gán vào Pillar khác</label>
 					<select id="pillar-select" class="pillar-select" bind:value={selectedPillarId}>
 						<option value="">-- Chọn Pillar --</option>
-						{#each pillarNodes as p}
+						{#each getPillarNodes() as p}
 							<option value={p.id}>{p.label}</option>
 						{/each}
 					</select>
@@ -131,17 +140,19 @@
 			{/if}
 
 			<!-- Manual AI Match -->
-			<button class="action-btn match" onclick={handleManualMatch} disabled={isMatching}>
-				{isMatching ? '⏳ Đang phân tích...' : '🤖 Chạy AI Matching'}
-			</button>
+			{#if !getActiveNode()?.is_pillar}
+				<button class="action-btn match" onclick={handleManualMatch} disabled={isMatching}>
+					{isMatching ? '⏳ Đang phân tích...' : '🤖 Chạy AI Matching'}
+				</button>
 
-			{#if matchResult}
-				<div class="match-result" class:success={matchResult.match_tier !== 'unclassified'}>
-					<div>{getTierLabel(matchResult.match_tier)}</div>
-					{#if matchResult.ai_confidence}
-						<div class="match-conf">{Math.round(matchResult.ai_confidence * 100)}% confidence</div>
-					{/if}
-				</div>
+				{#if matchResult}
+					<div class="match-result" class:success={matchResult.match_tier !== 'unclassified'}>
+						<div>{getTierLabel(matchResult.match_tier)}</div>
+						{#if matchResult.ai_confidence}
+							<div class="match-conf">{Math.round(matchResult.ai_confidence * 100)}% confidence</div>
+						{/if}
+					</div>
+				{/if}
 			{/if}
 		</div>
 	{/if}
@@ -160,6 +171,7 @@
 	}
 
 	.empty-hint {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -172,6 +184,37 @@
 	}
 	.hint-icon { font-size: 2rem; }
 	.empty-hint p { font-size: 0.85rem; line-height: 1.6; margin: 0; }
+
+	.header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.5rem;
+		width: 100%;
+	}
+
+	.collapse-btn {
+		background: transparent;
+		border: none;
+		color: #475569;
+		cursor: pointer;
+		font-size: 0.75rem;
+		padding: 0.2rem 0.4rem;
+		border-radius: 4px;
+		transition: all 0.15s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.collapse-btn:hover {
+		color: #e2e8f0;
+		background: rgba(255, 255, 255, 0.05);
+	}
+	.collapse-btn.absolute {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+	}
 
 	.node-card {
 		padding: 1.25rem;

@@ -32,7 +32,8 @@
 
   interface SubItem {
     label: string;
-    widget: WidgetType;
+    widget?: WidgetType;
+    href?: string;
   }
 
   interface CategoryItem {
@@ -98,7 +99,8 @@
       color: "#FF33FF", // vibrant-purple
       children: [
         { label: "Content Factory", widget: "CAMPAIGNS" },
-        { label: "Ads Protection", widget: "ADS_PROTECTION" }
+        { label: "Ads Protection", widget: "ADS_PROTECTION" },
+        { label: "SEO Graph", widget: "SEO_GRAPH" }
       ]
     },
     {
@@ -204,7 +206,11 @@
 
   function handleSubSelect(sub: SubItem) {
     open = false;
-    nanobot.openWidget(sub.widget);
+    if (sub.href) {
+      goto(sub.href);
+    } else if (sub.widget) {
+      nanobot.openWidget(sub.widget);
+    }
   }
 </script>
 

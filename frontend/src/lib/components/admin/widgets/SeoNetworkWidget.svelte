@@ -8,6 +8,9 @@
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import Bot from '@lucide/svelte/icons/bot';
+    import { useNanobot } from '$lib/state/nanobot.svelte';
+
+    const nanobot = useNanobot();
 
     // Props
     type Props = {};
@@ -50,7 +53,7 @@
     }
 
     function openGraph() {
-        window.location.href = '/seo/graph';
+        nanobot.openWidget('SEO_GRAPH');
     }
 
     // Computed

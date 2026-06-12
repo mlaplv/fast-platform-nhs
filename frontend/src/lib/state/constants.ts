@@ -75,6 +75,10 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "mở thông báo": "NOTIFICATION_MANAGEMENT",
   "thông báo": "NOTIFICATION_MANAGEMENT",
   "quản lý thông báo": "NOTIFICATION_MANAGEMENT",
+  "mở seo graph": "SEO_GRAPH",
+  "seo graph": "SEO_GRAPH",
+  "mở mạng lưới seo": "SEO_GRAPH",
+  "mạng lưới seo": "SEO_GRAPH",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -104,6 +108,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_voucher_management: "VOUCHER_MANAGEMENT",
   show_ctv_management: "CTV_MANAGEMENT",
   show_notification_management: "NOTIFICATION_MANAGEMENT",
+  show_seo_graph: "SEO_GRAPH",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -128,4 +133,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   VOUCHER_MANAGEMENT: "Quản lý Voucher & Khuyến mãi",
   CTV_MANAGEMENT: "Quản lý Hệ thống Liên kết (CTV)",
   NOTIFICATION_MANAGEMENT: "Quản trị Tín hiệu & Thông báo",
+  SEO_GRAPH: "Mạng lưới SEO Graph",
 };

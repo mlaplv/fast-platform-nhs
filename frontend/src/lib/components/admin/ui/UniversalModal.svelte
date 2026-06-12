@@ -39,6 +39,7 @@ import VoucherManagement from "../management/VoucherManagement.svelte";
 import AdsFraudDashboard from "../AdsFraudDashboard.svelte";
 import SecuritySOC from "../management/SecuritySOC.svelte";
 import CtvManagement from "../management/CtvManagement.svelte";
+import SeoGraphManagement from "../management/SeoGraphManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -73,6 +74,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
     ADS_PROTECTION: AdsFraudDashboard,
     SECURITY_SOC: SecuritySOC,
     CTV_MANAGEMENT: CtvManagement,
+    SEO_GRAPH: SeoGraphManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -102,6 +104,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
     ADS_PROTECTION: "ADS FRAUD PROTECTION & CLICK SHIELD",
     SECURITY_SOC: "SECURITY OPERATIONS CENTER (SOC)",
     CTV_MANAGEMENT: "QUẢN LÝ HỆ THỐNG LIÊN KẾT (CTV)",
+    SEO_GRAPH: "SEO PILLAR & CLUSTER GRAPH NETWORK",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -244,7 +247,7 @@ import CtvManagement from "../management/CtvManagement.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'NOTIFICATION_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'NOTIFICATION_MANAGEMENT', 'SEO_GRAPH'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

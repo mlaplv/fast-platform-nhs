@@ -77,6 +77,17 @@ class SeoMatchingService:
         ))
         await db.flush()  # Ensure node.id available
 
+        # If node is already a Pillar page, preserve status and skip matching
+        if node.is_pillar:
+            logger.info(f"[SeoMatch] Node {node.id} is already a Pillar. Skip matching.")
+            return MatchResultResponse(
+                node_id=node.id,
+                matched_pillar_id=None,
+                match_tier="unclassified",
+                ai_confidence=1.0,
+                ai_reasoning="Node này đã được thiết lập làm Pillar page.",
+            )
+
         # Step 2: Load all active Pillar nodes with embeddings
         pillars = await self._get_active_pillars(db, tenant)
         if not pillars:
@@ -187,71 +198,86 @@ class SeoMatchingService:
         self, title: str, excerpt: str, pillars: list[dict]
     ) -> Optional[dict]:
         """
-        PydanticAI classification với strict output schema.
+        PydanticAI classification với strict output schema + retry logic.
         Input: tiêu đề + excerpt của entity mới + danh sách pillars
         Output: { pillar_node_id, confidence, reasoning } hoặc None nếu fail
         
-        Fail-safe: bất kỳ exception nào đều return None (→ Tier 3)
+        Retry: tối đa 2 lần, timeout tăng dần (10s → 18s), backoff 2s.
+        Fail-safe: bất kỳ exception nào ở cả 2 lần đều return None (→ Tier 3)
         """
-        try:
-            from pydantic_ai import Agent
-            from pydantic import BaseModel
+        from pydantic_ai import Agent
+        from pydantic import BaseModel
 
-            class PillarMatch(BaseModel):
-                pillar_node_id: str
-                confidence: float
-                reasoning: str
+        class PillarMatch(BaseModel):
+            pillar_node_id: str
+            confidence: float
+            reasoning: str
 
-            pillar_list_text = "\n".join(
-                f"- ID: {p['id']} | Topic: {p['pillar_topic'] or p['label']}"
-                for p in pillars[:20]  # Cap at 20 để tránh context overflow
-            )
+        pillar_list_text = "\n".join(
+            f"- ID: {p['id']} | Topic: {p['pillar_topic'] or p['label']}"
+            for p in pillars[:20]  # Cap at 20 để tránh context overflow
+        )
 
-            system_prompt = (
-                "Bạn là chuyên gia SEO. Nhiệm vụ của bạn là phân loại một bài viết vào đúng Pillar Page. "
-                "Chỉ trả về JSON theo schema được yêu cầu. Nếu không chắc chắn, đặt confidence < 0.70."
-            )
+        system_prompt = (
+            "Bạn là chuyên gia SEO. Nhiệm vụ của bạn là phân loại một bài viết vào đúng Pillar Page. "
+            "Chỉ trả về JSON theo schema được yêu cầu. Nếu không chắc chắn, đặt confidence < 0.70."
+        )
 
-            user_msg = (
-                f"Bài viết mới:\nTiêu đề: {title}\nTóm tắt: {excerpt[:400]}\n\n"
-                f"Danh sách Pillar Pages:\n{pillar_list_text}\n\n"
-                f"Hãy chọn Pillar phù hợp nhất và trả về confidence score (0.0-1.0)."
-            )
+        user_msg = (
+            f"Bài viết mới:\nTiêu đề: {title}\nTóm tắt: {excerpt[:400]}\n\n"
+            f"Danh sách Pillar Pages:\n{pillar_list_text}\n\n"
+            f"Hãy chọn Pillar phù hợp nhất và trả về confidence score (0.0-1.0)."
+        )
 
-            # Use LiteLLM via PydanticAI
-            from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-            model_name = trinity_bridge.get_default_model() if hasattr(trinity_bridge, "get_default_model") else "gemini-1.5-flash"
+        # Use LiteLLM via PydanticAI
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        model_name = trinity_bridge.get_default_model() if hasattr(trinity_bridge, "get_default_model") else "gemini-1.5-flash"
 
-            agent: Agent[None, PillarMatch] = Agent(
-                model=model_name,
-                system_prompt=system_prompt,
-                result_type=PillarMatch,
-            )
+        agent: Agent[None, PillarMatch] = Agent(
+            model=model_name,
+            system_prompt=system_prompt,
+            result_type=PillarMatch,
+        )
 
-            result = await asyncio.wait_for(
-                agent.run(user_msg),
-                timeout=15.0  # Hard timeout — tránh treo request
-            )
-            match = result.data
+        valid_ids = {p["id"] for p in pillars}
 
-            # Validate pillar_node_id thực sự tồn tại trong danh sách
-            valid_ids = {p["id"] for p in pillars}
-            if match.pillar_node_id not in valid_ids:
-                logger.warning(f"[SeoMatch] AI hallucinated pillar_node_id: {match.pillar_node_id}")
-                return None
+        # Retry loop: 2 attempts, increasing timeout, 2s backoff between attempts
+        _timeouts = [10.0, 18.0]
+        for attempt, timeout in enumerate(_timeouts, start=1):
+            try:
+                result = await asyncio.wait_for(agent.run(user_msg), timeout=timeout)
+                match = result.data
 
-            return {
-                "pillar_node_id": match.pillar_node_id,
-                "confidence": round(match.confidence, 3),
-                "reasoning": match.reasoning,
-            }
+                # Validate pillar_node_id thực sự tồn tại trong danh sách
+                if match.pillar_node_id not in valid_ids:
+                    logger.warning(
+                        f"[SeoMatch] Attempt {attempt}: AI hallucinated pillar_node_id "
+                        f"{match.pillar_node_id!r}. Retrying..." if attempt < len(_timeouts) else
+                        f"[SeoMatch] Attempt {attempt}: AI hallucinated pillar_node_id. Giving up."
+                    )
+                    if attempt < len(_timeouts):
+                        await asyncio.sleep(2.0)
+                        continue
+                    return None
 
-        except asyncio.TimeoutError:
-            logger.warning("[SeoMatch] PydanticAI timeout — falling back to Tier 3")
-            return None
-        except Exception as e:
-            logger.error(f"[SeoMatch] PydanticAI failed: {e}")
-            return None
+                logger.info(f"[SeoMatch] PydanticAI success on attempt {attempt} (conf={match.confidence:.2f})")
+                return {
+                    "pillar_node_id": match.pillar_node_id,
+                    "confidence": round(match.confidence, 3),
+                    "reasoning": match.reasoning,
+                }
+
+            except asyncio.TimeoutError:
+                logger.warning(f"[SeoMatch] PydanticAI timeout on attempt {attempt}/{len(_timeouts)} (timeout={timeout}s)")
+                if attempt < len(_timeouts):
+                    await asyncio.sleep(2.0)
+            except Exception as e:
+                logger.error(f"[SeoMatch] PydanticAI error on attempt {attempt}: {e}")
+                if attempt < len(_timeouts):
+                    await asyncio.sleep(2.0)
+
+        logger.warning("[SeoMatch] PydanticAI exhausted all retries — falling back to Tier 3")
+        return None
 
     # ─── Helpers ─────────────────────────────────────────────────────────────
 

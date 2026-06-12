@@ -58,21 +58,31 @@ export const selectedNodeId = $state<{ value: string | null }>({ value: null });
 export const isLoading = $state<{ value: boolean }>({ value: false });
 export const errorMsg = $state<{ value: string | null }>({ value: null });
 export const filterGroup = $state<{ value: 'all' | 'pillar' | 'cluster' | 'unclassified' }>({ value: 'all' });
+export const isSidebarOpen = $state<{ value: boolean }>({ value: true });
+export const batchSelectedIds = $state<{ value: Set<string> }>({ value: new Set() });
 
 // ─── Derived ──────────────────────────────────────────────────────────────────
 
-export const pillarNodes = $derived(graphData.nodes.filter((n) => n.is_pillar));
-export const unclassifiedCount = $derived(graphData.nodes.filter((n) => n.group === 'unclassified').length);
-export const aiSuggestedCount = $derived(graphData.links.filter((l) => !l.is_confirmed).length);
-export const activeNode = $derived(
+const _pillarNodes = $derived(graphData.nodes.filter((n) => n.is_pillar));
+export const getPillarNodes = () => _pillarNodes;
+
+const _unclassifiedCount = $derived(graphData.nodes.filter((n) => n.group === 'unclassified').length);
+export const getUnclassifiedCount = () => _unclassifiedCount;
+
+const _aiSuggestedCount = $derived(graphData.links.filter((l) => !l.is_confirmed).length);
+export const getAiSuggestedCount = () => _aiSuggestedCount;
+
+const _activeNode = $derived(
 	selectedNodeId.value ? graphData.nodes.find((n) => n.id === selectedNodeId.value) ?? null : null
 );
+export const getActiveNode = () => _activeNode;
 
-export const filteredNodes = $derived(
+const _filteredNodes = $derived(
 	filterGroup.value === 'all'
 		? graphData.nodes
 		: graphData.nodes.filter((n) => n.group === filterGroup.value)
 );
+export const getFilteredNodes = () => _filteredNodes;
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
@@ -194,4 +204,70 @@ export async function triggerMatch(
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Batch assign multiple unclassified nodes to a single Pillar.
+ * Creates a manual edge from pillar → each selected node.
+ * Optimistic: updates local node group immediately, rolls back all on failure.
+ */
+export async function batchAssignPillar(
+	apiBase: string,
+	nodeIds: string[],
+	pillarNodeId: string
+): Promise<{ success: number; failed: number }> {
+	if (!nodeIds.length) return { success: 0, failed: 0 };
+
+	// Snapshot for rollback
+	const snapshot = graphData.nodes.map((n) => ({ ...n }));
+	const snapshotLinks = [...graphData.links];
+
+	// Optimistic: mark selected nodes as cluster under the pillar
+	for (const id of nodeIds) {
+		const node = graphData.nodes.find((n) => n.id === id);
+		if (node) {
+			node.group = 'cluster';
+			node.color = '#a5b4fc';
+		}
+	}
+
+	let success = 0;
+	let failed = 0;
+
+	// Sequential to avoid overwhelming the server — fire in parallel batches of 5
+	const chunks = [];
+	for (let i = 0; i < nodeIds.length; i += 5) chunks.push(nodeIds.slice(i, i + 5));
+
+	for (const chunk of chunks) {
+		const results = await Promise.allSettled(
+			chunk.map((nodeId) =>
+				fetch(`${apiBase}/api/v1/seo/edges`, {
+					method: 'POST',
+					credentials: 'include',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						source_node_id: pillarNodeId,
+						target_node_id: nodeId,
+						link_type: 'manual',
+						is_confirmed: true
+					})
+				}).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; })
+			)
+		);
+		for (const r of results) r.status === 'fulfilled' ? success++ : failed++;
+	}
+
+	if (failed > 0 && success === 0) {
+		// Full rollback only if everything failed
+		graphData.nodes = snapshot;
+		graphData.links = snapshotLinks;
+		errorMsg.value = `Batch assign thất bại hoàn toàn (${failed} lỗi). Đã rollback.`;
+	} else if (failed > 0) {
+		errorMsg.value = `Hoàn thành một phần: ${success} thành công, ${failed} thất bại.`;
+	}
+
+	// Clear batch selection and refresh graph
+	batchSelectedIds.value = new Set();
+	await fetchGraph(apiBase);
+	return { success, failed };
 }

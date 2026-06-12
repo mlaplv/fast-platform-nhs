@@ -44,6 +44,8 @@ export async function handleFastAction(
   const nanobot = useNanobot() as NanobotState;
   const cmd = command.toLowerCase().trim();
 
+
+
   // 1. Unified Mapping Lookup (Tier 1 - Dynamic Zen Path)
   const combinedMap = { ...COMMAND_WIDGET_MAP, ...nanobot.dynamicIntentMap } as Record<string, string>;
   

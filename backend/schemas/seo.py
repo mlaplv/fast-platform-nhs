@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class RegisterNodeRequest(BaseModel):
     """Đăng ký một Article hoặc Product vào SEO graph."""
-    entity_type: Literal["article", "product"]
+    entity_type: Literal["article", "product", "ARTICLE", "PRODUCT"]
     entity_id: str
     is_pillar: bool = False
     pillar_topic: Optional[str] = None
@@ -117,7 +117,7 @@ class SeoGraphResponse(BaseModel):
 
 class TriggerMatchRequest(BaseModel):
     """Trigger AI matching thủ công cho một entity."""
-    entity_type: Literal["article", "product"]
+    entity_type: Literal["article", "product", "ARTICLE", "PRODUCT"]
     entity_id: str
 
 

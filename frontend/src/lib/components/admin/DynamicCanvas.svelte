@@ -20,6 +20,7 @@
 import VoucherManagement from "./management/VoucherManagement.svelte";
 import CtvManagement from "./management/CtvManagement.svelte";
 import NotificationManagement from "./management/NotificationManagement.svelte";
+import SeoGraphManagement from "./management/SeoGraphManagement.svelte";
 
   const WIDGET_REGISTRY: Record<string, Component<BaseWidgetProps>> = {
     RevenueChart: RevenueChart as Component<BaseWidgetProps>,
@@ -43,6 +44,7 @@ import NotificationManagement from "./management/NotificationManagement.svelte";
     VOUCHER_MANAGEMENT: VoucherManagement as Component<BaseWidgetProps>,
     CTV_MANAGEMENT: CtvManagement as Component<BaseWidgetProps>,
     NOTIFICATION_MANAGEMENT: NotificationManagement as Component<BaseWidgetProps>,
+    SEO_GRAPH: SeoGraphManagement as Component<BaseWidgetProps>,
   };
 
   let ActiveWidget = $derived(

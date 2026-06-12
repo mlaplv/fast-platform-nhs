@@ -155,7 +155,8 @@ class SeoController(Controller):
         """
         # Lấy thông tin entity từ core tables
         from sqlalchemy import select, text as sa_text
-        if data.entity_type == "article":
+        ent_type_lower = data.entity_type.lower()
+        if ent_type_lower == "article":
             row = (await db_session.execute(
                 sa_text("SELECT title, excerpt, slug FROM articles WHERE id = :id AND deleted_at IS NULL"),
                 {"id": data.entity_id}
@@ -171,7 +172,7 @@ class SeoController(Controller):
 
         result = await match_svc.match_entity(
             db=db_session,
-            entity_type=data.entity_type,
+            entity_type=ent_type_lower,
             entity_id=data.entity_id,
             title=str(row["title"] or ""),
             content_excerpt=str(row["excerpt"] or ""),

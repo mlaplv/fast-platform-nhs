@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { filterGroup, graphData, fetchGraph } from '$lib/stores/seoGraph.svelte';
+	import { filterGroup, graphData, fetchGraph, selectedNodeId, isSidebarOpen } from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
+
+	let searchQuery = $state('');
+	let isDropdownOpen = $state(false);
 
 	const groups = [
 		{ value: 'all', label: 'Tất cả', icon: '🕸️' },
@@ -9,6 +12,23 @@
 		{ value: 'cluster', label: 'Clusters', icon: '🔗' },
 		{ value: 'unclassified', label: 'Chưa phân loại', icon: '⚠️' }
 	] as const;
+
+	const filteredSuggestions = $derived(
+		searchQuery.trim() === ''
+			? []
+			: graphData.nodes.filter(
+					(n) =>
+						n.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+						n.slug.toLowerCase().includes(searchQuery.toLowerCase())
+			  ).slice(0, 8)
+	);
+
+	function selectNode(node: any) {
+		selectedNodeId.value = node.id;
+		isSidebarOpen.value = true;
+		searchQuery = '';
+		isDropdownOpen = false;
+	}
 
 	async function handleReconcile() {
 		const res = await fetch(`${apiBase}/api/v1/seo/reconcile`, {
@@ -35,6 +55,29 @@
 		{/each}
 	</div>
 
+	<!-- Search box -->
+	<div class="toolbar-divider"></div>
+	<div class="search-container">
+		<input
+			type="text"
+			placeholder="🔍 Tìm bài viết, sản phẩm..."
+			bind:value={searchQuery}
+			onfocus={() => (isDropdownOpen = true)}
+			onblur={() => setTimeout(() => (isDropdownOpen = false), 200)}
+			class="search-input"
+		/>
+		{#if isDropdownOpen && filteredSuggestions.length > 0}
+			<div class="search-dropdown">
+				{#each filteredSuggestions as node}
+					<button class="suggestion-item" onclick={() => selectNode(node)}>
+						<span class="type-icon">{node.is_pillar ? '⭐' : node.group === 'unclassified' ? '⚠️' : '🔗'}</span>
+						<span class="label-text">{node.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
 	<!-- Stats quick view -->
 	<div class="toolbar-divider"></div>
 	<div class="quick-stats">
@@ -43,8 +86,15 @@
 		<span class="qs-item">{graphData.meta.total_edges} edges</span>
 	</div>
 
-	<!-- Reconcile -->
+	<!-- Reconcile & Full View -->
 	<div class="toolbar-actions">
+		<button
+			class="fullview-btn"
+			onclick={() => (isSidebarOpen.value = !isSidebarOpen.value)}
+			title="Bật/Tắt sidebar toàn cảnh"
+		>
+			{isSidebarOpen.value ? '👁️ Toàn cảnh' : '👁️ Hiện Sidebar'}
+		</button>
 		<button class="reconcile-btn" onclick={handleReconcile} title="Dọn dẹp orphan nodes ngay">
 			🧹 Dọn dẹp
 		</button>
@@ -59,8 +109,8 @@
 		align-items: center;
 		gap: 1rem;
 		padding: 0.6rem 1rem;
-		background: rgba(19,19,31,0.95);
-		border-bottom: 1px solid rgba(99,102,241,0.12);
+		background: rgba(19, 19, 31, 0.95);
+		border-bottom: 1px solid rgba(99, 102, 241, 0.12);
 		flex-wrap: wrap;
 	}
 
@@ -75,7 +125,7 @@
 		gap: 0.35rem;
 		padding: 0.3rem 0.7rem;
 		border-radius: 6px;
-		border: 1px solid rgba(99,102,241,0.15);
+		border: 1px solid rgba(99, 102, 241, 0.15);
 		background: transparent;
 		color: #64748b;
 		cursor: pointer;
@@ -83,17 +133,95 @@
 		font-weight: 500;
 		transition: all 0.15s;
 	}
-	.filter-btn:hover { background: rgba(99,102,241,0.1); color: #a5b4fc; }
-	.filter-btn.active {
-		background: rgba(99,102,241,0.2);
-		border-color: rgba(99,102,241,0.4);
+	.filter-btn:hover {
+		background: rgba(99, 102, 241, 0.1);
 		color: #a5b4fc;
+	}
+	.filter-btn.active {
+		background: rgba(99, 102, 241, 0.2);
+		border-color: rgba(99, 102, 241, 0.4);
+		color: #a5b4fc;
+	}
+
+	.search-container {
+		position: relative;
+		display: flex;
+		align-items: center;
+		min-width: 240px;
+	}
+
+	.search-input {
+		width: 100%;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(99, 102, 241, 0.15);
+		border-radius: 6px;
+		padding: 0.35rem 0.75rem;
+		font-size: 0.78rem;
+		color: #e2e8f0;
+		outline: none;
+		transition: all 0.2s;
+	}
+
+	.search-input:focus {
+		border-color: rgba(99, 102, 241, 0.4);
+		background: rgba(255, 255, 255, 0.08);
+		box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
+	}
+
+	.search-dropdown {
+		position: absolute;
+		top: calc(100% + 5px);
+		left: 0;
+		right: 0;
+		background: #13131f;
+		border: 1px solid rgba(99, 102, 241, 0.25);
+		border-radius: 6px;
+		max-height: 250px;
+		overflow-y: auto;
+		z-index: 1000;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+	}
+
+	.suggestion-item {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		background: transparent;
+		border: none;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+		color: #94a3b8;
+		text-align: left;
+		cursor: pointer;
+		font-size: 0.75rem;
+		transition: all 0.15s;
+	}
+
+	.suggestion-item:last-child {
+		border-bottom: none;
+	}
+
+	.suggestion-item:hover {
+		background: rgba(99, 102, 241, 0.12);
+		color: #e2e8f0;
+	}
+
+	.type-icon {
+		font-size: 0.8rem;
+		flex-shrink: 0;
+	}
+
+	.label-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.toolbar-divider {
 		width: 1px;
 		height: 20px;
-		background: rgba(99,102,241,0.15);
+		background: rgba(99, 102, 241, 0.15);
 	}
 
 	.quick-stats {
@@ -103,19 +231,43 @@
 		font-size: 0.75rem;
 		color: #475569;
 	}
-	.qs-sep { color: #334155; }
+	.qs-sep {
+		color: #334155;
+	}
 
-	.toolbar-actions { margin-left: auto; }
+	.toolbar-actions {
+		display: flex;
+		align-items: center;
+		margin-left: auto;
+	}
+
+	.fullview-btn {
+		padding: 0.3rem 0.75rem;
+		border-radius: 6px;
+		border: 1px solid rgba(99, 102, 241, 0.25);
+		background: rgba(99, 102, 241, 0.08);
+		color: #a5b4fc;
+		cursor: pointer;
+		font-size: 0.75rem;
+		margin-right: 0.5rem;
+		transition: all 0.15s;
+	}
+
+	.fullview-btn:hover {
+		background: rgba(99, 102, 241, 0.18);
+	}
 
 	.reconcile-btn {
 		padding: 0.3rem 0.75rem;
 		border-radius: 6px;
-		border: 1px solid rgba(16,185,129,0.2);
-		background: rgba(16,185,129,0.08);
+		border: 1px solid rgba(16, 185, 129, 0.2);
+		background: rgba(16, 185, 129, 0.08);
 		color: #6ee7b7;
 		cursor: pointer;
 		font-size: 0.75rem;
 		transition: all 0.15s;
 	}
-	.reconcile-btn:hover { background: rgba(16,185,129,0.15); }
+	.reconcile-btn:hover {
+		background: rgba(16, 185, 129, 0.15);
+	}
 </style>
