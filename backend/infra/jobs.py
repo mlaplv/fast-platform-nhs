@@ -295,6 +295,7 @@ async def seo_match_entity_job(
             logger.info(f"[SEO Match Job] {entity_id}: tier={result.match_tier}, conf={result.ai_confidence}")
     except Exception as e:
         logger.error(f"[SEO Match Job] Failed for {entity_id}: {e}", exc_info=True)
+        raise
     finally:
         current_tenant_id.reset(token)
 
@@ -317,6 +318,7 @@ async def seo_bulk_match_job(ctx: Dict[str, object], tenant_id: str) -> None:
             logger.info(f"[SEO Bulk Match Job] Finished successfully: {result}")
     except Exception as e:
         logger.error(f"[SEO Bulk Match Job] Failed: {e}", exc_info=True)
+        raise
     finally:
         current_tenant_id.reset(token)
 
@@ -347,5 +349,6 @@ async def seo_unmatch_entity_job(
             logger.info(f"[SEO Unmatch Job] Done for {entity_type}:{entity_id}")
     except Exception as e:
         logger.error(f"[SEO Unmatch Job] Failed for {entity_id}: {e}", exc_info=True)
+        raise
     finally:
         current_tenant_id.reset(token)

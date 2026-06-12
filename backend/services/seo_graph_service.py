@@ -64,12 +64,12 @@ class SeoGraphService:
                 SeoNode.entity_type == db_entity_type,
                 SeoNode.entity_id == data.entity_id,
                 SeoNode.tenant_id == tenant,
-                SeoNode.deleted_at.is_(None),
             )
         )
 
         if existing:
-            # Upsert
+            # Upsert & Restore if soft-deleted
+            existing.deleted_at = None
             existing.is_pillar = existing.is_pillar or (data.is_pillar if data.is_pillar is not None else False)
             existing.pillar_topic = data.pillar_topic or existing.pillar_topic
             existing.node_label = data.node_label or existing.node_label
