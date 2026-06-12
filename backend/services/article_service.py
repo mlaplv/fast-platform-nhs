@@ -405,6 +405,9 @@ class ArticleService:
         if not article:
             raise NotFoundException(f"Article {article_id} not found")
 
+        # SEO: Track previous status to detect publish transition
+        _prev_status = article.status
+
         if data.title is not None: article.title = data.title
         if data.slug is not None: article.slug = data.slug
 
@@ -468,6 +471,18 @@ class ArticleService:
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, article_id, article)
 
+        # SEO Pillar & Cluster: Emit ARTICLE_PUBLISHED when status transitions to PUBLISHED
+        if data.status is not None and data.status.upper() == "PUBLISHED" and _prev_status != "PUBLISHED":
+            await event_bus.emit("ARTICLE_PUBLISHED", {
+                "entity_type": "article",
+                "entity_id": str(article_id),
+                "title": article.title,
+                "excerpt": article.excerpt or "",
+                "slug": article.slug,
+                "tenant_id": current_tenant_id.get() or "default",
+            })
+            logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED for SEO matching: {article_id}")
+
         return SuccessResponse(ok=True, id=article_id)
 
     async def _sync_media_links(self, db_session: AsyncSession, article_id: str, article: Article) -> None:
@@ -510,10 +525,26 @@ class ArticleService:
         return BulkActionResponse(ok=True, count=len(ids))
 
     async def bulk_publish(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+        # Fetch titles/slugs before bulk update for SEO emit
+        rows = (await db_session.execute(
+            select(Article.id, Article.title, Article.slug, Article.excerpt)
+            .where(Article.id.in_(ids), Article.deleted_at == None, Article.status != "PUBLISHED")
+        )).all()
         stmt = update(Article).where(Article.id.in_(ids)).values(status="PUBLISHED")
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+        # SEO Pillar & Cluster: emit for each newly published article
+        tid = current_tenant_id.get() or "default"
+        for row in rows:
+            await event_bus.emit("ARTICLE_PUBLISHED", {
+                "entity_type": "article",
+                "entity_id": str(row.id),
+                "title": row.title or "",
+                "excerpt": row.excerpt or "",
+                "slug": row.slug or "",
+                "tenant_id": tid,
+            })
         return BulkActionResponse(ok=True, count=len(ids))
 
     async def bulk_patch(

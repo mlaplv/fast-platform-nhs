@@ -4,6 +4,7 @@
     import SupportQuickWidget from '$lib/components/admin/widgets/SupportQuickWidget.svelte';
     import BrainHealthWidget from '$lib/components/admin/widgets/BrainHealthWidget.svelte';
     import GoogleMerchantWidget from '$lib/components/admin/widgets/GoogleMerchantWidget.svelte';
+    import SeoNetworkWidget from '$lib/components/admin/widgets/SeoNetworkWidget.svelte';
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
     import { fade } from 'svelte/transition';
 
@@ -96,6 +97,7 @@
             <SupportQuickWidget />
             <BrainHealthWidget />
             <GoogleMerchantWidget />
+            <SeoNetworkWidget />
         </div>
         <div class="grid gap-6">
             {#each campaigns as _, i (campaigns[i].id)}

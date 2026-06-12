@@ -2,23 +2,22 @@
 SEO Pillar & Cluster — Litestar Controller
 """
 import logging
-from typing import Optional, List
+from typing import Optional
 from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
-from litestar.exceptions import NotFoundException, PermissionDeniedException
+from litestar.exceptions import NotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
 from backend.schemas.common import SuccessResponse
 from backend.schemas.seo import (
-    RegisterNodeRequest, UpdateNodeRequest, SeoNodeResponse,
-    CreateEdgeRequest, UpdateEdgeRequest, SeoEdgeResponse,
+    RegisterNodeRequest, UpdateNodeRequest,
+    CreateEdgeRequest, UpdateEdgeRequest,
     SeoGraphResponse, TriggerMatchRequest, MatchResultResponse,
 )
 from backend.services.seo_graph_service import SeoGraphService, provide_seo_graph_service
 from backend.services.seo_matching_service import SeoMatchingService, provide_seo_matching_service
-from backend.middleware import AuthMiddleware
 
 logger = logging.getLogger("api-gateway")
 
@@ -60,8 +59,8 @@ class SeoController(Controller):
         node = await graph_svc.register_node(db_session, data)
         await db_session.flush()
 
-        # Tạo pillar embedding ngay khi node được designate là pillar
-        if data.is_pillar and data.pillar_topic:
+        # Tạo pillar embedding ngay khi node được designate là pillar (kể cả không có pillar_topic)
+        if data.is_pillar:
             await match_svc.upsert_pillar_embedding(
                 db_session, node.id,
                 label=data.node_label,
