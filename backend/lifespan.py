@@ -29,8 +29,8 @@ logger = logging.getLogger("api-gateway")
 def _setup_seo_subscriptions() -> None:
     """
     SEO Pillar & Cluster — Event Bus hooks.
-    Listens for ARTICLE_PUBLISHED and PRODUCT_PUBLISHED events
-    and queues seo_match_entity_job via ARQ for background processing.
+    Listens for ARTICLE_PUBLISHED, PRODUCT_PUBLISHED, ARTICLE_UNPUBLISHED, and PRODUCT_UNPUBLISHED events
+    and queues jobs via ARQ to the high-priority queue for immediate background processing.
     """
     import asyncio
     from backend.database import current_tenant_id
@@ -49,15 +49,34 @@ def _setup_seo_subscriptions() -> None:
                 excerpt=str(payload.get("excerpt", ""))[:400],
                 slug=str(payload.get("slug", "")),
                 tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
-                _queue_name="default",
+                _queue_name="high",
             )
-            logger.info(f"[SEO] Queued seo_match_entity_job for {entity_type}:{payload.get('entity_id')}")
+            logger.info(f"[SEO] Queued seo_match_entity_job (high queue) for {entity_type}:{payload.get('entity_id')}")
         except Exception as e:
             logger.warning(f"[SEO] Failed to queue seo_match_entity_job: {e}")
 
+    async def _on_entity_unpublished(payload: dict) -> None:
+        try:
+            from backend.infra.arq_config import get_redis_settings
+            from arq import create_pool
+            entity_type = payload.get("entity_type", "article")
+            redis = await create_pool(get_redis_settings())
+            await redis.enqueue_job(
+                "seo_unmatch_entity_job",
+                entity_type=entity_type,
+                entity_id=str(payload.get("entity_id", "")),
+                tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
+                _queue_name="high",
+            )
+            logger.info(f"[SEO] Queued seo_unmatch_entity_job (high queue) for {entity_type}:{payload.get('entity_id')}")
+        except Exception as e:
+            logger.warning(f"[SEO] Failed to queue seo_unmatch_entity_job: {e}")
+
     event_bus.subscribe("ARTICLE_PUBLISHED", _on_entity_published)
     event_bus.subscribe("PRODUCT_PUBLISHED", _on_entity_published)
-    logger.info("[SEO] Event Bus subscriptions registered (ARTICLE_PUBLISHED, PRODUCT_PUBLISHED)")
+    event_bus.subscribe("ARTICLE_UNPUBLISHED", _on_entity_unpublished)
+    event_bus.subscribe("PRODUCT_UNPUBLISHED", _on_entity_unpublished)
+    logger.info("[SEO] Event Bus subscriptions registered (PUBLISHED & UNPUBLISHED for ARTICLE & PRODUCT)")
 
 @asynccontextmanager
 async def lifespan(app: Litestar):

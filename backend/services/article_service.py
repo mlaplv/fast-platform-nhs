@@ -394,6 +394,18 @@ class ArticleService:
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, new_id_val, article)
         
+        # SEO Pillar & Cluster: Emit ARTICLE_PUBLISHED on creation if published immediately
+        if data.status and data.status.upper() == "PUBLISHED":
+            await event_bus.emit("ARTICLE_PUBLISHED", {
+                "entity_type": "article",
+                "entity_id": str(new_id_val),
+                "title": article.title,
+                "excerpt": article.excerpt or "",
+                "slug": article.slug,
+                "tenant_id": current_tenant_id.get() or "default",
+            })
+            logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED on creation for SEO matching: {new_id_val}")
+            
         return SuccessResponse(ok=True, id=new_id_val)
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
@@ -472,17 +484,26 @@ class ArticleService:
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, article_id, article)
 
-        # SEO Pillar & Cluster: Emit ARTICLE_PUBLISHED when status transitions to PUBLISHED
-        if data.status is not None and data.status.upper() == "PUBLISHED" and _prev_status != "PUBLISHED":
-            await event_bus.emit("ARTICLE_PUBLISHED", {
-                "entity_type": "article",
-                "entity_id": str(article_id),
-                "title": article.title,
-                "excerpt": article.excerpt or "",
-                "slug": article.slug,
-                "tenant_id": current_tenant_id.get() or "default",
-            })
-            logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED for SEO matching: {article_id}")
+        # SEO Pillar & Cluster: Emit ARTICLE_PUBLISHED when status transitions to PUBLISHED, or ARTICLE_UNPUBLISHED when status transitions away from PUBLISHED
+        if data.status is not None:
+            new_status = data.status.upper()
+            if new_status == "PUBLISHED" and _prev_status != "PUBLISHED":
+                await event_bus.emit("ARTICLE_PUBLISHED", {
+                    "entity_type": "article",
+                    "entity_id": str(article_id),
+                    "title": article.title,
+                    "excerpt": article.excerpt or "",
+                    "slug": article.slug,
+                    "tenant_id": current_tenant_id.get() or "default",
+                })
+                logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED for SEO matching: {article_id}")
+            elif new_status != "PUBLISHED" and _prev_status == "PUBLISHED":
+                await event_bus.emit("ARTICLE_UNPUBLISHED", {
+                    "entity_type": "article",
+                    "entity_id": str(article_id),
+                    "tenant_id": current_tenant_id.get() or "default",
+                })
+                logger.info(f"[ArticleService] Emitted ARTICLE_UNPUBLISHED for SEO matching: {article_id}")
 
         return SuccessResponse(ok=True, id=article_id)
 
@@ -512,17 +533,52 @@ class ArticleService:
             logger.error(f"[ArticleService] Failed to emit media sync: {e}")
 
     async def delete_article(self, db_session: AsyncSession, article_id: str) -> SuccessResponse:
+        # Fetch status before soft delete to check if we need to emit UNPUBLISHED
+        prev_status = await db_session.scalar(
+            select(Article.status).where(Article.id == article_id, Article.deleted_at == None)
+        )
+        
         stmt = update(Article).where(Article.id == article_id).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+        
+        # SEO Pillar & Cluster: Emit ARTICLE_UNPUBLISHED if it was published
+        if prev_status and prev_status.upper() == "PUBLISHED":
+            await event_bus.emit("ARTICLE_UNPUBLISHED", {
+                "entity_type": "article",
+                "entity_id": str(article_id),
+                "tenant_id": current_tenant_id.get() or "default",
+            })
+            logger.info(f"[ArticleService] Emitted ARTICLE_UNPUBLISHED on deletion for SEO: {article_id}")
+            
         return SuccessResponse(ok=True, id=article_id)
 
     async def bulk_delete(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+        # Fetch status before soft delete for those currently PUBLISHED
+        published_ids = (await db_session.scalars(
+            select(Article.id).where(
+                Article.id.in_(ids),
+                Article.status == "PUBLISHED",
+                Article.deleted_at == None
+            )
+        )).all()
+        
         stmt = update(Article).where(Article.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+        
+        # SEO Pillar & Cluster: Emit ARTICLE_UNPUBLISHED for each published article deleted
+        tid = current_tenant_id.get() or "default"
+        for art_id in published_ids:
+            await event_bus.emit("ARTICLE_UNPUBLISHED", {
+                "entity_type": "article",
+                "entity_id": str(art_id),
+                "tenant_id": tid,
+            })
+            logger.info(f"[ArticleService] Emitted ARTICLE_UNPUBLISHED on bulk deletion for SEO: {art_id}")
+            
         return BulkActionResponse(ok=True, count=len(ids))
 
     async def bulk_publish(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
@@ -557,11 +613,49 @@ class ArticleService:
         
         if not values:
             return BulkActionResponse(ok=True, count=0)
+
+        # SEO Pillar & Cluster event tracking
+        published_emits = []
+        unpublished_emits = []
+        if status:
+            target_status = status.upper()
+            # Fetch previous status, titles, slugs, and excerpts
+            rows = (await db_session.execute(
+                select(Article.id, Article.status, Article.title, Article.slug, Article.excerpt)
+                .where(Article.id.in_(ids), Article.deleted_at == None)
+            )).all()
+            
+            for row in rows:
+                if target_status == "PUBLISHED" and row.status != "PUBLISHED":
+                    published_emits.append({
+                        "entity_type": "article",
+                        "entity_id": str(row.id),
+                        "title": row.title or "",
+                        "excerpt": row.excerpt or "",
+                        "slug": row.slug or "",
+                    })
+                elif target_status != "PUBLISHED" and row.status == "PUBLISHED":
+                    unpublished_emits.append({
+                        "entity_type": "article",
+                        "entity_id": str(row.id),
+                    })
             
         stmt = update(Article).where(Article.id.in_(ids)).values(**values)
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+
+        # Emit events
+        tid = current_tenant_id.get() or "default"
+        for payload in published_emits:
+            payload["tenant_id"] = tid
+            await event_bus.emit("ARTICLE_PUBLISHED", payload)
+            logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED on bulk patch for SEO: {payload['entity_id']}")
+        for payload in unpublished_emits:
+            payload["tenant_id"] = tid
+            await event_bus.emit("ARTICLE_UNPUBLISHED", payload)
+            logger.info(f"[ArticleService] Emitted ARTICLE_UNPUBLISHED on bulk patch for SEO: {payload['entity_id']}")
+            
         return BulkActionResponse(ok=True, count=len(ids))
 
     async def suggest_seo(self, title: str, content: str) -> Dict[str, str]:

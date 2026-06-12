@@ -319,3 +319,33 @@ async def seo_bulk_match_job(ctx: Dict[str, object], tenant_id: str) -> None:
         logger.error(f"[SEO Bulk Match Job] Failed: {e}", exc_info=True)
     finally:
         current_tenant_id.reset(token)
+
+
+async def seo_unmatch_entity_job(
+    ctx: Dict[str, object],
+    entity_type: str,
+    entity_id: str,
+    tenant_id: str,
+) -> None:
+    """
+    SEO Pillar & Cluster — On-Demand SEO Node/Edges Deletion (event-driven).
+    Triggered by Event Bus when article/product is set to draft or deleted.
+    """
+    logger.info(f"[SEO Unmatch Job] Unmatching/deleting {entity_type}:{entity_id} tenant={tenant_id}")
+    from backend.database import current_tenant_id
+    token = current_tenant_id.set(tenant_id)
+    session_maker = alchemy_config.create_session_maker()
+    try:
+        async with session_maker() as db:
+            from backend.services.seo_graph_service import seo_graph_service
+            await seo_graph_service.soft_delete_node_by_entity(
+                db=db,
+                entity_type=entity_type,
+                entity_id=entity_id,
+            )
+            await db.commit()
+            logger.info(f"[SEO Unmatch Job] Done for {entity_type}:{entity_id}")
+    except Exception as e:
+        logger.error(f"[SEO Unmatch Job] Failed for {entity_id}: {e}", exc_info=True)
+    finally:
+        current_tenant_id.reset(token)

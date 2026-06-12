@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { page } from "$app/state";
-  import { browser } from "$app/environment";
+  import { browser, dev } from "$app/environment";
   import { untrack } from "svelte";
   import { seoFactory } from "$lib/state/seo/schemaFactory.svelte";
   import {
@@ -184,7 +184,21 @@
     return fallbackBrand.charAt(0).toUpperCase() + fallbackBrand.slice(1);
   });
 
+  const isDebugEnabled = () => {
+    if (!dev) return false;
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("osmo:seo:debug") === "true" || 
+               localStorage.getItem("osmo:logger:debug") === "true";
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
   $effect(() => {
+    if (!isDebugEnabled()) return;
     if (shouldRender) {
       const graphLdStr = seoFactory.finalLd;
       if (!graphLdStr || graphLdStr.length < 100) return;
@@ -232,6 +246,7 @@
   $effect(() => {
     const finalStr = seoFactory.finalLd; // ← dependency tracking (không untrack)
     if (!finalStr || finalStr.length < 10) return;
+    if (!isDebugEnabled()) return;
 
     // Parse để đếm và hiển thị entities
     let graph: Record<string, unknown>[] = [];
@@ -368,6 +383,12 @@
     resolvedSiteName; isFallback;
 
     syncSeo();
+
+    return () => {
+      if (!isFallback) {
+        seoFactory.hardReset();
+      }
+    };
   });
 
   // Prevent Duplicate Headers (Fallback only renders if no page-level SEO is active)

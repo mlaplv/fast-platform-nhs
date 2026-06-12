@@ -142,23 +142,42 @@ class SeoGraphService:
         return True
 
     async def soft_delete_node_by_entity(self, db: AsyncSession, entity_type: str, entity_id: str) -> int:
-        """Gọi từ Event Bus khi core entity bị soft-delete."""
+        """Gọi từ Event Bus khi core entity bị soft-delete hoặc chuyển về nháp."""
         tenant = current_tenant_id.get() or "default"
         now = datetime.now(timezone.utc)
         db_entity_type = SeoEntityType(entity_type.upper())
-        res = await db.execute(
-            update(SeoNode)
-            .where(
+        
+        # 1. Fetch matching nodes first to get their IDs
+        nodes = (await db.execute(
+            select(SeoNode.id).where(
                 SeoNode.entity_type == db_entity_type,
                 SeoNode.entity_id == entity_id,
                 SeoNode.tenant_id == tenant,
                 SeoNode.deleted_at.is_(None),
             )
+        )).scalars().all()
+        
+        if not nodes:
+            return 0
+            
+        # 2. Soft delete the nodes
+        res = await db.execute(
+            update(SeoNode)
+            .where(SeoNode.id.in_(nodes))
             .values(deleted_at=now, updated_at=now)
         )
+        
+        # 3. Delete the edges
+        await db.execute(
+            delete(SeoEdge).where(
+                ((SeoEdge.source_node_id.in_(nodes)) | (SeoEdge.target_node_id.in_(nodes))) &
+                (SeoEdge.tenant_id == tenant)
+            )
+        )
+        
         count = res.rowcount
         if count:
-            logger.info(f"[SeoGraph] Soft-deleted {count} seo_node(s) for {entity_type}:{entity_id}")
+            logger.info(f"[SeoGraph] Soft-deleted {count} seo_node(s) and their edges for {entity_type}:{entity_id}")
         return count
 
     # ─── Edge CRUD ────────────────────────────────────────────────────────────
