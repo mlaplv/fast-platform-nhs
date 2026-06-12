@@ -47,6 +47,18 @@ class SeoGraphService:
         tenant = current_tenant_id.get() or "default"
         db_entity_type = SeoEntityType(data.entity_type.upper())
 
+        # Safeguard: Only allow articles under the category "Bài viết"
+        if db_entity_type == SeoEntityType.ARTICLE:
+            category_row = await db.execute(
+                text("SELECT category FROM articles WHERE id = :id AND deleted_at IS NULL"),
+                {"id": data.entity_id}
+            )
+            cat = category_row.scalar()
+            if cat and cat != "Bài viết":
+                raise ValueError(
+                    f"Chỉ được đăng ký các bài viết thuộc danh mục 'Bài viết' vào đồ thị SEO (Bài viết này thuộc danh mục: '{cat}')"
+                )
+
         existing = await db.scalar(
             select(SeoNode).where(
                 SeoNode.entity_type == db_entity_type,
@@ -101,6 +113,33 @@ class SeoGraphService:
             node.ai_summary = data.ai_summary
         node.updated_at = datetime.now(timezone.utc)
         return node
+
+    async def soft_delete_node(self, db: AsyncSession, node_id: str) -> bool:
+        """Soft delete node bằng ID và xóa các edges liên quan."""
+        tenant = current_tenant_id.get() or "default"
+        now = datetime.now(timezone.utc)
+        
+        node = await db.scalar(
+            select(SeoNode).where(
+                SeoNode.id == node_id,
+                SeoNode.tenant_id == tenant,
+                SeoNode.deleted_at.is_(None)
+            )
+        )
+        if not node:
+            return False
+            
+        node.deleted_at = now
+        node.updated_at = now
+        
+        # Xóa các edge liên kết với node này
+        await db.execute(
+            delete(SeoEdge).where(
+                ((SeoEdge.source_node_id == node_id) | (SeoEdge.target_node_id == node_id)) &
+                (SeoEdge.tenant_id == tenant)
+            )
+        )
+        return True
 
     async def soft_delete_node_by_entity(self, db: AsyncSession, entity_type: str, entity_id: str) -> int:
         """Gọi từ Event Bus khi core entity bị soft-delete."""

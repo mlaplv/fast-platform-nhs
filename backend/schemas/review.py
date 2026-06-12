@@ -1,10 +1,10 @@
-from typing import Optional, Union, Literal
+from typing import Any, Optional, Union, Literal
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from backend.database.models.system import ReviewEntityType
 
 # Strict Union type cho dynamic attributes và attachments — thậy thế 'object' wildcard
-ReviewAttributeValue = Union[str, int, float, bool]
+ReviewAttributeValue = Union[str, int, float, bool, dict[str, Any], list[Any]]
 ReviewAttachment = dict[str, Union[str, int, bool]]
 
 class CreateReviewRequest(BaseModel):

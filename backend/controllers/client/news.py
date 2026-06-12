@@ -71,7 +71,7 @@ class PublicNewsController(Controller):
                 raise NotFoundException(f"Article {article_id} is not published")
             # GEO 2026: Inject SEO meta with FAQ JSON-LD
             faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
-            article.seoMeta = SeoService.generate_article_seo_meta(
+            article.seoMeta = await SeoService.generate_article_seo_meta(
                 title=article.title,
                 slug=article.slug,
                 excerpt=article.excerpt,
@@ -82,6 +82,7 @@ class PublicNewsController(Controller):
                 seo_title=article.seoTitle,
                 seo_description=article.seoDescription,
                 seo_keywords=article.seoKeywords,
+                db=db_session,
             )
             return article
         except NotFoundException:
@@ -101,7 +102,7 @@ class PublicNewsController(Controller):
                 raise NotFoundException(f"Article with slug '{slug}' is not published")
             # GEO 2026: Inject SEO meta with FAQ JSON-LD
             faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
-            article.seoMeta = SeoService.generate_article_seo_meta(
+            article.seoMeta = await SeoService.generate_article_seo_meta(
                 title=article.title,
                 slug=article.slug,
                 excerpt=article.excerpt,
@@ -112,6 +113,7 @@ class PublicNewsController(Controller):
                 seo_title=article.seoTitle,
                 seo_description=article.seoDescription,
                 seo_keywords=article.seoKeywords,
+                db=db_session,
             )
             return article
         except NotFoundException:

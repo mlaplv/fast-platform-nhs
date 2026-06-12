@@ -297,3 +297,25 @@ async def seo_match_entity_job(
         logger.error(f"[SEO Match Job] Failed for {entity_id}: {e}", exc_info=True)
     finally:
         current_tenant_id.reset(token)
+
+
+async def seo_bulk_match_job(ctx: Dict[str, object], tenant_id: str) -> None:
+    """
+    SEO Pillar & Cluster — Bulk AI Matching (Background Job).
+    Triggered by admin via HTTP endpoint to avoid gateway timeouts.
+    """
+    logger.info(f"[SEO Bulk Match Job] Starting background bulk matching for tenant={tenant_id}")
+    from backend.database import current_tenant_id
+    token = current_tenant_id.set(tenant_id)
+    session_maker = alchemy_config.create_session_maker()
+    try:
+        async with session_maker() as db:
+            from backend.services.seo_matching_service import seo_matching_service
+            from backend.services.ai_engine.core.key_rotator import key_rotator
+            await key_rotator.load_keys()
+            result = await seo_matching_service.bulk_match_unclassified(db)
+            logger.info(f"[SEO Bulk Match Job] Finished successfully: {result}")
+    except Exception as e:
+        logger.error(f"[SEO Bulk Match Job] Failed: {e}", exc_info=True)
+    finally:
+        current_tenant_id.reset(token)

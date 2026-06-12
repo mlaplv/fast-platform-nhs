@@ -13,7 +13,9 @@
 		getPillarNodes,
 		isSidebarOpen,
 		batchSelectedIds,
-		batchAssignPillar
+		batchAssignPillar,
+		triggerBulkMatch,
+		filterGroup
 	} from '$lib/stores/seoGraph.svelte';
 
 	const API_BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -23,8 +25,29 @@
 	let isBatchAssigning = $state(false);
 	let batchResult = $state<{ success: number; failed: number } | null>(null);
 
+	let isBulkMatching = $state(false);
+	let bulkMatchResult = $state<{ success: number; failed: number; total_nodes_processed: number } | null>(null);
+
+	// Batch filtering states
+	let batchFilterType = $state<'all' | 'article' | 'product'>('all');
+	let batchSearchQuery = $state('');
+
 	// Unclassified nodes for batch selection list
 	const unclassifiedNodes = $derived(graphData.nodes.filter((n) => n.group === 'unclassified'));
+
+	// Derived filtered unclassified nodes
+	const filteredUnclassifiedNodes = $derived(
+		unclassifiedNodes.filter((n) => {
+			const matchesType = batchFilterType === 'all' || 
+				n.entity_type.toLowerCase() === batchFilterType.toLowerCase();
+			const label = (n.label ?? '').toLowerCase();
+			const slug = (n.slug ?? '').toLowerCase();
+			const matchesKeyword = batchSearchQuery.trim() === '' ||
+				label.includes(batchSearchQuery.toLowerCase()) ||
+				slug.includes(batchSearchQuery.toLowerCase());
+			return matchesType && matchesKeyword;
+		})
+	);
 
 	onMount(async () => {
 		await fetchGraph(API_BASE);
@@ -32,6 +55,20 @@
 
 	async function handleRefresh() {
 		await fetchGraph(API_BASE);
+	}
+
+	async function handleBulkAiMatch() {
+		isBulkMatching = true;
+		bulkMatchResult = null;
+		const res = await triggerBulkMatch(API_BASE);
+		isBulkMatching = false;
+		if (res) {
+			bulkMatchResult = res;
+			// Hide result banner after 5 seconds
+			setTimeout(() => {
+				bulkMatchResult = null;
+			}, 5000);
+		}
 	}
 
 	function toggleBatchNode(nodeId: string) {
@@ -44,10 +81,28 @@
 		batchSelectedIds.value = new Set(unclassifiedNodes.map((n) => n.id));
 	}
 
+	function selectAllFiltered() {
+		const next = new Set(batchSelectedIds.value);
+		for (const n of filteredUnclassifiedNodes) {
+			next.add(n.id);
+		}
+		batchSelectedIds.value = next;
+	}
+
+	function deselectAllFiltered() {
+		const next = new Set(batchSelectedIds.value);
+		for (const n of filteredUnclassifiedNodes) {
+			next.delete(n.id);
+		}
+		batchSelectedIds.value = next;
+	}
+
 	function clearBatchSelection() {
 		batchSelectedIds.value = new Set();
 		batchTargetPillarId = '';
 		batchResult = null;
+		batchFilterType = 'all';
+		batchSearchQuery = '';
 	}
 
 	async function handleBatchAssign() {
@@ -68,22 +123,44 @@
 			<p class="header-subtitle">AI-powered internal linking visualizer</p>
 		</div>
 		<div class="header-stats">
-			<div class="stat-chip pillar">
+			<button
+				class="stat-chip pillar"
+				class:active={filterGroup.value === 'pillar'}
+				onclick={() => filterGroup.value = filterGroup.value === 'pillar' ? 'all' : 'pillar'}
+				title="Lọc hiển thị chỉ Pillars"
+			>
 				<span class="stat-value">{graphData.meta.pillars}</span>
 				<span class="stat-label">Pillars</span>
-			</div>
-			<div class="stat-chip cluster">
+			</button>
+			<button
+				class="stat-chip cluster"
+				class:active={filterGroup.value === 'cluster'}
+				onclick={() => filterGroup.value = filterGroup.value === 'cluster' ? 'all' : 'cluster'}
+				title="Lọc hiển thị chỉ Clusters"
+			>
 				<span class="stat-value">{graphData.meta.total_nodes - graphData.meta.pillars - getUnclassifiedCount()}</span>
 				<span class="stat-label">Clusters</span>
-			</div>
-			<div class="stat-chip unclassified" class:alert={getUnclassifiedCount() > 0}>
+			</button>
+			<button
+				class="stat-chip unclassified"
+				class:alert={getUnclassifiedCount() > 0}
+				class:active={filterGroup.value === 'unclassified'}
+				onclick={() => filterGroup.value = filterGroup.value === 'unclassified' ? 'all' : 'unclassified'}
+				title="Lọc hiển thị chỉ các node chưa phân loại"
+			>
 				<span class="stat-value">{getUnclassifiedCount()}</span>
 				<span class="stat-label">Chờ phân loại</span>
-			</div>
-			<div class="stat-chip ai" class:alert={getAiSuggestedCount() > 0}>
+			</button>
+			<button
+				class="stat-chip ai"
+				class:alert={getAiSuggestedCount() > 0}
+				class:active={filterGroup.value === 'ai_suggested'}
+				onclick={() => filterGroup.value = filterGroup.value === 'ai_suggested' ? 'all' : 'ai_suggested'}
+				title="Lọc hiển thị chỉ các liên kết AI đề xuất"
+			>
 				<span class="stat-value">{getAiSuggestedCount()}</span>
 				<span class="stat-label">AI đề xuất</span>
-			</div>
+			</button>
 		</div>
 		{#if getUnclassifiedCount() > 0}
 			<button
@@ -106,13 +183,64 @@
 				<span class="batch-title">📋 Gán hàng loạt vào Pillar</span>
 				<div class="batch-controls">
 					<button class="batch-ctrl-btn" onclick={selectAllUnclassified}>Chọn tất cả ({unclassifiedNodes.length})</button>
-					<button class="batch-ctrl-btn" onclick={clearBatchSelection}>Bỏ chọn</button>
+					<button class="batch-ctrl-btn" onclick={clearBatchSelection}>Bỏ chọn tất cả</button>
+					<button class="batch-ctrl-btn ai-match-all" onclick={handleBulkAiMatch} disabled={isBulkMatching || unclassifiedNodes.length === 0}>
+						{isBulkMatching ? '⏳ Đang phân tích...' : '🤖 Chạy AI Matching Hàng Loạt (' + unclassifiedNodes.length + ')'}
+					</button>
+				</div>
+			</div>
+
+			<!-- Batch Filter Bar -->
+			<div class="batch-filter-bar">
+				<div class="filter-type-tabs">
+					<button
+						class="tab-btn"
+						class:active={batchFilterType === 'all'}
+						onclick={() => batchFilterType = 'all'}
+					>
+						Tất cả
+					</button>
+					<button
+						class="tab-btn"
+						class:active={batchFilterType === 'article'}
+						onclick={() => batchFilterType = 'article'}
+					>
+						Bài viết
+					</button>
+					<button
+						class="tab-btn"
+						class:active={batchFilterType === 'product'}
+						onclick={() => batchFilterType = 'product'}
+					>
+						Sản phẩm
+					</button>
+				</div>
+
+				<div class="filter-search-container">
+					<input
+						type="text"
+						placeholder="🔍 Lọc theo tiêu đề, slug..."
+						bind:value={batchSearchQuery}
+						class="filter-search-input"
+					/>
+					{#if batchSearchQuery}
+						<button class="clear-search-btn" onclick={() => batchSearchQuery = ''}>✕</button>
+					{/if}
+				</div>
+
+				<div class="filter-actions">
+					<button class="batch-ctrl-btn" onclick={selectAllFiltered}>
+						Chọn {filteredUnclassifiedNodes.length} đang hiển thị
+					</button>
+					<button class="batch-ctrl-btn" onclick={deselectAllFiltered}>
+						Bỏ chọn đang hiển thị
+					</button>
 				</div>
 			</div>
 
 			<div class="batch-body">
 				<div class="batch-node-list">
-					{#each unclassifiedNodes as node (node.id)}
+					{#each filteredUnclassifiedNodes as node (node.id)}
 						<label class="batch-node-item" class:selected={batchSelectedIds.value.has(node.id)}>
 							<input
 								type="checkbox"
@@ -123,8 +251,10 @@
 							<span class="batch-node-label">{node.label}</span>
 						</label>
 					{/each}
-					{#if unclassifiedNodes.length === 0}
-						<p class="batch-empty">✅ Không có node chưa phân loại</p>
+					{#if filteredUnclassifiedNodes.length === 0}
+						<p class="batch-empty">
+							{unclassifiedNodes.length === 0 ? '✅ Không có node chưa phân loại' : '🔍 Không tìm thấy node phù hợp bộ lọc'}
+						</p>
 					{/if}
 				</div>
 
@@ -148,6 +278,15 @@
 					{#if batchResult}
 						<div class="batch-result" class:ok={batchResult.failed === 0}>
 							✅ {batchResult.success} thành công{batchResult.failed > 0 ? `, ⚠️ ${batchResult.failed} lỗi` : ''}
+						</div>
+					{/if}
+					{#if bulkMatchResult}
+						<div class="batch-result ok">
+							{#if bulkMatchResult.status === 'enqueued'}
+								🤖 Đã kích hoạt chạy AI Matching hàng loạt trong nền. Các liên kết đề xuất sẽ tự động xuất hiện sau vài phút.
+							{:else}
+								🤖 AI đã khớp: {bulkMatchResult.auto_matched || 0} tự động, {bulkMatchResult.ai_suggested || 0} đề xuất (Tổng xử lý: {bulkMatchResult.total_nodes_processed || 0})
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -224,26 +363,65 @@
 		border: 1px solid rgba(255, 255, 255, 0.05);
 		border-radius: 9999px;
 		font-size: 0.72rem;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		outline: none;
+	}
+	.stat-chip:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 	}
 	.stat-chip.pillar {
 		border-color: rgba(245, 158, 11, 0.2);
 		background: rgba(245, 158, 11, 0.04);
 		color: #fbbf24;
 	}
+	.stat-chip.pillar:hover, .stat-chip.pillar.active {
+		border-color: rgba(245, 158, 11, 0.6);
+		background: rgba(245, 158, 11, 0.15);
+		box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+	}
 	.stat-chip.cluster {
 		border-color: rgba(99, 102, 241, 0.2);
 		background: rgba(99, 102, 241, 0.04);
 		color: #818cf8;
+	}
+	.stat-chip.cluster:hover, .stat-chip.cluster.active {
+		border-color: rgba(99, 102, 241, 0.6);
+		background: rgba(99, 102, 241, 0.15);
+		box-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+	}
+	.stat-chip.unclassified {
+		border-color: rgba(239, 68, 68, 0.15);
+		background: rgba(239, 68, 68, 0.02);
+		color: #94a3b8;
 	}
 	.stat-chip.unclassified.alert {
 		border-color: rgba(239, 68, 68, 0.3);
 		background: rgba(239, 68, 68, 0.08);
 		color: #fca5a5;
 	}
+	.stat-chip.unclassified:hover, .stat-chip.unclassified.active {
+		border-color: rgba(239, 68, 68, 0.6);
+		background: rgba(239, 68, 68, 0.15);
+		color: #fca5a5;
+		box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+	}
+	.stat-chip.ai {
+		border-color: rgba(249, 115, 22, 0.15);
+		background: rgba(249, 115, 22, 0.02);
+		color: #94a3b8;
+	}
 	.stat-chip.ai.alert {
 		border-color: rgba(249, 115, 22, 0.3);
 		background: rgba(249, 115, 22, 0.08);
 		color: #fdba74;
+	}
+	.stat-chip.ai:hover, .stat-chip.ai.active {
+		border-color: rgba(249, 115, 22, 0.6);
+		background: rgba(249, 115, 22, 0.15);
+		color: #fdba74;
+		box-shadow: 0 0 8px rgba(249, 115, 22, 0.2);
 	}
 
 	.stat-value {
@@ -292,8 +470,79 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.6rem;
-		max-height: 280px;
+		max-height: 420px;
 		overflow: hidden;
+	}
+	.batch-filter-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		padding: 0.4rem 0;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	}
+	.filter-type-tabs {
+		display: flex;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 6px;
+		padding: 2px;
+	}
+	.tab-btn {
+		padding: 0.25rem 0.6rem;
+		font-size: 0.72rem;
+		border: none;
+		background: transparent;
+		color: #94a3b8;
+		border-radius: 4px;
+		cursor: pointer;
+		font-weight: 500;
+		transition: all 0.15s;
+	}
+	.tab-btn:hover {
+		color: #e2e8f0;
+	}
+	.tab-btn.active {
+		background: rgba(245, 158, 11, 0.15);
+		color: #fbbf24;
+		font-weight: 600;
+	}
+	.filter-search-container {
+		position: relative;
+		flex: 1;
+		min-width: 180px;
+	}
+	.filter-search-input {
+		width: 100%;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		border-radius: 6px;
+		padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+		font-size: 0.72rem;
+		color: #e2e8f0;
+		outline: none;
+		transition: border-color 0.2s;
+	}
+	.filter-search-input:focus {
+		border-color: rgba(245, 158, 11, 0.5);
+	}
+	.clear-search-btn {
+		position: absolute;
+		right: 6px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: transparent;
+		border: none;
+		color: #64748b;
+		cursor: pointer;
+		font-size: 0.65rem;
+	}
+	.clear-search-btn:hover {
+		color: #e2e8f0;
+	}
+	.filter-actions {
+		display: flex;
+		gap: 0.4rem;
 	}
 	.batch-header {
 		display: flex;
@@ -316,6 +565,22 @@
 		cursor: pointer;
 	}
 	.batch-ctrl-btn:hover { background: rgba(255,255,255,0.05); }
+	.batch-ctrl-btn.ai-match-all {
+		background: rgba(139, 92, 246, 0.12);
+		border-color: rgba(139, 92, 246, 0.35);
+		color: #c084fc;
+		font-weight: 600;
+		transition: all 0.2s;
+	}
+	.batch-ctrl-btn.ai-match-all:hover:not(:disabled) {
+		background: rgba(139, 92, 246, 0.25);
+		border-color: rgba(139, 92, 246, 0.5);
+		box-shadow: 0 0 8px rgba(139, 92, 246, 0.25);
+	}
+	.batch-ctrl-btn.ai-match-all:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
 	.batch-body {
 		display: grid;
 		grid-template-columns: 1fr auto;

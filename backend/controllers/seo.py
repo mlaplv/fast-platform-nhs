@@ -95,6 +95,20 @@ class SeoController(Controller):
         await db_session.commit()
         return SuccessResponse(message="Cập nhật node thành công.")
 
+    @delete("/nodes/{node_id:str}", status_code=200, guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def delete_node(
+        self,
+        db_session: AsyncSession,
+        graph_svc: SeoGraphService,
+        node_id: str,
+    ) -> SuccessResponse:
+        """Xóa node khỏi SEO graph."""
+        deleted = await graph_svc.soft_delete_node(db_session, node_id)
+        if not deleted:
+            raise NotFoundException(f"Không tìm thấy SEO node: {node_id}")
+        await db_session.commit()
+        return SuccessResponse(message="Xóa node khỏi đồ thị SEO thành công.")
+
     # ─── Edge CRUD ────────────────────────────────────────────────────────────
 
     @post("/edges", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
@@ -180,6 +194,39 @@ class SeoController(Controller):
         )
         await db_session.commit()
         return result
+
+    @post("/match/bulk", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=200)
+    async def trigger_bulk_match(
+        self,
+        db_session: AsyncSession,
+        match_svc: SeoMatchingService,
+    ) -> SuccessResponse:
+        """
+        Quét và chạy AI matching tự động cho toàn bộ các node đang ở trạng thái 'unclassified'
+        ở chế độ chạy nền (background job) để tránh lỗi Gateway Timeout (504).
+        """
+        from backend.infra.arq_config import get_redis_settings
+        from arq import create_pool
+        from backend.database import current_tenant_id
+        
+        tenant_id = current_tenant_id.get() or "osmo.vn"
+        try:
+            redis_pool = await create_pool(get_redis_settings())
+            await redis_pool.enqueue_job("seo_bulk_match_job", tenant_id, _queue_name="high")
+            logger.info(f"🧬 [SeoController] Enqueued bulk matching background job for tenant {tenant_id}")
+            return SuccessResponse(
+                message="Hệ thống đã kích hoạt chạy AI Matching hàng loạt trong nền. Tiến trình sẽ tự động hoàn tất trong vài phút.",
+                data={"status": "enqueued"},
+            )
+        except Exception as e:
+            logger.error(f"❌ [SeoController] Failed to enqueue bulk matching job: {e}", exc_info=True)
+            # Fallback sang chạy đồng bộ nếu Redis gặp sự cố
+            result = await match_svc.bulk_match_unclassified(db_session)
+            await db_session.commit()
+            return SuccessResponse(
+                message=f"Hoàn tất chạy AI Matching hàng loạt (đồng bộ) cho {result['total_nodes_processed']} nodes do sự cố kết nối hàng đợi.",
+                data=result,
+            )
 
     @post("/reconcile", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=200)
     async def manual_reconcile(

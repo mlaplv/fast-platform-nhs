@@ -7,7 +7,10 @@
 		togglePillar,
 		triggerMatch,
 		overrideEdge,
-		isSidebarOpen
+		isSidebarOpen,
+		deleteEdge,
+		deleteNode,
+		type GraphNode
 	} from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
@@ -46,6 +49,47 @@
 		isMatching = true;
 		matchResult = await triggerMatch(apiBase, getActiveNode()!.entity_type as 'article' | 'product', getActiveNode()!.entity_id);
 		isMatching = false;
+	}
+
+	async function handleDeleteLink() {
+		if (!currentEdge) return;
+		const success = await deleteEdge(apiBase, currentEdge.id);
+		if (success) {
+			selectedNodeId.value = null; // Deselect node sau khi gỡ
+		}
+	}
+
+	let childClusters = $derived.by(() => {
+		const active = getActiveNode();
+		if (!active || !active.is_pillar) return [];
+		const activeId = active.id;
+		return graphData.links
+			.filter((l) => {
+			const srcId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+				return srcId === activeId;
+			})
+			.map((l) => {
+				const tgtId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+				const targetNode = graphData.nodes.find((n) => n.id === tgtId);
+				return {
+					edgeId: l.id,
+					node: targetNode || { label: 'Không xác định', id: tgtId }
+				};
+			});
+	});
+
+	async function handleDeleteChildLink(edgeId: string) {
+		await deleteEdge(apiBase, edgeId);
+	}
+
+	async function handleDeleteNode() {
+		if (!getActiveNode()) return;
+		if (confirm(`Bạn có chắc muốn xóa node "${getActiveNode()!.label}" khỏi đồ thị SEO không? (Điều này không ảnh hưởng đến nội dung bài viết gốc trên trang web)`)) {
+			const success = await deleteNode(apiBase, getActiveNode()!.id);
+			if (success) {
+				selectedNodeId.value = null;
+			}
+		}
 	}
 
 	function getTierLabel(tier: string): string {
@@ -154,6 +198,47 @@
 					</div>
 				{/if}
 			{/if}
+
+			<!-- Delete Link (Gỡ khỏi Cluster) -->
+			{#if currentEdge && getActiveNode()?.group === 'cluster'}
+				<button class="action-btn delete-link" onclick={handleDeleteLink}>
+					✕ Gỡ khỏi Cluster (Xóa liên kết)
+				</button>
+			{/if}
+
+			<!-- Delete Node (Xóa khỏi đồ thị) -->
+			<button class="action-btn delete-node" onclick={handleDeleteNode}>
+				🗑 Xóa khỏi Đồ thị SEO
+			</button>
+		</div>
+
+		<!-- Child Clusters List (If Pillar) -->
+		{#if getActiveNode()?.is_pillar}
+			<div class="section child-section">
+				<h3 class="section-title">Các Cluster liên kết ({childClusters.length})</h3>
+				{#if childClusters.length === 0}
+					<p class="empty-child-text">Chưa có cluster con nào liên kết.</p>
+				{:else}
+					<div class="child-clusters-list">
+						{#each childClusters as child}
+							<div class="child-cluster-item">
+								<span class="child-label" title={child.node.label}>{child.node.label}</span>
+								<button class="remove-child-btn" onclick={() => handleDeleteChildLink(child.edgeId)} title="Gỡ liên kết">
+									✕
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- AI SEO TIP -->
+		<div class="ai-tip-card">
+			<div class="tip-title">💡 Triết lý AI Matching</div>
+			<p class="tip-content">
+				Hệ thống AI của bạn phải nhận diện được các thực thể (Thương hiệu, Tính năng, Nỗi đau của khách hàng) chứ không chỉ đếm số lần xuất hiện của từ khóa.
+			</p>
 		</div>
 	{/if}
 </div>
@@ -331,6 +416,8 @@
 	.action-btn.active { background: rgba(99,102,241,0.25); border-color: #6366f1; }
 	.action-btn.confirm { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
 	.action-btn.match { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.3); color: #fdba74; }
+	.action-btn.delete-link { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+	.action-btn.delete-link:hover:not(:disabled) { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
 	.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 	.reassign-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem; }
@@ -359,4 +446,98 @@
 		color: #6ee7b7;
 	}
 	.match-conf { font-size: 0.7rem; color: #64748b; margin-top: 0.2rem; }
+
+	.ai-tip-card {
+		margin: 1.25rem;
+		padding: 0.85rem 1rem;
+		background: rgba(99, 102, 241, 0.04);
+		border: 1px dashed rgba(99, 102, 241, 0.2);
+		border-radius: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	.tip-title {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #a5b4fc;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	.tip-content {
+		font-size: 0.72rem;
+		color: #94a3b8;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.action-btn.delete-node {
+		background: rgba(239, 68, 68, 0.08);
+		border-color: rgba(239, 68, 68, 0.25);
+		color: #fca5a5;
+		margin-top: 0.5rem;
+	}
+	.action-btn.delete-node:hover:not(:disabled) {
+		background: rgba(239, 68, 68, 0.18);
+		border-color: rgba(239, 68, 68, 0.5);
+	}
+
+	.child-section {
+		margin-top: 1.25rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.06);
+		padding-top: 1rem;
+	}
+	.empty-child-text {
+		font-size: 0.75rem;
+		color: #64748b;
+		font-style: italic;
+		padding: 0 1.25rem;
+		margin: 0.25rem 0 0 0;
+	}
+	.child-clusters-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		padding: 0 1.25rem;
+		max-height: 240px;
+		overflow-y: auto;
+	}
+	.child-cluster-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		border-radius: 6px;
+		padding: 0.45rem 0.65rem;
+		gap: 0.5rem;
+	}
+	.child-label {
+		font-size: 0.75rem;
+		color: #cbd5e1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		flex: 1;
+	}
+	.remove-child-btn {
+		background: transparent;
+		border: none;
+		color: #ef4444;
+		font-size: 0.8rem;
+		cursor: pointer;
+		padding: 0 0.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0.65;
+		transition: all 0.2s;
+	}
+	.remove-child-btn:hover {
+		opacity: 1;
+		transform: scale(1.15);
+	}
 </style>

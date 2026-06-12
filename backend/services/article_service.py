@@ -310,14 +310,15 @@ class ArticleService:
         faqs = meta_dict.get("faqs", [])
 
         from backend.services.commerce.seo_service import SeoService
-        seo_meta = SeoService.generate_article_seo_meta(
+        seo_meta = await SeoService.generate_article_seo_meta(
             title=article_data["title"],
             slug=article_data["slug"],
             excerpt=article_data["excerpt"],
             image=article_data["featured_image"],
             author=article_data["author_name"],
             date_published=article_data["created_at"].isoformat() if article_data["created_at"] else None,
-            faqs=faqs
+            faqs=faqs,
+            db=db_session,
         )
         article_data["seo_meta"] = seo_meta
         
@@ -622,10 +623,14 @@ class ArticleService:
 
         # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
         base_faq_prompt = (
-            "Bạn là chuyên gia cố vấn nội dung. Dựa trên tiêu đề và nội dung bài viết, "
-            "hãy tạo 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt. "
-            "QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%. "
-            "Chỉ trả về mảng JSON chính xác, không có markdown: "
+            "Bạn là chuyên gia cố vấn nội dung và SEO chuyên tối ưu hóa dữ liệu Hỏi & Đáp (Q&A Blocks) đáp ứng tiêu chuẩn hiển thị của Google SGE và AI Overviews.\n"
+            "Dựa trên tiêu đề và nội dung bài viết, hãy tạo từ 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt.\n\n"
+            "YÊU CẦU CHO CÂU HỎI SGE/AI OVERVIEWS:\n"
+            "1. Tiêu đề câu hỏi (question) bắt buộc phải viết dưới dạng các câu hỏi tìm kiếm tự nhiên của người dùng, sử dụng các từ nghi vấn như: 'Là gì', 'Làm thế nào', 'Có tác dụng gì', 'Tại sao', 'Có tốt không', 'Cách thực hiện', 'Cách dùng'.\n"
+            "2. Tránh các câu hỏi chung chung. Câu hỏi phải bám sát từ khóa cốt lõi của bài viết để phục vụ truy vấn tìm kiếm.\n"
+            "3. Câu trả lời (answer) phải ngắn gọn, súc tích (dưới 80 từ), chính xác và đi thẳng vào trọng tâm câu hỏi.\n"
+            "4. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%.\n"
+            "5. Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown:\n"
             "[{\"question\": \"...\", \"answer\": \"...\"}]"
         )
         sge_cfg_faq = await _get_sge_config_async()

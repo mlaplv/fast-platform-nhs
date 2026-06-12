@@ -7,7 +7,7 @@
 
 export interface GraphNode {
 	id: string;
-	entity_type: 'article' | 'product';
+	entity_type: 'article' | 'product' | 'ARTICLE' | 'PRODUCT' | string;
 	entity_id: string;
 	label: string;
 	slug: string;
@@ -57,7 +57,7 @@ export const graphData = $state<GraphData>({
 export const selectedNodeId = $state<{ value: string | null }>({ value: null });
 export const isLoading = $state<{ value: boolean }>({ value: false });
 export const errorMsg = $state<{ value: string | null }>({ value: null });
-export const filterGroup = $state<{ value: 'all' | 'pillar' | 'cluster' | 'unclassified' }>({ value: 'all' });
+export const filterGroup = $state<{ value: 'all' | 'pillar' | 'cluster' | 'unclassified' | 'ai_suggested' }>({ value: 'all' });
 export const isSidebarOpen = $state<{ value: boolean }>({ value: true });
 export const batchSelectedIds = $state<{ value: Set<string> }>({ value: new Set() });
 
@@ -90,7 +90,7 @@ export async function fetchGraph(apiBase: string): Promise<void> {
 	isLoading.value = true;
 	errorMsg.value = null;
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/graph`, { credentials: 'include' });
+		const res = await fetch(`${apiBase}/api/v1/seo/graph?t=${Date.now()}`, { credentials: 'include' });
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const data: GraphData = await res.json();
 		graphData.meta = data.meta;
@@ -175,6 +175,7 @@ export async function togglePillar(
 			body: JSON.stringify({ is_pillar: isPillar, pillar_topic: pillarTopic })
 		});
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await fetchGraph(apiBase);
 	} catch {
 		graphData.nodes = snapshot;
 		errorMsg.value = 'Cập nhật Pillar thất bại. Đã rollback.';
@@ -202,6 +203,29 @@ export async function triggerMatch(
 		await fetchGraph(apiBase);
 		return result;
 	} catch {
+		return null;
+	}
+}
+
+/**
+ * Trigger manual AI matching for all unclassified nodes.
+ */
+export async function triggerBulkMatch(
+	apiBase: string
+): Promise<{ success: number; failed: number; total_nodes_processed: number } | null> {
+	try {
+		const res = await fetch(`${apiBase}/api/v1/seo/match/bulk`, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' }
+		});
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const result = await res.json();
+		// Refresh graph sau khi match bulk
+		await fetchGraph(apiBase);
+		return result.data;
+	} catch (e) {
+		errorMsg.value = e instanceof Error ? e.message : 'Chạy AI Matching hàng loạt thất bại.';
 		return null;
 	}
 }
@@ -271,3 +295,68 @@ export async function batchAssignPillar(
 	await fetchGraph(apiBase);
 	return { success, failed };
 }
+
+/**
+ * Delete an edge/link by ID.
+ * Returns true if successful.
+ */
+export async function deleteEdge(apiBase: string, edgeId: string): Promise<boolean> {
+	// Snapshot for rollback
+	const snapshotLinks = [...graphData.links];
+	const snapshotNodes = graphData.nodes.map((n) => ({ ...n }));
+
+	// Optimistic update: remove the link locally
+	graphData.links = graphData.links.filter((l) => l.id !== edgeId);
+
+	try {
+		const res = await fetch(`${apiBase}/api/v1/seo/edges/${edgeId}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await fetchGraph(apiBase);
+		return true;
+	} catch (e) {
+		// Rollback on failure
+		graphData.links = snapshotLinks;
+		graphData.nodes = snapshotNodes;
+		errorMsg.value = 'Xóa liên kết thất bại. Đã rollback.';
+		return false;
+	}
+}
+
+/**
+ * Delete a node from the SEO graph by ID.
+ * Returns true if successful.
+ */
+export async function deleteNode(apiBase: string, nodeId: string): Promise<boolean> {
+	// Snapshot for rollback
+	const snapshotNodes = [...graphData.nodes];
+	const snapshotLinks = [...graphData.links];
+
+	// Optimistic update: filter out the node and its connected links
+	graphData.nodes = graphData.nodes.filter((n) => n.id !== nodeId);
+	graphData.links = graphData.links.filter((l) => {
+		const srcId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+		const tgtId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+		return srcId !== nodeId && tgtId !== nodeId;
+	});
+
+	try {
+		const res = await fetch(`${apiBase}/api/v1/seo/nodes/${nodeId}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await fetchGraph(apiBase);
+		return true;
+	} catch (e) {
+		// Rollback on failure
+		graphData.nodes = snapshotNodes;
+		graphData.links = snapshotLinks;
+		errorMsg.value = 'Xóa node khỏi đồ thị thất bại. Đã rollback.';
+		return false;
+	}
+}
+
+

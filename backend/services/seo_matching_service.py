@@ -39,6 +39,8 @@ class SeoMatchingService:
 
     def __init__(self):
         self._graph_svc = SeoGraphService()
+        from backend.services.seo_entity_extractor import SeoEntityExtractor
+        self._entity_extractor = SeoEntityExtractor()
 
     def _get_encoder(self):
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
@@ -64,6 +66,34 @@ class SeoMatchingService:
         """
         tenant = current_tenant_id.get() or "default"
 
+        # Step 0: Only allow articles in category "Bài viết"
+        if entity_type.lower() == "article":
+            category_row = await db.execute(
+                text("SELECT category FROM articles WHERE id = :id AND deleted_at IS NULL"),
+                {"id": entity_id}
+            )
+            cat = category_row.scalar()
+            if cat and cat != "Bài viết":
+                logger.info(f"[SeoMatch] Skipping {entity_id} because category is '{cat}' (not 'Bài viết')")
+                # Delete any existing SEO node for this article if it exists
+                existing = await db.scalar(
+                    select(SeoNode).where(
+                        SeoNode.entity_type == "ARTICLE",
+                        SeoNode.entity_id == entity_id,
+                        SeoNode.tenant_id == tenant,
+                        SeoNode.deleted_at.is_(None)
+                    )
+                )
+                if existing:
+                    await self._graph_svc.soft_delete_node(db, existing.id)
+                return MatchResultResponse(
+                    node_id="",
+                    matched_pillar_id=None,
+                    match_tier="unclassified",
+                    ai_confidence=0.0,
+                    ai_reasoning=f"Bài viết thuộc danh mục '{cat}' không thuộc đối tượng đồ thị SEO.",
+                )
+
         # Step 1: Register node (upsert)
         ai_summary = f"{title}. {content_excerpt[:300]}" if content_excerpt else title
         node = await self._graph_svc.register_node(db, RegisterNodeRequest(
@@ -80,6 +110,12 @@ class SeoMatchingService:
         # If node is already a Pillar page, preserve status and skip matching
         if node.is_pillar:
             logger.info(f"[SeoMatch] Node {node.id} is already a Pillar. Skip matching.")
+            # Still run entity extraction for pillar nodes (async, non-blocking for response)
+            asyncio.create_task(
+                self._entity_extractor.extract_and_persist(
+                    db, node.id, title, content_excerpt, entity_type
+                )
+            )
             return MatchResultResponse(
                 node_id=node.id,
                 matched_pillar_id=None,
@@ -87,6 +123,27 @@ class SeoMatchingService:
                 ai_confidence=1.0,
                 ai_reasoning="Node này đã được thiết lập làm Pillar page.",
             )
+
+        # Step 1b: Run entity extraction to enrich ai_summary with entity context
+        # This runs concurrently with the pillar lookup below
+        try:
+            entities, intent_type = await asyncio.wait_for(
+                self._entity_extractor.extract_and_persist(
+                    db, node.id, title, content_excerpt, entity_type
+                ),
+                timeout=25.0,
+            )
+            # Enrich ai_summary with extracted entities for better vector matching
+            if entities:
+                entity_names = self._entity_extractor.get_entity_names(entities)
+                entity_context = ", ".join(entity_names[:8])
+                ai_summary = f"{ai_summary} [{entity_context}]"
+                node.ai_summary = ai_summary
+            logger.info("[SeoMatch] Entity enrichment done: intent=%s entities=%d", intent_type, len(entities))
+        except asyncio.TimeoutError:
+            logger.warning("[SeoMatch] Entity extraction timed out — continuing without enrichment")
+        except Exception as e:
+            logger.warning("[SeoMatch] Entity extraction failed: %s — continuing", e)
 
         # Step 2: Load all active Pillar nodes with embeddings
         pillars = await self._get_active_pillars(db, tenant)
@@ -100,7 +157,7 @@ class SeoMatchingService:
                 ai_reasoning="Không có Pillar nào được đăng ký trong hệ thống.",
             )
 
-        # Step 3: Tier 1 — pgvector cosine similarity
+        # Step 3: Tier 1 — pgvector cosine similarity (with entity-enriched summary)
         best_pillar_id, vector_score = await self._vector_match(db, ai_summary, tenant)
 
         if best_pillar_id and vector_score >= _VECTOR_AUTO_THRESHOLD:
@@ -171,7 +228,7 @@ class SeoMatchingService:
 
             raw_sql = text("""
                 SELECT sn.id AS node_id,
-                       spe.embedding <=> CAST(:v AS vector) AS cosine_distance
+                       CAST(spe.embedding AS vector) <=> CAST(:v AS vector) AS cosine_distance
                 FROM seo_nodes sn
                 JOIN seo_pillar_embeddings spe ON sn.id = spe.node_id
                 WHERE sn.is_pillar = TRUE
@@ -219,24 +276,24 @@ class SeoMatchingService:
         )
 
         system_prompt = (
-            "Bạn là chuyên gia SEO. Nhiệm vụ của bạn là phân loại một bài viết vào đúng Pillar Page. "
+            "Bạn là một chuyên gia SEO thực thể (Entity SEO). Nhiệm vụ của bạn là phân loại bài viết mới vào Pillar Page phù hợp nhất. "
+            "Hãy phân tích sự liên kết về mặt thực thể (Thương hiệu, hoạt chất, công dụng, nỗi đau khách hàng) giữa bài viết và các Pillar Pages. "
+            "Đặc biệt đối chiếu các thực thể được liệt kê trong ngoặc vuông ở phần tóm tắt bài viết. "
             "Chỉ trả về JSON theo schema được yêu cầu. Nếu không chắc chắn, đặt confidence < 0.70."
         )
 
         user_msg = (
-            f"Bài viết mới:\nTiêu đề: {title}\nTóm tắt: {excerpt[:400]}\n\n"
-            f"Danh sách Pillar Pages:\n{pillar_list_text}\n\n"
-            f"Hãy chọn Pillar phù hợp nhất và trả về confidence score (0.0-1.0)."
+            f"Bài viết mới:\nTiêu đề: {title}\nTóm tắt & Thực thể: {excerpt[:500]}\n\n"
+            f"Danh sách Pillar Pages để phân loại:\n{pillar_list_text}\n\n"
+            f"Hãy phân tích và chọn Pillar phù hợp nhất về mặt thực thể ngữ nghĩa, trả về confidence score (0.0-1.0) và lý do lập luận (reasoning)."
         )
 
         # Use LiteLLM via PydanticAI
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-        model_name = trinity_bridge.get_default_model() if hasattr(trinity_bridge, "get_default_model") else "gemini-1.5-flash"
 
         agent: Agent[None, PillarMatch] = Agent(
-            model=model_name,
             system_prompt=system_prompt,
-            result_type=PillarMatch,
+            output_type=PillarMatch,
         )
 
         valid_ids = {p["id"] for p in pillars}
@@ -245,8 +302,11 @@ class SeoMatchingService:
         _timeouts = [10.0, 18.0]
         for attempt, timeout in enumerate(_timeouts, start=1):
             try:
-                result = await asyncio.wait_for(agent.run(user_msg), timeout=timeout)
-                match = result.data
+                match = await trinity_bridge.run(
+                    agent,
+                    user_msg,
+                    timeout=timeout,
+                )
 
                 # Validate pillar_node_id thực sự tồn tại trong danh sách
                 if match.pillar_node_id not in valid_ids:
@@ -267,7 +327,7 @@ class SeoMatchingService:
                     "reasoning": match.reasoning,
                 }
 
-            except asyncio.TimeoutError:
+            except (asyncio.TimeoutError, TimeoutError):
                 logger.warning(f"[SeoMatch] PydanticAI timeout on attempt {attempt}/{len(_timeouts)} (timeout={timeout}s)")
                 if attempt < len(_timeouts):
                     await asyncio.sleep(2.0)
@@ -372,6 +432,80 @@ class SeoMatchingService:
             "model": _EMBED_MODEL_NAME,
         })
         logger.info(f"[SeoMatch] Pillar embedding upserted for node {node_id}")
+
+    async def bulk_match_unclassified(self, db: AsyncSession) -> dict:
+        """
+        Quét và chạy AI matching tự động cho toàn bộ các node đang ở trạng thái 'unclassified'.
+        """
+        tenant = current_tenant_id.get() or "default"
+        
+        # 1. Lấy toàn bộ nodes chưa được phân loại (is_pillar = False và chưa có edges nào liên quan)
+        from sqlalchemy import select, exists
+        from backend.database.models.seo import SeoNode, SeoEdge
+        
+        stmt = select(SeoNode).where(
+            SeoNode.tenant_id == tenant,
+            SeoNode.deleted_at.is_(None),
+            SeoNode.is_pillar.is_(False),
+            ~exists().where(
+                (SeoEdge.source_node_id == SeoNode.id) | (SeoEdge.target_node_id == SeoNode.id)
+            )
+        )
+        nodes = (await db.execute(stmt)).scalars().all()
+        
+        success_count = 0
+        failed_count = 0
+        auto_matched = 0
+        ai_suggested = 0
+        unclassified = 0
+        
+        for node in nodes:
+            try:
+                # Lấy dữ liệu title/excerpt gốc từ core tables để chạy matching
+                from sqlalchemy import text as sa_text
+                if node.entity_type.lower() == "article":
+                    row = (await db.execute(
+                        sa_text("SELECT title, excerpt, slug FROM articles WHERE id = :id AND deleted_at IS NULL"),
+                        {"id": node.entity_id}
+                    )).mappings().first()
+                else:
+                    row = (await db.execute(
+                        sa_text("SELECT name as title, short_description as excerpt, slug FROM product_bases WHERE id = :id AND deleted_at IS NULL"),
+                        {"id": node.entity_id}
+                    )).mappings().first()
+                
+                if not row:
+                    continue
+                
+                res = await self.match_entity(
+                    db=db,
+                    entity_type=node.entity_type.lower(),
+                    entity_id=node.entity_id,
+                    title=str(row["title"] or ""),
+                    content_excerpt=str(row["excerpt"] or ""),
+                    slug=str(row["slug"] or ""),
+                )
+                await db.commit()
+                success_count += 1
+                if res.match_tier == "auto":
+                    auto_matched += 1
+                elif res.match_tier == "ai_suggested":
+                    ai_suggested += 1
+                else:
+                    unclassified += 1
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"[SeoMatch] Bulk match failed for node {node.id}: {e}", exc_info=True)
+                failed_count += 1
+                
+        return {
+            "total_nodes_processed": len(nodes),
+            "success": success_count,
+            "failed": failed_count,
+            "auto_matched": auto_matched,
+            "ai_suggested": ai_suggested,
+            "unclassified": unclassified
+        }
 
 
 # ─── DI Provider ──────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { filterGroup, graphData, fetchGraph, selectedNodeId, isSidebarOpen } from '$lib/stores/seoGraph.svelte';
+	import { filterGroup, graphData, fetchGraph, selectedNodeId, isSidebarOpen, type GraphNode } from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
 
@@ -10,7 +10,8 @@
 		{ value: 'all', label: 'Tất cả', icon: '🕸️' },
 		{ value: 'pillar', label: 'Pillars', icon: '⭐' },
 		{ value: 'cluster', label: 'Clusters', icon: '🔗' },
-		{ value: 'unclassified', label: 'Chưa phân loại', icon: '⚠️' }
+		{ value: 'unclassified', label: 'Chờ phân loại', icon: '⚠️' },
+		{ value: 'ai_suggested', label: 'AI đề xuất', icon: '🤖' }
 	] as const;
 
 	const filteredSuggestions = $derived(
@@ -23,7 +24,7 @@
 			  ).slice(0, 8)
 	);
 
-	function selectNode(node: any) {
+	function selectNode(node: GraphNode) {
 		selectedNodeId.value = node.id;
 		isSidebarOpen.value = true;
 		searchQuery = '';
@@ -44,7 +45,7 @@
 	<div class="filter-group" role="group" aria-label="Lọc theo nhóm">
 		{#each groups as g}
 			<button
-				class="filter-btn"
+				class="filter-btn {g.value}"
 				class:active={filterGroup.value === g.value}
 				onclick={() => (filterGroup.value = g.value)}
 				aria-pressed={filterGroup.value === g.value}
@@ -125,22 +126,47 @@
 		gap: 0.35rem;
 		padding: 0.3rem 0.7rem;
 		border-radius: 6px;
-		border: 1px solid rgba(99, 102, 241, 0.15);
-		background: transparent;
-		color: #64748b;
+		border: 1px solid rgba(99, 102, 241, 0.12);
+		background: rgba(255, 255, 255, 0.02);
+		color: #94a3b8;
 		cursor: pointer;
 		font-size: 0.78rem;
 		font-weight: 500;
-		transition: all 0.15s;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 	.filter-btn:hover {
 		background: rgba(99, 102, 241, 0.1);
-		color: #a5b4fc;
+		color: #e2e8f0;
 	}
-	.filter-btn.active {
-		background: rgba(99, 102, 241, 0.2);
+	.filter-btn.active.all {
+		background: rgba(99, 102, 241, 0.15);
 		border-color: rgba(99, 102, 241, 0.4);
 		color: #a5b4fc;
+		box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+	}
+	.filter-btn.active.pillar {
+		background: rgba(99, 102, 241, 0.22);
+		border-color: rgba(99, 102, 241, 0.5);
+		color: #818cf8;
+		box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+	}
+	.filter-btn.active.cluster {
+		background: rgba(165, 180, 252, 0.15);
+		border-color: rgba(165, 180, 252, 0.45);
+		color: #c7d2fe;
+		box-shadow: 0 0 10px rgba(165, 180, 252, 0.15);
+	}
+	.filter-btn.active.unclassified {
+		background: rgba(245, 158, 11, 0.15);
+		border-color: rgba(245, 158, 11, 0.45);
+		color: #fde047;
+		box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+	}
+	.filter-btn.active.ai_suggested {
+		background: rgba(249, 115, 22, 0.15);
+		border-color: rgba(249, 115, 22, 0.45);
+		color: #fdba74;
+		box-shadow: 0 0 10px rgba(249, 115, 22, 0.15);
 	}
 
 	.search-container {

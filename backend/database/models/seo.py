@@ -69,6 +69,17 @@ class SeoNode(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     # AI summary — short text used as input for PydanticAI classification
     ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # SGE Entity Intelligence — populated by SeoEntityExtractor after publish
+    # Format: [{"type": "Brand", "name": "Miccosmo", "confidence": 0.95}, ...]
+    entities_json: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+
+    # Search intent classification: informational_why | informational_how | informational_what
+    #                               | comparison | transactional | pillar | unknown
+    intent_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    # Explicit pillar URL for schema isPartOf linking (fallback to node_url of pillar)
+    pillar_url_override: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+
     # Relationships
     outgoing_edges: Mapped[list["SeoEdge"]] = relationship(
         "SeoEdge",

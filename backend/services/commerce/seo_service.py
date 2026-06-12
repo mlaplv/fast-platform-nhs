@@ -19,6 +19,7 @@ import logging
 import os
 import re
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.product import ProductResponse, SeoMetaSchema
 from backend.utils.schema_mutator import mutate_json_ld
@@ -478,7 +479,7 @@ class SeoService:
         )
 
     @staticmethod
-    def generate_article_seo_meta(
+    async def generate_article_seo_meta(
         title: str,
         slug: str,
         excerpt: Optional[str] = None,
@@ -489,9 +490,12 @@ class SeoService:
         seo_title: Optional[str] = None,
         seo_description: Optional[str] = None,
         seo_keywords: Optional[str] = None,
+        db: Optional[AsyncSession] = None,
     ) -> "ArticleSeoMeta":
-        """GEO 2026: Tạo SEO + FAQPage JSON-LD cho trang bài viết."""
+        """GEO 2026: Tạo SEO + SGE Entity-Linked JSON-LD cho trang bài viết."""
         from backend.schemas.article import ArticleSeoMeta
+        from sqlalchemy import select
+        from backend.database.models.seo import SeoNode, SeoEdge
 
         canonical_url = f"{_SITE_URL}/{slug}.html"
         final_seo_title = seo_title or SeoService._build_title(title)
@@ -502,10 +506,54 @@ class SeoService:
         if len(desc) > _DESC_MAX:
             desc = desc[:_DESC_TRIM] + "…"
 
-        # Build Article JSON-LD
+        # Fetch SGE metadata from DB
+        intent_type = "unknown"
+        entities_json: list[dict] = []
+        pillar_url: Optional[str] = None
+
+        if db:
+            try:
+                node_stmt = select(SeoNode).where(
+                    SeoNode.node_slug == slug,
+                    SeoNode.deleted_at.is_(None)
+                )
+                node = (await db.execute(node_stmt)).scalars().first()
+                if node:
+                    intent_type = node.intent_type or "unknown"
+                    entities_json = node.entities_json or []
+                    
+                    if node.pillar_url_override:
+                        pillar_url = node.pillar_url_override
+                    else:
+                        # Find parent pillar node url
+                        edge_stmt = select(SeoNode.node_url).join(
+                            SeoEdge, SeoEdge.source_node_id == SeoNode.id
+                        ).where(
+                            SeoEdge.target_node_id == node.id,
+                            SeoNode.is_pillar == True,
+                            SeoNode.deleted_at.is_(None)
+                        )
+                        pillar_url = (await db.execute(edge_stmt)).scalars().first()
+            except Exception as e:
+                logger.error("[SeoService] Error loading entity/intent metadata: %s", e)
+
+        # Dynamic Schema Type based on Intent
+        schema_type = "Article"
+        if intent_type == "informational_why":
+            schema_type = "FAQPage"
+        elif intent_type == "informational_how":
+            schema_type = "HowTo"
+        elif intent_type == "informational_what":
+            schema_type = "TechArticle"
+        elif intent_type == "comparison":
+            schema_type = "ItemList"
+        elif intent_type == "transactional":
+            schema_type = "Product"
+
+        # Build SGE-optimized JSON-LD
         schema: dict = {
             "@context": "https://schema.org",
-            "@type": "Article",
+            "@type": schema_type,
             "@id": f"{canonical_url}#article",
             "headline": title,
             "description": desc,
@@ -517,14 +565,58 @@ class SeoService:
             "inLanguage": "vi",
         }
 
-        # SGE Shield V1.0: Mutate Article JSON-LD schema
+        # Inject mainEntity if FAQPage and faqs are present
+        if schema_type == "FAQPage" and faqs:
+            qa_entities: list[dict] = []
+            for faq in faqs:
+                q = faq.get("question", "")
+                a = faq.get("answer", "")
+                if q and a:
+                    qa_entities.append({
+                        "@type": "Question",
+                        "name": q,
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": a
+                        }
+                    })
+            if qa_entities:
+                schema["mainEntity"] = qa_entities
+
+        # SGE Entity Linking: isPartOf parent Pillar URL
+        if pillar_url:
+            schema["isPartOf"] = {
+                "@type": "WebPage",
+                "@id": f"{pillar_url}#webpage",
+                "url": pillar_url
+            }
+
+        # SGE Entity Linking: about & mentions
+        if entities_json:
+            about_entities = [
+                {"@type": "Thing", "name": e["name"]}
+                for e in entities_json
+                if e.get("entity_type") in ("Brand", "Ingredient") and e.get("name")
+            ]
+            if about_entities:
+                schema["about"] = about_entities[:2] if len(about_entities) > 1 else about_entities[0]
+
+            mentions_entities = [
+                {"@type": "Thing", "name": e["name"]}
+                for e in entities_json
+                if e.get("entity_type") not in ("Brand", "Ingredient") and e.get("name")
+            ]
+            if mentions_entities:
+                schema["mentions"] = mentions_entities[:5]
+
+        # SGE Shield: Mutate JSON-LD schema (Shuffle keys only to preserve crawler trust, enable_drop=False)
         entropy_cfg = SeoService._get_entropy_config()
         if entropy_cfg.get("enabled", True):
             schema = mutate_json_ld(
                 schema,
                 seed=slug,
-                enable_drop=True,
-                drop_probability=entropy_cfg.get("schema_drop_probability", 0.2),
+                enable_drop=False,
+                drop_probability=0.0,
             )
 
         # Breadcrumb
@@ -538,9 +630,9 @@ class SeoService:
             ]
         }
 
-        # SGE Shield: Mutate Breadcrumb JSON-LD
+        # SGE Shield: Mutate Breadcrumb JSON-LD (Shuffle keys only, enable_drop=False)
         if entropy_cfg.get("enabled", True):
-            breadcrumb = mutate_json_ld(breadcrumb, seed=f"{slug}:bc")
+            breadcrumb = mutate_json_ld(breadcrumb, seed=f"{slug}:bc", enable_drop=False, drop_probability=0.0)
 
         # GEO 2026: FAQ JSON-LD from article metadata
         faq_ld: str = ""
