@@ -452,7 +452,12 @@ class WorkerHighSettings(WorkerSettings):
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job]
+    functions = [
+        run_agent_task, helen_follow_up_job, send_otp_email, 
+        run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, 
+        cleanup_old_notifications, expire_loyalty_points_job,
+        seo_match_entity_job, seo_nightly_reconciliation_job
+    ]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [
