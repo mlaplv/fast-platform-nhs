@@ -76,6 +76,7 @@ async def main():
                 node.is_pillar = True
                 node.node_label = name
                 node.node_slug = slug
+                node.node_url = url  # Always enforce correct product URL format: /{slug}
                 node.ai_summary = ai_summary
                 print(f"Updated existing product node to Pillar: {name}")
                 

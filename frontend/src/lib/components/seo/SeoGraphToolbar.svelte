@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { filterGroup, graphData, fetchGraph, selectedNodeId, isSidebarOpen, type GraphNode } from '$lib/stores/seoGraph.svelte';
+	import {
+		filterGroup,
+		graphData,
+		fetchGraph,
+		selectedNodeId,
+		isSidebarOpen,
+		selectedPillarId,
+		allPillars
+	} from '$lib/stores/seoGraph.svelte';
+	import type { GraphNode } from '$lib/stores/seoGraph.svelte';
 
 	let { apiBase }: { apiBase: string } = $props();
 
@@ -31,6 +40,13 @@
 		isDropdownOpen = false;
 	}
 
+	async function handlePillarChange(e: Event) {
+		const target = e.target as HTMLSelectElement;
+		selectedPillarId.value = target.value || null;
+		selectedNodeId.value = null; // Clear selected node
+		await fetchGraph(apiBase);
+	}
+
 	async function handleReconcile() {
 		const res = await fetch(`${apiBase}/api/v1/seo/reconcile`, {
 			method: 'POST',
@@ -56,6 +72,17 @@
 		{/each}
 	</div>
 
+	<!-- Pillar sub-graph selector -->
+	<div class="toolbar-divider"></div>
+	<div class="pillar-selector-container">
+		<select class="pillar-select" value={selectedPillarId.value || ''} onchange={handlePillarChange}>
+			<option value="">🕸️ Toàn bộ đồ thị (Mạng lưới tổng)</option>
+			{#each allPillars.value as p}
+				<option value={p.id}>⭐ Pillar: {p.label}</option>
+			{/each}
+		</select>
+	</div>
+
 	<!-- Search box -->
 	<div class="toolbar-divider"></div>
 	<div class="search-container">
@@ -79,7 +106,6 @@
 		{/if}
 	</div>
 
-	<!-- Stats quick view -->
 	<div class="toolbar-divider"></div>
 	<div class="quick-stats">
 		<span class="qs-item">{graphData.meta.total_nodes} nodes</span>
@@ -295,5 +321,29 @@
 	}
 	.reconcile-btn:hover {
 		background: rgba(16, 185, 129, 0.15);
+	}
+
+	.pillar-selector-container {
+		display: flex;
+		align-items: center;
+	}
+
+	.pillar-select {
+		background: #0f0f1c;
+		border: 1px solid rgba(99, 102, 241, 0.3);
+		border-radius: 6px;
+		color: #e2e8f0;
+		font-size: 0.78rem;
+		font-weight: 500;
+		padding: 0.35rem 0.75rem;
+		outline: none;
+		cursor: pointer;
+		max-width: 250px;
+		transition: all 0.2s;
+	}
+
+	.pillar-select:focus {
+		border-color: #6366f1;
+		box-shadow: 0 0 8px rgba(99, 102, 241, 0.25);
 	}
 </style>

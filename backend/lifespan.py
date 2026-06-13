@@ -41,19 +41,34 @@ def _setup_seo_subscriptions() -> None:
             from arq import create_pool
             entity_type = payload.get("entity_type", "article")
             redis = await create_pool(get_redis_settings())
+            tenant_id = str(payload.get("tenant_id") or current_tenant_id.get() or "default")
+            entity_id = str(payload.get("entity_id", ""))
+
             await redis.enqueue_job(
                 "seo_match_entity_job",
                 entity_type=entity_type,
-                entity_id=str(payload.get("entity_id", "")),
+                entity_id=entity_id,
                 title=str(payload.get("title", "")),
                 excerpt=str(payload.get("excerpt", ""))[:400],
                 slug=str(payload.get("slug", "")),
-                tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
+                tenant_id=tenant_id,
                 _queue_name="high",
             )
-            logger.info(f"[SEO] Queued seo_match_entity_job (high queue) for {entity_type}:{payload.get('entity_id')}")
+            logger.info(f"[SEO] Queued seo_match_entity_job (high queue) for {entity_type}:{entity_id}")
+
+            # Auto-trigger contextual link analysis for articles (deferred 30s to allow match job to complete)
+            if entity_type.lower() == "article":
+                from datetime import timedelta
+                await redis.enqueue_job(
+                    "seo_contextual_link_job",
+                    article_id=entity_id,
+                    tenant_id=tenant_id,
+                    _queue_name="high",
+                    _defer_by=timedelta(seconds=30),
+                )
+                logger.info(f"[SEO] Queued seo_contextual_link_job (high queue, deferred 30s) for article:{entity_id}")
         except Exception as e:
-            logger.warning(f"[SEO] Failed to queue seo_match_entity_job: {e}")
+            logger.warning(f"[SEO] Failed to queue seo jobs: {e}")
 
     async def _on_entity_unpublished(payload: dict) -> None:
         try:
@@ -117,6 +132,17 @@ async def lifespan(app: Litestar):
             from backend.services.user_service import user_service
             await user_service.sync_rbac(session)
             await session.commit()
+
+            # Auto-Migrate SEO fields on Boot
+            try:
+                from sqlalchemy import text
+                await session.execute(text("ALTER TABLE seo_contextual_links ADD COLUMN IF NOT EXISTS link_title VARCHAR(255);"))
+                await session.execute(text("ALTER TABLE seo_contextual_links ADD COLUMN IF NOT EXISTS link_target VARCHAR(20);"))
+                await session.commit()
+                logger.info("✓ [SEO Auto-Migrate] Added link_title and link_target columns if they did not exist.")
+            except Exception as migrate_ex:
+                logger.warning(f"⚠️ [SEO Auto-Migrate] Failed to run alter table: {migrate_ex}")
+                await session.rollback()
 
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(

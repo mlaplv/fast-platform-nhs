@@ -18,7 +18,7 @@ from backend.database import current_tenant_id
 from backend.utils.uid import new_id_default
 from backend.schemas.seo import (
     RegisterNodeRequest, UpdateNodeRequest,
-    CreateEdgeRequest, UpdateEdgeRequest,
+    CreateEdgeRequest, UpdateEdgeRequest, CreateBulkEdgeRequest,
     SeoGraphResponse, GraphNodeItem, GraphLinkItem,
 )
 
@@ -216,6 +216,54 @@ class SeoGraphService:
         db.add(edge)
         return edge
 
+    async def create_bulk_edges(self, db: AsyncSession, data: CreateBulkEdgeRequest, user_id: Optional[str] = None) -> dict:
+        """Tạo/cập nhật hàng loạt edges giữa một source_node và nhiều target_nodes trong 1 transaction duy nhất."""
+        tenant = current_tenant_id.get() or "default"
+        
+        if not data.target_node_ids:
+            return {"success": True, "added": 0, "updated": 0}
+
+        # Query all existing edges matching the pattern to avoid N+1 queries
+        res = await db.scalars(
+            select(SeoEdge).where(
+                SeoEdge.source_node_id == data.source_node_id,
+                SeoEdge.target_node_id.in_(data.target_node_ids),
+                SeoEdge.tenant_id == tenant,
+            )
+        )
+        existing_map = {e.target_node_id: e for e in res.all()}
+        
+        added_count = 0
+        updated_count = 0
+        
+        for target_id in data.target_node_ids:
+            if target_id in existing_map:
+                existing = existing_map[target_id]
+                existing.link_type = data.link_type
+                existing.is_confirmed = data.is_confirmed
+                existing.override_by = user_id
+                existing.updated_at = datetime.now(timezone.utc)
+                updated_count += 1
+            else:
+                edge = SeoEdge(
+                    id=new_id_default(),
+                    source_node_id=data.source_node_id,
+                    target_node_id=target_id,
+                    link_type=data.link_type,
+                    is_confirmed=data.is_confirmed,
+                    override_by=user_id,
+                    tenant_id=tenant,
+                )
+                db.add(edge)
+                added_count += 1
+                
+        await db.commit()
+        return {
+            "success": True,
+            "added": added_count,
+            "updated": updated_count,
+        }
+
     async def update_edge(self, db: AsyncSession, edge_id: str, data: UpdateEdgeRequest, user_id: Optional[str] = None) -> Optional[SeoEdge]:
         """Dùng khi admin override (drag-and-drop trên graph)."""
         tenant = current_tenant_id.get() or "default"
@@ -245,37 +293,82 @@ class SeoGraphService:
 
     # ─── Graph Builder ────────────────────────────────────────────────────────
 
-    async def build_graph(self, db: AsyncSession) -> SeoGraphResponse:
+    async def build_graph(self, db: AsyncSession, pillar_id: Optional[str] = None) -> SeoGraphResponse:
         """
-        Build full Node-Link JSON payload.
+        Build full Node-Link JSON payload or Sub-graph for a specific Pillar Node.
         Query seo_nodes + seo_edges, tính val/color server-side.
         Không JOIN vào core tables — dùng denormalized fields.
         """
+        import asyncio
         tenant = current_tenant_id.get() or "default"
 
-        # 1. Load all active nodes
-        node_rows = (await db.execute(
-            select(SeoNode).where(
-                SeoNode.tenant_id == tenant,
-                SeoNode.deleted_at.is_(None),
+        if pillar_id:
+            # 1. Tải thông tin Pillar Node
+            pillar = await db.scalar(
+                select(SeoNode).where(
+                    SeoNode.id == pillar_id,
+                    SeoNode.tenant_id == tenant,
+                    SeoNode.deleted_at.is_(None)
+                )
             )
-        )).scalars().all()
+            if not pillar:
+                return SeoGraphResponse(
+                    meta={
+                        "total_nodes": 0,
+                        "total_edges": 0,
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                        "pillars": 0,
+                        "unclassified": 0,
+                    },
+                    nodes=[],
+                    links=[],
+                )
 
-        # 2. Load all edges (only between active nodes)
-        edge_rows = (await db.execute(
-            select(SeoEdge).where(SeoEdge.tenant_id == tenant)
-        )).scalars().all()
+            # 2. Tìm các edge kết nối trực tiếp tới pillar này
+            edges_query = select(SeoEdge).where(
+                SeoEdge.tenant_id == tenant,
+                (SeoEdge.source_node_id == pillar_id) | (SeoEdge.target_node_id == pillar_id)
+            )
+            edges_res = await db.execute(edges_query)
+            edge_rows = edges_res.scalars().all()
 
-        # 3. Count edges per node for val scaling
+            # Lấy tất cả các Node IDs liên quan (bao gồm cả pillar và các cluster con)
+            connected_node_ids = {e.source_node_id for e in edge_rows} | {e.target_node_id for e in edge_rows}
+            connected_node_ids.add(pillar_id)
+
+            # 3. Tải thông tin các Node con này
+            nodes_query = select(SeoNode).where(
+                SeoNode.tenant_id == tenant,
+                SeoNode.id.in_(connected_node_ids),
+                SeoNode.deleted_at.is_(None)
+            )
+            nodes_res = await db.execute(nodes_query)
+            node_rows = nodes_res.scalars().all()
+        else:
+            # Chế độ tải toàn bộ đồ thị: thực hiện song song bằng asyncio.gather để giảm latency tối đa
+            node_task = db.execute(
+                select(SeoNode).where(
+                    SeoNode.tenant_id == tenant,
+                    SeoNode.deleted_at.is_(None),
+                )
+            )
+            edge_task = db.execute(
+                select(SeoEdge).where(SeoEdge.tenant_id == tenant)
+            )
+            nodes_res, edges_res = await asyncio.gather(node_task, edge_task)
+            node_rows = nodes_res.scalars().all()
+            edge_rows = edges_res.scalars().all()
+
+        # 4. Count edges per node for val scaling
         node_edge_count: dict[str, int] = {}
         for edge in edge_rows:
             node_edge_count[edge.source_node_id] = node_edge_count.get(edge.source_node_id, 0) + 1
             node_edge_count[edge.target_node_id] = node_edge_count.get(edge.target_node_id, 0) + 1
 
-        # 4. Build set of connected node ids (to detect unclassified)
+        # 5. Build set of connected node ids (to detect unclassified)
         connected_ids = {e.source_node_id for e in edge_rows} | {e.target_node_id for e in edge_rows}
 
-        # 5. Assemble nodes
+        # 6. Assemble nodes
         graph_nodes: List[GraphNodeItem] = []
         for n in node_rows:
             if n.is_pillar:
@@ -302,9 +395,13 @@ class SeoGraphService:
                 color=_GROUP_COLORS[group],
             ))
 
-        # 6. Assemble edges
+        # 7. Assemble edges (chỉ lấy các edge mà cả source và target đều tồn tại trong danh sách node hoạt động)
+        active_node_ids = {node.id for node in node_rows}
         graph_links: List[GraphLinkItem] = []
         for e in edge_rows:
+            if e.source_node_id not in active_node_ids or e.target_node_id not in active_node_ids:
+                continue
+
             if e.is_confirmed:
                 color = _LINK_COLORS.get(e.link_type, _LINK_COLORS["confirmed"])
             else:

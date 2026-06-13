@@ -79,6 +79,11 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "seo graph": "SEO_GRAPH",
   "mở mạng lưới seo": "SEO_GRAPH",
   "mạng lưới seo": "SEO_GRAPH",
+  "mở duyệt link sge": "SEO_LINK_REVIEW",
+  "duyệt link sge": "SEO_LINK_REVIEW",
+  "duyệt link": "SEO_LINK_REVIEW",
+  "mở duyệt link": "SEO_LINK_REVIEW",
+  "seo link review": "SEO_LINK_REVIEW",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -109,6 +114,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_ctv_management: "CTV_MANAGEMENT",
   show_notification_management: "NOTIFICATION_MANAGEMENT",
   show_seo_graph: "SEO_GRAPH",
+  show_seo_link_review: "SEO_LINK_REVIEW",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -134,4 +140,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   CTV_MANAGEMENT: "Quản lý Hệ thống Liên kết (CTV)",
   NOTIFICATION_MANAGEMENT: "Quản trị Tín hiệu & Thông báo",
   SEO_GRAPH: "Mạng lưới SEO Graph",
+  SEO_LINK_REVIEW: "Duyệt liên kết ngữ cảnh SGE",
 };

@@ -56,6 +56,7 @@ export type WidgetType =
   | "NOTIFICATION_MANAGEMENT"
   | "NOTIFICATION_LIST"
   | "SEO_GRAPH"
+  | "SEO_LINK_REVIEW"
   | "VOUCHER_MANAGEMENT";
 
 export type NanoBotState =

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from typing import List, Optional
-from litestar import Controller, get
+from litestar import Controller, get, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -12,6 +12,8 @@ from backend.services.article_vector_service import ArticleVectorService, provid
 from backend.services.commerce.seo_service import SeoService
 
 logger = logging.getLogger("api-gateway")
+
+from litestar.connection import ASGIConnection
 
 class PublicNewsController(Controller):
     """Elite V2.2: Public News Controller for Client Storefront."""
@@ -62,13 +64,22 @@ class PublicNewsController(Controller):
         self,
         db_session: AsyncSession,
         article_service: ArticleService,
-        article_id: str
+        article_id: str,
+        request: Request
     ) -> ArticleResponse:
         """PUBLIC: Get a single news article by ID."""
         try:
             article = await article_service.get_article(db_session, article_id)
             if article.status != "PUBLISHED":
-                raise NotFoundException(f"Article {article_id} is not published")
+                user = request.scope.get("state", {}).get("user")
+                is_admin = False
+                if user:
+                    roles = user.get("roles", [])
+                    perms = user.get("perms", [])
+                    if "SUPER_ADMIN" in roles or "ADMIN" in roles or "content:read" in perms:
+                        is_admin = True
+                if not is_admin:
+                    raise NotFoundException(f"Article {article_id} is not published")
             # GEO 2026: Inject SEO meta with FAQ JSON-LD
             faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
             article.seoMeta = await SeoService.generate_article_seo_meta(
@@ -93,13 +104,22 @@ class PublicNewsController(Controller):
         self,
         db_session: AsyncSession,
         article_service: ArticleService,
-        slug: str
+        slug: str,
+        request: Request
     ) -> ArticleResponse:
         """PUBLIC: Get a single news article by slug."""
         try:
             article = await article_service.get_article_by_slug(db_session, slug)
             if article.status != "PUBLISHED":
-                raise NotFoundException(f"Article with slug '{slug}' is not published")
+                user = request.scope.get("state", {}).get("user")
+                is_admin = False
+                if user:
+                    roles = user.get("roles", [])
+                    perms = user.get("perms", [])
+                    if "SUPER_ADMIN" in roles or "ADMIN" in roles or "content:read" in perms:
+                        is_admin = True
+                if not is_admin:
+                    raise NotFoundException(f"Article with slug '{slug}' is not published")
             # GEO 2026: Inject SEO meta with FAQ JSON-LD
             faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
             article.seoMeta = await SeoService.generate_article_seo_meta(

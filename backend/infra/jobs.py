@@ -352,3 +352,221 @@ async def seo_unmatch_entity_job(
         raise
     finally:
         current_tenant_id.reset(token)
+
+
+async def seo_contextual_link_job(
+    ctx: Dict[str, object],
+    article_id: str,
+    tenant_id: str,
+) -> None:
+    """
+    SGE Entity-Contextual Linking — AI Link Injection Analysis (event-driven).
+    Triggered automatically after seo_match_entity_job completes for articles.
+    Analyzes article content and generates contextual link suggestions.
+    """
+    logger.info(f"[SEO Contextual Link Job] Analyzing article {article_id} tenant={tenant_id}")
+    from backend.database import current_tenant_id
+    token = current_tenant_id.set(tenant_id)
+    session_maker = alchemy_config.create_session_maker()
+    try:
+        async with session_maker() as db:
+            from backend.database.models.content import Article
+            from backend.services.seo_contextual_linker import seo_contextual_linker
+            from sqlalchemy import select
+
+            article = await db.scalar(
+                select(Article).where(
+                    Article.id == article_id,
+                    Article.status == "PUBLISHED",
+                    Article.deleted_at.is_(None),
+                )
+            )
+            if not article or not article.content:
+                logger.info(f"[SEO Contextual Link Job] Article {article_id} not found or empty — skipping")
+                return
+
+            # Tiêu chuẩn 1: Loại bỏ bài viết quá ngắn (< 250 từ) để giữ chất lượng bài viết tốt nhất
+            words_count = len(article.content.split())
+            if words_count < 250:
+                logger.info(f"[SEO Contextual Link Job] Skipping article {article_id} because it is too short ({words_count} words)")
+                return
+
+            # Tiêu chuẩn 2: Loại bỏ bài viết đã có tối đa 3 link APPROVED hoặc APPLIED (đã đạt giới hạn SEO)
+            from backend.database.models.seo import SeoContextualLink
+            total_links_count = (await db.execute(
+                select(SeoContextualLink).where(
+                    SeoContextualLink.source_article_id == article_id,
+                    SeoContextualLink.status.in_(["approved", "applied"]),
+                    SeoContextualLink.tenant_id == tenant_id
+                )
+            )).scalars().all()
+            if len(total_links_count) >= 3:
+                logger.info(f"[SEO Contextual Link Job] Skipping article {article_id} because it has reached the max contextual links limit ({len(total_links_count)} links)")
+                return
+
+            count = await seo_contextual_linker.analyze_article(
+                db=db,
+                article_id=article_id,
+                article_content=article.content,
+                article_title=article.title,
+            )
+            await db.commit()
+            logger.info(f"[SEO Contextual Link Job] Done for {article_id}: {count} suggestions created")
+    except Exception as e:
+        logger.error(f"[SEO Contextual Link Job] Failed for {article_id}: {e}", exc_info=True)
+        raise
+    finally:
+        current_tenant_id.reset(token)
+
+
+async def seo_pillar_auto_link_job(
+    ctx: Dict[str, object],
+    pillar_id: str,
+    tenant_id: str,
+) -> None:
+    """
+    Tự động đi link từ các Cluster con trỏ về Pillar node hiện tại.
+    1. Tìm tất cả các Cluster con liên kết với Pillar node này (SeoEdge có source == pillar_id).
+    2. Lọc ra các Cluster có entity_type == 'ARTICLE'.
+    3. Với mỗi article_id:
+       - Chạy quét phân tích link: seo_contextual_linker.analyze_article()
+       - Lọc các đề xuất 'pending' trỏ về pillar này có ai_confidence >= 0.85.
+       - Chỉ chọn đề xuất có confidence cao nhất để tự động duyệt (approved).
+       - Chèn link tự động vào bài viết: seo_contextual_linker.apply_approved_links().
+    """
+    logger.info(f"[Pillar Auto Link] Starting auto linking job for pillar {pillar_id} tenant={tenant_id}")
+    from backend.database import current_tenant_id
+    token = current_tenant_id.set(tenant_id)
+    session_maker = alchemy_config.create_session_maker()
+    try:
+        async with session_maker() as db:
+            from backend.database.models.seo import SeoNode, SeoEdge, SeoContextualLink, SeoContextualLinkStatus
+            from backend.database.models.content import Article
+            from backend.services.seo_contextual_linker import seo_contextual_linker
+            from sqlalchemy import select
+
+            # Lấy thông tin Pillar Node
+            pillar = await db.scalar(
+                select(SeoNode).where(
+                    SeoNode.id == pillar_id,
+                    SeoNode.tenant_id == tenant_id,
+                    SeoNode.deleted_at.is_(None)
+                )
+            )
+            pillar_label = pillar.node_label if pillar else pillar_id
+
+            # 1. Tìm tất cả các Cluster con liên kết với Pillar này (source_node_id == pillar_id)
+            edges = (await db.execute(
+                select(SeoEdge.target_node_id).where(
+                    SeoEdge.source_node_id == pillar_id,
+                    SeoEdge.tenant_id == tenant_id
+                )
+            )).scalars().all()
+
+            if not edges:
+                logger.info(f"[Pillar Auto Link] No clusters found for pillar {pillar_id}")
+                return
+
+            # 2. Lọc các nodes có entity_type là ARTICLE
+            nodes = (await db.execute(
+                select(SeoNode.entity_id).where(
+                    SeoNode.id.in_(edges),
+                    SeoNode.entity_type == "ARTICLE",
+                    SeoNode.tenant_id == tenant_id,
+                    SeoNode.deleted_at.is_(None)
+                )
+            )).scalars().all()
+
+            article_ids = list(set(nodes))
+            if not article_ids:
+                logger.info(f"[Pillar Auto Link] No article clusters found for pillar {pillar_id}")
+                return
+
+            logger.info(f"[Pillar Auto Link] Found {len(article_ids)} articles to scan for pillar {pillar_id}")
+
+            total_suggestions = 0
+            for article_id in article_ids:
+                try:
+                    article = await db.scalar(
+                        select(Article).where(
+                            Article.id == article_id,
+                            Article.status == "PUBLISHED",
+                            Article.deleted_at.is_(None),
+                        )
+                    )
+                    if not article or not article.content:
+                        continue
+
+                    # Tiêu chuẩn 1: Loại bỏ bài viết quá ngắn (< 250 từ) để tránh spam, giữ chất lượng cao nhất
+                    words_count = len(article.content.split())
+                    if words_count < 250:
+                        logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it is too short ({words_count} words)")
+                        continue
+
+                    # Tiêu chuẩn 2: Loại bỏ bài viết đã có link APPROVED hoặc APPLIED trỏ tới Pillar đích này rồi (tránh double link)
+                    existing_link = await db.scalar(
+                        select(SeoContextualLink).where(
+                            SeoContextualLink.source_article_id == article_id,
+                            SeoContextualLink.target_node_id == pillar_id,
+                            SeoContextualLink.status.in_(["approved", "applied"]),
+                            SeoContextualLink.tenant_id == tenant_id
+                        )
+                    )
+                    if existing_link:
+                        logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it already has an approved/applied link to pillar {pillar_id}")
+                        continue
+
+                    # Tiêu chuẩn 3: Loại bỏ bài viết đã đạt giới hạn tối đa số link ngữ cảnh cho phép (tối đa 3 link/bài)
+                    total_links_count = (await db.execute(
+                        select(SeoContextualLink).where(
+                            SeoContextualLink.source_article_id == article_id,
+                            SeoContextualLink.status.in_(["approved", "applied"]),
+                            SeoContextualLink.tenant_id == tenant_id
+                        )
+                    )).scalars().all()
+                    if len(total_links_count) >= 3:
+                        logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it has reached the max contextual links limit ({len(total_links_count)} links)")
+                        continue
+
+                    # Quét tìm đề xuất mới cho bài viết
+                    count = await seo_contextual_linker.analyze_article(
+                        db=db,
+                        article_id=article_id,
+                        article_content=article.content,
+                        article_title=article.title,
+                    )
+                    total_suggestions += count
+                    await db.commit()
+                    logger.info(f"[Pillar Auto Link] Scanned article {article_id} for pillar {pillar_id}. Saved {count} suggestions to DB.")
+                except Exception as art_ex:
+                    logger.error(f"[Pillar Auto Link] Error processing article {article_id}: {art_ex}", exc_info=True)
+                    await db.rollback()
+
+            logger.info(f"[Pillar Auto Link] Completed auto linking job for pillar {pillar_id}. Total suggestions: {total_suggestions}")
+
+            # Gửi thông báo đến hình chuông (Notification Center)
+            try:
+                from backend.services.signal_center import signal_center
+                from backend.schemas.signal import SignalSchema, SignalSeverity
+
+                msg = f"🧬 AI hoàn tất quét Pillar: {pillar_label}. Đã quét {len(article_ids)} bài viết Cluster, tìm thấy {total_suggestions} đề xuất link SGE chờ duyệt."
+                signal = SignalSchema(
+                    signal_type="SEO_AUTO_LINK_COMPLETED",
+                    message=msg,
+                    severity=SignalSeverity.ACTION,  # ACTION sẽ nổi chuông đỏ/vàng kèm tiếng bip & hiển thị ở chuông
+                    payload={"pillar_id": pillar_id, "suggestions_count": total_suggestions},
+                    persist=True
+                )
+                await signal_center.dispatch(
+                    user_id="user_admin",
+                    signal=signal,
+                    tenant_id=tenant_id
+                )
+            except Exception as notif_ex:
+                logger.error(f"[Pillar Auto Link] Failed to send completion notification to bell: {notif_ex}", exc_info=True)
+
+    except Exception as e:
+        logger.error(f"[Pillar Auto Link] Failed execution for pillar {pillar_id}: {e}", exc_info=True)
+    finally:
+        current_tenant_id.reset(token)
+

@@ -485,6 +485,13 @@
     overflow-wrap: break-word;
   }
 
+  :global(.news-article-prose a) {
+    color: inherit !important;
+    text-decoration: none !important;
+    font-weight: inherit !important;
+    cursor: pointer;
+  }
+
   :global(.news-article-prose p) {
     margin: 0.75rem 0;
     font-weight: 400;

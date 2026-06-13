@@ -531,6 +531,13 @@
     overflow-wrap: break-word;
   }
 
+  :global(.elite-prose-mobile a) {
+    color: inherit !important;
+    text-decoration: none !important;
+    font-weight: inherit !important;
+    cursor: pointer;
+  }
+
   :global(.elite-prose-mobile p) {
     margin: 0.75rem 0;
     font-weight: 400;

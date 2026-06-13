@@ -55,6 +55,8 @@ export const graphData = $state<GraphData>({
 });
 
 export const selectedNodeId = $state<{ value: string | null }>({ value: null });
+export const selectedPillarId = $state<{ value: string | null }>({ value: null });
+export const allPillars = $state<{ value: GraphNode[] }>({ value: [] });
 export const isLoading = $state<{ value: boolean }>({ value: false });
 export const errorMsg = $state<{ value: string | null }>({ value: null });
 export const filterGroup = $state<{ value: 'all' | 'pillar' | 'cluster' | 'unclassified' | 'ai_suggested' }>({ value: 'all' });
@@ -86,16 +88,23 @@ export const getFilteredNodes = () => _filteredNodes;
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-export async function fetchGraph(apiBase: string): Promise<void> {
+export async function fetchGraph(apiBase: string, pillarId?: string | null): Promise<void> {
 	isLoading.value = true;
 	errorMsg.value = null;
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/graph?t=${Date.now()}`, { credentials: 'include' });
+		const targetPillarId = pillarId !== undefined ? pillarId : selectedPillarId.value;
+		const pillarQuery = targetPillarId ? `&pillar_id=${targetPillarId}` : '';
+		const res = await fetch(`${apiBase}/api/v1/seo/graph?t=${Date.now()}${pillarQuery}`, { credentials: 'include' });
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const data: GraphData = await res.json();
 		graphData.meta = data.meta;
 		graphData.nodes = data.nodes;
 		graphData.links = data.links;
+		
+		// Cache full list of pillars from a full graph load
+		if (!targetPillarId) {
+			allPillars.value = data.nodes.filter((n) => n.is_pillar);
+		}
 	} catch (e) {
 		errorMsg.value = e instanceof Error ? e.message : 'Không thể tải graph.';
 	} finally {
@@ -255,45 +264,35 @@ export async function batchAssignPillar(
 		}
 	}
 
-	let success = 0;
-	let failed = 0;
-
-	// Sequential to avoid overwhelming the server — fire in parallel batches of 5
-	const chunks = [];
-	for (let i = 0; i < nodeIds.length; i += 5) chunks.push(nodeIds.slice(i, i + 5));
-
-	for (const chunk of chunks) {
-		const results = await Promise.allSettled(
-			chunk.map((nodeId) =>
-				fetch(`${apiBase}/api/v1/seo/edges`, {
-					method: 'POST',
-					credentials: 'include',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						source_node_id: pillarNodeId,
-						target_node_id: nodeId,
-						link_type: 'manual',
-						is_confirmed: true
-					})
-				}).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; })
-			)
-		);
-		for (const r of results) r.status === 'fulfilled' ? success++ : failed++;
-	}
-
-	if (failed > 0 && success === 0) {
-		// Full rollback only if everything failed
+	try {
+		const res = await fetch(`${apiBase}/api/v1/seo/edges/bulk`, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				source_node_id: pillarNodeId,
+				target_node_ids: nodeIds,
+				link_type: 'manual',
+				is_confirmed: true
+			})
+		});
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		
+		const result = await res.json();
+		const added = Number(result.data?.added || 0);
+		const updated = Number(result.data?.updated || 0);
+		
+		// Clear batch selection and refresh graph
+		batchSelectedIds.value = new Set();
+		await fetchGraph(apiBase);
+		return { success: added + updated, failed: 0 };
+	} catch (e) {
+		// Rollback on failure
 		graphData.nodes = snapshot;
 		graphData.links = snapshotLinks;
-		errorMsg.value = `Batch assign thất bại hoàn toàn (${failed} lỗi). Đã rollback.`;
-	} else if (failed > 0) {
-		errorMsg.value = `Hoàn thành một phần: ${success} thành công, ${failed} thất bại.`;
+		errorMsg.value = e instanceof Error ? `Bulk assign thất bại: ${e.message}` : 'Bulk assign thất bại.';
+		return { success: 0, failed: nodeIds.length };
 	}
-
-	// Clear batch selection and refresh graph
-	batchSelectedIds.value = new Set();
-	await fetchGraph(apiBase);
-	return { success, failed };
 }
 
 /**

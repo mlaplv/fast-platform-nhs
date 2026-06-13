@@ -53,6 +53,14 @@ class CreateEdgeRequest(BaseModel):
     is_confirmed: bool = True  # manual luôn là confirmed
 
 
+class CreateBulkEdgeRequest(BaseModel):
+    """Tạo nhiều edge thủ công cùng lúc giữa một source node và nhiều target nodes."""
+    source_node_id: str
+    target_node_ids: List[str]
+    link_type: Literal["pillar_cluster", "related", "manual", "ai_suggested"] = "manual"
+    is_confirmed: bool = True
+
+
 class UpdateEdgeRequest(BaseModel):
     """Override edge — dùng khi admin kéo thả node trên graph."""
     source_node_id: Optional[str] = None
@@ -135,3 +143,52 @@ class SeoSystemToggleRequest(BaseModel):
     """On/off auto-matching trigger."""
     auto_match_on_publish: bool
     nightly_reconciliation: bool
+
+
+# ─── Contextual Link Schemas (SGE Entity-Contextual Linking) ──────────────────
+
+class ContextualLinkResponse(BaseModel):
+    """Response cho từng contextual link suggestion."""
+    id: str
+    source_article_id: str
+    target_node_id: str
+    target_url: str
+    original_sentence: str
+    linked_sentence: str
+    anchor_text: str
+    matched_entity_type: str
+    matched_entity_name: str
+    ai_confidence: float
+    ai_reasoning: Optional[str]
+    sentence_index: int
+    status: str
+    reviewed_by: Optional[str]
+    content_hash: str
+    link_rel: Optional[str]
+    created_at: str
+    # Denormalized Pillar info for UI display
+    target_label: Optional[str] = None
+
+
+class ContextualLinkUpdateRequest(BaseModel):
+    """Approve/Reject/Edit một contextual link suggestion."""
+    status: Optional[Literal["approved", "rejected"]] = None
+    anchor_text: Optional[str] = None  # Admin override anchor text
+    link_rel: Optional[str] = None  # nofollow, sponsored, etc.
+
+
+class ContextualLinkApplyResponse(BaseModel):
+    """Response khi apply approved links vào article content."""
+    applied_count: int
+    article_id: str
+    skipped_stale: int  # Số link bị skip vì content_hash không khớp
+
+
+class ContextualLinkListResponse(BaseModel):
+    """Response cho danh sách contextual links của một bài viết."""
+    article_id: str
+    article_title: str
+    content_hash: str
+    is_stale: bool  # True nếu article.content đã thay đổi sau lần phân tích cuối
+    links: List[ContextualLinkResponse]
+    stats: dict  # {pending: N, approved: N, rejected: N, applied: N}

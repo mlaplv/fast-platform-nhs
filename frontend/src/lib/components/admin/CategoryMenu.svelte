@@ -100,7 +100,8 @@
       children: [
         { label: "Content Factory", widget: "CAMPAIGNS" },
         { label: "Ads Protection", widget: "ADS_PROTECTION" },
-        { label: "SEO Graph", widget: "SEO_GRAPH" }
+        { label: "SEO Graph", widget: "SEO_GRAPH" },
+        { label: "Duyệt Link SGE", widget: "SEO_LINK_REVIEW" }
       ]
     },
     {

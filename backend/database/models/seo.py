@@ -176,3 +176,92 @@ class SeoPillarEmbedding(Base, AuditMixin):
     model_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     node: Mapped["SeoNode"] = relationship("SeoNode", back_populates="pillar_embedding")
+
+
+class SeoMatchedEntityType(str, enum.Enum):
+    PAIN_POINT = "pain_point"
+    FEATURE = "feature"
+    BRAND = "brand"
+    INGREDIENT = "ingredient"
+    SYMPTOM = "symptom"
+
+
+class SeoContextualLinkStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    APPLIED = "applied"
+
+
+class SeoContextualLink(Base, AuditMixin, TenantMixin):
+    """
+    SGE Entity-Contextual Link — Sentence-Level AI Link Injection.
+
+    Lưu trữ forensic audit trail cho từng link được AI gợi ý chèn vào nội dung bài viết.
+    Workflow: pending → approved (admin review) → applied (injected into article.content)
+
+    KHÔNG thay thế seo_edges. seo_edges quản lý topology (Pillar↔Cluster).
+    Bảng này quản lý sentence-level link injection — hai mối quan tâm khác nhau.
+    """
+    __tablename__ = "seo_contextual_links"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
+
+    # Source: bài viết Cluster chứa nội dung gốc
+    source_article_id: Mapped[str] = mapped_column(
+        String, sa.ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Target: Pillar Node (sản phẩm/bài viết đích)
+    target_node_id: Mapped[str] = mapped_column(
+        String, sa.ForeignKey("seo_nodes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Denormalized URL — tránh JOIN khi render
+    target_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+
+    # Forensic: câu gốc và câu đã chèn link
+    original_sentence: Mapped[str] = mapped_column(Text, nullable=False)
+    linked_sentence: Mapped[str] = mapped_column(Text, nullable=False)
+    anchor_text: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    # Entity match metadata
+    matched_entity_type: Mapped[str] = mapped_column(
+        SAEnum(SeoMatchedEntityType, name="seo_matched_entity_type_enum", create_type=True),
+        nullable=False,
+    )
+    matched_entity_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # AI metadata
+    ai_confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    ai_reasoning: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Position & dedup
+    sentence_index: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+
+    # Workflow status
+    status: Mapped[str] = mapped_column(
+        SAEnum(SeoContextualLinkStatus, name="seo_ctx_link_status_enum", create_type=True),
+        default=SeoContextualLinkStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
+    reviewed_by: Mapped[Optional[str]] = mapped_column(
+        String, sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    # Stale detection: MD5 hash of article.content at analysis time
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # SEO attributes — admin decides per-link
+    link_rel: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # nofollow, sponsored, etc.
+    link_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    link_target: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # _blank, _self, etc.
+
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "source_article_id", "sentence_index", "target_node_id", "tenant_id",
+            name="uq_seo_ctx_link_sentence_target"
+        ),
+        Index("ix_seo_ctx_links_source_status", "source_article_id", "status"),
+        Index("ix_seo_ctx_links_target", "target_node_id"),
+        Index("ix_seo_ctx_links_tenant", "tenant_id"),
+    )

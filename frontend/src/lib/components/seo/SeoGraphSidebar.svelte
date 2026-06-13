@@ -18,6 +18,54 @@
 	let selectedPillarId = $state('');
 	let isMatching = $state(false);
 	let matchResult = $state<{ match_tier: string; ai_confidence: number | null } | null>(null);
+	let showReviewModal = $state(false);
+	let isAutoLinking = $state(false);
+	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
+
+	import SeoContextualLinkReview from './SeoContextualLinkReview.svelte';
+
+	// Auto clear notification after 5s
+	$effect(() => {
+		if (notification) {
+			const timer = setTimeout(() => {
+				notification = null;
+			}, 5000);
+			return () => clearTimeout(timer);
+		}
+	});
+
+	async function handleAutoLink() {
+		if (!getActiveNode()?.is_pillar) return;
+		isAutoLinking = true;
+		notification = null;
+		try {
+			const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${getActiveNode()!.id}/auto-link`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' }
+			});
+			const data = await res.json();
+			if (res.ok && !data.error) {
+				notification = {
+					message: data.message || 'Đã kích hoạt chạy Auto Link thành công.',
+					type: 'success'
+				};
+			} else {
+				notification = {
+					message: data.message || 'Có lỗi xảy ra khi kích hoạt Auto Link.',
+					type: 'error'
+				};
+			}
+		} catch (err) {
+			console.error('[AutoLink] Error:', err);
+			notification = {
+				message: 'Không thể kết nối đến máy chủ API.',
+				type: 'error'
+			};
+		} finally {
+			isAutoLinking = false;
+		}
+	}
 
 	// Reset khi active node thay đổi
 	$effect(() => {
@@ -136,6 +184,13 @@
 			{/if}
 		</div>
 
+		<!-- Notification Banner -->
+		{#if notification}
+			<div class="notification-banner {notification.type}">
+				{notification.message}
+			</div>
+		{/if}
+
 		<!-- Edge Info -->
 		{#if currentEdge}
 			<div class="section">
@@ -162,6 +217,15 @@
 			<button class="action-btn" class:active={getActiveNode()?.is_pillar} onclick={handleTogglePillar}>
 				{getActiveNode()?.is_pillar ? '⭐ Bỏ Pillar' : '⭐ Đặt làm Pillar'}
 			</button>
+
+			{#if getActiveNode()?.is_pillar}
+				<button class="action-btn review" onclick={() => showReviewModal = true}>
+					📋 Xem SGE Links về Pillar
+				</button>
+				<button class="action-btn auto-link" onclick={handleAutoLink} disabled={isAutoLinking}>
+					{isAutoLinking ? '⏳ Đang quét đề xuất...' : '⚡ AI tìm đề xuất từ Clusters'}
+				</button>
+			{/if}
 
 			<!-- Reassign Pillar -->
 			{#if !getActiveNode()?.is_pillar && getPillarNodes().length > 0}
@@ -196,6 +260,13 @@
 							<div class="match-conf">{Math.round(matchResult.ai_confidence * 100)}% confidence</div>
 						{/if}
 					</div>
+				{/if}
+
+				<!-- Contextual Link Review for Articles -->
+				{#if getActiveNode()?.entity_type?.toLowerCase() === 'article'}
+					<button class="action-btn review" onclick={() => showReviewModal = true}>
+						📋 Xem SGE Contextual Links
+					</button>
 				{/if}
 			{/if}
 
@@ -242,6 +313,24 @@
 		</div>
 	{/if}
 </div>
+
+{#if showReviewModal && getActiveNode()}
+	{#if getActiveNode()!.is_pillar}
+		<SeoContextualLinkReview
+			apiBase={apiBase}
+			pillarId={getActiveNode()!.id}
+			reviewMode="pillar"
+			onClose={() => showReviewModal = false}
+		/>
+	{:else}
+		<SeoContextualLinkReview
+			apiBase={apiBase}
+			articleId={getActiveNode()!.entity_id}
+			reviewMode="article"
+			onClose={() => showReviewModal = false}
+		/>
+	{/if}
+{/if}
 
 <style>
 	.sidebar {
@@ -418,7 +507,35 @@
 	.action-btn.match { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.3); color: #fdba74; }
 	.action-btn.delete-link { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
 	.action-btn.delete-link:hover:not(:disabled) { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
+	.action-btn.review { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #c084fc; }
+	.action-btn.review:hover:not(:disabled) { background: rgba(139, 92, 246, 0.2); }
+	.action-btn.auto-link { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+	.action-btn.auto-link:hover:not(:disabled) { background: rgba(245, 158, 11, 0.2); }
 	.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+	.notification-banner {
+		margin: 0.75rem 1.25rem 0;
+		padding: 0.6rem 0.8rem;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		line-height: 1.4;
+		border: 1px solid;
+		animation: fadeIn 0.2s ease-in-out;
+	}
+	.notification-banner.success {
+		background: rgba(16, 185, 129, 0.08);
+		border-color: rgba(16, 185, 129, 0.25);
+		color: #6ee7b7;
+	}
+	.notification-banner.error {
+		background: rgba(239, 68, 68, 0.08);
+		border-color: rgba(239, 68, 68, 0.25);
+		color: #fca5a5;
+	}
+	@keyframes fadeIn {
+		from { opacity: 0; transform: translateY(-5px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
 
 	.reassign-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem; }
 	.select-label { font-size: 0.72rem; color: #64748b; }
