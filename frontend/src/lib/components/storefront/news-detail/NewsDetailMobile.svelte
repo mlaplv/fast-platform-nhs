@@ -326,6 +326,7 @@
     <div class="flex items-center gap-4 px-4 py-3">
       <button
         onclick={() => history.back()}
+        aria-label="Quay lại"
         class="w-8 h-8 flex items-center justify-center text-gray-900 active:scale-90 transition-transform"
       >
         <svg
@@ -386,10 +387,10 @@
   {#if article.category !== "Chính sách"}
     <div class="px-[10px] pt-5">
       <div class="flex items-center gap-2 mb-3">
-        <span class="bg-[#C18F7E]/10 text-[#C18F7E] px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
+        <span class="bg-[#C18F7E]/10 text-[#854E37] px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
           {article.category || "HƯỚNG DẪN CHUYÊN MÔN"}
         </span>
-        <span class="bg-gray-100 text-gray-500 px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
+        <span class="bg-gray-100 text-gray-700 px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
           ⏱️ 5 PHÚT ĐỌC
         </span>
       </div>
@@ -409,7 +410,7 @@
             {article.author === "Xohi" || article.author === "System" || article.author === "Osmo" ? "Ban biên tập osmo" : article.author}
           </span>
           <span class="text-gray-300 text-[10px] font-light">•</span>
-          <span class="text-[9px] font-bold text-gray-400 tracking-tight">
+          <span class="text-[9px] font-bold text-gray-600 tracking-tight">
             {article.publishedAt}
           </span>
         </div>
@@ -423,6 +424,9 @@
       <img
         src={resolveOptimizedImageUrl(article.featuredImage, 600)}
         alt={article.title}
+        width="600"
+        height="338"
+        style="aspect-ratio: 600/338;"
         class="w-full h-auto object-contain block"
         loading="eager"
         fetchpriority="high"
@@ -444,7 +448,7 @@
       <div class="mb-6 flex flex-col gap-1.5 px-1">
         <div class="flex items-center gap-2">
           <span class="w-4 h-[1.5px] bg-[#C18F7E]"></span>
-          <span class="text-[9px] font-black tracking-[0.25em] text-[#C18F7E] uppercase">Hỏi đáp chuyên môn</span>
+          <span class="text-[9px] font-black tracking-[0.25em] text-[#854E37] uppercase">Hỏi đáp chuyên môn</span>
         </div>
         <h2 class="text-[16px] font-black text-[#0f172a] tracking-tight">
           Câu hỏi thường gặp
@@ -462,7 +466,7 @@
             >
               <span
                 class="text-[14px] font-bold leading-snug transition-colors duration-200 {activeFaq === i
-                  ? 'text-[#C18F7E]'
+                  ? 'text-[#854E37]'
                   : 'text-[#0f172a]'} pr-4"
               >
                 {faq.question}
@@ -506,7 +510,7 @@
 
   <!-- Footer Navigation -->
   <div class="p-10 text-center border-t border-gray-100 bg-gray-50">
-    <span class="text-[10px] font-black text-gray-300 tracking-[0.4em]"
+    <span class="text-[10px] font-black text-gray-500 tracking-[0.4em]"
       >Kết thúc bài viết</span
     >
     <div class="mt-6">

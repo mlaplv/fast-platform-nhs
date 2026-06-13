@@ -195,8 +195,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  let lcpImageUrl: string | null = null;
-  let lcpType = "image";
+  const lcpPreloads: string[] = [];
 
   // Process the request and minify HTML for storefront to ensure peak SGE performance
   const response = await resolve(event, {
@@ -211,10 +210,15 @@ export const handle: Handle = async ({ event, resolve }) => {
             if (lowerLink.includes('fetchpriority="high"') || lowerLink.includes("fetchpriority='high'") || lowerLink.includes('fetchpriority=high')) {
               const hrefMatch = link.match(/href=["']?([^"'\s>]+)["']?/i);
               const asMatch = link.match(/as=["']?([^"'\s>]+)["']?/i);
+              const mediaMatch = link.match(/media=["']?([^"'>]+)["']?/i);
               if (hrefMatch) {
-                lcpImageUrl = hrefMatch[1];
-                lcpType = asMatch ? asMatch[1] : "image";
-                break;
+                const href = hrefMatch[1];
+                const asType = asMatch ? asMatch[1] : "image";
+                let headerPart = `<${href}>; rel="preload"; as="${asType}"; fetchpriority="high"`;
+                if (mediaMatch) {
+                  headerPart += `; media="${mediaMatch[1]}"`;
+                }
+                lcpPreloads.push(headerPart);
               }
             }
           }
@@ -251,12 +255,9 @@ export const handle: Handle = async ({ event, resolve }) => {
       // Remove SvelteKit's massive Link header
       response.headers.delete("link");
       
-      // Inject the clean LCP preload Link header (standard HTTP Link header syntax, no quotes around parameter tokens)
-      if (lcpImageUrl) {
-        response.headers.set(
-          "Link",
-          `<${lcpImageUrl}>; rel=preload; as=${lcpType}; fetchpriority=high`
-        );
+      // Inject the clean LCP preload Link header
+      if (lcpPreloads.length > 0) {
+        response.headers.set("Link", lcpPreloads.join(", "));
       }
     }
   }

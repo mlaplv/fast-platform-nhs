@@ -209,12 +209,12 @@
           {/each}
         </div>
         <div class="flex items-baseline gap-1">
-          <span class="text-sm font-black text-[#C18F7E]">{averageRating}</span>
-          <span class="text-[9px] font-bold text-gray-300">({reviewCount} lượt)</span>
+          <span class="text-sm font-black text-[#854E37]">{averageRating}</span>
+          <span class="text-[9px] font-bold text-gray-600">({reviewCount} lượt)</span>
         </div>
       </div>
     </div>
-    <button onclick={handleWriteReview} class="px-6 py-3 bg-[#C18F7E] text-white text-[10px] font-black tracking-widest active:scale-95 transition-all shadow-xl shadow-[#C18F7E]/20">
+    <button onclick={handleWriteReview} class="px-6 py-3 bg-[#7E4A35] text-white text-[10px] font-black tracking-widest active:scale-95 transition-all shadow-xl shadow-[#7E4A35]/20">
         Viết ngay
     </button>
   </div>
@@ -233,7 +233,7 @@
                     <span class="text-[10px] font-black text-gray-400 tracking-widest">Đánh giá của bạn</span>
                     <div class="flex gap-2">
                         {#each Array(5) as _, i}
-                            <button onclick={() => newRating = i + 1}>
+                            <button onclick={() => newRating = i + 1} aria-label="Đánh giá {i + 1} sao">
                                 <Star class="w-7 h-7 {i < newRating ? 'text-[#C18F7E] fill-current' : 'text-gray-200'}" />
                             </button>
                         {/each}
@@ -258,7 +258,7 @@
                         </div>
                     {/each}
                     {#if attachedPhotos.length < 5}
-                        <button onclick={() => fileInput?.click()} disabled={isUploadingMedia} class="w-16 h-16 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
+                        <button onclick={() => fileInput?.click()} disabled={isUploadingMedia} aria-label="Đính kèm ảnh hoặc video" class="w-16 h-16 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
                             {#if isUploadingMedia}<Loader2 class="w-4 h-4 animate-spin"/>{:else}<Camera class="w-5 h-5"/>{/if}
                         </button>
                     {/if}
@@ -294,7 +294,7 @@
       <div class="flex items-start justify-between gap-3 mb-4">
         <!-- User Info (Left Column) -->
         <div class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 bg-[#C18F7E]/10 rounded-full flex items-center justify-center text-[#C18F7E] font-black text-sm shrink-0">
+          <div class="w-10 h-10 bg-[#C18F7E]/10 rounded-full flex items-center justify-center text-[#854E37] font-black text-sm shrink-0">
             {(review.customer_name || 'U').charAt(0).toUpperCase()}
           </div>
           <div class="min-w-0">
@@ -316,6 +316,7 @@
             <button 
               onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
               class="text-gray-300 hover:text-gray-600 transition-colors p-1"
+              aria-label="Tùy chọn bình luận"
             >
               <MoreHorizontal size={16} />
             </button>
@@ -333,13 +334,14 @@
 
             <button 
               onclick={() => handleLike(review)}
-              class="flex items-center gap-1 {review._isLiked ? 'text-[#C18F7E]' : 'text-gray-300'} transition-all p-1"
+              class="flex items-center gap-1 {review._isLiked ? 'text-[#854E37]' : 'text-gray-300'} transition-all p-1"
+              aria-label="Thích bình luận"
             >
               <ThumbsUp size={14} fill={review._isLiked ? "currentColor" : "none"} />
               <span class="text-xs font-bold">{review.likes_count || 0}</span>
             </button>
           </div>
-          <span class="text-[8px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-2 py-1 rounded tracking-wider shrink-0 uppercase">Nổi bật</span>
+          <span class="text-[8px] font-black text-[#854E37] bg-[#C18F7E]/10 px-2 py-1 rounded tracking-wider shrink-0 uppercase">Nổi bật</span>
         </div>
       </div>
 
@@ -361,10 +363,10 @@
       {/if}
 
       <div class="mt-6 flex items-center justify-between">
-        <div class="text-[9px] font-black tracking-widest text-gray-300">
+        <div class="text-[9px] font-black tracking-widest text-gray-600">
            {reviewCount * 14 + 120}+ Độc giả tin dùng
         </div>
-        <div class="px-6 py-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest active:scale-95 transition-all">
+        <div class="px-6 py-3 bg-[#7E4A35] text-white text-[9px] font-black tracking-widest active:scale-95 transition-all">
           Tất cả cảm nhận
         </div>
       </div>

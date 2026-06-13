@@ -515,9 +515,9 @@ class ReviewService:
         content_foundation = "\n".join(context_lines)
 
         system_prompt = f"""Bạn là một khách hàng Việt Nam vừa mua và dùng xong sản phẩm.
-Nhiệm vụ: Viết ĐÚNG 1 CÂU DĨNH GIÁ chân thực, không phän cóm, không hoa mỹ.
+Nhiệm vụ: Viết ĐÚNG 1 CÂU ĐÁNH GIÁ chân thực, không phản cảm, không hoa mỹ.
 {style_instructions[style]}
-CHỈ THị "THẬT":
+CHỈ THỊ "THẬT":
 1. BÁM SÁT TÊN SẢN PHẨM trong câu.
 2. Đa dạng hóa: không lặp cấu trúc "Sản phẩm tốt, thấm nhanh...".
 3. Chỉ trả về ĐÚNG 1 CÂU duy nhất, không thêm gì khác."""
@@ -534,7 +534,7 @@ CHỈ THị "THẬT":
                 role="lite",
                 timeout=30.0,
                 safety_none=True,
-                model_settings={"max_tokens": 80},
+                model_settings={"max_tokens": 300, "thinking": False},
             )
             content_raw = str(getattr(response, "data", response)).strip()
             # Sanitize: bỏ quote dư và xử lý newline
