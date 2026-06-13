@@ -625,11 +625,6 @@ class SeoContextualLinker:
         skipped_stale = 0
 
         for link in links:
-            # Stale check
-            if link.content_hash != current_hash:
-                skipped_stale += 1
-                continue
-
             attrs = []
             if link.link_rel and link.link_rel.strip().lower() not in ["", "dofollow"]:
                 attrs.append(f'rel="{link.link_rel.strip()}"')
@@ -651,6 +646,8 @@ class SeoContextualLinker:
                 content = new_content
                 link.status = SeoContextualLinkStatus.APPLIED
                 applied += 1
+            else:
+                skipped_stale += 1
 
         if applied > 0:
             article.content = content

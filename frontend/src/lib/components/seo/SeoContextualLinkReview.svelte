@@ -8,6 +8,8 @@
 	import HelpCircle from '@lucide/svelte/icons/help-circle';
 	import Link2 from '@lucide/svelte/icons/link-2';
 	import type { Article } from '$lib/types';
+	import { useNanobot } from '$lib/state/nanobot.svelte';
+	import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
 	export interface SeoContextualLink {
 		id: string;
@@ -52,6 +54,8 @@
 		isWidget?: boolean;
 		onClose?: () => void;
 	} = $props();
+
+	const nanobot = useNanobot();
 
 	// Component states
 	let isLoading = $state(false);
@@ -254,6 +258,7 @@
 			}
 		} catch (e) {
 			errorMessage = e instanceof Error ? e.message : 'Không thể tải đề xuất liên kết.';
+			nanobot.showToast(errorMessage, 'error');
 		} finally {
 			isLoading = false;
 		}
@@ -280,6 +285,7 @@
 			const result = await res.json();
 			if (result.data?.error) {
 				errorMessage = result.message as string;
+				nanobot.showToast(errorMessage, 'error');
 			} else {
 				// Fast local update with Svelte 5 deep state re-assignment
 				const index = links.findIndex((l) => l.id === linkId);
@@ -295,9 +301,12 @@
 						stats = { ...stats };
 					}
 				}
+				const actionText = status === 'approved' ? 'duyệt' : 'từ chối';
+				nanobot.showToast(`Đã ${actionText} liên kết thành công!`, 'success');
 			}
 		} catch (e) {
 			errorMessage = e instanceof Error ? e.message : 'Không thể cập nhật trạng thái.';
+			nanobot.showToast(errorMessage, 'error');
 		} finally {
 			isActioning = false;
 		}
@@ -335,6 +344,7 @@
 			
 			if (result.data?.error) {
 				errorMessage = result.message as string;
+				nanobot.showToast(errorMessage, 'error');
 			} else {
 				// Update locally with Svelte 5 deep state re-assignment
 				const index = links.findIndex((l) => l.id === linkId);
@@ -371,9 +381,11 @@
 				}
 				editingLinkId = null;
 				successMessage = 'Đã cập nhật các thuộc tính SEO / SGE của link.';
+				nanobot.showToast(successMessage, 'success');
 			}
 		} catch (e) {
 			errorMessage = e instanceof Error ? e.message : 'Không thể lưu thay đổi.';
+			nanobot.showToast(errorMessage, 'error');
 		} finally {
 			isActioning = false;
 		}
@@ -396,14 +408,18 @@
 				const result = await res.json();
 				if (Number(result.data?.applied_count) > 0) {
 					successMessage = `Đã cập nhật bài viết thành công! Đã chèn ${result.data.applied_count} liên kết.`;
+					nanobot.showToast(successMessage, 'success');
 					await fetchContextualLinks();
 				} else if (Number(result.data?.skipped_stale) > 0) {
 					errorMessage = `Không thể apply. Bài viết đã bị sửa đổi nội dung. Cần chạy lại phân tích.`;
+					nanobot.showToast(errorMessage, 'error');
 				} else {
 					successMessage = 'Không có liên kết Approved nào được chèn.';
+					nanobot.showToast(successMessage, 'info');
 				}
 			} catch (e) {
 				errorMessage = e instanceof Error ? e.message : 'Không thể thực thi chèn liên kết.';
+				nanobot.showToast(errorMessage, 'error');
 			} finally {
 				isActioning = false;
 			}
@@ -429,17 +445,22 @@
 
 				if (applied > 0) {
 					successMessage = `Đã chèn thành công ${applied} liên kết vào ${processed} bài viết Cluster.`;
+					nanobot.showToast(successMessage, 'success');
 					if (skipped > 0) {
 						errorMessage = `Bỏ qua ${skipped} liên kết vì nội dung bài viết gốc đã bị thay đổi bên ngoài.`;
+						nanobot.showToast(errorMessage, 'warning');
 					}
 					await fetchContextualLinks();
 				} else if (skipped > 0) {
 					errorMessage = `Không thể chèn liên kết. Toàn bộ ${skipped} liên kết đã bị hết hạn (do nội dung bài viết gốc đã thay đổi).`;
+					nanobot.showToast(errorMessage, 'error');
 				} else {
 					successMessage = 'Không có liên kết nào được chèn.';
+					nanobot.showToast(successMessage, 'info');
 				}
 			} catch (e) {
 				errorMessage = e instanceof Error ? e.message : 'Không thể thực thi chèn liên kết hàng loạt.';
+				nanobot.showToast(errorMessage, 'error');
 			} finally {
 				isActioning = false;
 			}
@@ -461,8 +482,10 @@
 				});
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				successMessage = 'Hệ thống đã nhận lệnh và đang phân tích lại bài viết trong nền. Vui lòng làm mới sau 15-30 giây.';
+				nanobot.showToast(successMessage, 'success');
 			} catch (e) {
 				errorMessage = e instanceof Error ? e.message : 'Không thể trigger phân tích lại.';
+				nanobot.showToast(errorMessage, 'error');
 			} finally {
 				isActioning = false;
 			}
@@ -480,8 +503,10 @@
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const result = await res.json();
 				successMessage = result.message || 'Đã kích hoạt quét phân tích các bài viết Cluster dưới nền. Đề xuất mới sẽ xuất hiện sau vài phút.';
+				nanobot.showToast(successMessage, 'success');
 			} catch (e) {
 				errorMessage = e instanceof Error ? e.message : 'Không thể kích hoạt quét phân tích Pillar.';
+				nanobot.showToast(errorMessage, 'error');
 			} finally {
 				isActioning = false;
 			}
@@ -1070,7 +1095,7 @@
 
 <!-- Floating Modal Chỉnh Sửa Link SGE Nổi Lên Chuyên Nghiệp -->
 {#if editingLinkId}
-	<div class="edit-modal-overlay">
+	<div class="edit-modal-overlay" style="z-index: {Z_INDEX_ADMIN.MODAL_CONFIRM}">
 		<div class="edit-modal-backdrop" onclick={() => editingLinkId = null}></div>
 		<div class="edit-modal-card">
 			<div class="edit-modal-header">
