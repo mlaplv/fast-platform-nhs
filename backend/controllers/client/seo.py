@@ -328,10 +328,10 @@ class PublicGoogleMerchantController(Controller):
         google_category = ""
         if p.category_id:
             google_category = self._CATEGORY_MAP.get(str(p.category_id), "")
-            # Neck/Cổ cream special taxonomy override for AI Search (Anti-Aging Treatments / ID 473)
+            # Neck/Cổ cream special taxonomy override for AI Search (ID 412: Neck & Décolleté Creams)
             p_name_lower = (p.name or "").lower()
-            if "cổ" in p_name_lower or "neck" in p_name_lower:
-                google_category = "473"
+            if any(w in p_name_lower for w in ("cổ", "họng", "ngực", "neck", "throat", "decollete", "décolleté")):
+                google_category = "412"
 
         # ── Product Type (internal taxonomy path) ──
         product_type = ""
@@ -526,6 +526,25 @@ class PublicGoogleMerchantController(Controller):
 
         return title
 
+    def _slice_words(self, text: str, max_words: int) -> str:
+        words = text.split()
+        if len(words) <= max_words:
+            return text
+        sliced = words[:max_words]
+        capped = " ".join(sliced)
+        capped = capped.rstrip(".,;:!? ")
+        while True:
+            new_capped = re.sub(
+                r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để|giúp|mờ|giảm|làm|việc|trong|trên|dưới|cùng|mẩn|khỏi)\s*$',
+                '',
+                capped,
+                flags=re.IGNORECASE
+            ).strip()
+            if new_capped == capped:
+                break
+            capped = new_capped
+        return capped
+
     def _clean_highlight_ingredient(self, name: str, benefit: str) -> str:
         # 1. Strip parenthesis only if content is long or chemical-heavy
         for match in re.finditer(r'\(([^)]+)\)', name):
@@ -558,8 +577,21 @@ class PublicGoogleMerchantController(Controller):
                 else:
                     subject = name_clean
 
-        # 3. Clean benefit and combine
+        # 3. Clean and slice benefit to fit within the 15-word cap
         benefit_clean = benefit.strip()
+        
+        subj_len = len(subject.split())
+        # We need subj_len + benefit_len + 1 (for conjunction) <= 15 -> benefit_len <= 14 - subj_len
+        max_benefit_words = max(3, 14 - subj_len)
+        
+        if len(benefit_clean.split()) > max_benefit_words:
+            # Try splitting by punctuation first to get a clean clause
+            clauses = re.split(r'[,;.]', benefit_clean)
+            if clauses and len(clauses[0].split()) <= max_benefit_words:
+                benefit_clean = clauses[0].strip()
+            else:
+                benefit_clean = self._slice_words(benefit_clean, max_benefit_words)
+
         benefit_lower = benefit_clean.lower()
 
         if "giúp" in benefit_lower:
@@ -583,6 +615,10 @@ class PublicGoogleMerchantController(Controller):
 
         if sentence:
             sentence = sentence[0].upper() + sentence[1:]
+
+        # final safeguard: if somehow still over 15 words, slice it
+        if len(sentence.split()) > 15:
+            sentence = self._slice_words(sentence, 15)
 
         return sentence
 
@@ -612,59 +648,22 @@ class PublicGoogleMerchantController(Controller):
         if isinstance(kg, dict):
             claim = str(kg.get("expert_claim") or "")
             if claim and len(claim) > 10:
-                pool.append(claim.rstrip(".") + ".")
+                # Limit claim to 15 words
+                claim_sliced = self._slice_words(claim, 15)
+                pool.append(claim_sliced.rstrip(".") + ".")
 
         # Source 4: Fallback safety statement
         if len(pool) < 3:
             pool.append("An toàn cho da nhạy cảm, không chứa cồn.")
 
-        # Enforce: max 15 words per highlight, cap at 4 total with clause-boundary truncation
+        # Ensure: max 15 words per highlight, cap at 4 total, complete sentences only
         result: list[str] = []
         for hl in pool[:4]:
             hl = hl.strip()
-            words = hl.split()
-            if len(words) <= 15:
+            if hl:
                 if not hl.endswith("."):
                     hl += "."
                 result.append(hl[:150])
-                continue
-
-            # Over 15 words: slice to 15 words
-            sliced_words = words[:15]
-
-            # Try to find a good punctuation boundary to cut earlier (look from word index 14 down to 8)
-            cut_idx = -1
-            for i in range(14, 7, -1):
-                w = sliced_words[i]
-                if w.endswith((".", ",", ";", ":", "!")):
-                    cut_idx = i
-                    break
-
-            if cut_idx != -1:
-                sliced_words = sliced_words[:cut_idx + 1]
-
-            capped = " ".join(sliced_words)
-            capped = capped.rstrip(".,;:!? ")
-
-            # Strip trailing hanging words/prepositions recursively
-            while True:
-                new_capped = re.sub(
-                    r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để|giúp|mờ|giảm|làm|việc|trong|trên|dưới|cùng)\s*$',
-                    '',
-                    capped,
-                    flags=re.IGNORECASE
-                ).strip()
-                if new_capped == capped:
-                    break
-                capped = new_capped
-
-            # Balance parenthesis
-            open_p = capped.count("(")
-            close_p = capped.count(")")
-            if open_p > close_p:
-                capped += ")"
-
-            result.append((capped + ".")[:150])
 
         return result
 
@@ -684,6 +683,9 @@ class PublicGoogleMerchantController(Controller):
         for meta_key, section, attr_name in mapping:
             val = str(meta.get(meta_key) or "").strip()
             if val:
+                # SGE Post-Validation: Only allow short specs (under 5 words) for product details
+                if len(val.split()) > 5:
+                    continue
                 details.append({"section": section, "name": attr_name, "value": val[:1000]})
                 added_keys.add(attr_name.lower())
 
@@ -734,6 +736,9 @@ class PublicGoogleMerchantController(Controller):
                 val_str = brand
 
             if val_str and val_str.lower() != "none":
+                # SGE Post-Validation: Only allow short specs (under 5 words) for product details
+                if len(val_str.split()) > 5:
+                    continue
                 details.append({"section": section, "name": attr_name, "value": val_str[:1000]})
                 added_keys.add(attr_name.lower())
 
