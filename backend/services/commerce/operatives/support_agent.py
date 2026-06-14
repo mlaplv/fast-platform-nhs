@@ -1463,7 +1463,37 @@ class SupportAgentOperative(BaseAgentOperative):
 
         subtotal = actual_price * actual_qty
 
-        # ── V7.1: Query best voucher for this order amount ──
+        # ── V7.2: Upsell — find next-tier combo the customer is close to ──
+        upsell_line = ""
+        if resolved_product and resolved_product.variants:
+            # Re-analyze all variants to find a bigger combo
+            for v in resolved_product.variants:
+                v_attrs = v.attributes or {}
+                if isinstance(v_attrs, str):
+                    try:
+                        v_attrs = json.loads(v_attrs)
+                    except Exception:
+                        v_attrs = {}
+                if not isinstance(v_attrs, dict):
+                    v_attrs = {}
+                v_combo_qty = int(v_attrs.get('combo_qty') or v_attrs.get('comboQty') or 1)
+                v_gifts = v_attrs.get('gifts') or []
+                v_total = v_combo_qty + sum(int(g.get('qty', 0)) for g in v_gifts if isinstance(g, dict))
+                # Only suggest if this variant is BIGGER than what the customer ordered
+                # and the customer needs to buy just 1-2 more to reach it
+                extra_needed = v_combo_qty - actual_qty
+                if extra_needed > 0 and extra_needed <= 2 and v_total > (actual_qty + len(gift_lines)):
+                    upsell_price = float(v.discount_price or v.price)
+                    upsell_formatted = "{:,.0f}".format(upsell_price).replace(",", ".")
+                    gift_names = [g.get("name", "") for g in v_gifts if isinstance(g, dict) and g.get("name")]
+                    gift_text = f" + tặng **{', '.join(gift_names)}**" if gift_names else ""
+                    upsell_line = (
+                        f"💡 Mua thêm **{extra_needed}** = **{v_combo_qty} hộp** giá chỉ **{upsell_formatted}đ**{gift_text}! "
+                        f"Tiết kiệm hơn nhiều — {c_display} có muốn nâng lên không ạ?"
+                    )
+                    break  # Only show the nearest upsell tier
+
+        # ── V7.2: Query best voucher — EXCLUDE SHIPPING type from price discount ──
         from datetime import datetime, timezone as tz
         now = datetime.now(tz.utc)
         v_stmt = select(Voucher).where(
@@ -1475,15 +1505,19 @@ class SupportAgentOperative(BaseAgentOperative):
                 or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
                 Voucher.min_spend <= subtotal,
             )
-        ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(3)
+        ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(5)
         voucher_rows = (await db.execute(v_stmt)).scalars().all()
 
-        # Find the best voucher (highest actual discount)
+        # Separate price discount vouchers from shipping vouchers
         best_voucher = None
         best_voucher_discount = 0.0
+        has_free_ship_voucher = False
         for v in voucher_rows:
             if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
                 continue
+            if v.type == "SHIPPING" or v.category == "SHIPPING":
+                has_free_ship_voucher = True
+                continue  # Don't apply shipping vouchers as price discounts
             disc = PromotionService.calculate_voucher_discount(subtotal, v)
             if disc > best_voucher_discount:
                 best_voucher_discount = disc
@@ -1531,13 +1565,14 @@ class SupportAgentOperative(BaseAgentOperative):
         formatted_subtotal = "{:,.0f}".format(subtotal).replace(",", ".")
         formatted_final = "{:,.0f}".format(final_price).replace(",", ".")
         debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+        ship_text = "free ship" if has_free_ship_voucher else ""
 
         # Line 1: Acknowledge order
         reply_parts = [
             f"{debug_prefix}Dạ Helen nhận đơn **{actual_qty} {p_name_short}** cho {c_display} rồi ạ! 🌸\n"
         ]
 
-        # Line 2: Gifts (combo deals)
+        # Line 2: Gifts (combo deals from current variant)
         if gift_lines:
             reply_parts.append("🎉 **Ưu đãi combo:**")
             reply_parts.extend(gift_lines)
@@ -1546,7 +1581,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # Line 3: Pricing breakdown
         reply_parts.append(f"💰 Giá: **{formatted_subtotal}đ**")
 
-        # Line 4: Best voucher
+        # Line 4: Best DISCOUNT voucher (NOT shipping)
         if best_voucher and best_voucher_discount > 0:
             v_display = "{:,.0f}".format(best_voucher_discount).replace(",", ".")
             if best_voucher.type == "PERCENT":
@@ -1561,16 +1596,21 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # Line 6: Final price + free ship
         has_discount = best_voucher_discount > 0 or pts_discount > 0
+        ship_suffix = f" ({ship_text})" if ship_text else ""
         if has_discount:
-            reply_parts.append(f"✅ **Tổng thanh toán: {formatted_final}đ** (free ship)")
+            reply_parts.append(f"✅ **Tổng thanh toán: {formatted_final}đ**{ship_suffix}")
         else:
-            reply_parts.append(f"✅ **Tổng: {formatted_subtotal}đ** (free ship)")
+            reply_parts.append(f"✅ **Tổng: {formatted_subtotal}đ**{ship_suffix}")
 
-        # Line 7: VIP acknowledgment
+        # Line 7: Upsell combo suggestion
+        if upsell_line:
+            reply_parts.append(f"\n{upsell_line}")
+
+        # Line 8: VIP acknowledgment
         if dna.segment == "VIP":
             reply_parts.append(f"\n💎 Cảm ơn {c_display} — khách VIP thân thiết của osmo! Helen sẽ ưu tiên giao nhanh nhất cho {c_display} ạ.")
 
-        # Line 8: CTA
+        # Line 9: CTA
         reply_parts.append(
             f"\n{c_display.capitalize()} cho em xin nhanh:\n"
             f"📞 **Số điện thoại**\n"
@@ -1729,7 +1769,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
                 subtotal = sum(float(it.get("price") or it.get("unit_price") or 0) * int(it.get("quantity") or it.get("qty") or 1) for it in enriched_items)
 
-                # V7.1: Query best voucher for this order
+                # V7.2: Query best voucher — EXCLUDE SHIPPING type from price discount
                 from datetime import datetime, timezone as tz
                 now = datetime.now(tz.utc)
                 v_stmt = select(Voucher).where(
@@ -1741,14 +1781,18 @@ class SupportAgentOperative(BaseAgentOperative):
                         or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
                         Voucher.min_spend <= subtotal,
                     )
-                ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(3)
+                ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(5)
                 voucher_rows = (await db.execute(v_stmt)).scalars().all()
 
                 best_voucher = None
                 best_voucher_discount = 0.0
+                has_free_ship_voucher = False
                 for v in voucher_rows:
                     if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
                         continue
+                    if v.type == "SHIPPING" or v.category == "SHIPPING":
+                        has_free_ship_voucher = True
+                        continue  # Don't apply shipping vouchers as price discounts
                     disc = PromotionService.calculate_voucher_discount(subtotal, v)
                     if disc > best_voucher_discount:
                         best_voucher_discount = disc
@@ -1779,6 +1823,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 # Build professional confirmation
                 formatted_subtotal = "{:,.0f}".format(subtotal).replace(",", ".")
                 formatted_total = "{:,.0f}".format(total).replace(",", ".")
+                ship_text = "free ship" if has_free_ship_voucher else ""
 
                 reply_parts = [
                     f"{debug_prefix}Dạ Helen chúc mừng {c_display} đặt hàng thành công! 🌸\n",
@@ -1798,6 +1843,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
                 # Pricing breakdown
                 has_discount = best_voucher_discount > 0 or pts_discount > 0
+                ship_suffix = f" ({ship_text})" if ship_text else ""
                 if has_discount:
                     reply_parts.append(f"💰 Giá gốc: ~~{formatted_subtotal}đ~~")
                     if best_voucher and best_voucher_discount > 0:
@@ -1806,9 +1852,9 @@ class SupportAgentOperative(BaseAgentOperative):
                     if dna.available_points > 0 and pts_discount > 0:
                         pts_display = "{:,.0f}".format(pts_discount).replace(",", ".")
                         reply_parts.append(f"⭐ Đổi {dna.available_points} điểm: −{pts_display}đ")
-                    reply_parts.append(f"✅ **Thanh toán: {formatted_total}đ** (free ship)")
+                    reply_parts.append(f"✅ **Thanh toán: {formatted_total}đ**{ship_suffix}")
                 else:
-                    reply_parts.append(f"💰 **Tổng: {formatted_subtotal}đ** (free ship)")
+                    reply_parts.append(f"💰 **Tổng: {formatted_subtotal}đ**{ship_suffix}")
 
                 reply_parts.append(f"🚚 Dự kiến: **{shipping_days}**")
 
