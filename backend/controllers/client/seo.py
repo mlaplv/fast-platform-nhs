@@ -179,6 +179,15 @@ class PublicGoogleMerchantController(Controller):
         "cat_kem_mat": "Kem Mắt",
     }
 
+    # GEO 2026: Sub-brands / product lines under Miccosmo
+    _SUB_BRANDS: list[tuple[str, str]] = [
+        ("beppin body", "Beppin Body"),
+        ("rich gold", "Rich Gold"),
+        ("white label", "White Label"),
+        ("hurry harry", "Hurry Harry"),
+        ("platinum", "Platinum"),
+    ]
+
     # GEO 2026: Known ingredient keywords → Vietnamese short names
     _INGREDIENT_KEYWORDS: list[tuple[str, str]] = [
         ("placenta", "Nhau Thai"),
@@ -403,7 +412,7 @@ class PublicGoogleMerchantController(Controller):
     def _build_geo_title(self, p: ProductBase, meta: dict[str, object]) -> str:
         """GEO 2026: Build mobile-optimized title (35-55 chars).
 
-        Formula: [Loại SP gọn] [Thành phần nổi bật] [Thương hiệu] [Dung tích] - [Công dụng cốt lõi]
+        Formula: [Loại SP gọn] [Thành phần nổi bật] [Dòng sản phẩm/Tên thật] [Dung tích] - [Công dụng cốt lõi]
         """
         # Step 1: If seo_title exists, clean and check length
         if p.seo_title:
@@ -423,10 +432,21 @@ class PublicGoogleMerchantController(Controller):
 
         weight = str(meta.get("weight") or "")
 
+        # Extract sub-brand / line name
+        sub_brand = ""
+        name_lower = (p.name or "").lower()
+        for key, val in self._SUB_BRANDS:
+            if key in name_lower:
+                sub_brand = val
+                break
+
         # Extract key ingredient from product name
         ingredient = ""
-        name_lower = (p.name or "").lower()
         for eng_key, vn_name in self._INGREDIENT_KEYWORDS:
+            if eng_key == "gold" and "Rich Gold" in sub_brand:
+                continue
+            if eng_key == "platinum" and "Platinum" in sub_brand:
+                continue
             if eng_key in name_lower:
                 ingredient = vn_name
                 break
@@ -441,19 +461,28 @@ class PublicGoogleMerchantController(Controller):
             m = re.search(pattern, raw_benefit, re.IGNORECASE)
             if m:
                 benefit = m.group(1).strip().rstrip(".")
-                # Title-case first char
                 benefit = benefit[0].upper() + benefit[1:] if benefit else ""
                 break
 
-        # Assemble: [Type] [Ingredient] [Brand] [Weight] - [Benefit]
-        parts: list[str] = []
+        # Assemble: [Type] [Ingredient] [Sub-Brand] [Weight]
+        parts = []
         if product_type:
             parts.append(product_type)
         if ingredient:
             parts.append(ingredient)
-        parts.append(brand)
+        if sub_brand:
+            parts.append(sub_brand)
+        else:
+            parts.append(brand)
+
         if weight:
             parts.append(weight)
+
+        base = " ".join(parts)
+
+        # Ensure base contains brand or sub-brand name
+        if brand not in base and "Miccosmo" not in base:
+            base = f"{brand} {base}"
 
         if benefit:
             max_benefit = 55 - len(base) - 3  # 3 = len(" - ")
