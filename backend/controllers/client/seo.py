@@ -455,12 +455,17 @@ class PublicGoogleMerchantController(Controller):
         if weight:
             parts.append(weight)
 
-        base = " ".join(parts)
-
         if benefit:
             max_benefit = 55 - len(base) - 3  # 3 = len(" - ")
             if max_benefit > 5:
-                title = f"{base} - {benefit[:max_benefit].strip()}"
+                # Sliced benefit with word boundary safety
+                sliced_benefit = benefit[:max_benefit]
+                if len(benefit) > max_benefit:
+                    sliced_benefit = sliced_benefit.rsplit(" ", 1)[0]
+                
+                # Strip trailing hanging conjunctions/prepositions
+                sliced_benefit = re.sub(r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để)\s*$', '', sliced_benefit, flags=re.IGNORECASE).strip()
+                title = f"{base} - {sliced_benefit}"
             else:
                 title = base
         else:
