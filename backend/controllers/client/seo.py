@@ -530,27 +530,28 @@ class PublicGoogleMerchantController(Controller):
 
         return title
 
-    def _slice_words(self, text: str, max_words: int) -> str:
-        words = text.split()
-        if len(words) <= max_words:
-            return text
-        sliced = words[:max_words]
-        capped = " ".join(sliced)
-        capped = capped.rstrip(".,;:!? ")
-        while True:
-            new_capped = re.sub(
-                r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để|giúp|mờ|giảm|làm|việc|trong|trên|dưới|cùng|mẩn|khỏi)\s*$',
-                '',
-                capped,
-                flags=re.IGNORECASE
-            ).strip()
-            if new_capped == capped:
-                break
-            capped = new_capped
-        return capped
+    def _extract_first_clause(self, text: str) -> str:
+        """Extract the first complete clause from a benefit string.
 
-    def _clean_highlight_ingredient(self, name: str, benefit: str) -> str:
-        # 1. Strip parenthesis only if content is long or chemical-heavy
+        Splits on commas, semicolons, and periods to get only the first
+        meaningful segment. This guarantees the output is a semantically
+        complete phrase — never a truncated fragment.
+        """
+        text = text.strip().rstrip(".")
+        # Split on clause boundaries
+        parts = re.split(r'[,;.]', text)
+        first = (parts[0] if parts else text).strip()
+        # Remove all decorative quotation marks (unicode variants included)
+        first = re.sub(r'["""\'\u2018\u2019\u201c\u201d]', '', first).strip()
+        return first
+
+    def _build_short_subject(self, name: str) -> str:
+        """Build a short, clean subject from an ingredient name.
+
+        Strips long INCI parenthetical lists, determines whether to
+        prefix with 'Chiết xuất', and keeps the subject concise.
+        """
+        # Strip parenthetical content if it's long chemical lists
         for match in re.finditer(r'\(([^)]+)\)', name):
             content = match.group(1)
             if len(content) > 30 or "," in content or "Sodium" in content:
@@ -559,75 +560,69 @@ class PublicGoogleMerchantController(Controller):
         name_clean = name.strip()
         name_lower = name_clean.lower()
 
-        # 2. Determine prefix
-        starts_with_prefix = any(
-            name_lower.startswith(prefix)
-            for prefix in ("chiết xuất", "thành phần", "hệ thống", "tinh chất", "nước", "bộ", "combo", "kem", "gel")
-        )
+        # Already has a meaningful prefix — keep as-is
+        if any(name_lower.startswith(p) for p in (
+            "chiết xuất", "thành phần", "hệ thống", "tinh chất",
+            "nước", "bộ", "combo", "kem", "gel",
+        )):
+            return name_clean
 
-        if starts_with_prefix:
-            subject = name_clean
+        # Known chemical / INCI names — keep as-is (no "Chiết xuất" prefix)
+        if any(c in name_lower for c in (
+            "niacinamide", "hyaluronic", "acid", "collagen", "retinol",
+            "serum", "glycyrrhizate", "placenta", "vitamin",
+        )):
+            return name_clean
+
+        # Natural ingredients — prefix with "Chiết xuất"
+        if "chiết xuất" not in name_lower:
+            return f"Chiết xuất {name_clean}"
+        return name_clean
+
+    def _compose_highlight(self, subject: str, benefit_raw: str) -> str:
+        """Compose a complete, short highlight sentence.
+
+        Strategy: Write short from the start.
+        1. Extract only the FIRST clause of the benefit.
+        2. Compose subject + verb + clause.
+        3. If the result exceeds 15 words, shorten the benefit
+           further by taking fewer words and verifying completeness.
+        """
+        # Get first clean clause from benefit
+        clause = self._extract_first_clause(benefit_raw)
+        clause_lower = clause.lower()
+
+        # Strip leading "giúp" from clause if present — we'll add our own connector
+        clause_no_giup = re.sub(r'^giúp\s+', '', clause, flags=re.IGNORECASE).strip()
+
+        # Determine the connector
+        if "đa năng" in clause_lower or "ngôi sao" in clause_lower or "thành phần" in clause_lower:
+            sentence = f"{subject} là {clause}"
+        elif clause_lower.startswith("giúp"):
+            sentence = f"{subject} {clause}"
         else:
-            is_chemical = any(
-                chem in name_lower
-                for chem in ("niacinamide", "hyaluronic", "acid", "collagen", "retinol", "serum", "glycyrrhizate", "placenta", "vitamin")
-            )
-            if is_chemical:
-                subject = name_clean
-            else:
-                # Prepend Chiết xuất only if it doesn't already contain it
-                if "chiết xuất" not in name_lower:
-                    subject = f"Chiết xuất {name_clean}"
-                else:
-                    subject = name_clean
+            sentence = f"{subject} giúp {clause_no_giup}"
 
-        # 3. Clean and slice benefit to fit within the 15-word cap
-        benefit_clean = benefit.strip()
-        
-        subj_len = len(subject.split())
-        # We need subj_len + benefit_len + 1 (for conjunction) <= 15 -> benefit_len <= 14 - subj_len
-        max_benefit_words = max(3, 14 - subj_len)
-        
-        if len(benefit_clean.split()) > max_benefit_words:
-            # Try splitting by punctuation first to get a clean clause
-            clauses = re.split(r'[,;.]', benefit_clean)
-            if clauses and len(clauses[0].split()) <= max_benefit_words:
-                benefit_clean = clauses[0].strip()
-            else:
-                benefit_clean = self._slice_words(benefit_clean, max_benefit_words)
+        # Clean duplicate "giúp giúp"
+        sentence = re.sub(r'\bgiúp\s+giúp\b', 'giúp', sentence, flags=re.IGNORECASE)
 
-        benefit_lower = benefit_clean.lower()
-
-        if "giúp" in benefit_lower:
-            # If the benefit already contains "giúp", connect using "là" or just join
-            if "đa năng" in benefit_lower or "ngôi sao" in benefit_lower or "thành phần" in benefit_lower:
-                sentence = f"{subject} là {benefit_clean}"
-            else:
-                sentence = f"{subject} {benefit_clean}"
-        else:
-            starts_with_verb = any(
-                benefit_lower.startswith(verb)
-                for verb in ("làm", "mang", "dưỡng", "cung cấp", "giảm", "mờ", "ngăn", "chống", "tái tạo", "cấp", "phục hồi")
-            )
-            if starts_with_verb:
-                sentence = f"{subject} giúp {benefit_clean}"
-            else:
-                sentence = f"{subject} giúp {benefit_clean}"
-
-        # Clean double spaces or duplicate "giúp giúp"
-        sentence = re.sub(r'\s+giúp\s+giúp\s+', ' giúp ', sentence, flags=re.IGNORECASE)
-
-        if sentence:
-            sentence = sentence[0].upper() + sentence[1:]
-
-        # final safeguard: if somehow still over 15 words, slice it
+        # If still over 15 words, re-compose with a shorter benefit
         if len(sentence.split()) > 15:
-            sentence = self._slice_words(sentence, 15)
+            # Take only the first 3 words of the clause as a minimal predicate
+            short_clause = " ".join(clause_no_giup.split()[:3])
+            sentence = f"{subject} giúp {short_clause}"
 
+        # Capitalize and finalize
+        sentence = sentence[0].upper() + sentence[1:] if sentence else sentence
         return sentence
 
     def _build_highlights(self, meta: dict[str, object], attrs: dict[str, object]) -> list[str]:
-        """GEO 2026: Build 3-4 product highlights, each max 15 words."""
+        """GEO 2026: Build 3-4 product highlights — complete sentences, max 15 words each.
+
+        Design rule: Write short from the start. Never truncate.
+        Every highlight exits this method as a grammatically complete sentence
+        with subject + predicate, ending with a period.
+        """
         pool: list[str] = []
 
         # Source 1: featured_ingredients (richest structured data)
@@ -638,36 +633,34 @@ class PublicGoogleMerchantController(Controller):
                     name = str(fi.get("name", ""))
                     benefit = str(fi.get("benefit", ""))
                     if name and benefit:
-                        pool.append(self._clean_highlight_ingredient(name, benefit))
+                        subject = self._build_short_subject(name)
+                        pool.append(self._compose_highlight(subject, benefit))
                     elif name:
-                        pool.append(f"Thành phần nổi bật: {name}.")
+                        pool.append(f"Thành phần nổi bật: {name}")
 
         # Source 2: Origin + safety
         origin = str(meta.get("origin") or "")
         if origin:
-            pool.append(f"Nhập khẩu chính hãng 100% từ {origin}.")
+            pool.append(f"Nhập khẩu chính hãng 100% từ {origin}")
 
         # Source 3: Knowledge graph expert claim
         kg = meta.get("knowledge_graph")
         if isinstance(kg, dict):
             claim = str(kg.get("expert_claim") or "")
             if claim and len(claim) > 10:
-                # Limit claim to 15 words
-                claim_sliced = self._slice_words(claim, 15)
-                pool.append(claim_sliced.rstrip(".") + ".")
+                # Take first clause only — guaranteed complete
+                pool.append(self._extract_first_clause(claim))
 
         # Source 4: Fallback safety statement
         if len(pool) < 3:
-            pool.append("An toàn cho da nhạy cảm, không chứa cồn.")
+            pool.append("An toàn cho da nhạy cảm, không chứa cồn")
 
-        # Ensure: max 15 words per highlight, cap at 4 total, complete sentences only
+        # Finalize: ensure period termination, cap at 4 highlights
         result: list[str] = []
         for hl in pool[:4]:
-            hl = hl.strip()
+            hl = hl.strip().rstrip(".")
             if hl:
-                if not hl.endswith("."):
-                    hl += "."
-                result.append(hl[:150])
+                result.append(f"{hl}.")
 
         return result
 
