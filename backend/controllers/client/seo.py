@@ -157,15 +157,16 @@ class PublicGoogleMerchantController(Controller):
     """
     path = "/google-merchant.xml"
 
-    # GEO 2026: Internal category → Google Product Taxonomy mapping
+    # GEO 2026: Internal category → Google Product Taxonomy mapping (Numeric IDs to prevent XML escaping issues)
+    # Source: https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt
     _CATEGORY_MAP: dict[str, str] = {
-        "cat_serum": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Skin Care Serums",
-        "cat_kem_duong": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Moisturizers",
-        "cat_mat_na": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Masks",
-        "cat_cham_soc_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Eye Treatments",
-        "cat_sua_rua_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Cleansers",
-        "cat_tinh_chat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Skin Care Serums",
-        "cat_kem_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Eye Treatments",
+        "cat_serum": "2592",       # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
+        "cat_kem_duong": "2592",   # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
+        "cat_mat_na": "6262",      # Health & Beauty > Personal Care > Cosmetics > Skin Care > Skin Care Masks & Peels
+        "cat_cham_soc_mat": "2592", # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
+        "cat_sua_rua_mat": "2526", # Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Cleansers
+        "cat_tinh_chat": "2592",   # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
+        "cat_kem_mat": "2592",     # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
     }
 
     # GEO 2026: Category → Vietnamese product type name (for title builder)
@@ -288,6 +289,13 @@ class PublicGoogleMerchantController(Controller):
         desc_clean = self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip())
 
         # ── Brand resolving ──
+        sub_brand = ""
+        name_lower = (p.name or "").lower()
+        for key, val in self._SUB_BRANDS:
+            if key in name_lower:
+                sub_brand = val
+                break
+
         raw_brand = str(
             attrs.get("brand")
             or attrs.get("Thương hiệu")
@@ -295,12 +303,8 @@ class PublicGoogleMerchantController(Controller):
             or meta.get("seo_site_name")
             or "Miccosmo"
         ).strip()
-        # Keep consistent sub-brand representation for AI Search
-        if raw_brand in ("Hurry Harry", "White Label", "Beppin Body", "Rich Gold"):
-            brand = f"{raw_brand} (Miccosmo)"
-        else:
-            brand = raw_brand
-        brand = self._escape(brand)
+
+        brand = sub_brand if sub_brand else raw_brand
 
         # ── R3: GTIN from ProductBase.sku (barcode) ──
         gtin = str(p.sku or "").strip()
@@ -328,10 +332,10 @@ class PublicGoogleMerchantController(Controller):
         google_category = ""
         if p.category_id:
             google_category = self._CATEGORY_MAP.get(str(p.category_id), "")
-            # Neck/Cổ cream special taxonomy override for AI Search (ID 412: Neck & Décolleté Creams)
+            # Neck/Cổ/Họng/Ngực cream → Anti-Aging Skin Care Kits (ID 7429)
             p_name_lower = (p.name or "").lower()
             if any(w in p_name_lower for w in ("cổ", "họng", "ngực", "neck", "throat", "decollete", "décolleté")):
-                google_category = "412"
+                google_category = "7429"
 
         # ── Product Type (internal taxonomy path) ──
         product_type = ""
@@ -365,7 +369,7 @@ class PublicGoogleMerchantController(Controller):
         if item_sale_price > 0:
             lines.append(f"      <g:sale_price>{item_sale_price} VND</g:sale_price>")
 
-        lines.append(f"      <g:brand>{brand}</g:brand>")
+        lines.append(f"      <g:brand>{self._escape(brand)}</g:brand>")
         lines.append("      <g:condition>new</g:condition>")
 
         # GTIN (mandatory for product matching)
