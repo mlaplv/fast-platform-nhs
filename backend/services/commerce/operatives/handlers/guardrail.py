@@ -67,7 +67,7 @@ class GuardrailHandler(BaseHandler):
         for pattern in all_defense:
             if re.search(pattern, msg, re.IGNORECASE):
                 logger.warning(f"[Guardrail] Security Breach Detected: {pattern}")
-                reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và đơn hàng của SmartShop. Rất mong Anh/Chị giữ thái độ lịch sự ạ! 🙏 [z0]"
+                reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và đơn hàng của osmo. Rất mong Anh/Chị giữ thái độ lịch sự ạ! 🙏 [z0]"
                 ctx.replies.append(reply)
                 ctx.intent = SupportIntent.UNKNOWN
                 return True

@@ -21,6 +21,7 @@ from backend.services.xohi_memory import xohi_memory
 from backend.schemas.order import OrderCreateRequest, OrderDraft
 from backend.database.models.commerce import ProductBase
 from backend.utils.security import GeminiSecurity
+from litestar.exceptions import ValidationException
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,6 +31,7 @@ class LeadOrderItemDict(TypedDict):
     name: str
     quantity: int
     price: float
+    gifts: list
 
 class LeadOrderItem(BaseModel):
     model_config = ConfigDict(strict=True) # Elite R0.2: Force strict typing
@@ -123,7 +125,7 @@ class LeadExtractor:
         return lead
 
     @staticmethod
-    async def _hydrate_from_redis(session_id: str, lead: ExtractedLead) -> ExtractedLead:
+    async def _hydrate_from_redis(session_id: str, lead: ExtractedLead, message: str) -> ExtractedLead:
         """Elite V3.6: Fast L0 hydration from Redis OrderDraft."""
         raw_draft = await xohi_memory.get_order_draft(session_id)
         if not raw_draft:
@@ -153,8 +155,40 @@ class LeadExtractor:
             
             logger.info(f"🧩 [LeadExtractor] L0 Hydration Success: Phone={lead.customer_phone}, Address={'SET' if lead.customer_address else 'MISSING'}")
                 
-            # Items merge logic: If current turn has NO items, use draft items
-            if not lead.items and draft.items:
+            # 🚀 Elite V6.3: Smart Items Hydration & Overwrite Guard
+            # If the draft already has items, and the current turn is just providing SĐT, address, or confirmation,
+            # we MUST preserve the draft items and quantities. LLM extraction in these turns often defaults 
+            # to quantity 1 of the viewed product page, causing state loss.
+            should_hydrate_draft_items = False
+            if draft.items:
+                if not lead.items:
+                    should_hydrate_draft_items = True
+                else:
+                    # Check if current turn message has explicit new product/quantity indicators
+                    message_lower = message.lower().strip()
+                    
+                    # Check for explicit quantity changes or order keywords
+                    has_qty_indicator = any(kw in message_lower for kw in ["hộp", "chai", "lọ", "combo", "set", "cái", "pack", "tuýp", "gói", "bịch", "lấy", "mua thêm"])
+                    
+                    # Check for digits that are NOT part of phone/address (e.g. single digit 2, 3, 4)
+                    clean_msg = message_lower
+                    if lead.customer_phone:
+                        clean_msg = clean_msg.replace(lead.customer_phone, "")
+                    if lead.customer_address:
+                        clean_msg = clean_msg.replace(lead.customer_address.lower(), "")
+                    
+                    clean_msg = re.sub(r"\d+/\d+", "", clean_msg) # house numbers like 336/44
+                    clean_msg = re.sub(r"\b\d{10}\b", "", clean_msg) # phone numbers
+                    
+                    has_digits_qty = bool(re.search(r"\b[1-9]\b", clean_msg))
+                    is_just_info_or_confirm = not (has_qty_indicator or has_digits_qty)
+                    
+                    if is_just_info_or_confirm:
+                        logger.info("🔄 [LeadExtractor] Elite V6.3: Restoring draft items to prevent quantity overwrite.")
+                        should_hydrate_draft_items = True
+            
+            if should_hydrate_draft_items:
+                lead.items = []
                 for item in draft.items:
                     lead.items.append(LeadOrderItem(
                         name=str(item.get("name", "Sản phẩm")),
@@ -221,13 +255,24 @@ class LeadExtractor:
         # 1. Analyze all variants to find their total item counts
         variant_analysis = []
         for v in product.variants:
-            c_qty = v.attributes.get('combo_qty') or v.attributes.get('comboQty') or 1
-            gifts = v.attributes.get('gifts') or []
-            g_qty = sum(g.get('qty', 0) for g in gifts)
+            attrs = v.attributes or {}
+            if isinstance(attrs, str):
+                try:
+                    import json
+                    attrs = json.loads(attrs)
+                except:
+                    attrs = {}
+            if not isinstance(attrs, dict):
+                attrs = {}
+                    
+            c_qty = int(attrs.get('combo_qty') or attrs.get('comboQty') or 1)
+            gifts = attrs.get('gifts') or []
+            g_qty = sum(int(g.get('qty', 0)) for g in gifts if isinstance(g, dict))
             total_items = c_qty + g_qty
             variant_analysis.append({
                 "variant": v,
                 "total": total_items,
+                "combo_qty": c_qty,
                 "is_combo": total_items > 1
             })
 
@@ -238,18 +283,19 @@ class LeadExtractor:
         # Rule: If requested_qty matches a combo or is at least 60% of a combo, upsell to it.
         for item in variant_analysis:
             total = item["total"]
+            c_qty = item["combo_qty"]
             # Exact match or larger requested quantity
             if requested_qty >= total:
                 # If quantity is way larger than our biggest combo, maybe need contact for bulk
                 if total > 1 and requested_qty > total * 3:
                     return item["variant"], requested_qty, True
-                return item["variant"], total, False
+                return item["variant"], c_qty, False
             
             # Upsell rule: e.g., if user wants 2 and we have a 3-pack (2+1), jump to 3.
             # 60% threshold: 2/3 = 66% (Match), 1/3 = 33% (No match)
             if total > 1 and requested_qty >= (total * 0.6):
                 logger.info(f"🚀 [LeadExtractor] Dynamic Upsell: {requested_qty} -> {total} items (Variant: {item['variant'].sku})")
-                return item["variant"], total, False
+                return item["variant"], c_qty, False
 
         # 3. Fallback to smallest variant (usually 1 item)
         smallest = variant_analysis[-1]["variant"] if variant_analysis else None
@@ -328,7 +374,7 @@ class LeadExtractor:
             is_confirmation = message.lower().strip() in ["ok", "chốt", "đồng ý", "gửi đi", "vâng", "đúng rồi"]
             
             # Layer 0: Redis L0 Hydration (Fastest)
-            lead = await LeadExtractor._hydrate_from_redis(session_id, lead)
+            lead = await LeadExtractor._hydrate_from_redis(session_id, lead, message)
 
             # Layer 1: History Hydration (Fallback for consistency)
             if is_confirmation or (has_any_data and (not lead.customer_phone or not lead.customer_address or not lead.items)):
@@ -431,6 +477,27 @@ class LeadExtractor:
             else:
                 logger.warning(f"[LeadExtractor] Cannot resolve user: No phone number extracted. lead_data={lead.dict()}")
 
+            # 🚀 Elite V6.2: Early Product/Variant Resolution (Persist to Redis Draft before return)
+            if lead.items:
+                for item in lead.items:
+                    target_slug = item.id or current_product_slug
+                    resolved_product = await LeadExtractor._resolve_product(
+                        db, name=item.name, 
+                        slug=target_slug, tenant_id=target_tenant
+                    )
+                    if resolved_product:
+                        # Find variant/combo to get the correct name and price
+                        best_variant, protocol_qty, needs_contact = LeadExtractor._resolve_optimal_variant(
+                            resolved_product, int(item.quantity)
+                        )
+                        # Update item details in place to persist to draft
+                        item.name = resolved_product.name
+                        item.id = resolved_product.slug
+                        if best_variant:
+                            item.price = float(best_variant.discount_price or best_variant.price)
+                        else:
+                            item.price = float(resolved_product.discount_price or resolved_product.price)
+
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
 
@@ -461,34 +528,41 @@ class LeadExtractor:
                     lead.needs_price_quote = True
                     return lead
 
+                # Mirror checkout.py: unit_price = discount_price OR price, total = unit_price × combo_qty
                 p_id: str = str(best_variant.id) if best_variant else str(resolved_product.id)
-                price_per: float = float(best_variant.price) if best_variant else float(resolved_product.discount_price or resolved_product.price)
+                base_product_id: str = str(resolved_product.id)
+                price_per: float = float(best_variant.discount_price or best_variant.price) if best_variant else float(resolved_product.discount_price or resolved_product.price)
+                item_name: str = f"{resolved_product.name} ({best_variant.sku})" if best_variant else resolved_product.name
                 
-                # If using a combo variant, quantity in order is 1 (since the variant itself IS the combo)
-                # UNLESS it's a single item variant, then we use protocol_qty.
-                is_actual_combo = best_variant and (best_variant.attributes.get('combo_qty', 1) > 1 or best_variant.attributes.get('gifts'))
-                
-                if is_actual_combo:
-                    total_amount += price_per
-                    order_items.append({
-                        "product_id": p_id, 
-                        "name": f"{resolved_product.name} ({best_variant.sku})", 
-                        "quantity": 1, 
-                        "price": price_per
-                    })
-                else:
-                    total_amount += price_per * protocol_qty
-                    order_items.append({
-                        "product_id": p_id, 
-                        "name": resolved_product.name, 
-                        "quantity": protocol_qty, 
-                        "price": price_per
-                    })
+                v_attrs = best_variant.attributes if best_variant else {}
+                if isinstance(v_attrs, str):
+                    try:
+                        import json
+                        v_attrs = json.loads(v_attrs)
+                    except:
+                        v_attrs = {}
+                if not isinstance(v_attrs, dict):
+                    v_attrs = {}
+                        
+                item_gifts: list = v_attrs.get("gifts") or []
+
+                total_amount += price_per * protocol_qty
+                order_items.append({
+                    "product_id": p_id,
+                    "id": base_product_id,
+                    "variant_id": p_id if best_variant else None,
+                    "name": item_name,
+                    "quantity": protocol_qty,
+                    "price": price_per,
+                    "gifts": item_gifts
+                })
 
             if not order_items and current_product_slug:
                 # Fallback Heuristic (Surgical Regex Scan)
                 qty_match = re.search(r"(\d+)\s*(lọ|chai|hộp|combo)", message.lower())
-                raw_fallback_qty: int = int(qty_match.group(1)) if qty_match else 1
+                raw_fallback_qty: int = int(qty_match.group(1)) if qty_match else (
+                    int(lead.items[0].quantity) if (lead.items and lead.items[0].quantity) else 1
+                )
                 
                 resolved_product_fallback = await LeadExtractor._resolve_product(db, slug=current_product_slug, tenant_id=target_tenant)
                 
@@ -500,27 +574,23 @@ class LeadExtractor:
                         lead.needs_price_quote = True
                         return lead
                     
-                    p_id_fallback = str(best_variant.id) if best_variant else str(resolved_product_fallback.id)
-                    price_per_fallback = float(best_variant.price) if best_variant else float(resolved_product_fallback.discount_price or resolved_product_fallback.price)
-                    
-                    is_actual_combo = best_variant and (best_variant.attributes.get('combo_qty', 1) > 1 or best_variant.attributes.get('gifts'))
-                    
-                    if is_actual_combo:
-                        order_items.append({
-                            "product_id": p_id_fallback, 
-                            "name": f"{resolved_product_fallback.name} ({best_variant.sku})", 
-                            "quantity": 1, 
-                            "price": price_per_fallback
-                        })
-                        total_amount = price_per_fallback
-                    else:
-                        order_items.append({
-                            "product_id": p_id_fallback, 
-                            "name": resolved_product_fallback.name, 
-                            "quantity": protocol_qty, 
-                            "price": price_per_fallback
-                        })
-                        total_amount = price_per_fallback * protocol_qty
+                    # Mirror checkout.py: unit_price = discount_price OR price, total = unit_price × combo_qty
+                    p_id_fallback: str = str(best_variant.id) if best_variant else str(resolved_product_fallback.id)
+                    base_product_id_fallback: str = str(resolved_product_fallback.id)
+                    price_per_fallback: float = float(best_variant.discount_price or best_variant.price) if best_variant else float(resolved_product_fallback.discount_price or resolved_product_fallback.price)
+                    item_name_fallback: str = f"{resolved_product_fallback.name} ({best_variant.sku})" if best_variant else resolved_product_fallback.name
+                    item_gifts_fallback: list = best_variant.attributes.get("gifts") or [] if best_variant and isinstance(best_variant.attributes, dict) else []
+
+                    order_items.append({
+                        "product_id": p_id_fallback,
+                        "id": base_product_id_fallback,
+                        "variant_id": p_id_fallback if best_variant else None,
+                        "name": item_name_fallback,
+                        "quantity": protocol_qty,
+                        "price": price_per_fallback,
+                        "gifts": item_gifts_fallback
+                    })
+                    total_amount = price_per_fallback * protocol_qty
 
             if not order_items: return lead
 
@@ -563,8 +633,15 @@ class LeadExtractor:
             logger.info(f"[LeadExtractor] ✅ Architectural Sweep OK: Order Created ({lead.processed_order_id})")
             return lead
 
+        except ValidationException:
+            # Reraise so OrderHandler can notify the user
+            raise
         except Exception as e:
             logger.exception(f"[LeadExtractor] Structural failure: {e}")
+            try:
+                await db.rollback()
+            except Exception as rbe:
+                logger.error(f"[LeadExtractor] Rollback failed during structural failure: {rbe}")
             return None
 
 lead_extractor = LeadExtractor()

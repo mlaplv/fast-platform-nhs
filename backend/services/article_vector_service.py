@@ -23,8 +23,11 @@ class ArticleVectorService:
             self._embedding_model = get_shared_encoder()
         return self._embedding_model
 
-    async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: str = "default", limit: int = 5) -> List[Dict[str, object]]:
+    async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: Optional[str] = None, limit: int = 5) -> List[Dict[str, object]]:
         try:
+            if not tenant_id:
+                from backend.database import current_tenant_id
+                tenant_id = current_tenant_id.get() or "default"
             model = self.embedding_model
             if not model:
                 from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
@@ -44,7 +47,7 @@ class ArticleVectorService:
 
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
             raw_query = """
-                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> CAST(:v AS vector) AS cosine_distance
+                SELECT a.id, a.title, a.slug, a.category, a.excerpt, a.content, e.embedding <=> CAST(:v AS vector) AS cosine_distance
                 FROM "articles" a
                 JOIN "article_embeddings" e ON a.id = e.article_id
                 WHERE a.deleted_at IS NULL
@@ -65,6 +68,8 @@ class ArticleVectorService:
                     "title": r["title"],
                     "slug": r["slug"],
                     "category": r["category"],
+                    "excerpt": r["excerpt"],
+                    "content": r["content"],
                     "match_score": round(1.0 - float(r["cosine_distance"] or 1.0), 3)
                 }
                 for r in results

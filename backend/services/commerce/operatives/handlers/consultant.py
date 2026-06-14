@@ -415,12 +415,18 @@ async def search_articles_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
 
         lines: list[str] = [f"[KẾT QUẢ BÀI VIẾT - '{query}']"]
         for r in rows:
-            lines.append(f"\n📰 **{r.title}** (Danh mục: {r.category})")
-            if r.excerpt:
-                lines.append(f"Tóm tắt: {r.excerpt[:200]}")
-            elif r.content:
+            # Safe access for both RowMapping/dict and Row objects
+            r_title = r.get("title") if isinstance(r, dict) else getattr(r, "title", "")
+            r_category = r.get("category") if isinstance(r, dict) else getattr(r, "category", "")
+            r_excerpt = r.get("excerpt") if isinstance(r, dict) else getattr(r, "excerpt", "")
+            r_content = r.get("content") if isinstance(r, dict) else getattr(r, "content", "")
+
+            lines.append(f"\n📰 **{r_title}** (Danh mục: {r_category})")
+            if r_excerpt:
+                lines.append(f"Tóm tắt: {r_excerpt[:200]}")
+            elif r_content:
                 # Strip HTML tags and take first 500 chars
-                plain = _re.sub(r'<[^>]+>', '', str(r.content))[:500]
+                plain = _re.sub(r'<[^>]+>', '', str(r_content))[:500]
                 lines.append(f"Nội dung: {plain}...")
         return "\n".join(lines)
     except Exception as e:
@@ -500,6 +506,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         threshold: float = 0.85 if is_short_query else 0.92
         # 1. Search semantically first using pgvector
         raw_matches: list[dict[str, object]] = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+        
+        # P2-8: KB Health-Check — warn when knowledge base returns nothing (empty KB or encoder failure)
+        if not raw_matches:
+            logger.warning("⚠️ [KB Health-Check] Knowledge base returned 0 results for semantic search. "
+                          "Possible causes: empty KB, encoder not loaded, or missing embeddings. "
+                          "Helen may hallucinate answers for policy/FAQ questions.")
         
         # 2. Hybrid Keyword Fallback (ONLY for short queries to prevent false positive keyword mapping on long prompts)
         if not raw_matches or float(raw_matches[0].get("match_score", 0)) <= threshold:
@@ -608,7 +620,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                         if meta.get("origin"):
                             pre_retrieved_ctx += f"     Xuất xứ: {meta['origin']}\n"
                 
-                # 2. Pre-search Knowledge Base / Articles
+                # 2. Pre-search Knowledge Base
                 kb_res = await kb_service.search_relevant_knowledge_raw(ctx.db, msg_clean, limit=2)
                 if not kb_res:
                     kb_res = await kb_service.search_relevant_knowledge_keyword(ctx.db, msg_clean, limit=2)
@@ -616,6 +628,112 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - TRI THỨC VÀ CHÍNH SÁCH CHUNG]:\n"
                     for idx, k in enumerate(kb_res):
                         pre_retrieved_ctx += f"  - Vấn đề: {k.get('question')} | Hướng giải quyết: {k.get('answer')}\n"
+
+                # 3. Pre-search Articles (CTV/tuyển dụng, chính sách, bài viết kiến thức)
+                # Extract focused topic keywords instead of using the full raw message
+                try:
+                    import re as _re
+                    import asyncio as _asyncio
+                    from backend.database.models.content import Article
+                    
+                    # Map common intents to focused search keywords for better article matching
+                    _CTV_KEYWORDS = ["ctv", "cộng tác viên", "đại lý", "tuyển dụng", "affiliate", "chiết khấu"]
+                    _POLICY_KEYWORDS = ["chính sách", "bảo hành", "đổi trả", "hoàn tiền", "vận chuyển", "giao hàng"]
+                    
+                    msg_lower = msg_clean.lower()
+                    art_search_kw = msg_clean  # default: full message
+                    if any(kw in msg_lower for kw in _CTV_KEYWORDS):
+                        art_search_kw = "tuyển dụng cộng tác viên"
+                    elif any(kw in msg_lower for kw in _POLICY_KEYWORDS):
+                        art_search_kw = "chính sách"
+                    
+                    art_rows = []
+                    # Try vector search with timeout guard (max 3s)
+                    try:
+                        from backend.services.article_vector_service import article_vector_service
+                        art_rows = await _asyncio.wait_for(
+                            article_vector_service.search_semantic(ctx.db, art_search_kw, limit=2),
+                            timeout=3.0
+                        )
+                    except Exception:
+                        pass
+                    
+                    # Fallback: keyword search using mapped keywords (not full raw message)
+                    if not art_rows:
+                        art_kw = f"%{art_search_kw}%"
+                        art_stmt = (
+                            select(Article.id, Article.title, Article.excerpt, Article.content, Article.slug, Article.category)
+                            .where(and_(
+                                Article.deleted_at.is_(None), Article.status == "PUBLISHED", Article.tenant_id == tid,
+                                or_(Article.title.ilike(art_kw), Article.excerpt.ilike(art_kw)),
+                            ))
+                            .order_by(Article.views.desc()).limit(2)
+                        )
+                        art_rows = (await ctx.db.execute(art_stmt)).fetchall()
+                    
+                    if art_rows:
+                        # [RAG Fast-Path Short-Circuit for CTV/Policy]
+                        try:
+                            if any(kw in msg_norm for kw in ["ctv", "cộng tác viên", "tuyển dụng", "affiliate", "đại lý", "chính sách"]):
+                                logger.info("✨ [RAG Fast-Path] Short-circuiting using pre-retrieved article")
+                                best_art = art_rows[0]
+                                
+                                r_title = best_art.get("title") if isinstance(best_art, dict) else getattr(best_art, "title", "")
+                                r_excerpt = best_art.get("excerpt") if isinstance(best_art, dict) else getattr(best_art, "excerpt", "")
+                                r_content = best_art.get("content") if isinstance(best_art, dict) else getattr(best_art, "content", "")
+                                
+                                ans_parts = [
+                                    f"Dạ Helen xin gửi chị đẹp thông tin chính thức về **{r_title}** ạ: 🌸"
+                                ]
+                                
+                                if r_content:
+                                    # Convert HTML to structured lines
+                                    html_text = str(r_content)
+                                    html_text = _re.sub(r'</?(p|div|h1|h2|h3|h4|h5|h6|li|ul|ol|blockquote)>', '\n', html_text)
+                                    html_text = _re.sub(r'<br\s*/?>', '\n', html_text)
+                                    plain = _re.sub(r'<[^>]+>', '', html_text)
+                                    
+                                    # Filter blank lines
+                                    lines = [line.strip() for line in plain.split('\n') if line.strip()]
+                                    
+                                    # Combine main lines up to 800 characters
+                                    core_lines = []
+                                    curr_len = 0
+                                    for line in lines:
+                                        core_lines.append(line)
+                                        curr_len += len(line)
+                                        if curr_len > 800:
+                                            core_lines.append("...")
+                                            break
+                                    ans_parts.append("\n".join(core_lines))
+                                elif r_excerpt:
+                                    ans_parts.append(r_excerpt.strip())
+                                    
+                                ans_parts.append(
+                                    "Để nhận được hướng dẫn chi tiết hoặc đăng ký làm đối tác, "
+                                    "chị đẹp vui lòng liên hệ trực tiếp qua số Hotline hoặc các kênh hỗ trợ chính thức của thương hiệu nhé! 💖"
+                                )
+                                ctx.replies.append("\n\n".join(ans_parts))
+                                ctx.intent = SupportIntent.PRODUCT_QUERY
+                                return True
+                        except Exception as fast_path_err:
+                            logger.error(f"[RAGFastPath] Error: {fast_path_err}")
+
+                        pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - BÀI VIẾT & CHÍNH SÁCH]:\n"
+                        for r in art_rows:
+                            r_title = r.get("title") if isinstance(r, dict) else getattr(r, "title", "")
+                            r_category = r.get("category") if isinstance(r, dict) else getattr(r, "category", "")
+                            r_excerpt = r.get("excerpt") if isinstance(r, dict) else getattr(r, "excerpt", "")
+                            r_content = r.get("content") if isinstance(r, dict) else getattr(r, "content", "")
+
+                            pre_retrieved_ctx += f"  📰 **{r_title}** (Danh mục: {r_category})\n"
+                            if r_excerpt:
+                                pre_retrieved_ctx += f"     Tóm tắt: {r_excerpt[:300]}\n"
+                            elif r_content:
+                                plain = _re.sub(r'<[^>]+>', '', str(r_content))[:500]
+                                pre_retrieved_ctx += f"     Nội dung: {plain}\n"
+                except Exception as art_err:
+                    logger.debug(f"[ConsultantPreRetrieve] Article pre-search failed: {art_err}")
 
         except Exception as e:
             logger.warning(f"[ConsultantPreRetrieve] Failed pre-retrieval: {e}")
@@ -696,7 +814,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             # Elite V6.0: Thread-Safe injection via deps.dynamic_prompt
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
 
-            # ⏱️ Elite V6.0: Cổng bảo vệ 12s - Giảm để kích hoạt Smart DB Fallback sớm hơn khi tải cao
+            # ⏱️ Elite V6.0: Cổng bảo vệ 15s - Tối ưu hóa để giảm lỗi bận tải cao giả lập khi chạy structured JSON
             res = await asyncio.wait_for(
                 trinity_bridge.run(
                     _consultant_no_tool_agent,
@@ -704,10 +822,10 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     deps=deps,
                     role=trinity_bridge.ROLE_BRAIN,
                     safety_none=True,
-                    timeout=12.0,
-                    per_model_timeout=5.0
+                    timeout=15.0,
+                    per_model_timeout=8.0
                 ),
-                timeout=12.0
+                timeout=15.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
@@ -907,8 +1025,29 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
     def _generate_db_fallback(self, ctx: SupportContext) -> str:
         """Smart DB Fallback: Khi AI lỗi hoặc timeout > 10s, tự động dựng câu trả lời chuyên nghiệp từ DB."""
+        # 🚀 Elite V6.2: Order Fallback Guard
+        # If in order flow, avoid outputting irrelevant product specs
+        if ctx.order_draft and (ctx.order_draft.customer_phone or ctx.order_draft.customer_address or ctx.order_draft.items):
+            missing = ctx.order_draft.missing_slots
+            if missing:
+                missing_str = " và ".join(missing)
+                return self._wrap_prefix(
+                    f"Dạ Helen đang xử lý thông tin đơn hàng của mình ạ. ✨ "
+                    f"Anh/Chị vui lòng cho em xin thêm {missing_str} để em hoàn tất lên bill gửi hàng ngay nhé! 🌸"
+                )
+            else:
+                return self._wrap_prefix(
+                    "Dạ Helen đang kết nối lại với hệ thống tạo đơn. Đơn hàng của mình đang được xử lý, "
+                    "chuyên viên bên em sẽ gọi điện xác nhận cho mình ngay lập tức ạ! Anh/Chị yên tâm nhé! 🌸"
+                )
+
         if not ctx.product_ctx or not ctx.p_info:
-            return "Dạ Helen xin lỗi Anh/Chị, hệ thống đang xử lý tải cao. Anh/Chị vui lòng thử lại sau vài giây nhé! 🌸"
+            # Fallback cho các câu hỏi chính sách/tuyển dụng/CTV hoặc không có ngữ cảnh sản phẩm
+            return (
+                "Dạ hiện tại hệ thống tư vấn thông tin chi tiết chính sách/tuyển dụng của Osmo đang bận xử lý dữ liệu. "
+                "Để không làm mất thời gian của Anh/Chị, mình vui lòng liên hệ Hotline/Zalo OA của Osmo hoặc để lại số điện thoại "
+                "kèm yêu cầu tại đây nhé. Chuyên viên của bên em sẽ chủ động liên hệ lại hỗ trợ mình ngay lập tức ạ! 🌸"
+            )
         p_name = ctx.p_info.name
         price_display = ctx.p_info.price_display
         lines = ctx.product_ctx.split("\n")

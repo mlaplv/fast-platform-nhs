@@ -585,15 +585,18 @@ class PublicGoogleMerchantController(Controller):
 
         # Already has a meaningful prefix — keep as-is
         if any(name_lower.startswith(p) for p in (
-            "chiết xuất", "thành phần", "hệ thống", "tinh chất",
+            "chiết xuất", "tinh chất", "thành phần", "hệ thống", "tinh chất",
             "nước", "bộ", "combo", "kem", "gel",
         )):
             return name_clean
 
-        # Known chemical / INCI names — keep as-is (no "Chiết xuất" prefix)
+        # Known chemical / INCI active names — keep as-is (no "Chiết xuất" prefix)
         if any(c in name_lower for c in (
             "niacinamide", "hyaluronic", "acid", "collagen", "retinol",
-            "serum", "glycyrrhizate", "placenta", "vitamin",
+            "serum", "glycyrrhizate", "placenta", "vitamin", "ascorbyl",
+            "tocopherol", "panthenol", "ceramide", "peptide", "glycerin",
+            "gold", "platinum", "zinc", "coenzyme", "arbutin", "allantoin",
+            "adenosine", "silica", "urea", "squalane", "menthol"
         )):
             return name_clean
 
@@ -602,41 +605,75 @@ class PublicGoogleMerchantController(Controller):
             return f"Chiết xuất {name_clean}"
         return name_clean
 
-    def _compose_highlight(self, subject: str, benefit_raw: str) -> str:
+    def _compose_highlight(self, name: str, benefit: str) -> str:
         """Compose a complete, short highlight sentence.
 
-        Strategy: Write short from the start.
-        1. Extract only the FIRST clause of the benefit.
-        2. Compose subject + verb + clause.
-        3. If the result exceeds 15 words, shorten the benefit
-           further by taking fewer words and verifying completeness.
+        Strategy: Enforce [Ingredient] + [Direct Benefit] structure.
         """
-        # Get first clean clause from benefit
-        clause = self._extract_first_clause(benefit_raw)
-        clause_lower = clause.lower()
+        name_clean = name.strip()
+        benefit_clean = benefit.strip()
 
-        # Strip leading "giúp" from clause if present — we'll add our own connector
-        clause_no_giup = re.sub(r'^giúp\s+', '', clause, flags=re.IGNORECASE).strip()
+        # Standardize "nhau thai" -> "Placenta" in name and benefit
+        name_clean = self._normalize_feed_text(name_clean)
+        benefit_clean = self._normalize_feed_text(benefit_clean)
 
-        # Determine the connector
-        if "đa năng" in clause_lower or "ngôi sao" in clause_lower or "thành phần" in clause_lower:
-            sentence = f"{subject} là {clause}"
-        elif clause_lower.startswith("giúp"):
-            sentence = f"{subject} {clause}"
+        benefit_lower = benefit_clean.lower()
+        name_lower = name_clean.lower()
+
+        # Check if the benefit is already a complete sentence starting with a noun
+        starts_with_noun = any(benefit_lower.startswith(p) for p in (
+            "chiết xuất", "tinh chất", "thành phần", "dầu", "nước", "hệ thống", 
+            "collagen", "hyaluronic", "niacinamide", "placenta", "trehalose", 
+            "ascorbyl", "tocopherol", "panthenol", "ceramide", "peptide"
+        ))
+        has_connector = any(c in benefit_lower for c in (" giúp ", " làm ", " là ", " mang ", " nuôi dưỡng "))
+
+        if starts_with_noun and has_connector:
+            sentence = benefit_clean
         else:
-            sentence = f"{subject} giúp {clause_no_giup}"
+            # We need to prepend the name
+            subject = self._build_short_subject(name_clean)
+            
+            # Extract first clause of benefit to keep it concise and avoid truncation
+            clause = self._extract_first_clause(benefit_clean)
+            clause_lower = clause.lower()
+            
+            # Strip leading "giúp" from benefit clause to prevent "giúp giúp"
+            clause_no_giup = re.sub(r'^giúp\s+', '', clause, flags=re.IGNORECASE).strip()
+            
+            # Determine the correct connector
+            if "đa năng" in clause_lower or "ngôi sao" in clause_lower or "thành phần" in clause_lower:
+                sentence = f"{subject} là {clause}"
+            elif clause_lower.startswith("giúp"):
+                sentence = f"{subject} {clause}"
+            else:
+                sentence = f"{subject} giúp {clause_no_giup}"
 
         # Clean duplicate "giúp giúp"
         sentence = re.sub(r'\bgiúp\s+giúp\b', 'giúp', sentence, flags=re.IGNORECASE)
 
-        # If still over 15 words, re-compose with a shorter benefit
-        if len(sentence.split()) > 15:
-            # Take only the first 3 words of the clause as a minimal predicate
-            short_clause = " ".join(clause_no_giup.split()[:3])
-            sentence = f"{subject} giúp {short_clause}"
+        # Enforce Rule 2: "TUYỆT ĐỐI CẤM sử dụng từ thừa thãi như "giúp Chiết xuất..." ở đầu hoặc giữa câu"
+        sentence = re.sub(r'\bgiúp\s+chiết\s+xuất\s+', 'giúp ', sentence, flags=re.IGNORECASE)
+        sentence = re.sub(r'\bgiúp\s+tinh\s+chất\s+', 'giúp ', sentence, flags=re.IGNORECASE)
 
-        # Capitalize and finalize
-        sentence = sentence[0].upper() + sentence[1:] if sentence else sentence
+        # Word limit cleanup (max 15 words)
+        words = sentence.split()
+        if len(words) > 15:
+            # Try to shorten predicate gracefully
+            for connector in [" giúp ", " là ", " làm "]:
+                parts = sentence.split(connector, 1)
+                if len(parts) == 2:
+                    sub, pred = parts
+                    pred_short = " ".join(pred.split()[:4])
+                    sentence = f"{sub}{connector}{pred_short}"
+                    break
+            else:
+                sentence = " ".join(words[:12])
+
+        # Capitalize and add period
+        sentence = sentence.strip().rstrip(".")
+        if sentence:
+            sentence = sentence[0].upper() + sentence[1:] + "."
         return sentence
 
     def _build_highlights(self, meta: dict[str, object], attrs: dict[str, object]) -> list[str]:
@@ -656,8 +693,7 @@ class PublicGoogleMerchantController(Controller):
                     name = str(fi.get("name", ""))
                     benefit = str(fi.get("benefit", ""))
                     if name and benefit:
-                        subject = self._build_short_subject(name)
-                        pool.append(self._compose_highlight(subject, benefit))
+                        pool.append(self._compose_highlight(name, benefit))
                     elif name:
                         pool.append(f"Thành phần nổi bật: {name}")
 
@@ -843,13 +879,27 @@ class PublicGoogleMerchantController(Controller):
         ping_res = await loop.run_in_executor(None, do_ping)
         logger.info("Google Merchant Center ping result: %s", ping_res)
 
+        if "HTTP Error 404" in ping_res or "deprecated" in ping_res.lower():
+            status = "info"
+            message = (
+                "Google đã chính thức dừng hỗ trợ giao thức Ping Sitemap/Feed tự động (HTTP Error 404: Sitemaps ping is deprecated). "
+                "Do đó việc ping tự động từ máy chủ không còn hiệu lực. Để đồng bộ dữ liệu ngay lập tức, vui lòng truy cập "
+                "Google Merchant Center -> chọn Feeds (Nguồn cấp dữ liệu) -> nhấn nút 'Tải lên ngay' (Fetch Now)."
+            )
+        elif "HTTP Error" in ping_res or "error" in ping_res.lower() or "timeout" in ping_res.lower():
+            status = "error"
+            message = f"Gặp lỗi khi gửi yêu cầu cập nhật lên Google: {ping_res}"
+        else:
+            status = "success"
+            message = "Yêu cầu đồng bộ đã được phát đi thành công!"
+
         return {
-            "status": "success",
-            "message": "Đồng bộ & Gửi yêu cầu cập nhật lên Google Merchant Center thành công!",
+            "status": status,
+            "message": message,
             "details": {
                 "feed_url": feed_url,
                 "ping_url": ping_url,
-                "google_response": "Yêu cầu đồng bộ đã được phát đi thành công. Google Merchant Center sẽ tự động cào lại feed dữ liệu trong vòng vài phút."
+                "google_response": ping_res
             }
         }
 

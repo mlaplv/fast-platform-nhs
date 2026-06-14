@@ -118,6 +118,30 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
     """Fetch product info via SQLAlchemy 2.0 Scalar projection."""
     if not slug: return "", None
     if any(p in slug for p in ["chinh-sach", "gioi-thieu", "tuyen-dung", "dieu-khoan", "thanh-toan", "kiem-hang", "bao-hanh"]):
+        # Dynamic Article Context Injection for non-product pages (recruitment, policies, etc.)
+        try:
+            from backend.database.models.content import Article
+            from backend.database import current_tenant_id
+            tid = current_tenant_id.get() or "default"
+            
+            stmt = select(Article.title, Article.excerpt, Article.content).where(and_(
+                Article.slug == slug,
+                Article.status == "PUBLISHED",
+                Article.deleted_at.is_(None),
+                Article.tenant_id == tid
+            )).limit(1)
+            row = (await db.execute(stmt)).first()
+            if row:
+                plain_content = re.sub(r'<[^>]+>', ' ', str(row.content or ""))[:1500].strip()
+                ctx_text = (
+                    f"[NỘI DUNG TRANG HIỆN TẠI KHÁCH ĐANG XEM]\n"
+                    f"Tiêu đề: {row.title}\n"
+                    f"Tóm tắt: {row.excerpt or ''}\n"
+                    f"Chi tiết: {plain_content}\n"
+                )
+                return ctx_text, None
+        except Exception as ae:
+            logger.warning(f"[SupportAgent] Fetch article context for slug '{slug}' failed: {ae}")
         return "", None
         
     cache_key = f"support:prod_ctx:slug={slug}"
@@ -350,8 +374,8 @@ def _validate_grounding(reply: str, ctx: SupportContext) -> str:
 
     # 2. ANTI-HALLUCINATION GUARD: Validate product prices & correct hallucinations
     if ctx.p_info:
-        # Find price mentions in output (e.g., 150.000, 150000, 150k, 150.000đ)
-        price_matches = list(re.finditer(r"\b(\d{1,3}(?:\.\d{3})+|\d{4,8})\s*(?:đ|vnd|k)?\b", reply, re.IGNORECASE))
+        # Find price mentions in output - require currency indicator to avoid matching registration numbers
+        price_matches = list(re.finditer(r"\b(\d{1,3}(?:\.\d{3})+|\d{4,8})\s*(?:đ|đồng|vnd|vnđ|k)\b", reply, re.IGNORECASE))
         for m in price_matches:
             full_match = m.group(0)
             clean_mention = m.group(1).replace(".", "")
@@ -365,13 +389,25 @@ def _validate_grounding(reply: str, ctx: SupportContext) -> str:
                 if mention_val > 1000: # ignore small numbers like discount percentages or gift quantity
                     is_real_match = abs(mention_val - real_price) < 100
                     is_discount_match = False
+                    dp_num = ""
                     if discount_price:
                         # Extract number from price display
                         dp_num = "".join(c for c in discount_price if c.isdigit())
                         if dp_num:
                             is_discount_match = abs(mention_val - float(dp_num)) < 100
                     
-                    if not is_real_match and not is_discount_match:
+                    # Elite V6.1: Allow multiples for total order amounts (e.g. x2, x3 items)
+                    is_multiple = False
+                    if real_price > 0:
+                        ratio = mention_val / real_price
+                        if abs(ratio - round(ratio)) < 0.01:
+                            is_multiple = True
+                    if dp_num and float(dp_num) > 0:
+                        ratio = mention_val / float(dp_num)
+                        if abs(ratio - round(ratio)) < 0.01:
+                            is_multiple = True
+                    
+                    if not is_real_match and not is_discount_match and not is_multiple:
                         # Hallucination detected! Replace with actual price_display or real_price
                         correct_price = discount_price or f"{int(real_price):,}đ".replace(",", ".")
                         reply = reply.replace(full_match, correct_price)
@@ -380,9 +416,36 @@ def _validate_grounding(reply: str, ctx: SupportContext) -> str:
                 pass
 
     # 3. ANTI-HALLUCINATION GUARD: Validate Voucher Codes in response
-    potential_codes = re.findall(r"\b([A-Z0-9]{4,15})\b", reply)
-    EXCLUDED_ABBREVIATIONS = {"CSKH", "SDT", "SĐT", "VND", "CTV", "HDSD", "HSD", "NSX", "SP", "AI", "DB", "VOUCHER", "PRICE", "INFO"}
-    potential_codes = [c for c in potential_codes if not c.isdigit() and c.upper() not in EXCLUDED_ABBREVIATIONS]
+    potential_codes_raw = re.findall(r"\b([A-Z0-9]{4,15})\b", reply)
+    EXCLUDED_ABBREVIATIONS = {
+        "CSKH", "SDT", "SĐT", "VND", "CTV", "HDSD", "HSD", "NSX", "SP", "AI", "DB",
+        "VOUCHER", "PRICE", "INFO", "HELEN", "OSMO", "BEPPIN", "COMBO", "DEAL",
+        "FREE", "SHIP", "SALE", "HOT", "NEW", "VIP", "GOLD", "NANO", "SERUM",
+        "MASK", "TONER", "CREAM", "GEL", "SKIN", "CARE", "BEAUTY", "PLACENTA",
+        "COLLAGEN", "RETINOL", "VITAMIN", "PREMIUM", "DRAFT", "ORDER",
+        "CBMP", "QLD", "BYT", "JAPAN", "USA", "GMP", "CBMP-QLD",
+    }
+    if ctx.processed_order_id:
+        EXCLUDED_ABBREVIATIONS.add(ctx.processed_order_id.upper())
+        if len(ctx.processed_order_id) >= 8:
+            EXCLUDED_ABBREVIATIONS.add(ctx.processed_order_id[-8:].upper())
+    if ctx.lead_data and ctx.lead_data.processed_order_id:
+        EXCLUDED_ABBREVIATIONS.add(ctx.lead_data.processed_order_id.upper())
+        if len(ctx.lead_data.processed_order_id) >= 8:
+            EXCLUDED_ABBREVIATIONS.add(ctx.lead_data.processed_order_id[-8:].upper())
+
+    potential_codes = []
+    for code in potential_codes_raw:
+        code_upper = code.upper()
+        if code.isdigit() or code_upper in EXCLUDED_ABBREVIATIONS:
+            continue
+        # Only treat as voucher code if it contains both letters and numbers, OR follows a voucher prefix keyword
+        has_letter = any(c.isalpha() for c in code)
+        has_digit = any(c.isdigit() for c in code)
+        has_prefix = bool(re.search(rf"(?:mã|code|voucher)\s*[\"'\u2018\u2019]?\s*{re.escape(code)}", reply, re.IGNORECASE))
+        if (has_letter and has_digit) or has_prefix:
+            potential_codes.append(code)
+
     valid_codes = set()
     if ctx.cart_text:
         codes_in_cart = re.findall(r"Mã\s+([A-Z0-9_]{3,15})", ctx.cart_text, re.IGNORECASE)
@@ -397,7 +460,12 @@ def _validate_grounding(reply: str, ctx: SupportContext) -> str:
                 reply = reply.replace(code, best_match)
                 logger.warning(f"🛡️ [Anti-Hallucination] Corrected hallucinated voucher: {code} -> {best_match}")
             else:
-                reply = reply.replace(f"mã {code}", "").replace(code, "")
+                # Remove 'mã/code/voucher CODE' patterns including surrounding quotes
+                reply = re.sub(rf"(?:mã|code|voucher)\s*[\"'\u2018\u2019]?\s*{re.escape(code)}\s*[\"'\u2018\u2019]?", "", reply, flags=re.IGNORECASE)
+                reply = reply.replace(code, "")
+                # Clean ghost text: double spaces and orphaned punctuation
+                reply = re.sub(r" {2,}", " ", reply)
+                reply = re.sub(r"\s+([,\.!?])", r"\1", reply)
                 logger.warning(f"🛡️ [Anti-Hallucination] Removed hallucinated voucher: {code}")
 
     return reply
@@ -833,7 +901,7 @@ class SupportAgentOperative(BaseAgentOperative):
     @staticmethod
     def _trim_context_to_budget(
         cart_text: str, ctx_text: str, hist_text: str, kb_index: str,
-        budget: int = 4000,
+        budget: int = 6000,
     ) -> tuple[str, str, str, str]:
         """KT6: Token Budget Guard — priority trim to keep prompt under budget.
         Trim order: hist_text → kb_index → ctx_text. cart_text is never trimmed (ground truth).
@@ -910,6 +978,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 return ""
             fomo_text = "\n[CHƯƠNG TRÌNH ƯU ĐÃI & VOUCHER ĐANG DIỄN RA (Hãy chủ động giới thiệu cho khách)]:\n"
             for v in all_vouchers:
+                if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
+                    continue
                 val_str = self._format_price(v.value, currency_settings) if v.type != "PERCENT" else f"{v.value}%"
                 min_str = f" (Đơn từ {self._format_price(v.min_spend, currency_settings)})" if v.min_spend else " (Mọi đơn hàng)"
                 title_str = f" - {v.title}" if v.title else ""
@@ -917,6 +987,8 @@ class SupportAgentOperative(BaseAgentOperative):
             return fomo_text + "--------------------------------\n"
         best_v, max_sav = None, 0.0
         for v in all_vouchers:
+            if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
+                continue
             if subtotal < (v.min_spend or 0): continue
             sav = float(v.value) if v.type == "FIXED" else (subtotal * v.value / 100 if v.type == "PERCENT" else 30000.0)
             if v.type == "PERCENT" and v.max_discount: sav = min(sav, float(v.max_discount))
@@ -928,7 +1000,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 fomo_text += f"- [CẢNH BÁO]: Khách chưa dùng mã tốt nhất. HÃY THUYẾT PHỤC KHÁCH DÙNG MÃ '{best_v.id}'!\n"
             else: fomo_text += f"- [XÁC NHẬN]: Khách đã dùng mã tối ưu. Khen khách thông thái và chốt đơn ngay.\n"
         # Bugfix R01: Sort vouchers by min_spend ascending before finding the next tier
-        next_v = next((v for v in sorted(all_vouchers, key=lambda v: v.min_spend or 0) if (v.min_spend or 0) > subtotal), None)
+        valid_vouchers = [v for v in all_vouchers if not (v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()))]
+        next_v = next((v for v in sorted(valid_vouchers, key=lambda v: v.min_spend or 0) if (v.min_spend or 0) > subtotal), None)
         if next_v:
             gap = next_v.min_spend - subtotal
             if gap < 300000: fomo_text += f"- Gợi ý mua thêm: Chỉ thiếu {self._format_price(gap, currency_settings)} nữa là dùng được mã '{next_v.id}' (Giảm cực sâu).\n"
@@ -1147,11 +1220,44 @@ class SupportAgentOperative(BaseAgentOperative):
             
             # Button 2: "An toàn da" / `[system_skin_barrier]` or "an toàn da"
             elif "[system_skin_barrier]" in msg_norm or "an toàn da" in msg_norm:
+                # P0-3 Fix: Verify ingredients from product_metadata before claiming safety
+                ingredients_raw = ""
+                if isinstance(product_meta, dict):
+                    ingredients_raw = str(product_meta.get("ingredients", "")).lower()
+                
+                safety_claims: list[str] = []
+                # Only claim "no alcohol" if ingredients don't contain alcohol variants
+                has_alcohol = any(kw in ingredients_raw for kw in ["alcohol", "ethanol", "cồn", "denat"])
+                has_paraben = any(kw in ingredients_raw for kw in ["paraben", "methylparaben", "propylparaben"])
+                has_fragrance = any(kw in ingredients_raw for kw in ["fragrance", "parfum", "hương liệu"])
+                
+                if not has_alcohol:
+                    safety_claims.append("không chứa cồn")
+                if not has_paraben:
+                    safety_claims.append("không paraben")
+                if not has_fragrance:
+                    safety_claims.append("không hương liệu tổng hợp")
+                
+                if safety_claims:
+                    safety_line = f"• {', '.join(safety_claims).capitalize()}.\n"
+                else:
+                    safety_line = "• Thành phần được kiểm nghiệm nghiêm ngặt theo tiêu chuẩn an toàn.\n"
+                
+                # Check legal certs from context
+                cert_line = "• Đầy đủ kiểm nghiệm và chứng nhận từ cơ quan quản lý.\n"
+                if ctx_text and "Hồ sơ pháp lý:" in ctx_text:
+                    for line in ctx_text.split("\n"):
+                        if "Hồ sơ pháp lý:" in line:
+                            cert_info = line.strip().replace("- ", "").replace("Hồ sơ pháp lý: ", "")
+                            if cert_info and cert_info != "Chưa có chứng nhận":
+                                cert_line = f"• Hồ sơ pháp lý: {cert_info}.\n"
+                            break
+                
                 db_first_reply = (
                     f"Dạ Anh/Chị hoàn toàn yên tâm nhé! Siêu phẩm **{p_name}** được bào chế chuẩn y khoa, cam kết:\n"
-                    f"• 100% không chứa cồn, không paraben, không hương liệu độc hại.\n"
-                    f"• An toàn tuyệt đối cho mọi loại da, kể cả da nhạy cảm và hàng rào bảo vệ da bị tổn thương.\n"
-                    f"• Đầy đủ kiểm nghiệm lâm sàng và số phiếu công bố từ Bộ Y Tế Việt Nam.\n\n"
+                    f"{safety_line}"
+                    f"• Phù hợp cho nhiều loại da, kể cả da nhạy cảm.\n"
+                    f"{cert_line}\n"
                     f"Anh/Chị cần Helen tư vấn kỹ hơn về cách kết hợp sản phẩm vào chu trình dưỡng da hiện tại không ạ? 🌸"
                 )
                 db_first_intent = SupportIntent.PRODUCT_QUERY
@@ -1159,17 +1265,28 @@ class SupportAgentOperative(BaseAgentOperative):
             # Button 3: "Xuất xứ" / contains "xuất xứ" or "nguồn gốc"
             elif "xuất xứ" in msg_norm or "nguồn gốc" in msg_norm:
                 origin_line = "Chính hãng nhập khẩu nguyên kiện."
+                cert_line_origin = ""
                 if ctx_text:
                     for line in ctx_text.split("\n"):
                         if "Xuất xứ:" in line:
                             origin_line = line.strip().replace("- ", "• ")
                         elif "Hồ sơ pháp lý:" in line:
-                            origin_line += "\n" + line.strip().replace("- ", "• ")
+                            cert_line_origin = "\n" + line.strip().replace("- ", "• ")
+                
+                # P1-5 Fix: Use dynamic origin from product_metadata instead of hardcoding "Nhật Bản"
+                origin_country = "chính hãng"
+                if isinstance(product_meta, dict) and product_meta.get("origin"):
+                    origin_country = str(product_meta["origin"])
+                elif ctx_text:
+                    for line in ctx_text.split("\n"):
+                        if "Xuất xứ:" in line:
+                            origin_country = line.strip().replace("- Xuất xứ: ", "").strip()
+                            break
                 
                 db_first_reply = (
                     f"Dạ để Anh/Chị an tâm tuyệt đối, đây là nguồn gốc xuất xứ chính thức của **{p_name}** ạ! 🛡️\n\n"
-                    f"{origin_line}\n\n"
-                    f"Sản phẩm nhập khẩu chính ngạch Nhật Bản, đầy đủ hóa đơn đỏ, hóa đơn VAT và tem chống hàng giả nên mình hoàn toàn yên tâm khi sử dụng ạ. 🌸"
+                    f"{origin_line}{cert_line_origin}\n\n"
+                    f"Sản phẩm nhập khẩu chính ngạch từ {origin_country}, đầy đủ hóa đơn đỏ, hóa đơn VAT và tem chống hàng giả nên mình hoàn toàn yên tâm khi sử dụng ạ. 🌸"
                 )
                 db_first_intent = SupportIntent.PRODUCT_QUERY
 

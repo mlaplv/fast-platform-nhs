@@ -226,16 +226,16 @@ class OrderHandler(BaseHandler):
                         )
                         ctx.lead_data = lead_data
                         
-                        print_msg = f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}"
-                        logger.info(print_msg)
-                        logger.info(f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
-                        logger.info(f"✅ [OrderHandler] V4.1 Draft-First Synthesis Complete for SID: {session_id}")
+                        logger.info(f"✅ [OrderHandler] Draft-First Synthesis OK: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
                 except Exception as dfe:
                     logger.error(f"❌ [OrderHandler] Draft-First Critical Error: {dfe}")
                     logger.exception("Draft-First Traceback:")
 
-        # 🚀 2. ATOMIC EXTRACTION (Only if Draft-First didn't handle it)
-        if not draft_filled and (is_strong_intent or is_staff_order):
+        # 🚀 2. ATOMIC EXTRACTION (LLM-based)
+        need_items = not (ctx.order_draft and ctx.order_draft.items)
+        is_complete_now = bool(ctx.order_draft and ctx.order_draft.is_complete)
+        
+        if (is_strong_intent or is_staff_order) and (not draft_filled or need_items or is_complete_now):
             try:
                 lead_data = await lead_extractor.extract_and_convert(
                     ctx.db, ctx.request.message, ctx.session_id, 
@@ -264,6 +264,11 @@ class OrderHandler(BaseHandler):
                     # Persist to Redis
                     await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump(mode='json'))
                     logger.info(f"💾 [OrderHandler] Draft Synchronized for SID: {ctx.session_id}")
+            except ValidationException as ve:
+                logger.error(f"[OrderHandler] Validation error during extraction: {ve}")
+                err_msg = str(getattr(ve, "detail", str(ve)))
+                ctx.replies.append(f"Dạ Helen xin lỗi Anh/Chị, hệ thống tạo đơn báo lỗi: **{err_msg}**. Chuyên viên bên em sẽ kiểm tra và liên hệ lại với mình ngay nhé! 🌸")
+                return True
             except Exception as e:
                 logger.error(f"[OrderHandler] Atomic extraction/draft failed: {e}")
 
@@ -397,7 +402,27 @@ class OrderHandler(BaseHandler):
                         money_pts = "{:,.0f}".format(pricing.point_discount_amount).replace(",", ".")
                         pts_hook = f"⚡ **Ưu đãi thành viên:** Helen thấy mình đang có **{ctx.dna.available_points} điểm**. Mình có muốn Helen dùng luôn để chiết khấu tối đa **{money_pts}đ** cho đơn này không ạ? "
 
-                    item_names = ", ".join([f"**{it.get('name', 'SP')}** (x{it.get('quantity', 1)})" for it in (order_obj.items or [])])
+                    item_parts: list[str] = []
+                    for it in (order_obj.items or []):
+                        if not isinstance(it, dict):
+                            continue
+                        name: str = str(it.get("name", "SP"))
+                        qty: int = int(it.get("quantity", 1))
+                        part: str = f"**{name}** (x{qty})"
+                        
+                        gifts: list = it.get("gifts") or []
+                        if gifts:
+                            gift_strs: list[str] = []
+                            for g in gifts:
+                                if not isinstance(g, dict):
+                                    continue
+                                g_name: str = str(g.get("name", "SP"))
+                                g_qty: int = int(g.get("qty") or g.get("quantity", 1))
+                                gift_strs.append(f"{g_name} (x{g_qty})")
+                            if gift_strs:
+                                part += f" + [Quà tặng: {', '.join(gift_strs)}]"
+                        item_parts.append(part)
+                    item_names: str = ", ".join(item_parts)
 
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount

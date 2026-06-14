@@ -174,22 +174,23 @@ async def _check_velocity_and_duplicate(
             )
 
         # --- Velocity: IP ---
-        safe_ip = ip.replace(":", "_")
-        ip_key = f"order:velocity:ip:{safe_ip}"
-        block_key_ip = f"order:velocity:block:ip:{safe_ip}"
-        if await redis.exists(block_key_ip):
-            raise ValidationException(
-                "IP này đã đặt quá nhiều đơn trong thời gian ngắn. Vui lòng thử lại sau 2 giờ."
-            )
-        ip_count = await redis.incr(ip_key)
-        if ip_count == 1:
-            await redis.expire(ip_key, _VELOCITY_WINDOW_SECONDS)
-        if ip_count > _VELOCITY_ORDER_LIMIT:
-            await redis.set(block_key_ip, 1, ex=_VELOCITY_BLOCK_SECONDS)
-            logger.warning(f"[ORDER-VELOCITY] IP {ip} blocked for {_VELOCITY_BLOCK_SECONDS}s (count={ip_count})")
-            raise ValidationException(
-                "Hệ thống phát hiện hành vi đặt hàng bất thường. Địa chỉ IP tạm thời bị hạn chế 2 giờ."
-            )
+        if ip and ip not in ["0.0.0.0", "127.0.0.1"]:
+            safe_ip = ip.replace(":", "_")
+            ip_key = f"order:velocity:ip:{safe_ip}"
+            block_key_ip = f"order:velocity:block:ip:{safe_ip}"
+            if await redis.exists(block_key_ip):
+                raise ValidationException(
+                    "IP này đã đặt quá nhiều đơn trong thời gian ngắn. Vui lòng thử lại sau 2 giờ."
+                )
+            ip_count = await redis.incr(ip_key)
+            if ip_count == 1:
+                await redis.expire(ip_key, _VELOCITY_WINDOW_SECONDS)
+            if ip_count > _VELOCITY_ORDER_LIMIT:
+                await redis.set(block_key_ip, 1, ex=_VELOCITY_BLOCK_SECONDS)
+                logger.warning(f"[ORDER-VELOCITY] IP {ip} blocked for {_VELOCITY_BLOCK_SECONDS}s (count={ip_count})")
+                raise ValidationException(
+                    "Hệ thống phát hiện hành vi đặt hàng bất thường. Địa chỉ IP tạm thời bị hạn chế 2 giờ."
+                )
 
         # --- Duplicate Order Guard ---
         try:
