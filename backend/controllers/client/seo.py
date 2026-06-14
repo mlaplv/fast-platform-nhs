@@ -288,7 +288,18 @@ class PublicGoogleMerchantController(Controller):
         desc_clean = self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip())
 
         # ── Brand resolving ──
-        brand = str(attrs.get("brand") or meta.get("seo_site_name") or "Miccosmo")
+        raw_brand = str(
+            attrs.get("brand")
+            or attrs.get("Thương hiệu")
+            or meta.get("brand")
+            or meta.get("seo_site_name")
+            or "Miccosmo"
+        ).strip()
+        # Keep consistent sub-brand representation for AI Search
+        if raw_brand in ("Hurry Harry", "White Label", "Beppin Body", "Rich Gold"):
+            brand = f"{raw_brand} (Miccosmo)"
+        else:
+            brand = raw_brand
         brand = self._escape(brand)
 
         # ── R3: GTIN from ProductBase.sku (barcode) ──
@@ -317,6 +328,10 @@ class PublicGoogleMerchantController(Controller):
         google_category = ""
         if p.category_id:
             google_category = self._CATEGORY_MAP.get(str(p.category_id), "")
+            # Neck/Cổ cream special taxonomy override for AI Search (Anti-Aging Treatments / ID 473)
+            p_name_lower = (p.name or "").lower()
+            if "cổ" in p_name_lower or "neck" in p_name_lower:
+                google_category = "473"
 
         # ── Product Type (internal taxonomy path) ──
         product_type = ""
@@ -326,8 +341,8 @@ class PublicGoogleMerchantController(Controller):
         # ── Product Highlights from featured_ingredients + safety claims ──
         highlights = self._build_highlights(meta, attrs)
 
-        # ── Product Details from metadata (origin, weight, ingredients, instructions) ──
-        product_details = self._build_product_details(meta, attrs)
+        # ── Product Details from metadata and dynamic attributes ──
+        product_details = self._build_product_details(meta, attrs, brand=brand)
 
         # ═══ Assemble XML ═══
         lines: list[str] = [
@@ -593,7 +608,7 @@ class PublicGoogleMerchantController(Controller):
 
         return result
 
-    def _build_product_details(self, meta: dict[str, object], attrs: dict[str, object]) -> list[dict[str, str]]:
+    def _build_product_details(self, meta: dict[str, object], attrs: dict[str, object], brand: str | None = None) -> list[dict[str, str]]:
         """SGE 2026: Build structured product_detail entries from metadata and dynamic attributes."""
         details: list[dict[str, str]] = []
 
@@ -655,6 +670,9 @@ class PublicGoogleMerchantController(Controller):
                 continue
 
             val_str = str(v).strip()
+            if attr_name == "Thương hiệu" and brand:
+                val_str = brand
+
             if val_str and val_str.lower() != "none":
                 details.append({"section": section, "name": attr_name, "value": val_str[:1000]})
                 added_keys.add(attr_name.lower())
