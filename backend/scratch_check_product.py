@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy import select
-from backend.database.config import alchemy_config
+from backend.database.alchemy_config import alchemy_config
 from backend.database.models.commerce import ProductBase
 
 async def check():
@@ -16,12 +16,16 @@ async def check():
             print(f"- ID: {p.id}, Name: {p.name}, Slug: {p.slug}, Status: {p.status}, Deleted: {p.deleted_at}")
 
         # Lấy tất cả products
-        stmt_all = select(ProductBase.name, ProductBase.slug, ProductBase.status, ProductBase.deleted_at)
+        stmt_all = select(ProductBase)
         res_all = await db.execute(stmt_all)
-        all_p = res_all.all()
+        all_p = res_all.scalars().all()
         print(f"Total products in DB: {len(all_p)}")
-        for name, slug, status, deleted in all_p[:30]:
-            print(f"  * {name} | Slug: {slug} | Status: {status} | Deleted: {deleted}")
+        for p in all_p:
+            print("="*40)
+            print(f"Name: {p.name}")
+            print(f"SEO Title: {p.seo_title}")
+            print(f"Short Desc: {p.short_description}")
+            print(f"Attributes: {p.attributes}")
 
 if __name__ == "__main__":
     asyncio.run(check())

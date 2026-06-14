@@ -284,11 +284,11 @@ class PublicGoogleMerchantController(Controller):
         avail = "in_stock" if item_stock > 0 else "out_of_stock"
 
         # ── GEO 2026: Optimized title 35-65 chars, mobile-first ──
-        title = self._replace_nhau_thai(self._escape(self._build_geo_title(p, meta)))
+        title = self._normalize_feed_text(self._escape(self._build_geo_title(p, meta)))
 
         # ── Description from seo_description → short_description → description ──
         raw_desc = str(p.seo_description or p.short_description or p.description or "")
-        desc_clean = self._replace_nhau_thai(self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip()))
+        desc_clean = self._normalize_feed_text(self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip()))
 
 
         # ── Brand resolving ──
@@ -385,12 +385,12 @@ class PublicGoogleMerchantController(Controller):
 
         # Product Highlights (SGE 2026: AI trích xuất)
         for hl in highlights:
-            hl_replaced = self._replace_nhau_thai(self._escape(hl))
+            hl_replaced = self._normalize_feed_text(self._escape(hl))
             lines.append(f"      <g:product_highlight>{hl_replaced}</g:product_highlight>")
 
         # Product Details (structured key-value pairs)
         for pd in product_details:
-            pd_val = self._replace_nhau_thai(self._escape(pd['value']))
+            pd_val = self._normalize_feed_text(self._escape(pd['value']))
             lines.append("      <g:product_detail>")
             lines.append(f"        <g:section_name>{self._escape(pd['section'])}</g:section_name>")
             lines.append(f"        <g:attribute_name>{self._escape(pd['name'])}</g:attribute_name>")
@@ -511,8 +511,27 @@ class PublicGoogleMerchantController(Controller):
                 if len(benefit) > max_benefit:
                     sliced_benefit = sliced_benefit.rsplit(" ", 1)[0]
                 
-                # Strip trailing hanging conjunctions/prepositions
-                sliced_benefit = re.sub(r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để)\s*$', '', sliced_benefit, flags=re.IGNORECASE).strip()
+                # Repeatedly strip dangling words/chars from the end
+                dangling_words = {
+                    "và", "hoặc", "cho", "của", "ở", "tại", "với", "như", "để", "là", 
+                    "các", "những", "một", "sự", "bởi", "do", "từ", "về", "nuôi", "tinh", 
+                    "tế", "bào", "giúp", "làm", "mờ", "giảm", "xóa", "ngừa", "chống",
+                    "độ", "khả", "năng", "thể", "được", "bị", "hơn", "nhất", "mang", 
+                    "lại", "tạo", "nhiều", "ít", "quá", "lắm", "rất", "chuyên", "sâu",
+                    "hiệu", "quả", "tối", "ưu", "hóa", "hoàn", "toàn", "mạnh", "mẽ",
+                    "&", "+", "-", "/", ",", "với", "nhưng", "mà", "nên", "vì", "bằng"
+                }
+                while True:
+                    words = sliced_benefit.split()
+                    if not words:
+                        break
+                    last_word = words[-1].lower().strip(".,;:!?&-+")
+                    if not last_word or last_word in dangling_words:
+                        words.pop()
+                        sliced_benefit = " ".join(words)
+                    else:
+                        break
+
                 if len(sliced_benefit.split()) >= 2:
                     title = f"{base} - {sliced_benefit}"
                 else:
@@ -760,10 +779,37 @@ class PublicGoogleMerchantController(Controller):
         lower = path.lower().split("?")[0]
         return any(lower.endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi"))
 
-    def _replace_nhau_thai(self, text: str) -> str:
+    def _normalize_feed_text(self, text: str) -> str:
         if not text:
             return ""
-        return re.sub(r'\bnhau\s+thai\b', 'Placenta', text, flags=re.IGNORECASE)
+        # 1. Standardize "nhau thai" -> "Placenta"
+        text = re.sub(r'\bnhau\s+thai\b', 'Placenta', text, flags=re.IGNORECASE)
+        # 2. Sanitize exaggerated/medical claim terms (GMC/SGE Compliance)
+        replacements = [
+            (r'\btức\s+thì\b', ''),
+            (r'\bngay\s+lập\s+tức\b', ''),
+            (r'\btức\s+thời\b', ''),
+            (r'\bđặc\s+trị\s+sạm\b', 'mờ sạm'),
+            (r'\bđặc\s+trị\s+nám\b', 'mờ nám'),
+            (r'\bđặc\s+trị\s+thâm\b', 'mờ thâm'),
+            (r'\bđặc\s+trị\s+mụn\b', 'giảm mụn'),
+            (r'\bđặc\s+trị\b', 'dưỡng chuyên sâu'),
+            (r'\bdứt\s+điểm\b', 'hiệu quả'),
+            (r'\bđiều\s+trị\b', 'dưỡng da'),
+            (r'\bchữa\s+trị\b', 'chăm sóc da'),
+            (r'\btrị\s+nám\b', 'mờ nám'),
+            (r'\btrị\s+thâm\b', 'mờ thâm'),
+            (r'\btrị\s+mụn\b', 'giảm mụn'),
+            (r'\btrị\s+nhăn\b', 'mờ nếp nhăn'),
+            (r'\btrị\s+sạm\b', 'mờ sạm'),
+            (r'\btrị\s+lão\s+hóa\b', 'ngừa lão hóa'),
+            (r'\btận\s+gốc\b', 'chuyên sâu'),
+        ]
+        for pattern, repl in replacements:
+            text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+        # Clean up any resulting double spaces
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
 
 
     def _escape(self, s: str) -> str:
