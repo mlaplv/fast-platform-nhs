@@ -22,8 +22,25 @@
   }
 
   const shopStore = getShopStore();
-  let { active = $bindable(), product: propProduct } = $props();
+  let { active = $bindable(), product: propProduct, onTriggerScan }: { active: boolean; product?: Product; onTriggerScan?: () => void } = $props();
   const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
+
+  // Bento Spec derived properties (Elite V3.0 Desktop)
+  const specBrand = $derived(product?.metadata?.brand || product?.attributes?.["brand"] || product?.attributes?.["Thương hiệu"] || "");
+  const specOrigin = $derived(product?.metadata?.origin || product?.attributes?.["origin"] || product?.attributes?.["Xuất xứ"] || "");
+  const specWeight = $derived(product?.metadata?.weight || product?.attributes?.["weight"] || product?.attributes?.["Trọng lượng"] || product?.attributes?.["Quy cách"] || "");
+  const specBarcode = $derived(product?.metadata?.barcode || product?.sku || "");
+
+  const specAllAttrs = $derived(product?.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
+    const k = key.toLowerCase().replace(/_/g, " ").trim();
+    return !(
+      ((k === "xuất xứ" || k === "origin") && specOrigin) ||
+      ((k === "trọng lượng" || k === "quy cách" || k === "weight") && specWeight) ||
+      ((k === "mã vạch" || k === "barcode") && specBarcode) ||
+      k === "thương hiệu" ||
+      k === "brand"
+    );
+  }) : []);
 
   function close() { 
     active = false;
@@ -61,6 +78,55 @@
   <!-- Scrollable Description Body -->
   <div class="w-full overflow-y-auto custom-scrollbar flex-1">
     <div class="max-w-5xl mx-auto w-full px-6 md:px-10 py-6 md:py-8 elite-prose">
+      <!-- 📊 DETAILED TECHNICAL SPECIFICATIONS (Bento Grid) -->
+      <div class="mb-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <h3 class="text-[12px] font-bold text-white/40 tracking-[0.2em] uppercase mb-5 flex items-center gap-2">
+          <ShieldCheck class="w-4 h-4 text-emerald-400" />
+          Thông số kỹ thuật sản phẩm
+        </h3>
+        
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- Brand Card -->
+          <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-1 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/10">
+            <span class="text-[9px] font-bold text-white/30 uppercase tracking-widest">Thương hiệu</span>
+            <span class="text-[14px] font-bold text-white/90">{specBrand || 'Osmo Elite'}</span>
+          </div>
+
+          <!-- Origin Card -->
+          <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-1 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/10">
+            <span class="text-[9px] font-bold text-white/30 uppercase tracking-widest">Xuất xứ</span>
+            <span class="text-[14px] font-bold text-white/90">{specOrigin || 'Nhật Bản'}</span>
+          </div>
+
+          <!-- Weight/Quy cách Card -->
+          <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-1 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/10">
+            <span class="text-[9px] font-bold text-white/30 uppercase tracking-widest">Quy cách</span>
+            <span class="text-[14px] font-bold text-white/90">{specWeight || '30g / Tuýp'}</span>
+          </div>
+
+          <!-- Barcode Scan Card -->
+          <button
+            class="bg-emerald-950/10 border border-emerald-500/10 rounded-xl p-4 flex flex-col gap-1 text-left cursor-pointer active:scale-98 transition-all hover:bg-emerald-950/20 hover:border-emerald-500/20"
+            onclick={() => onTriggerScan?.()}
+          >
+            <span class="text-[9px] font-bold text-emerald-400/60 uppercase tracking-widest">Mã vạch (Verify)</span>
+            <span class="text-[14px] font-bold text-emerald-400 flex items-center gap-1.5">
+              {specBarcode}
+              <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+            </span>
+          </button>
+
+          <!-- Dynamic attributes -->
+          {#each specAllAttrs as [key, value]}
+            {@const isLong = String(value).length > 20}
+            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-1 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/10 {isLong ? 'lg:col-span-2' : 'lg:col-span-1'} col-span-1">
+              <span class="text-[9px] font-bold text-white/30 uppercase tracking-widest">{key}</span>
+              <span class="text-[14px] font-bold text-white/90">{value}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+
       {#if product?.description}
         <EditableWrapper path="description" type="html" label="SỬA MÔ TẢ CHI TIẾT">
           <div class="elite-prose-container">

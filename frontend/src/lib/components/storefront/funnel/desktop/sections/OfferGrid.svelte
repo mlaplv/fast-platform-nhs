@@ -174,5 +174,5 @@
   </div>
 </section>
 
-<DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />
+<DesktopProductDetailsModal bind:active={isDetailsOpen} product={product || undefined} {onTriggerScan} />
 

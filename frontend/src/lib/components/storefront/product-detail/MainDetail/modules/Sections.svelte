@@ -209,7 +209,7 @@
           class="bg-[#f9fafb] px-4 md:px-8 py-5 flex flex-col justify-center hover:bg-white transition-all"
         >
           <span
-            class="text-[9px] text-gray-400 font-black tracking-[0.25em] uppercase mb-2 flex items-center gap-2"
+            class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
           >
             <div class="w-1 h-1 rounded-full bg-gray-300"></div>
             {key.replace(/_/g, " ")}
@@ -302,7 +302,7 @@
                         class="flex items-center justify-between border-b border-gray-50 pb-1"
                       >
                         <span
-                          class="text-[11px] font-black text-teal-800 tracking-wider uppercase"
+                          class="text-[11px] font-black text-teal-800 tracking-wider"
                           >{grp.group}</span
                         >
                         <span

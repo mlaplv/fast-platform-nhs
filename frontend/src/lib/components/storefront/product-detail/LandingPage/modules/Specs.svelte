@@ -21,6 +21,15 @@
     (product.metadata?.featured_ingredients || product.metadata?.ingredients || [])
     .slice(0, 4) as { name: string; icon?: string }[]
   );
+
+  function handleViewIngredients() {
+    if (onViewFullIngredients) {
+      onViewFullIngredients();
+    } else {
+      const el = document.getElementById('product-description') || document.querySelector('.description-container');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 </script>
 
 <div class="specs-container">
@@ -38,25 +47,26 @@
       <span class="spec-label">Quy cách</span>
       <span class="spec-value">{productInfo.weight || '30g / Tuýp'}</span>
     </div>
-      <button 
-        class="spec-item group/barcode cursor-pointer hover:bg-white/5 transition-colors bg-transparent border-none p-0"
-        onclick={() => onTriggerScan?.()}
-      >
-        <span class="spec-label group-hover/barcode:text-green-400">Mã vạch (Verify)</span>
-        <span class="spec-value group-hover/barcode:text-white">{productInfo.barcode}</span>
-      </button>
+    <button 
+      class="spec-item barcode-spec-item cursor-pointer"
+      onclick={() => onTriggerScan?.()}
+    >
+      <span class="spec-label barcode-label">Mã vạch (Verify)</span>
+      <span class="spec-value barcode-value">
+        {productInfo.barcode || 'N/A'}
+        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+      </span>
+    </button>
   </div>
-
-  <!-- Removed local scanner/modal logic to use shared Desktop state -->
 
   <!-- Detailed Attributes -->
   <div class="attributes-section">
-    <h2 class="section-title text-[14px]">Thông số kỹ thuật {product.name}</h2>
-    <div class="attributes-grid">
+    <h2 class="section-title">Thông số kỹ thuật {product.name}</h2>
+    <div class="bento-attributes-grid">
       {#each visibleAttributes as [key, value]}
-        <div class="attribute-row">
-          <span class="attr-key">{key}</span>
-          <span class="attr-val">{value}</span>
+        <div class="bento-attr-card {String(value).length > 20 ? 'col-span-2' : 'col-span-1'}">
+          <span class="bento-attr-key">{key}</span>
+          <span class="bento-attr-val">{value}</span>
         </div>
       {/each}
     </div>
@@ -76,27 +86,15 @@
           </div>
         {/each}
       </div>
-      <button class="view-full-btn" onclick={() => {
-        if (onViewFullIngredients) {
-          onViewFullIngredients();
-        } else {
-          const el = document.getElementById('product-description') || document.querySelector('.description-container');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }}>
+      <button class="view-full-btn" onclick={handleViewIngredients}>
         Xem toàn bộ bảng thành phần
       </button>
     </div>
-  {#else}
+  {/if}
+
+  {#if featuredIngredients.length === 0}
     <div class="mt-4">
-      <button class="view-full-btn" onclick={() => {
-        if (onViewFullIngredients) {
-          onViewFullIngredients();
-        } else {
-          const el = document.getElementById('product-description') || document.querySelector('.description-container');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }}>
+      <button class="view-full-btn" onclick={handleViewIngredients}>
         Xem toàn bộ bảng thành phần
       </button>
     </div>
@@ -105,100 +103,158 @@
 
 <style>
   .specs-container {
-    margin-top: 2rem;
-    padding: 0 1.25rem;
+    margin-top: 2.5rem;
+    padding: 0;
+    width: 100%;
   }
 
   .spec-bar {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    display: flex;
-    justify-content: space-around;
-    padding: 1.5rem 0.75rem;
-    margin-bottom: 2.5rem;
-    position: relative;
-    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08) !important;
-    border-radius: 8px !important;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .spec-bar {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
   }
 
   .spec-item {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 0.85rem 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-    position: relative;
+    justify-content: center;
+    gap: 0.25rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .spec-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 20%;
-    height: 60%;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1), transparent);
+  .spec-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #1e293b;
   }
 
   .spec-label {
     font-size: 8px;
-    font-weight: 900;
-    letter-spacing: 0.2em;
-    color: rgba(255, 255, 255, 0.5) !important;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.4);
   }
 
   .spec-value {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: #f59e0b !important;
+    color: #f59e0b;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.3;
+  }
+
+  .barcode-spec-item {
+    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+    border-color: rgba(16, 185, 129, 0.15) !important;
+  }
+
+  .barcode-spec-item:hover {
+    background: linear-gradient(135deg, #047857 0%, #064e3b 100%) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .barcode-label {
+    color: rgba(52, 211, 153, 0.7) !important;
+  }
+
+  .barcode-value {
+    color: #34d399 !important;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
   .section-title {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: #111827;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f172a;
     margin-bottom: 1.25rem;
     padding-left: 0.75rem;
     border-left: 4px solid #0d9488 !important;
+    text-transform: uppercase;
   }
 
-  .attributes-grid {
+  .bento-attributes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .bento-attributes-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+  }
+
+  .bento-attr-card {
+    background: #f8fafc;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2.5rem;
+    gap: 0.25rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .attribute-row {
-    display: flex;
-    padding: 0.5rem 0.75rem;
-    font-size: 14px;
+  .bento-attr-card:hover {
+    transform: translateY(-2px);
+    background: #ffffff;
+    border-color: rgba(13, 148, 136, 0.15);
+    box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.05);
   }
 
-  .attribute-row:nth-child(odd) {
-    background: #f9fafb;
+  .bento-attr-card.col-span-1 {
+    grid-column: span 1 / span 1;
   }
 
-  .attr-key {
-    width: 150px;
-    flex-shrink: 0;
-    color: #6b7280;
+  .bento-attr-card.col-span-2 {
+    grid-column: span 2 / span 2;
   }
 
-  .attr-val {
-    flex: 1;
-    color: #111827;
-    font-weight: 500;
+  .bento-attr-key {
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+  }
+
+  .bento-attr-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
   }
 
   .ingredients-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .ingredients-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
   }
 
   .ing-card {
@@ -206,48 +262,53 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 0.5rem;
-    background: #f9fafb;
-    border: 1px solid #f3f4f6;
-    transition: all 0.3s;
+    padding: 1.25rem 0.75rem;
+    background: #f8fafc;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ing-card:hover {
-    border-color: #0d9488 !important;
+    border-color: rgba(13, 148, 136, 0.2) !important;
     background: white;
-    box-shadow: 0 10px 20px rgba(13, 148, 136, 0.08) !important;
-    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(13, 148, 136, 0.06) !important;
+    transform: translateY(-3px);
   }
 
   .ing-icon {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
     color: #0d9488 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .ing-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     text-align: center;
-    color: #374151;
-    letter-spacing: -0.01em;
+    color: #334155;
+    line-height: 1.3;
   }
 
   .view-full-btn {
     width: 100%;
-    padding: 0.75rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    color: #6b7280;
+    padding: 0.85rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
   }
 
   .view-full-btn:hover {
-    background: #f9fafb;
-    color: #111827;
-    border-color: #d1d5db;
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
   }
 </style>

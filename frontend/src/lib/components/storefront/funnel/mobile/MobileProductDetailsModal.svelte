@@ -61,6 +61,23 @@
   let { active = $bindable(), product }: { active: boolean; product: Product } =
     $props();
 
+  // Bento Spec derived properties (Elite V3.0)
+  const specBrand = $derived(product.metadata?.brand || product.attributes?.["brand"] || product.attributes?.["Thương hiệu"] || "");
+  const specOrigin = $derived(product.metadata?.origin || product.attributes?.["origin"] || product.attributes?.["Xuất xứ"] || "");
+  const specWeight = $derived(product.metadata?.weight || product.attributes?.["weight"] || product.attributes?.["Trọng lượng"] || product.attributes?.["Quy cách"] || "");
+  const specBarcode = $derived(product.metadata?.barcode || product.sku || "");
+
+  const specAllAttrs = $derived(product.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
+    const k = key.toLowerCase().replace(/_/g, " ").trim();
+    return !(
+      ((k === "xuất xứ" || k === "origin") && specOrigin) ||
+      ((k === "trọng lượng" || k === "quy cách" || k === "weight") && specWeight) ||
+      ((k === "mã vạch" || k === "barcode") && specBarcode) ||
+      k === "thương hiệu" ||
+      k === "brand"
+    );
+  }) : []);
+
   // Drag-to-Close Logic
   let dragY = $state(0);
   let isDragging = $state(false);
@@ -545,54 +562,50 @@
           </div>
         {/if}
 
-        <!-- 📊 PRODUCT INFO (Elite V3.0 Clean) -->
+        <!-- 📊 PRODUCT INFO (Elite V3.0 Clean Bento) -->
         <div class="px-[5px] pt-5 pb-2">
-          <!-- Specs: Clean inline list -->
-          {#if product.metadata}
-            {@const specs = [
-              product.metadata?.brand && {
-                label: "Thương hiệu",
-                value: product.metadata.brand,
-              },
-              product.metadata?.origin && {
-                label: "Xuất xứ",
-                value: product.metadata.origin,
-              },
-              product.metadata?.weight && {
-                label: "Trọng lượng",
-                value: product.metadata.weight,
-              },
-              (product.metadata?.barcode || product.sku) && {
-                label: "Mã vạch",
-                value: product.metadata?.barcode || product.sku,
-              },
-            ].filter(Boolean)}
-            {#if specs.length > 0}
-              <div class="flex flex-wrap gap-x-5 gap-y-2 mb-4">
-                {#each specs as spec}
-                  <button
-                    class="flex flex-col items-start bg-transparent border-none p-0 text-left active:scale-95 transition-transform"
-                    onclick={triggerScan}
-                  >
-                    <span
-                      class="text-[9px] font-semibold {spec.label === 'SKU' ||
-                      spec.label === 'Mã vạch'
-                        ? 'text-green-400'
-                        : 'text-white/35'} tracking-widest leading-none mb-1"
-                    >
-                      {spec.label === "SKU" || spec.label === "Mã vạch"
-                        ? `Mã vạch (Verify)`
-                        : spec.label}
-                    </span>
-                    <span class="text-[13px] font-bold text-white/90"
-                      >{spec.value}</span
-                    >
-                  </button>
-                {/each}
+          <!-- Specs: Mobile-native Bento Grid -->
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <!-- Brand Card -->
+            <div class="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1">
+              <span class="text-[9px] font-bold text-white/35 uppercase tracking-widest">Thương hiệu</span>
+              <span class="text-[13px] font-bold text-white/90">{specBrand || 'Osmo Elite'}</span>
+            </div>
+
+            <!-- Origin Card -->
+            <div class="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1">
+              <span class="text-[9px] font-bold text-white/35 uppercase tracking-widest">Xuất xứ</span>
+              <span class="text-[13px] font-bold text-white/90">{specOrigin || 'Nhật Bản'}</span>
+            </div>
+
+            <!-- Weight/Quy cách Card -->
+            <div class="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1">
+              <span class="text-[9px] font-bold text-white/35 uppercase tracking-widest">Quy cách</span>
+              <span class="text-[13px] font-bold text-white/90">{specWeight || '30g / Tuýp'}</span>
+            </div>
+
+            <!-- Barcode Scan Card -->
+            <button
+              class="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 flex flex-col gap-1 text-left cursor-pointer active:scale-98 transition-all"
+              onclick={triggerScan}
+            >
+              <span class="text-[9px] font-bold text-emerald-400/80 uppercase tracking-widest">Mã vạch (Verify)</span>
+              <span class="text-[13px] font-bold text-emerald-400 flex items-center gap-1.5">
+                {specBarcode}
+                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              </span>
+            </button>
+
+            <!-- Dynamic attributes -->
+            {#each specAllAttrs as [key, value]}
+              {@const isLong = String(value).length > 18}
+              <div class="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1 {isLong ? 'col-span-2' : 'col-span-1'}">
+                <span class="text-[9px] font-bold text-white/35 uppercase tracking-widest">{key}</span>
+                <span class="text-[13px] font-bold text-white/90">{value}</span>
               </div>
-              <div class="w-full h-px bg-white/8 mb-4"></div>
-            {/if}
-          {/if}
+            {/each}
+          </div>
+          <div class="w-full h-px bg-white/5 mb-4"></div>
 
           <!-- 🧪 INGREDIENTS -->
           {#if product.metadata?.featured_ingredients?.length > 0 || product.metadata?.ingredients}
@@ -654,7 +667,7 @@
               tight={true}
               extraStyle="padding-left: 5px !important; padding-right: 5px !important;"
             >
-              <MobileVerificationCenter {product} {verificationData} />
+              <MobileVerificationCenter {product} verificationData={verificationData || undefined} />
             </BottomSheet>
           {/if}
         </div>
