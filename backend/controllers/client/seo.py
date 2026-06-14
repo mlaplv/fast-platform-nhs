@@ -157,16 +157,17 @@ class PublicGoogleMerchantController(Controller):
     """
     path = "/google-merchant.xml"
 
-    # GEO 2026: Internal category → Google Product Taxonomy mapping (Numeric IDs to prevent XML escaping issues)
+    # GEO 2026: Internal category → Google Product Taxonomy mapping
+    # All cosmetics unified to ID 473 (Health & Beauty > Personal Care > Cosmetics > Skin Care)
     # Source: https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt
     _CATEGORY_MAP: dict[str, str] = {
-        "cat_serum": "2592",       # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
-        "cat_kem_duong": "2592",   # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
-        "cat_mat_na": "6262",      # Health & Beauty > Personal Care > Cosmetics > Skin Care > Skin Care Masks & Peels
-        "cat_cham_soc_mat": "2592", # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
-        "cat_sua_rua_mat": "2526", # Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Cleansers
-        "cat_tinh_chat": "2592",   # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
-        "cat_kem_mat": "2592",     # Health & Beauty > Personal Care > Cosmetics > Skin Care > Lotion & Moisturizer
+        "cat_serum": "473",
+        "cat_kem_duong": "473",
+        "cat_mat_na": "473",
+        "cat_cham_soc_mat": "473",
+        "cat_sua_rua_mat": "473",
+        "cat_tinh_chat": "473",
+        "cat_kem_mat": "473",
     }
 
     # GEO 2026: Category → Vietnamese product type name (for title builder)
@@ -328,14 +329,8 @@ class PublicGoogleMerchantController(Controller):
         if meta_video:
             video_links.append(self._resolve_full_url(meta_video, site_url))
 
-        # ── Google Product Category from internal category ──
-        google_category = ""
-        if p.category_id:
-            google_category = self._CATEGORY_MAP.get(str(p.category_id), "")
-            # Neck/Cổ/Họng/Ngực cream → Anti-Aging Skin Care Kits (ID 7429)
-            p_name_lower = (p.name or "").lower()
-            if any(w in p_name_lower for w in ("cổ", "họng", "ngực", "neck", "throat", "decollete", "décolleté")):
-                google_category = "7429"
+        # ── Google Product Category: unified to 473 (Skin Care) for all cosmetics ──
+        google_category = self._CATEGORY_MAP.get(str(p.category_id or ""), "473")
 
         # ── Product Type (internal taxonomy path) ──
         product_type = ""
