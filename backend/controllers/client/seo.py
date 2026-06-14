@@ -543,19 +543,61 @@ class PublicGoogleMerchantController(Controller):
         if len(pool) < 3:
             pool.append("An toàn cho da nhạy cảm, không chứa cồn.")
 
-        # Enforce: max 15 words per highlight, cap at 4 total
+        # Enforce: max 15 words per highlight, cap at 4 total with clause-boundary truncation
         result: list[str] = []
         for hl in pool[:4]:
+            hl = hl.strip()
             words = hl.split()
-            capped = " ".join(words[:15])
-            result.append(capped[:150])
+            if len(words) <= 15:
+                if not hl.endswith("."):
+                    hl += "."
+                result.append(hl[:150])
+                continue
+
+            # Over 15 words: slice to 15 words
+            sliced_words = words[:15]
+
+            # Try to find a good punctuation boundary to cut earlier (look from word index 14 down to 8)
+            cut_idx = -1
+            for i in range(14, 7, -1):
+                w = sliced_words[i]
+                if w.endswith((".", ",", ";", ":", "!")):
+                    cut_idx = i
+                    break
+
+            if cut_idx != -1:
+                sliced_words = sliced_words[:cut_idx + 1]
+
+            capped = " ".join(sliced_words)
+            capped = capped.rstrip(".,;:!? ")
+
+            # Strip trailing hanging words/prepositions recursively
+            while True:
+                new_capped = re.sub(
+                    r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để|giúp|mờ|giảm|làm|việc|trong|trên|dưới|cùng)\s*$',
+                    '',
+                    capped,
+                    flags=re.IGNORECASE
+                ).strip()
+                if new_capped == capped:
+                    break
+                capped = new_capped
+
+            # Balance parenthesis
+            open_p = capped.count("(")
+            close_p = capped.count(")")
+            if open_p > close_p:
+                capped += ")"
+
+            result.append((capped + ".")[:150])
 
         return result
 
     def _build_product_details(self, meta: dict[str, object], attrs: dict[str, object]) -> list[dict[str, str]]:
-        """SGE 2026: Build structured product_detail entries from metadata."""
+        """SGE 2026: Build structured product_detail entries from metadata and dynamic attributes."""
         details: list[dict[str, str]] = []
 
+        # 1. Map from product_metadata (meta) first as priority
         mapping: list[tuple[str, str, str]] = [
             ("origin", "Thông số", "Xuất xứ"),
             ("weight", "Thông số", "Trọng lượng"),
@@ -563,10 +605,59 @@ class PublicGoogleMerchantController(Controller):
             ("instructions", "Hướng dẫn", "Cách sử dụng"),
         ]
 
+        added_keys = set()
         for meta_key, section, attr_name in mapping:
             val = str(meta.get(meta_key) or "").strip()
             if val:
                 details.append({"section": section, "name": attr_name, "value": val[:1000]})
+                added_keys.add(attr_name.lower())
+
+        # 2. Map from product.attributes (attrs) to fill in details
+        ignored_attr_keys = {
+            "combo_qty", "comboqty", "gifts", "tier_index", "tierindex",
+            "is_default", "isdefault", "images", "options", "price", "stock"
+        }
+
+        friendly_names = {
+            "origin": "Xuất xứ",
+            "xuất xứ": "Xuất xứ",
+            "weight": "Trọng lượng",
+            "trọng lượng": "Trọng lượng",
+            "quy cách": "Trọng lượng",
+            "hsd": "Hạn sử dụng",
+            "hsd(date)": "Hạn sử dụng",
+            "hạn sử dụng": "Hạn sử dụng",
+            "loại da": "Loại da",
+            "loai_da": "Loại da",
+            "dạng sản phẩm": "Dạng sản phẩm",
+            "dang_san_pham": "Dạng sản phẩm",
+            "brand": "Thương hiệu",
+            "thương hiệu": "Thương hiệu",
+            "barcode": "Mã vạch",
+            "mã vạch": "Mã vạch",
+        }
+
+        for k, v in attrs.items():
+            k_norm = k.lower().replace(" ", "_").strip()
+            if k_norm in ignored_attr_keys:
+                continue
+
+            k_lower_space = k.lower().replace("_", " ").strip()
+            section = "Thông số"
+            if "thành phần" in k_lower_space or "ingredients" in k_lower_space:
+                section = "Thành phần"
+            elif "hướng dẫn" in k_lower_space or "instructions" in k_lower_space or "sử dụng" in k_lower_space:
+                section = "Hướng dẫn"
+
+            attr_name = friendly_names.get(k_lower_space, k.strip())
+
+            if attr_name.lower() in added_keys:
+                continue
+
+            val_str = str(v).strip()
+            if val_str and val_str.lower() != "none":
+                details.append({"section": section, "name": attr_name, "value": val_str[:1000]})
+                added_keys.add(attr_name.lower())
 
         return details
 
