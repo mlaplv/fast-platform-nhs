@@ -289,20 +289,34 @@ class OrderHandler(BaseHandler):
             # V4.2: Ambiguity check takes priority over everything except definite success
             if lead_data.possible_provinces and not lead_data.processed_order_id:
                 provinces = ", ".join(lead_data.possible_provinces)
-                ctx.replies.append(f"{debug_prefix}Dạ địa chỉ của mình trùng tên ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸")
+                ctx.replies.append(f"{debug_prefix}Dạ địa chỉ của mình trùng tên ở nhiều nơi ({provinces}), mình cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸")
                 return True
+
+            # V7.0: Personalization — use customer name when known
+            c_name = ctx.dna.customer_name or ctx.request.customer_name
+            if c_name and c_name not in ["Khách ẩn danh", "Quý khách", "Sếp"]:
+                c_display = c_name
+            else:
+                c_display = "mình"
+
+            # V7.0: Product context for smarter responses
+            p_name_short = ""
+            if ctx.p_info:
+                p_name_short = ctx.p_info.name.split(" - ")[0] if " - " in ctx.p_info.name else ctx.p_info.name
+                if len(p_name_short) > 40:
+                    p_name_short = p_name_short[:40] + "..."
 
             if not is_definite and not has_items:
                 # Elite V6.0: Handle Financial Error specifically
                 if lead_data.is_financial_error:
-                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận ý định mua hàng của mình, nhưng em cần kiểm tra lại giá chính xác cho sản phẩm này một chút ạ. Anh/Chị đợi em 30 giây để em báo giá chuẩn và chốt đơn cho mình luôn nhé! 🌸")
+                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận ý định mua hàng của {c_display}, nhưng em cần kiểm tra lại giá chính xác một chút ạ. {c_display.capitalize()} đợi em 30 giây để em báo giá chuẩn và chốt đơn luôn nhé! 🌸")
                     return True
 
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
                 formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
                 
-                header = "Dạ Helen đã ghi nhận thông tin!" if (lead_data.customer_phone or lead_data.customer_address) else "Dạ Helen đã sẵn sàng lên đơn!"
-                ctx.replies.append(f"{debug_prefix}{header} 🌸\nAnh/Chị cho em xin **số lượng** sản phẩm muốn lấy để Helen chốt bill cho mình nhé. (Giá đang là: **{formatted_base}**)")
+                header = f"Dạ Helen đã ghi nhận thông tin của {c_display}!" if (lead_data.customer_phone or lead_data.customer_address) else "Dạ Helen đã sẵn sàng lên đơn!"
+                ctx.replies.append(f"{debug_prefix}{header} 🌸\n{c_display.capitalize()} cho em xin **số lượng** sản phẩm muốn lấy để Helen chốt bill luôn nhé. (Giá đang là: **{formatted_base}**)")
                 return True
 
             # Case B: Thiếu Thông Tin Liên Hệ (Elite V5.4: Hyper-Contextual Responses)
@@ -314,28 +328,42 @@ class OrderHandler(BaseHandler):
                 # 🚀 Elite V3.6: Detect invalid 9-digit phone typos specifically
                 raw_phone = re.search(r"0\d{8,10}", msg)
                 
+                # V7.0: Build item context string for smarter acknowledgment
+                item_ctx = ""
+                if lead_data.items:
+                    item_names_list = [f"{it.name} x{it.quantity}" for it in lead_data.items[:2]]
+                    item_ctx = f" **{', '.join(item_names_list)}**"
+                elif p_name_short:
+                    item_ctx = f" **{p_name_short}**"
+                
                 if not lead_data.customer_phone and raw_phone:
-                    ctx.replies.append(f"{debug_prefix}Dạ SĐT **{raw_phone.group()}** chị nhắn bị thiếu mất 1 số rồi ạ, chị kiểm tra lại giúp Helen nhé! 🌸")
+                    ctx.replies.append(f"{debug_prefix}Dạ SĐT **{raw_phone.group()}** {c_display} nhắn bị thiếu mất 1 số rồi ạ, {c_display} kiểm tra lại giúp Helen nhé! 🌸")
                 elif not lead_data.customer_phone and not is_address_resolved:
                     # CẢ HAI ĐỀU THIẾU
-                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã nhận đơn của mình rồi ạ! 🌸 Anh/Chị cho em xin thêm **Số điện thoại và Địa chỉ** cụ thể để em lên bill gửi hàng luôn nhé! ✨")
+                    ctx.replies.append(
+                        f"{debug_prefix}Dạ Helen nhận đơn{item_ctx} cho {c_display} rồi ạ! 🌸\n"
+                        f"{c_display.capitalize()} cho em xin nhanh:\n"
+                        f"📞 **Số điện thoại**\n"
+                        f"📍 **Địa chỉ nhận hàng**\n"
+                        f"để em lên bill giao tận nơi luôn nhé! ✨"
+                    )
                 elif not lead_data.customer_phone:
                     # CÓ ĐỊA CHỈ NHƯNG THIẾU SĐT
-                    ack = "Dạ địa chỉ thì Helen đã thấy rồi."
+                    ack = f"Dạ địa chỉ thì Helen đã thấy rồi."
                     if draft_filled and ctx.order_draft.customer_address in ctx.request.message:
-                        ack = f"Dạ Helen đã ghi nhận địa chỉ của mình tại **{lead_data.customer_address}** rồi ạ."
-                    ctx.replies.append(f"{debug_prefix}{ack} Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
+                        ack = f"Dạ Helen đã ghi nhận địa chỉ của {c_display} tại **{lead_data.customer_address}** rồi ạ."
+                    ctx.replies.append(f"{debug_prefix}{ack} {c_display.capitalize()} cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
                 else:
                     # CÓ SĐT NHƯNG THIẾU ĐỊA CHỈ (HOẶC CHƯA RESOLVED)
-                    ack = "Dạ SĐT em lưu 1 bản rồi ạ."
+                    ack = f"Dạ SĐT em lưu rồi ạ."
                     if draft_filled and lead_data.customer_phone in msg:
-                        ack = f"Dạ Helen đã lưu SĐT **{lead_data.customer_phone}** của mình rồi ạ."
+                        ack = f"Dạ Helen đã lưu SĐT **{lead_data.customer_phone}** của {c_display} rồi ạ."
                     
                     # Nếu có địa chỉ thô nhưng chưa resolved (thiếu Tỉnh/TP)
                     if lead_data.customer_address and not is_address_resolved:
-                        ctx.replies.append(f"{debug_prefix}{ack} Địa chỉ **{lead_data.customer_address}** mình vừa nhắn Helen chưa rõ là ở Tỉnh/Thành phố nào, Anh/Chị nhắn rõ hơn để em tính phí ship nhé! 🌸")
+                        ctx.replies.append(f"{debug_prefix}{ack} Địa chỉ **{lead_data.customer_address}** {c_display} vừa nhắn Helen chưa rõ là ở Tỉnh/Thành phố nào, {c_display} nhắn rõ hơn để em tính phí ship nhé! 🌸")
                     else:
-                        ctx.replies.append(f"{debug_prefix}{ack} Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
+                        ctx.replies.append(f"{debug_prefix}{ack} {c_display.capitalize()} cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
                 
                 # 🚀 Elite V3.6: Interleaved Recovery logic
                 if "?" in msg or len(msg) > 60:
@@ -400,7 +428,7 @@ class OrderHandler(BaseHandler):
                     pts_hook = ""
                     if ctx.dna.available_points > 0 and pricing.point_discount_amount > 0:
                         money_pts = "{:,.0f}".format(pricing.point_discount_amount).replace(",", ".")
-                        pts_hook = f"⚡ **Ưu đãi thành viên:** Helen thấy mình đang có **{ctx.dna.available_points} điểm**. Mình có muốn Helen dùng luôn để chiết khấu tối đa **{money_pts}đ** cho đơn này không ạ? "
+                        pts_hook = f"⚡ **Ưu đãi thành viên:** Helen thấy {c_display} đang có **{ctx.dna.available_points} điểm**. {c_display.capitalize()} có muốn Helen dùng luôn để chiết khấu tối đa **{money_pts}đ** cho đơn này không ạ? "
 
                     item_parts: list[str] = []
                     for it in (order_obj.items or []):
@@ -408,7 +436,7 @@ class OrderHandler(BaseHandler):
                             continue
                         name: str = str(it.get("name", "SP"))
                         qty: int = int(it.get("quantity", 1))
-                        part: str = f"**{name}** (x{qty})"
+                        part: str = f"📦 {name} (x{qty})"
                         
                         gifts: list = it.get("gifts") or []
                         if gifts:
@@ -420,9 +448,9 @@ class OrderHandler(BaseHandler):
                                 g_qty: int = int(g.get("qty") or g.get("quantity", 1))
                                 gift_strs.append(f"{g_name} (x{g_qty})")
                             if gift_strs:
-                                part += f" + [Quà tặng: {', '.join(gift_strs)}]"
+                                part += f"\n   🎁 + {', '.join(gift_strs)}"
                         item_parts.append(part)
-                    item_names: str = ", ".join(item_parts)
+                    item_names: str = "\n".join(item_parts)
 
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount
@@ -430,18 +458,20 @@ class OrderHandler(BaseHandler):
                         v_val_f = "{:,.0f}".format(next_voucher.value).replace(",", ".") if next_voucher.type != "PERCENT" else f"{next_voucher.value}%"
                         
                         reply = (
-                            f"{debug_prefix}Dạ Helen đã gom đơn {item_names} với tổng bill **{formatted_price}đ** của mình vào hệ thống. Đơn hàng sẽ về đến tay mình sau khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
-                            f"Đặc biệt, mình chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là được áp dụng mã giảm giá **{v_val_f}** rồi đó ạ. Mình có muốn chọn thêm sản phẩm nào để tối ưu voucher luôn không?"
+                            f"{debug_prefix}Dạ Helen đã gom đơn {item_names} với tổng bill **{formatted_price}đ** của {c_display} vào hệ thống. Đơn hàng sẽ về đến tay {c_display} sau khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
+                            f"Đặc biệt, {c_display} chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là được áp dụng mã giảm giá **{v_val_f}** rồi đó ạ. {c_display.capitalize()} có muốn chọn thêm sản phẩm nào để tối ưu voucher luôn không?"
                         )
                     else:
                         reply = (
-                            f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen đã chốt gửi đơn đi theo lịch trình:\n"
-                            f"- Mã đơn: **{order_id[-8:].upper()}**\n"
-                            f"- Sản phẩm: {item_names}\n"
-                            f"- Tổng tiền: **{formatted_price}đ** (Lưu giỏ thành công)\n"
-                            f"- Dự kiến tới tay: **{delivery_info}**\n\n"
+                            f"{debug_prefix}Dạ Helen chúc mừng {c_display} đặt hàng thành công! 🌸\n\n"
+                            f"📋 **CHI TIẾT ĐƠN HÀNG**\n"
+                            f"🆔 Mã đơn: **{order_id[-8:].upper()}**\n"
+                            f"{item_names}\n"
+                            f"💰 Tổng: **{formatted_price}đ**\n"
+                            f"🚚 Dự kiến: **{delivery_info}**\n\n"
                             f"{pts_hook}\n"
-                            f"Anh/Chị nhớ để ý điện thoại để shipper gọi nha! 📞"
+                            f"{c_display.capitalize()} nhớ để ý điện thoại khi shipper gọi nha! 📞\n"
+                            f"Cảm ơn {c_display} đã tin tưởng osmo! 💖"
                         )
                     
                     ctx.replies.append(reply)

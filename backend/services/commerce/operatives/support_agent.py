@@ -553,23 +553,24 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         try:
             # Scalar projection to avoid ORM hydration
+            # KT5: Expanded context window (8 messages, 8000 chars) to reduce forgetfulness
             stmt = select(
                 SupportChatHistory.id,
                 SupportChatHistory.role,
                 SupportChatHistory.content
             ).where(SupportChatHistory.session_id == session_id).order_by(
                 desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)
-            ).limit(4)
+            ).limit(8)
             result = await db.execute(stmt)
             history_rows = result.all()
             if not history_rows: return ""
             h_parts = []
             total_chars = 0
-            MAX_TOTAL_CHARS = 5000
+            MAX_TOTAL_CHARS = 8000
             for r in reversed(history_rows):
                 h_content = GeminiSecurity.decrypt(r.content or "")
                 if h_content == HELEN_FOLLOW_UP_TRIGGER: continue
-                if len(h_content) > 300: h_content = h_content[:300] + "... [TRUNCATED]"
+                if len(h_content) > 500: h_content = h_content[:500] + "... [TRUNCATED]"
                 # H-2: Scan decrypted USER history for replay injection before re-injecting into LLM context
                 if r.role == "user":
                     _safe, _ = input_guard.validate(h_content[:2000])
@@ -1338,6 +1339,17 @@ class SupportAgentOperative(BaseAgentOperative):
         heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info, c_name)
         if heuristic_res: return heuristic_res
 
+        # ══ SYNC ORDER FAST-PATH (Elite V7.0) ═════════════════════════════════
+        # Detect clear purchase intent synchronously — avoids enqueue + LLM round-trip (~60s → <1s)
+        order_fp = await self._try_sync_order_fast_path(request, db, session_id, p_info, c_name)
+        if order_fp: return order_fp
+
+        # ══ SYNC SLOT-FILL FAST-PATH (Elite V7.0) ═════════════════════════════
+        # When draft exists and user provides phone+address, fill slots & create order synchronously
+        slot_fp = await self._try_sync_slot_fill(request, db, session_id, p_info, c_name)
+        if slot_fp: return slot_fp
+        # ══════════════════════════════════════════════════════════════════════
+
         # Elite V2.2: Removed early system prefix stripping here. We must keep `[system_consult]` 
         # so that OrderHandler can detect and bypass it correctly in the worker.
         enqueue_data = request.model_dump()
@@ -1369,5 +1381,318 @@ class SupportAgentOperative(BaseAgentOperative):
             await self._emit_inbox_update(session_id, request.message)
             return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.POLICY_QUERY, session_id=session_id, status="DONE")
         return None
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SYNC ORDER FAST-PATH (Elite V7.0) — Zero-LLM Order Initiation
+    # Catches patterns like "cho tôi 3 hộp", "lấy 2 lọ", "mua 1 set"
+    # and responds instantly (<1s) instead of enqueuing to worker (~60s)
+    # ══════════════════════════════════════════════════════════════════════
+    async def _try_sync_order_fast_path(
+        self, request: SupportRequest, db: AsyncSession, session_id: str,
+        p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None
+    ) -> Optional[SupportResponse]:
+        if not p_info:
+            return None  # Cannot create draft without knowing which product
+
+        msg = request.message.lower().strip()
+        # Skip if message looks like a system command or question
+        if msg.startswith("[system_") or "?" in msg:
+            return None
+
+        # Pattern: buying keyword + optional quantity + unit keyword
+        # Matches: "cho tôi 3 hộp", "lấy 2 lọ", "mua 1 set", "cho mình hộp", "đặt 5 chai"
+        import unicodedata
+        msg_nfkc = unicodedata.normalize("NFKC", msg)
+        buy_kws = ["cho", "mua", "đặt", "lấy", "gửi", "ship"]
+        unit_kws = ["hộp", "lọ", "chai", "cái", "bộ", "set", "tuýp", "gói", "túi", "sp", "sản phẩm"]
+
+        has_buy = any(kw in msg_nfkc for kw in buy_kws)
+        has_unit = any(kw in msg_nfkc for kw in unit_kws)
+        # Only intercept short, clear purchase messages (< 40 chars to avoid complex queries)
+        if not (has_buy and has_unit and len(msg) < 40):
+            return None
+
+        # Extract quantity (default 1 if not specified)
+        qty_match = re.search(r"(\d+)", msg_nfkc)
+        quantity = int(qty_match.group(1)) if qty_match else 1
+        if quantity < 1 or quantity > 100:
+            return None  # Unreasonable quantity, let normal flow handle
+
+        logger.info(f"⚡ [SyncOrderFastPath] Detected purchase: '{msg}' → {p_info.name} x{quantity}")
+
+        # Build draft items from the product the customer is viewing
+        unit_price = float(p_info.price or 0)
+        if unit_price <= 0:
+            return None  # Cannot create order without price
+
+        draft_item = {
+            "product_id": p_info.id,
+            "id": p_info.slug,
+            "name": p_info.name,
+            "price": unit_price,
+            "quantity": quantity,
+        }
+
+        # Create or update OrderDraft in Redis
+        draft = OrderDraft(
+            session_id=session_id,
+            items=[draft_item],
+            customer_name=customer_name if customer_name != "Quý khách" else None,
+            is_definite_intent=True,
+        )
+        await xohi_memory.set_order_draft(session_id, draft.model_dump(mode='json'))
+
+        # Build personalized response
+        c_display = customer_name if customer_name and customer_name != "Quý khách" else "mình"
+        total_price = unit_price * quantity
+        formatted_total = "{:,.0f}".format(total_price).replace(",", ".")
+        p_name_short = p_info.name.split(" - ")[0] if " - " in p_info.name else p_info.name
+        if len(p_name_short) > 50:
+            p_name_short = p_name_short[:50] + "..."
+
+        debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+        reply = (
+            f"{debug_prefix}Dạ Helen nhận đơn **{quantity} {p_name_short}** "
+            f"({formatted_total}đ) cho {c_display} rồi ạ! 🌸\n"
+            f"{c_display.capitalize()} cho em xin nhanh:\n"
+            f"📞 **Số điện thoại**\n"
+            f"📍 **Địa chỉ nhận hàng**\n"
+            f"để em lên bill giao tận nơi luôn nhé! ✨"
+        )
+
+        safe_reply = _sanitize_response(reply)
+        await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
+        await self._emit_inbox_update(session_id, request.message)
+        await db.flush()
+        logger.info(f"⚡ [SyncOrderFastPath] Responded in <1s for '{msg}' — draft created")
+        return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, product_info=p_info, status="DONE")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SYNC SLOT-FILL FAST-PATH (Elite V7.0) — Zero-LLM Order Completion
+    # When draft exists, detect phone + address and create order instantly
+    # ══════════════════════════════════════════════════════════════════════
+    async def _try_sync_slot_fill(
+        self, request: SupportRequest, db: AsyncSession, session_id: str,
+        p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None
+    ) -> Optional[SupportResponse]:
+        # 1. Check for active draft in Redis
+        raw_draft = await xohi_memory.get_order_draft(session_id)
+        if not raw_draft:
+            return None
+
+        try:
+            draft = OrderDraft.model_validate(raw_draft)
+        except Exception:
+            return None
+
+        if not draft.items:
+            return None  # Draft has no items, cannot complete
+
+        msg = request.message.strip()
+        msg_lower = msg.lower()
+
+        # Skip system commands
+        if msg_lower.startswith("[system_"):
+            return None
+
+        # 2. Deterministic phone extraction
+        digits_only = re.sub(r"\D", "", msg)
+        phone_match = re.search(r"0\d{9}", digits_only)
+        extracted_phone = phone_match.group() if phone_match else None
+
+        # 3. Deterministic address extraction
+        has_addr_signal = "/" in msg or any(
+            kw in msg_lower for kw in [
+                "đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh",
+                "tp", "thành phố", "số", "ngõ", "ngách", "p.", "q."
+            ]
+        )
+        # Address: message has address signals OR is long enough with digits (not just a phone)
+        digit_ratio = len(digits_only) / len(msg) if msg else 0
+        extracted_address = None
+        if has_addr_signal or (len(msg) > 15 and digit_ratio < 0.5):
+            # Remove phone number from message to get address portion
+            addr_text = msg
+            if extracted_phone and extracted_phone in digits_only:
+                # Remove the phone number portion, keeping the rest as address
+                addr_text = re.sub(r"0\d{9}", "", msg).strip().strip(",").strip()
+            if len(addr_text) > 5:  # Must have some address text remaining
+                extracted_address = addr_text
+
+        # 4. Fill slots into draft
+        filled_something = False
+        if extracted_phone and not draft.customer_phone:
+            from backend.services.commerce.logic.lead_extractor import validate_vietnam_phone
+            validated = validate_vietnam_phone(extracted_phone)
+            if validated:
+                draft.customer_phone = validated
+                filled_something = True
+
+        if extracted_address and not draft.customer_address:
+            draft.customer_address = extracted_address
+            filled_something = True
+        # Also fill phone into existing draft that already has address but missing phone
+        if extracted_phone and not draft.customer_phone and draft.customer_address:
+            from backend.services.commerce.logic.lead_extractor import validate_vietnam_phone
+            validated = validate_vietnam_phone(extracted_phone)
+            if validated:
+                draft.customer_phone = validated
+                filled_something = True
+
+        if not filled_something:
+            return None  # Nothing to fill, let normal flow handle
+
+        # 5. Persist updated draft
+        await xohi_memory.set_order_draft(session_id, draft.model_dump(mode='json'))
+
+        debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+        c_display = customer_name if customer_name and customer_name != "Quý khách" else "mình"
+
+        # 6. Check if draft is now complete → create order
+        if draft.is_complete:
+            # Resolve address for shipping days
+            from backend.services.commerce.logic.location_resolver import location_resolver
+            shipping_days = "3-5 ngày"
+            try:
+                import asyncio as _asyncio
+                geo = await _asyncio.to_thread(location_resolver.resolve, draft.customer_address)
+                if geo.is_valid:
+                    shipping_days = geo.shipping_days or shipping_days
+                    if geo.province and geo.province not in (draft.customer_address or ""):
+                        draft.customer_address = f"{draft.customer_address}, {geo.province}"
+                elif geo.possible_provinces:
+                    # Ambiguous address — ask for clarification
+                    provinces = ", ".join(geo.possible_provinces)
+                    await xohi_memory.set_order_draft(session_id, draft.model_dump(mode='json'))
+                    reply = f"{debug_prefix}Dạ địa chỉ của {c_display} trùng tên ở nhiều nơi ({provinces}), {c_display} cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸"
+                    safe_reply = _sanitize_response(reply)
+                    await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
+                    await self._emit_inbox_update(session_id, request.message)
+                    await db.flush()
+                    return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, status="DONE")
+            except Exception as geo_err:
+                logger.warning(f"[SyncSlotFill] Geo resolution failed: {geo_err}")
+
+            # Create order via OrderService
+            try:
+                from backend.services.commerce.order import OrderService
+                from backend.schemas.order import OrderCreateRequest
+                from backend.services.commerce.logic.lead_extractor import lead_extractor
+                from backend.database import current_tenant_id
+
+                # Resolve user identity
+                from backend.services.commerce.user_service import user_service
+                tid = current_tenant_id.get() or "default"
+                resolved_user = None
+                if draft.customer_phone:
+                    resolved_user, _, _, _ = await user_service.get_or_resolve_customer(
+                        db=db, phone=draft.customer_phone,
+                        name=draft.customer_name or customer_name, 
+                        current_address=draft.customer_address, tenant_id=tid
+                    )
+
+                user_id = str(resolved_user.id) if resolved_user else "guest"
+
+                # Apply combo deals to items
+                enriched_items = []
+                for it in draft.items:
+                    enriched_item = dict(it)
+                    # Ensure required fields exist
+                    enriched_item.setdefault("id", enriched_item.get("product_id", ""))
+                    enriched_item.setdefault("product_id", enriched_item.get("id", ""))
+                    enriched_item.setdefault("quantity", enriched_item.get("qty", 1))
+                    enriched_item.setdefault("unit_price", enriched_item.get("price", 0))
+                    enriched_items.append(enriched_item)
+
+                # Check for combo deals
+                combo_items = await PromotionService.apply_combo_deals(db, enriched_items)
+                if combo_items:
+                    enriched_items = combo_items
+
+                total = sum(float(it.get("price") or it.get("unit_price") or 0) * int(it.get("quantity") or it.get("qty") or 1) for it in enriched_items)
+
+                order_data = OrderCreateRequest(
+                    items=enriched_items,
+                    total_amount=total,
+                    customer_name=draft.customer_name or customer_name or "Quý khách",
+                    customer_email=f"{draft.customer_phone}@helen.osmo.vn",
+                    customer_phone=draft.customer_phone,
+                    customer_address=draft.customer_address,
+                )
+
+                result = await OrderService.create_order(db, order_data, ip="0.0.0.0", ua="Helen-SyncFastPath", user_id=user_id)
+                order_id = result.id
+                await xohi_memory.clear_order_draft(session_id)
+
+                # Build professional confirmation
+                formatted_total = "{:,.0f}".format(total).replace(",", ".")
+                item_parts = []
+                for it in enriched_items:
+                    name = str(it.get("name", "SP"))
+                    qty = int(it.get("quantity") or it.get("qty") or 1)
+                    part = f"📦 {name} (x{qty})"
+                    gifts = it.get("gifts") or []
+                    if gifts:
+                        gift_strs = [f"{g.get('name', 'SP')} (x{g.get('qty', 1)})" for g in gifts if isinstance(g, dict)]
+                        if gift_strs:
+                            part += f"\n   🎁 + {', '.join(gift_strs)}"
+                    item_parts.append(part)
+                items_text = "\n".join(item_parts)
+
+                reply = (
+                    f"{debug_prefix}Dạ Helen chúc mừng {c_display} đặt hàng thành công! 🌸\n\n"
+                    f"📋 **CHI TIẾT ĐƠN HÀNG**\n"
+                    f"🆔 Mã đơn: **{order_id[-8:].upper()}**\n"
+                    f"{items_text}\n"
+                    f"💰 Tổng: **{formatted_total}đ**\n"
+                    f"🚚 Dự kiến: **{shipping_days}**\n\n"
+                    f"{c_display.capitalize()} nhớ để ý điện thoại khi shipper gọi nha! 📞\n"
+                    f"Cảm ơn {c_display} đã tin tưởng osmo! 💖"
+                )
+
+                safe_reply = _sanitize_response(reply)
+                await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
+                await self._emit_inbox_update(session_id, request.message)
+                await db.flush()
+                logger.info(f"⚡ [SyncSlotFill] Order created: {order_id} — full sync path")
+                return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, status="DONE")
+
+            except Exception as order_err:
+                logger.error(f"[SyncSlotFill] Order creation failed: {order_err}")
+                # Fall through to enqueue
+                return None
+
+        # 7. Draft incomplete — acknowledge what we received, ask for what's missing
+        missing = draft.missing_slots
+        # Build item summary for context
+        item_names = ", ".join([
+            f"{it.get('name', 'SP')} x{it.get('quantity', 1)}"
+            for it in draft.items
+        ])
+
+        if "Số điện thoại" in missing and "Địa chỉ cụ thể" in missing:
+            # Acknowledged address or phone from this turn
+            reply = (
+                f"{debug_prefix}Dạ Helen đã nhận đơn **{item_names}** cho {c_display} rồi ạ! 🌸\n"
+                f"{c_display.capitalize()} cho em xin nhanh:\n"
+                f"📞 **Số điện thoại**\n"
+                f"📍 **Địa chỉ nhận hàng**\n"
+                f"để em lên bill giao tận nơi luôn nhé! ✨"
+            )
+        elif "Số điện thoại" in missing:
+            ack = f"Dạ Helen đã ghi nhận địa chỉ của {c_display} rồi ạ."
+            reply = f"{debug_prefix}{ack} {c_display.capitalize()} cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸"
+        elif "Địa chỉ cụ thể" in missing:
+            ack = f"Dạ Helen đã lưu SĐT **{draft.customer_phone}** của {c_display} rồi ạ."
+            reply = f"{debug_prefix}{ack} {c_display.capitalize()} cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸"
+        else:
+            return None  # Should not happen — draft.is_complete would be True
+
+        safe_reply = _sanitize_response(reply)
+        await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
+        await self._emit_inbox_update(session_id, request.message)
+        await db.flush()
+        logger.info(f"⚡ [SyncSlotFill] Slot filled — missing: {missing}")
+        return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, status="DONE")
 
 support_agent = SupportAgentOperative()
