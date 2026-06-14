@@ -526,6 +526,66 @@ class PublicGoogleMerchantController(Controller):
 
         return title
 
+    def _clean_highlight_ingredient(self, name: str, benefit: str) -> str:
+        # 1. Strip parenthesis only if content is long or chemical-heavy
+        for match in re.finditer(r'\(([^)]+)\)', name):
+            content = match.group(1)
+            if len(content) > 30 or "," in content or "Sodium" in content:
+                name = name.replace(match.group(0), "").strip()
+
+        name_clean = name.strip()
+        name_lower = name_clean.lower()
+
+        # 2. Determine prefix
+        starts_with_prefix = any(
+            name_lower.startswith(prefix)
+            for prefix in ("chiết xuất", "thành phần", "hệ thống", "tinh chất", "nước", "bộ", "combo", "kem", "gel")
+        )
+
+        if starts_with_prefix:
+            subject = name_clean
+        else:
+            is_chemical = any(
+                chem in name_lower
+                for chem in ("niacinamide", "hyaluronic", "acid", "collagen", "retinol", "serum", "glycyrrhizate", "placenta", "vitamin")
+            )
+            if is_chemical:
+                subject = name_clean
+            else:
+                # Prepend Chiết xuất only if it doesn't already contain it
+                if "chiết xuất" not in name_lower:
+                    subject = f"Chiết xuất {name_clean}"
+                else:
+                    subject = name_clean
+
+        # 3. Clean benefit and combine
+        benefit_clean = benefit.strip()
+        benefit_lower = benefit_clean.lower()
+
+        if "giúp" in benefit_lower:
+            # If the benefit already contains "giúp", connect using "là" or just join
+            if "đa năng" in benefit_lower or "ngôi sao" in benefit_lower or "thành phần" in benefit_lower:
+                sentence = f"{subject} là {benefit_clean}"
+            else:
+                sentence = f"{subject} {benefit_clean}"
+        else:
+            starts_with_verb = any(
+                benefit_lower.startswith(verb)
+                for verb in ("làm", "mang", "dưỡng", "cung cấp", "giảm", "mờ", "ngăn", "chống", "tái tạo", "cấp", "phục hồi")
+            )
+            if starts_with_verb:
+                sentence = f"{subject} giúp {benefit_clean}"
+            else:
+                sentence = f"{subject} giúp {benefit_clean}"
+
+        # Clean double spaces or duplicate "giúp giúp"
+        sentence = re.sub(r'\s+giúp\s+giúp\s+', ' giúp ', sentence, flags=re.IGNORECASE)
+
+        if sentence:
+            sentence = sentence[0].upper() + sentence[1:]
+
+        return sentence
+
     def _build_highlights(self, meta: dict[str, object], attrs: dict[str, object]) -> list[str]:
         """GEO 2026: Build 3-4 product highlights, each max 15 words."""
         pool: list[str] = []
@@ -538,7 +598,7 @@ class PublicGoogleMerchantController(Controller):
                     name = str(fi.get("name", ""))
                     benefit = str(fi.get("benefit", ""))
                     if name and benefit:
-                        pool.append(f"Chiết xuất {name} giúp {benefit}.")
+                        pool.append(self._clean_highlight_ingredient(name, benefit))
                     elif name:
                         pool.append(f"Thành phần nổi bật: {name}.")
 
