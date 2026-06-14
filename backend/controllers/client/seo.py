@@ -192,8 +192,9 @@ class PublicGoogleMerchantController(Controller):
 
     # GEO 2026: Known ingredient keywords → Vietnamese short names
     _INGREDIENT_KEYWORDS: list[tuple[str, str]] = [
-        ("placenta", "Nhau Thai"),
+        ("placenta", "Placenta"),
         ("gold", "Vàng"),
+
         ("platinum", "Bạch Kim"),
         ("collagen", "Collagen"),
         ("retinol", "Retinol"),
@@ -282,12 +283,13 @@ class PublicGoogleMerchantController(Controller):
 
         avail = "in_stock" if item_stock > 0 else "out_of_stock"
 
-        # ── GEO 2026: Optimized title 35-55 chars, mobile-first ──
-        title = self._escape(self._build_geo_title(p, meta))
+        # ── GEO 2026: Optimized title 35-65 chars, mobile-first ──
+        title = self._replace_nhau_thai(self._escape(self._build_geo_title(p, meta)))
 
         # ── Description from seo_description → short_description → description ──
         raw_desc = str(p.seo_description or p.short_description or p.description or "")
-        desc_clean = self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip())
+        desc_clean = self._replace_nhau_thai(self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip()))
+
 
         # ── Brand resolving ──
         sub_brand = ""
@@ -383,15 +385,18 @@ class PublicGoogleMerchantController(Controller):
 
         # Product Highlights (SGE 2026: AI trích xuất)
         for hl in highlights:
-            lines.append(f"      <g:product_highlight>{self._escape(hl)}</g:product_highlight>")
+            hl_replaced = self._replace_nhau_thai(self._escape(hl))
+            lines.append(f"      <g:product_highlight>{hl_replaced}</g:product_highlight>")
 
         # Product Details (structured key-value pairs)
         for pd in product_details:
+            pd_val = self._replace_nhau_thai(self._escape(pd['value']))
             lines.append("      <g:product_detail>")
             lines.append(f"        <g:section_name>{self._escape(pd['section'])}</g:section_name>")
             lines.append(f"        <g:attribute_name>{self._escape(pd['name'])}</g:attribute_name>")
-            lines.append(f"        <g:attribute_value>{self._escape(pd['value'])}</g:attribute_value>")
+            lines.append(f"        <g:attribute_value>{pd_val}</g:attribute_value>")
             lines.append("      </g:product_detail>")
+
 
         lines.append("      <g:excluded_destination>free_local_listings</g:excluded_destination>")
         lines.append("      <g:excluded_destination>local_inventory_ads</g:excluded_destination>")
@@ -424,14 +429,14 @@ class PublicGoogleMerchantController(Controller):
         return p.variants[0] if p.variants else None
 
     def _build_geo_title(self, p: ProductBase, meta: dict[str, object]) -> str:
-        """GEO 2026: Build mobile-optimized title (35-55 chars).
+        """GEO 2026: Build mobile-optimized title (35-65 chars).
 
         Formula: [Loại SP gọn] [Thành phần nổi bật] [Dòng sản phẩm/Tên thật] [Dung tích] - [Công dụng cốt lõi]
         """
         # Step 1: If seo_title exists, clean and check length
         if p.seo_title:
             clean = self._COMBO_SUFFIX_RE.sub("", p.seo_title).strip()
-            if 35 <= len(clean) <= 55:
+            if 35 <= len(clean) <= 65:
                 return clean
 
         # Step 2: Build from structured components
@@ -499,7 +504,7 @@ class PublicGoogleMerchantController(Controller):
             base = f"{brand} {base}"
 
         if benefit:
-            max_benefit = 55 - len(base) - 3  # 3 = len(" - ")
+            max_benefit = 65 - len(base) - 3  # 3 = len(" - ")
             if max_benefit > 5:
                 # Sliced benefit with word boundary safety
                 sliced_benefit = benefit[:max_benefit]
@@ -508,22 +513,26 @@ class PublicGoogleMerchantController(Controller):
                 
                 # Strip trailing hanging conjunctions/prepositions
                 sliced_benefit = re.sub(r'\s+(?:và|hoặc|cho|của|ở|tại|với|như|để)\s*$', '', sliced_benefit, flags=re.IGNORECASE).strip()
-                title = f"{base} - {sliced_benefit}"
+                if len(sliced_benefit.split()) >= 2:
+                    title = f"{base} - {sliced_benefit}"
+                else:
+                    title = base
             else:
                 title = base
         else:
             title = base
 
-        # Safety: hard-cap at 55 chars on word boundary
-        if len(title) > 55:
-            title = title[:55].rsplit(" ", 1)[0]
+        # Safety: hard-cap at 65 chars on word boundary
+        if len(title) > 65:
+            title = title[:65].rsplit(" ", 1)[0]
 
         # Minimum guard: if too short, fallback to cleaned seo_title or name
         if len(title) < 35:
             fallback = self._COMBO_SUFFIX_RE.sub("", str(p.seo_title or p.name)).strip()
-            title = fallback[:55].rsplit(" ", 1)[0] if len(fallback) > 55 else fallback
+            title = fallback[:65].rsplit(" ", 1)[0] if len(fallback) > 65 else fallback
 
         return title
+
 
     def _extract_first_clause(self, text: str) -> str:
         """Extract the first complete clause from a benefit string.
@@ -750,6 +759,12 @@ class PublicGoogleMerchantController(Controller):
         """Check if media path is a video file."""
         lower = path.lower().split("?")[0]
         return any(lower.endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi"))
+
+    def _replace_nhau_thai(self, text: str) -> str:
+        if not text:
+            return ""
+        return re.sub(r'\bnhau\s+thai\b', 'Placenta', text, flags=re.IGNORECASE)
+
 
     def _escape(self, s: str) -> str:
         return (
