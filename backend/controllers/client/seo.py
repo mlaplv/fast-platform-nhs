@@ -734,6 +734,10 @@ class PublicGoogleMerchantController(Controller):
                 details.append({"section": section, "name": attr_name, "value": val_str[:1000]})
                 added_keys.add(attr_name.lower())
 
+        # Safeguard: Ensure "Thương hiệu" is always present and matches brand
+        if "thương hiệu" not in added_keys and brand:
+            details.append({"section": "Thông số", "name": "Thương hiệu", "value": brand})
+
         return details
 
     def _resolve_full_url(self, path: str, site_url: str) -> str:
