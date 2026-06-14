@@ -148,26 +148,72 @@ class PublicSeoController(Controller):
 
 
 class PublicGoogleMerchantController(Controller):
-    """Elite V2.2: Automated Google Merchant Center Product Feed Controller.
+    """SGE 2026: Golden Record Google Merchant Center Product Feed.
 
-    Generates high-fidelity, variant-aware XML Product Feed compliant with RSS 2.0
-    and Google Base namespaces.
+    Generates deduped, enriched XML Product Feed compliant with RSS 2.0
+    and Google Base namespaces. Emits exactly 1 item per ProductBase
+    (default variant only) with full g:product_highlight, g:product_detail,
+    g:gtin, g:google_product_category, and g:video_link support.
     """
     path = "/google-merchant.xml"
+
+    # GEO 2026: Internal category → Google Product Taxonomy mapping
+    _CATEGORY_MAP: dict[str, str] = {
+        "cat_serum": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Skin Care Serums",
+        "cat_kem_duong": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Moisturizers",
+        "cat_mat_na": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Masks",
+        "cat_cham_soc_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Eye Treatments",
+        "cat_sua_rua_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Cleansers",
+        "cat_tinh_chat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Facial Skin Care Serums",
+        "cat_kem_mat": "Health & Beauty > Personal Care > Cosmetics > Skin Care > Eye Treatments",
+    }
+
+    # GEO 2026: Category → Vietnamese product type name (for title builder)
+    _PRODUCT_TYPE_MAP: dict[str, str] = {
+        "cat_serum": "Serum",
+        "cat_kem_duong": "Kem Dưỡng",
+        "cat_mat_na": "Mặt Nạ",
+        "cat_cham_soc_mat": "Kem Mắt",
+        "cat_sua_rua_mat": "Sữa Rửa Mặt",
+        "cat_tinh_chat": "Tinh Chất",
+        "cat_kem_mat": "Kem Mắt",
+    }
+
+    # GEO 2026: Known ingredient keywords → Vietnamese short names
+    _INGREDIENT_KEYWORDS: list[tuple[str, str]] = [
+        ("placenta", "Nhau Thai"),
+        ("gold", "Vàng"),
+        ("platinum", "Bạch Kim"),
+        ("collagen", "Collagen"),
+        ("retinol", "Retinol"),
+        ("vitamin c", "Vitamin C"),
+        ("virgin white", "Dưỡng Sáng"),
+        ("wrinkle", "Chống Nhăn"),
+        ("whitening", "Trắng Da"),
+    ]
+
+    # GEO 2026: Regex to strip combo/promo suffixes from raw titles
+    _COMBO_SUFFIX_RE = re.compile(
+        r'\s*[-–]\s*(?:Combo\s*\d+|Mua lẻ|Giá trải nghiệm|Hộp|Khởi đầu|Hiệu quả|Dứt điểm|Trọn bộ).*$',
+        re.IGNORECASE,
+    )
 
     @route(["", "/"], http_method=["GET", "HEAD"], media_type="application/xml")
     async def get_google_merchant_feed(
         self,
         db_session: AsyncSession,
     ) -> Response[str]:
-        """Generates dynamic Google Merchant Center Product XML feed."""
+        """Generates SGE 2026 Golden Record Product XML feed."""
         app_domain = os.getenv("APP_DOMAIN", "osmo.vn")
         site_url = f"https://{app_domain}"
 
-        # Fetch active products along with their variants
+        # Fetch active products with variants + category (single query)
         stmt = (
             select(ProductBase)
-            .options(selectinload(ProductBase.variants))
+            .options(
+                selectinload(ProductBase.variants),
+                selectinload(ProductBase.category),
+            )
             .where(ProductBase.status == "ACTIVE")
             .where(ProductBase.deleted_at == None)
             .order_by(ProductBase.created_at.desc())
@@ -178,136 +224,17 @@ class PublicGoogleMerchantController(Controller):
         items_xml: list[str] = []
 
         for p in products:
-            # Clean HTML description for XML feed safety
-            desc = p.short_description or p.description or ""
-            desc_clean = re.sub(r'<[^>]+>', '', desc)
-            desc_clean = self._escape(desc_clean[:1000].strip())
+            item_xml = self._build_product_item(p, site_url)
+            if item_xml:
+                items_xml.append(item_xml)
 
-            # Brand resolving (Elite V2.2)
-            brand = "Miccosmo"
-            if p.attributes and isinstance(p.attributes, dict):
-                brand = p.attributes.get("brand") or brand
-            if p.product_metadata and isinstance(p.product_metadata, dict):
-                brand = p.product_metadata.get("seo_site_name") or brand
-            brand = self._escape(str(brand))
-
-            # Helper for images
-            p_images = p.images or []
-            img_url = ""
-            if p_images:
-                img_url = p_images[0]
-                if img_url.startswith("/"):
-                    img_url = f"{site_url}{img_url}"
-            else:
-                img_url = f"{site_url}/favicon.svg"
-
-            additional_imgs = []
-            for img in p_images[1:11]:
-                if img.startswith("/"):
-                    additional_imgs.append(f"{site_url}{img}")
-                else:
-                    additional_imgs.append(img)
-
-            has_variants = len(p.variants) > 0
-
-            if not has_variants:
-                # Output single standard product
-                avail = "in_stock" if p.stock > 0 else "out_of_stock"
-                price_str = f"{int(p.price)} VND"
-                sale_price_str = ""
-                if p.discount_price and p.discount_price < p.price:
-                    sale_price_str = f"      <g:sale_price>{int(p.discount_price)} VND</g:sale_price>\n"
-
-                item_str = (
-                    "    <item>\n"
-                    f"      <g:id>{self._escape(p.id)}</g:id>\n"
-                    f"      <g:title>{self._escape(p.name)}</g:title>\n"
-                    f"      <g:description>{desc_clean}</g:description>\n"
-                    f"      <g:link>{self._escape(f'{site_url}/{p.slug}')}</g:link>\n"
-                    f"      <g:image_link>{self._escape(img_url)}</g:image_link>\n"
-                )
-                for a_img in additional_imgs:
-                    item_str += f"      <g:additional_image_link>{self._escape(a_img)}</g:additional_image_link>\n"
-
-                item_str += (
-                    f"      <g:availability>{avail}</g:availability>\n"
-                    f"      <g:price>{price_str}</g:price>\n"
-                    f"{sale_price_str}"
-                    f"      <g:brand>{brand}</g:brand>\n"
-                    "      <g:condition>new</g:condition>\n"
-                    "      <g:excluded_destination>free_local_listings</g:excluded_destination>\n"
-                    "      <g:excluded_destination>local_inventory_ads</g:excluded_destination>\n"
-                    "    </item>"
-                )
-                items_xml.append(item_str)
-            else:
-                # Output each variant as a single item linked to the parent group ID
-                for v in p.variants:
-                    # Construct nice variant title based on tier variations options
-                    opt_names = []
-                    if v.tier_index and p.tier_variations:
-                        for idx, opt_idx in enumerate(v.tier_index):
-                            if idx < len(p.tier_variations):
-                                t_var = p.tier_variations[idx]
-                                if isinstance(t_var, dict) and "options" in t_var:
-                                    opts = t_var["options"]
-                                    if isinstance(opts, list) and opt_idx < len(opts):
-                                        opt_names.append(str(opts[opt_idx]))
-
-                    variant_suffix = ", ".join(opt_names)
-                    v_title = f"{p.name} - {variant_suffix}" if variant_suffix else p.name
-                    v_link = f"{site_url}/{p.slug}"
-
-                    avail = "in_stock" if v.stock > 0 else "out_of_stock"
-                    price_str = f"{int(v.price)} VND"
-                    sale_price_str = ""
-                    if v.discount_price and v.discount_price < v.price:
-                        sale_price_str = f"      <g:sale_price>{int(v.discount_price)} VND</g:sale_price>\n"
-
-                    # Find variant-specific image if any options are defined with images
-                    v_img = img_url
-                    if v.tier_index and p.tier_variations:
-                        first_tier_idx = v.tier_index[0]
-                        if len(p.tier_variations) > 0:
-                            t_var = p.tier_variations[0]
-                            if isinstance(t_var, dict) and "images" in t_var:
-                                t_imgs = t_var["images"]
-                                if isinstance(t_imgs, list) and first_tier_idx < len(t_imgs) and t_imgs[first_tier_idx]:
-                                    img_path = t_imgs[first_tier_idx]
-                                    v_img = f"{site_url}{img_path}" if img_path.startswith("/") else img_path
-
-                    item_str = (
-                        "    <item>\n"
-                        f"      <g:id>{self._escape(v.id)}</g:id>\n"
-                        f"      <g:title>{self._escape(v_title)}</g:title>\n"
-                        f"      <g:description>{desc_clean}</g:description>\n"
-                        f"      <g:link>{self._escape(v_link)}</g:link>\n"
-                        f"      <g:image_link>{self._escape(v_img)}</g:image_link>\n"
-                    )
-                    for a_img in additional_imgs:
-                        item_str += f"      <g:additional_image_link>{self._escape(a_img)}</g:additional_image_link>\n"
-
-                    item_str += (
-                        f"      <g:availability>{avail}</g:availability>\n"
-                        f"      <g:price>{price_str}</g:price>\n"
-                        f"{sale_price_str}"
-                        f"      <g:brand>{brand}</g:brand>\n"
-                        "      <g:condition>new</g:condition>\n"
-                        f"      <g:item_group_id>{self._escape(p.id)}</g:item_group_id>\n"
-                        "      <g:excluded_destination>free_local_listings</g:excluded_destination>\n"
-                        "      <g:excluded_destination>local_inventory_ads</g:excluded_destination>\n"
-                        "    </item>"
-                    )
-                    items_xml.append(item_str)
-
-        # Assemble full XML Feed
         xml_content = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n'
             '  <channel>\n'
             f'    <title>{self._escape(app_domain)} Product Feed</title>\n'
             f'    <link>{site_url}</link>\n'
-            f'    <description>Automated Google Merchant Center Product Feed for {app_domain}</description>\n'
+            f'    <description>SGE 2026 Golden Record Product Feed for {app_domain}</description>\n'
             + "\n".join(items_xml)
             + "\n  </channel>\n"
             "</rss>"
@@ -321,6 +248,304 @@ class PublicGoogleMerchantController(Controller):
                 "X-Robots-Tag": "noindex",
             },
         )
+
+    def _build_product_item(self, p: ProductBase, site_url: str) -> str:
+        """SGE 2026: Build exactly 1 <item> per product (dedup R1)."""
+        meta: dict[str, object] = p.product_metadata or {}
+        attrs: dict[str, object] = p.attributes or {}
+
+        # ── R2: Resolve default variant (is_default → combo_qty=1 → tier_index[0] → fallback) ──
+        default_variant = self._resolve_default_variant(p)
+
+        # ── Pricing: use default variant if available, otherwise base product ──
+        if default_variant:
+            item_price = int(default_variant.price)
+            item_sale_price = int(default_variant.discount_price) if default_variant.discount_price and default_variant.discount_price < default_variant.price else 0
+            item_stock = default_variant.stock
+            item_id = default_variant.id
+        else:
+            item_price = int(p.price)
+            item_sale_price = int(p.discount_price) if p.discount_price and p.discount_price < p.price else 0
+            item_stock = p.stock
+            item_id = p.id
+
+        avail = "in_stock" if item_stock > 0 else "out_of_stock"
+
+        # ── GEO 2026: Optimized title 35-55 chars, mobile-first ──
+        title = self._escape(self._build_geo_title(p, meta))
+
+        # ── Description from seo_description → short_description → description ──
+        raw_desc = str(p.seo_description or p.short_description or p.description or "")
+        desc_clean = self._escape(re.sub(r'<[^>]+>', '', raw_desc)[:1000].strip())
+
+        # ── Brand resolving ──
+        brand = str(attrs.get("brand") or meta.get("seo_site_name") or "Miccosmo")
+        brand = self._escape(brand)
+
+        # ── R3: GTIN from ProductBase.sku (barcode) ──
+        gtin = str(p.sku or "").strip()
+
+        # ── Image resolving ──
+        p_images = p.images or []
+        img_url = self._resolve_full_url(p_images[0], site_url) if p_images else f"{site_url}/favicon.svg"
+
+        # ── Separate images vs videos (SGE 2026: video goes to g:video_link) ──
+        additional_imgs: list[str] = []
+        video_links: list[str] = []
+        for media in p_images[1:11]:
+            full_url = self._resolve_full_url(media, site_url)
+            if self._is_video(media):
+                video_links.append(full_url)
+            else:
+                additional_imgs.append(full_url)
+
+        # Also check metadata.video_url
+        meta_video = str(meta.get("video_url") or "")
+        if meta_video:
+            video_links.append(self._resolve_full_url(meta_video, site_url))
+
+        # ── Google Product Category from internal category ──
+        google_category = ""
+        if p.category_id:
+            google_category = self._CATEGORY_MAP.get(str(p.category_id), "")
+
+        # ── Product Type (internal taxonomy path) ──
+        product_type = ""
+        if p.category and hasattr(p.category, "name"):
+            product_type = f"Mỹ phẩm > {p.category.name}"
+
+        # ── Product Highlights from featured_ingredients + safety claims ──
+        highlights = self._build_highlights(meta, attrs)
+
+        # ── Product Details from metadata (origin, weight, ingredients, instructions) ──
+        product_details = self._build_product_details(meta, attrs)
+
+        # ═══ Assemble XML ═══
+        lines: list[str] = [
+            "    <item>",
+            f"      <g:id>{self._escape(item_id)}</g:id>",
+            f"      <g:title>{title}</g:title>",
+            f"      <g:description>{desc_clean}</g:description>",
+            f"      <g:link>{self._escape(f'{site_url}/{p.slug}')}</g:link>",
+            f"      <g:image_link>{self._escape(img_url)}</g:image_link>",
+        ]
+
+        for a_img in additional_imgs:
+            lines.append(f"      <g:additional_image_link>{self._escape(a_img)}</g:additional_image_link>")
+
+        for v_link in video_links[:1]:  # Google allows 1 video_link
+            lines.append(f"      <g:video_link>{self._escape(v_link)}</g:video_link>")
+
+        lines.append(f"      <g:availability>{avail}</g:availability>")
+        lines.append(f"      <g:price>{item_price} VND</g:price>")
+        if item_sale_price > 0:
+            lines.append(f"      <g:sale_price>{item_sale_price} VND</g:sale_price>")
+
+        lines.append(f"      <g:brand>{brand}</g:brand>")
+        lines.append("      <g:condition>new</g:condition>")
+
+        # GTIN (mandatory for product matching)
+        if gtin and gtin != "None":
+            lines.append(f"      <g:gtin>{self._escape(gtin)}</g:gtin>")
+        else:
+            lines.append("      <g:identifier_exists>false</g:identifier_exists>")
+
+        # Google Product Category
+        if google_category:
+            lines.append(f"      <g:google_product_category>{self._escape(google_category)}</g:google_product_category>")
+
+        # Product Type (internal taxonomy)
+        if product_type:
+            lines.append(f"      <g:product_type>{self._escape(product_type)}</g:product_type>")
+
+        # Product Highlights (SGE 2026: AI trích xuất)
+        for hl in highlights:
+            lines.append(f"      <g:product_highlight>{self._escape(hl)}</g:product_highlight>")
+
+        # Product Details (structured key-value pairs)
+        for pd in product_details:
+            lines.append("      <g:product_detail>")
+            lines.append(f"        <g:section_name>{self._escape(pd['section'])}</g:section_name>")
+            lines.append(f"        <g:attribute_name>{self._escape(pd['name'])}</g:attribute_name>")
+            lines.append(f"        <g:attribute_value>{self._escape(pd['value'])}</g:attribute_value>")
+            lines.append("      </g:product_detail>")
+
+        lines.append("      <g:excluded_destination>free_local_listings</g:excluded_destination>")
+        lines.append("      <g:excluded_destination>local_inventory_ads</g:excluded_destination>")
+        lines.append("    </item>")
+
+        return "\n".join(lines)
+
+    def _resolve_default_variant(self, p: ProductBase) -> "ProductVariant | None":
+        """SGE 2026 R2: Priority chain for selecting the single representative variant."""
+        if not p.variants:
+            return None
+
+        # Priority 1: Explicit is_default flag
+        for v in p.variants:
+            if getattr(v, "is_default", False):
+                return v
+
+        # Priority 2: combo_qty = 1 (single unit)
+        for v in p.variants:
+            v_attrs = v.attributes or {}
+            if isinstance(v_attrs, dict) and v_attrs.get("combo_qty") == 1:
+                return v
+
+        # Priority 3: tier_index = [0] (first option)
+        for v in p.variants:
+            if v.tier_index == [0]:
+                return v
+
+        # Priority 4: Fallback to first variant
+        return p.variants[0] if p.variants else None
+
+    def _build_geo_title(self, p: ProductBase, meta: dict[str, object]) -> str:
+        """GEO 2026: Build mobile-optimized title (35-55 chars).
+
+        Formula: [Loại SP gọn] [Thành phần nổi bật] [Thương hiệu] [Dung tích] - [Công dụng cốt lõi]
+        """
+        # Step 1: If seo_title exists, clean and check length
+        if p.seo_title:
+            clean = self._COMBO_SUFFIX_RE.sub("", p.seo_title).strip()
+            if 35 <= len(clean) <= 55:
+                return clean
+
+        # Step 2: Build from structured components
+        cat_id = str(p.category_id or "")
+        product_type = self._PRODUCT_TYPE_MAP.get(cat_id, "")
+
+        brand = str(
+            (p.attributes or {}).get("brand")
+            or meta.get("seo_site_name")
+            or "Miccosmo"
+        )
+
+        weight = str(meta.get("weight") or "")
+
+        # Extract key ingredient from product name
+        ingredient = ""
+        name_lower = (p.name or "").lower()
+        for eng_key, vn_name in self._INGREDIENT_KEYWORDS:
+            if eng_key in name_lower:
+                ingredient = vn_name
+                break
+
+        # Extract core benefit from short_description (strip HTML first)
+        benefit = ""
+        raw_benefit = re.sub(r'<[^>]+>', '', str(p.short_description or "")).strip()
+        for pattern in (
+            r'(?:giúp|hỗ trợ)\s+(.+?)(?:\.|,|$)',
+            r'(?:dưỡng|làm|mờ|giảm|xóa|chống|ngừa)\s+(.+?)(?:\.|,|$)',
+        ):
+            m = re.search(pattern, raw_benefit, re.IGNORECASE)
+            if m:
+                benefit = m.group(1).strip().rstrip(".")
+                # Title-case first char
+                benefit = benefit[0].upper() + benefit[1:] if benefit else ""
+                break
+
+        # Assemble: [Type] [Ingredient] [Brand] [Weight] - [Benefit]
+        parts: list[str] = []
+        if product_type:
+            parts.append(product_type)
+        if ingredient:
+            parts.append(ingredient)
+        parts.append(brand)
+        if weight:
+            parts.append(weight)
+
+        base = " ".join(parts)
+
+        if benefit:
+            max_benefit = 55 - len(base) - 3  # 3 = len(" - ")
+            if max_benefit > 5:
+                title = f"{base} - {benefit[:max_benefit].strip()}"
+            else:
+                title = base
+        else:
+            title = base
+
+        # Safety: hard-cap at 55 chars on word boundary
+        if len(title) > 55:
+            title = title[:55].rsplit(" ", 1)[0]
+
+        # Minimum guard: if too short, fallback to cleaned seo_title or name
+        if len(title) < 35:
+            fallback = self._COMBO_SUFFIX_RE.sub("", str(p.seo_title or p.name)).strip()
+            title = fallback[:55].rsplit(" ", 1)[0] if len(fallback) > 55 else fallback
+
+        return title
+
+    def _build_highlights(self, meta: dict[str, object], attrs: dict[str, object]) -> list[str]:
+        """GEO 2026: Build 3-4 product highlights, each max 15 words."""
+        pool: list[str] = []
+
+        # Source 1: featured_ingredients (richest structured data)
+        fi_list = meta.get("featured_ingredients")
+        if isinstance(fi_list, list):
+            for fi in fi_list[:3]:
+                if isinstance(fi, dict):
+                    name = str(fi.get("name", ""))
+                    benefit = str(fi.get("benefit", ""))
+                    if name and benefit:
+                        pool.append(f"Chiết xuất {name} giúp {benefit}.")
+                    elif name:
+                        pool.append(f"Thành phần nổi bật: {name}.")
+
+        # Source 2: Origin + safety
+        origin = str(meta.get("origin") or "")
+        if origin:
+            pool.append(f"Nhập khẩu chính hãng 100% từ {origin}.")
+
+        # Source 3: Knowledge graph expert claim
+        kg = meta.get("knowledge_graph")
+        if isinstance(kg, dict):
+            claim = str(kg.get("expert_claim") or "")
+            if claim and len(claim) > 10:
+                pool.append(claim.rstrip(".") + ".")
+
+        # Source 4: Fallback safety statement
+        if len(pool) < 3:
+            pool.append("An toàn cho da nhạy cảm, không chứa cồn.")
+
+        # Enforce: max 15 words per highlight, cap at 4 total
+        result: list[str] = []
+        for hl in pool[:4]:
+            words = hl.split()
+            capped = " ".join(words[:15])
+            result.append(capped[:150])
+
+        return result
+
+    def _build_product_details(self, meta: dict[str, object], attrs: dict[str, object]) -> list[dict[str, str]]:
+        """SGE 2026: Build structured product_detail entries from metadata."""
+        details: list[dict[str, str]] = []
+
+        mapping: list[tuple[str, str, str]] = [
+            ("origin", "Thông số", "Xuất xứ"),
+            ("weight", "Thông số", "Trọng lượng"),
+            ("ingredients", "Thành phần", "Thành phần chính"),
+            ("instructions", "Hướng dẫn", "Cách sử dụng"),
+        ]
+
+        for meta_key, section, attr_name in mapping:
+            val = str(meta.get(meta_key) or "").strip()
+            if val:
+                details.append({"section": section, "name": attr_name, "value": val[:1000]})
+
+        return details
+
+    def _resolve_full_url(self, path: str, site_url: str) -> str:
+        """Ensure absolute URL for any media path."""
+        if not path:
+            return ""
+        return f"{site_url}{path}" if path.startswith("/") else path
+
+    def _is_video(self, path: str) -> bool:
+        """Check if media path is a video file."""
+        lower = path.lower().split("?")[0]
+        return any(lower.endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi"))
 
     def _escape(self, s: str) -> str:
         return (
