@@ -1383,9 +1383,10 @@ class SupportAgentOperative(BaseAgentOperative):
         return None
 
     # ══════════════════════════════════════════════════════════════════════
-    # SYNC ORDER FAST-PATH (Elite V7.0) — Zero-LLM Order Initiation
+    # SYNC ORDER FAST-PATH (Elite V7.1) — Professional Sales Consultant
     # Catches patterns like "cho tôi 3 hộp", "lấy 2 lọ", "mua 1 set"
-    # and responds instantly (<1s) instead of enqueuing to worker (~60s)
+    # Resolves variant/combo → gifts → voucher → loyalty points
+    # Responds instantly (<1s) instead of enqueuing to worker (~60s)
     # ══════════════════════════════════════════════════════════════════════
     async def _try_sync_order_fast_path(
         self, request: SupportRequest, db: AsyncSession, session_id: str,
@@ -1425,46 +1426,164 @@ class SupportAgentOperative(BaseAgentOperative):
         if unit_price <= 0:
             return None  # Cannot create order without price
 
+        # ── V7.1: Resolve Product Variant for combo pricing & gifts ──
+        from backend.services.commerce.logic.lead_extractor import LeadExtractor
+        from backend.database import current_tenant_id
+        tid = current_tenant_id.get() or "default"
+
+        resolved_product = await LeadExtractor._resolve_product(
+            db, name=p_info.name, slug=p_info.slug, tenant_id=tid
+        )
+
+        # Variant resolution: find correct combo/gifts for this quantity
+        actual_price = unit_price
+        actual_qty = quantity
+        gift_lines: list[str] = []
+        variant_sku = ""
+        if resolved_product:
+            best_variant, protocol_qty, _ = LeadExtractor._resolve_optimal_variant(resolved_product, quantity)
+            if best_variant:
+                actual_price = float(best_variant.discount_price or best_variant.price)
+                actual_qty = protocol_qty
+                variant_sku = best_variant.sku or ""
+                # Extract gifts from variant attributes
+                v_attrs = best_variant.attributes if best_variant else {}
+                if isinstance(v_attrs, str):
+                    try:
+                        v_attrs = json.loads(v_attrs)
+                    except Exception:
+                        v_attrs = {}
+                if isinstance(v_attrs, dict):
+                    for g in (v_attrs.get("gifts") or []):
+                        if isinstance(g, dict):
+                            g_name = g.get("name", "")
+                            g_qty = int(g.get("qty", 1))
+                            if g_name:
+                                gift_lines.append(f"🎁 + {g_name} (x{g_qty})")
+
+        subtotal = actual_price * actual_qty
+
+        # ── V7.1: Query best voucher for this order amount ──
+        from datetime import datetime, timezone as tz
+        now = datetime.now(tz.utc)
+        v_stmt = select(Voucher).where(
+            and_(
+                Voucher.deleted_at.is_(None),
+                Voucher.is_active == True,
+                Voucher.tenant_id == tid,
+                or_(Voucher.start_date.is_(None), Voucher.start_date <= now),
+                or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
+                Voucher.min_spend <= subtotal,
+            )
+        ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(3)
+        voucher_rows = (await db.execute(v_stmt)).scalars().all()
+
+        # Find the best voucher (highest actual discount)
+        best_voucher = None
+        best_voucher_discount = 0.0
+        for v in voucher_rows:
+            if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
+                continue
+            disc = PromotionService.calculate_voucher_discount(subtotal, v)
+            if disc > best_voucher_discount:
+                best_voucher_discount = disc
+                best_voucher = v
+
+        # ── V7.1: Check DNA for loyalty points ──
+        dna = await self._fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
+        c_display = dna.customer_name or customer_name
+        if not c_display or c_display in ["Khách ẩn danh", "Quý khách", "Sếp"]:
+            c_display = "mình"
+
+        pts_discount = 0.0
+        if dna.available_points > 0 and dna.point_value_vnd > 0:
+            pts_discount = min(dna.available_points * dna.point_value_vnd, subtotal * 0.3)  # Max 30% from points
+
+        # ── Calculate final price ──
+        final_price = subtotal - best_voucher_discount - pts_discount
+        if final_price < 0:
+            final_price = 0
+
+        # ── Build draft item with resolved data ──
+        p_name_full = resolved_product.name if resolved_product else p_info.name
         draft_item = {
             "product_id": p_info.id,
             "id": p_info.slug,
-            "name": p_info.name,
-            "price": unit_price,
-            "quantity": quantity,
+            "name": f"{p_name_full} ({variant_sku})" if variant_sku else p_name_full,
+            "price": actual_price,
+            "quantity": actual_qty,
         }
 
         # Create or update OrderDraft in Redis
         draft = OrderDraft(
             session_id=session_id,
             items=[draft_item],
-            customer_name=customer_name if customer_name != "Quý khách" else None,
+            customer_name=c_display if c_display != "mình" else None,
             is_definite_intent=True,
         )
         await xohi_memory.set_order_draft(session_id, draft.model_dump(mode='json'))
 
-        # Build personalized response
-        c_display = customer_name if customer_name and customer_name != "Quý khách" else "mình"
-        total_price = unit_price * quantity
-        formatted_total = "{:,.0f}".format(total_price).replace(",", ".")
-        p_name_short = p_info.name.split(" - ")[0] if " - " in p_info.name else p_info.name
+        # ── Build professional sales consultant response ──
+        p_name_short = p_name_full.split(" - ")[0] if " - " in p_name_full else p_name_full
         if len(p_name_short) > 50:
             p_name_short = p_name_short[:50] + "..."
 
+        formatted_subtotal = "{:,.0f}".format(subtotal).replace(",", ".")
+        formatted_final = "{:,.0f}".format(final_price).replace(",", ".")
         debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
-        reply = (
-            f"{debug_prefix}Dạ Helen nhận đơn **{quantity} {p_name_short}** "
-            f"({formatted_total}đ) cho {c_display} rồi ạ! 🌸\n"
-            f"{c_display.capitalize()} cho em xin nhanh:\n"
+
+        # Line 1: Acknowledge order
+        reply_parts = [
+            f"{debug_prefix}Dạ Helen nhận đơn **{actual_qty} {p_name_short}** cho {c_display} rồi ạ! 🌸\n"
+        ]
+
+        # Line 2: Gifts (combo deals)
+        if gift_lines:
+            reply_parts.append("🎉 **Ưu đãi combo:**")
+            reply_parts.extend(gift_lines)
+            reply_parts.append("")
+
+        # Line 3: Pricing breakdown
+        reply_parts.append(f"💰 Giá: **{formatted_subtotal}đ**")
+
+        # Line 4: Best voucher
+        if best_voucher and best_voucher_discount > 0:
+            v_display = "{:,.0f}".format(best_voucher_discount).replace(",", ".")
+            if best_voucher.type == "PERCENT":
+                reply_parts.append(f"🏷️ Mã **{best_voucher.id}**: giảm **{v_display}đ** ({int(best_voucher.value)}%)")
+            else:
+                reply_parts.append(f"🏷️ Mã **{best_voucher.id}**: giảm **{v_display}đ**")
+
+        # Line 5: Loyalty points (returning customers only)
+        if dna.available_points > 0 and pts_discount > 0:
+            pts_display = "{:,.0f}".format(pts_discount).replace(",", ".")
+            reply_parts.append(f"⭐ Đổi **{dna.available_points} điểm** → giảm thêm **{pts_display}đ**")
+
+        # Line 6: Final price + free ship
+        has_discount = best_voucher_discount > 0 or pts_discount > 0
+        if has_discount:
+            reply_parts.append(f"✅ **Tổng thanh toán: {formatted_final}đ** (free ship)")
+        else:
+            reply_parts.append(f"✅ **Tổng: {formatted_subtotal}đ** (free ship)")
+
+        # Line 7: VIP acknowledgment
+        if dna.segment == "VIP":
+            reply_parts.append(f"\n💎 Cảm ơn {c_display} — khách VIP thân thiết của osmo! Helen sẽ ưu tiên giao nhanh nhất cho {c_display} ạ.")
+
+        # Line 8: CTA
+        reply_parts.append(
+            f"\n{c_display.capitalize()} cho em xin nhanh:\n"
             f"📞 **Số điện thoại**\n"
             f"📍 **Địa chỉ nhận hàng**\n"
             f"để em lên bill giao tận nơi luôn nhé! ✨"
         )
 
+        reply = "\n".join(reply_parts)
         safe_reply = _sanitize_response(reply)
         await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
         await self._emit_inbox_update(session_id, request.message)
         await db.flush()
-        logger.info(f"⚡ [SyncOrderFastPath] Responded in <1s for '{msg}' — draft created")
+        logger.info(f"⚡ [SyncOrderFastPath] Responded in <1s for '{msg}' — draft created, voucher={best_voucher.id if best_voucher else 'N/A'}, pts={dna.available_points}")
         return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, product_info=p_info, status="DONE")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -1546,7 +1665,12 @@ class SupportAgentOperative(BaseAgentOperative):
         await xohi_memory.set_order_draft(session_id, draft.model_dump(mode='json'))
 
         debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
-        c_display = customer_name if customer_name and customer_name != "Quý khách" else "mình"
+
+        # V7.1: Resolve customer identity from phone for personalization
+        dna = await self._fetch_neural_dna(db, session_id, lead_phone=draft.customer_phone, user_id=request.user_id)
+        c_display = dna.customer_name or customer_name
+        if not c_display or c_display in ["Khách ẩn danh", "Quý khách", "Sếp"]:
+            c_display = "mình"
 
         # 6. Check if draft is now complete → create order
         if draft.is_complete:
@@ -1577,7 +1701,6 @@ class SupportAgentOperative(BaseAgentOperative):
             try:
                 from backend.services.commerce.order import OrderService
                 from backend.schemas.order import OrderCreateRequest
-                from backend.services.commerce.logic.lead_extractor import lead_extractor
                 from backend.database import current_tenant_id
 
                 # Resolve user identity
@@ -1593,7 +1716,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
                 user_id = str(resolved_user.id) if resolved_user else "guest"
 
-                # Apply combo deals to items
+                # Build order items
                 enriched_items = []
                 for it in draft.items:
                     enriched_item = dict(it)
@@ -1604,17 +1727,46 @@ class SupportAgentOperative(BaseAgentOperative):
                     enriched_item.setdefault("unit_price", enriched_item.get("price", 0))
                     enriched_items.append(enriched_item)
 
-                # Check for combo deals
-                combo_items = await PromotionService.apply_combo_deals(db, enriched_items)
-                if combo_items:
-                    enriched_items = combo_items
+                subtotal = sum(float(it.get("price") or it.get("unit_price") or 0) * int(it.get("quantity") or it.get("qty") or 1) for it in enriched_items)
 
-                total = sum(float(it.get("price") or it.get("unit_price") or 0) * int(it.get("quantity") or it.get("qty") or 1) for it in enriched_items)
+                # V7.1: Query best voucher for this order
+                from datetime import datetime, timezone as tz
+                now = datetime.now(tz.utc)
+                v_stmt = select(Voucher).where(
+                    and_(
+                        Voucher.deleted_at.is_(None),
+                        Voucher.is_active == True,
+                        Voucher.tenant_id == tid,
+                        or_(Voucher.start_date.is_(None), Voucher.start_date <= now),
+                        or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
+                        Voucher.min_spend <= subtotal,
+                    )
+                ).order_by(Voucher.priority.desc(), Voucher.value.desc()).limit(3)
+                voucher_rows = (await db.execute(v_stmt)).scalars().all()
+
+                best_voucher = None
+                best_voucher_discount = 0.0
+                for v in voucher_rows:
+                    if v.id and (v.id.lower().startswith("check_") or v.id.lower().startswith("test_") or "test" in v.id.lower()):
+                        continue
+                    disc = PromotionService.calculate_voucher_discount(subtotal, v)
+                    if disc > best_voucher_discount:
+                        best_voucher_discount = disc
+                        best_voucher = v
+
+                # V7.1: Loyalty points discount
+                pts_discount = 0.0
+                if dna.available_points > 0 and dna.point_value_vnd > 0:
+                    pts_discount = min(dna.available_points * dna.point_value_vnd, subtotal * 0.3)
+
+                total = subtotal - best_voucher_discount - pts_discount
+                if total < 0:
+                    total = 0
 
                 order_data = OrderCreateRequest(
                     items=enriched_items,
-                    total_amount=total,
-                    customer_name=draft.customer_name or customer_name or "Quý khách",
+                    total_amount=max(total, subtotal * 0.3),  # Security: min 30% of subtotal
+                    customer_name=dna.customer_name or draft.customer_name or customer_name or "Quý khách",
                     customer_email=f"{draft.customer_phone}@helen.osmo.vn",
                     customer_phone=draft.customer_phone,
                     customer_address=draft.customer_address,
@@ -1625,36 +1777,54 @@ class SupportAgentOperative(BaseAgentOperative):
                 await xohi_memory.clear_order_draft(session_id)
 
                 # Build professional confirmation
+                formatted_subtotal = "{:,.0f}".format(subtotal).replace(",", ".")
                 formatted_total = "{:,.0f}".format(total).replace(",", ".")
-                item_parts = []
+
+                reply_parts = [
+                    f"{debug_prefix}Dạ Helen chúc mừng {c_display} đặt hàng thành công! 🌸\n",
+                    f"📋 **CHI TIẾT ĐƠN HÀNG**",
+                    f"🆔 Mã đơn: **{order_id[-8:].upper()}**",
+                ]
+
                 for it in enriched_items:
                     name = str(it.get("name", "SP"))
                     qty = int(it.get("quantity") or it.get("qty") or 1)
-                    part = f"📦 {name} (x{qty})"
+                    reply_parts.append(f"📦 {name} (x{qty})")
                     gifts = it.get("gifts") or []
                     if gifts:
                         gift_strs = [f"{g.get('name', 'SP')} (x{g.get('qty', 1)})" for g in gifts if isinstance(g, dict)]
                         if gift_strs:
-                            part += f"\n   🎁 + {', '.join(gift_strs)}"
-                    item_parts.append(part)
-                items_text = "\n".join(item_parts)
+                            reply_parts.append(f"   🎁 + {', '.join(gift_strs)}")
 
-                reply = (
-                    f"{debug_prefix}Dạ Helen chúc mừng {c_display} đặt hàng thành công! 🌸\n\n"
-                    f"📋 **CHI TIẾT ĐƠN HÀNG**\n"
-                    f"🆔 Mã đơn: **{order_id[-8:].upper()}**\n"
-                    f"{items_text}\n"
-                    f"💰 Tổng: **{formatted_total}đ**\n"
-                    f"🚚 Dự kiến: **{shipping_days}**\n\n"
-                    f"{c_display.capitalize()} nhớ để ý điện thoại khi shipper gọi nha! 📞\n"
-                    f"Cảm ơn {c_display} đã tin tưởng osmo! 💖"
-                )
+                # Pricing breakdown
+                has_discount = best_voucher_discount > 0 or pts_discount > 0
+                if has_discount:
+                    reply_parts.append(f"💰 Giá gốc: ~~{formatted_subtotal}đ~~")
+                    if best_voucher and best_voucher_discount > 0:
+                        v_display = "{:,.0f}".format(best_voucher_discount).replace(",", ".")
+                        reply_parts.append(f"🏷️ Mã {best_voucher.id}: −{v_display}đ")
+                    if dna.available_points > 0 and pts_discount > 0:
+                        pts_display = "{:,.0f}".format(pts_discount).replace(",", ".")
+                        reply_parts.append(f"⭐ Đổi {dna.available_points} điểm: −{pts_display}đ")
+                    reply_parts.append(f"✅ **Thanh toán: {formatted_total}đ** (free ship)")
+                else:
+                    reply_parts.append(f"💰 **Tổng: {formatted_subtotal}đ** (free ship)")
 
+                reply_parts.append(f"🚚 Dự kiến: **{shipping_days}**")
+
+                # VIP acknowledgment
+                if dna.segment == "VIP":
+                    reply_parts.append(f"\n💎 Khách VIP — Helen ưu tiên giao nhanh cho {c_display} ạ!")
+
+                reply_parts.append(f"\n{c_display.capitalize()} nhớ để ý điện thoại khi shipper gọi nha! 📞")
+                reply_parts.append(f"Cảm ơn {c_display} đã tin tưởng osmo! 💖")
+
+                reply = "\n".join(reply_parts)
                 safe_reply = _sanitize_response(reply)
                 await self._save_history(db, session_id, request.message, safe_reply, SupportIntent.PURCHASE, request.product_slug, customer_name, request.customer_phone)
                 await self._emit_inbox_update(session_id, request.message)
                 await db.flush()
-                logger.info(f"⚡ [SyncSlotFill] Order created: {order_id} — full sync path")
+                logger.info(f"⚡ [SyncSlotFill] Order created: {order_id} — voucher={best_voucher.id if best_voucher else 'N/A'}, pts={dna.available_points}")
                 return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent.PURCHASE, session_id=session_id, status="DONE")
 
             except Exception as order_err:
