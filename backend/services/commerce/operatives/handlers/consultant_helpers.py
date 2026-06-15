@@ -80,11 +80,12 @@ async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProduc
 
     # 3. Tích điểm (Loyalty)
     try:
-        earned_points = int(p_info.price // 10000)
-        earned_vnd = earned_points * 10000
+        from backend.constants.commerce import LoyaltyConfig
+        earned_points = int(p_info.price // LoyaltyConfig.EARNING_RATE_VND)
+        earned_vnd = earned_points * LoyaltyConfig.POINT_VALUE
         point_val_desc = f"Tích lũy **{earned_points} điểm** (~{earned_vnd:,}đ)".replace(",", ".")
         if dna and dna.available_points > 0:
-            points_desc = f"{point_val_desc}. Bạn hiện có **{dna.available_points} điểm** (~{dna.available_points * 10000:,}đ) để dùng ngay!".replace(",", ".")
+            points_desc = f"{point_val_desc}. Bạn hiện có **{dna.available_points} điểm** (~{dna.available_points * LoyaltyConfig.POINT_VALUE:,}đ) để dùng ngay!".replace(",", ".")
         else:
             points_desc = f"{point_val_desc} cho đơn sau. Chia sẻ link nhận thêm voucher 20k!"
     except Exception as e:

@@ -12,6 +12,7 @@ from backend.utils.noise_cleaner import noise_cleaner
 from .creative_pen_utils import process_pen_draft
 from backend.services.xohi.prompts import composer
 from backend.services.xohi.prompts.shields.service import shield_service
+from backend.services.prompt_entropy import build_entropy_system_prompt
 
 logger = logging.getLogger("api-gateway")
 
@@ -63,6 +64,8 @@ class CreativePen:
         template_name = f"pen_outline_{ent}"
         # ELITE V2.2: Use extra_components to maintain thread-safety
         system_prompt = composer.compose(template_name, extra_components=[shield.id])
+        # SGE Shield V2.0: Inject tone + structure entropy into outline
+        system_prompt = build_entropy_system_prompt(system_prompt, product_id=campaign.id)
         
         inst = f"Hãy tạo Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_s} mục H2. Bám sát Ground Truth."
         prompt = f"Tiêu đề: {t}\nTừ khóa: {p}\nGround Truth: {gt}\nGiới hạn: {max_s} mục H2."
@@ -91,6 +94,8 @@ class CreativePen:
         template_name = f"pen_draft_{ent}"
         # ELITE V2.2: Use extra_components to maintain thread-safety
         system_prompt = composer.compose(template_name, extra_components=[shield.id])
+        # SGE Shield V2.0: Inject tone + structure entropy into draft
+        system_prompt = build_entropy_system_prompt(system_prompt, product_id=campaign.id)
         
         prompt, assets, primary = await self._build_p(campaign)
         try:
@@ -127,6 +132,8 @@ class CreativePen:
             template_name = f"pen_draft_{ent}"
             # ELITE V2.2: Use extra_components to maintain thread-safety
             system_prompt = composer.compose(template_name, extra_components=[shield.id])
+            # SGE Shield V2.0: Inject tone + structure entropy into stream draft
+            system_prompt = build_entropy_system_prompt(system_prompt, product_id=campaign.id)
             
             async with trinity_bridge.run_stream(self.draft_agent, prompt, system_prompt=system_prompt, session_id=campaign.id, model=self.model_name) as stream:
                 async for text in stream.stream_text(delta=True):

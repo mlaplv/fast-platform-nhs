@@ -689,7 +689,7 @@ class ArticleService:
                 agent=agent,
                 prompt=prompt,
                 role="fast",
-                timeout=45.0
+                timeout=90.0
             )
 
             if result:
@@ -744,7 +744,7 @@ class ArticleService:
                 agent=agent,
                 prompt=prompt,
                 role="fast",
-                timeout=45.0
+                timeout=90.0
             )
 
             if result:
@@ -784,7 +784,7 @@ class ArticleService:
         prompt = f"Tiêu đề: {title}\nChuyên mục: {category or 'Chung'}"
 
         try:
-            result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=30.0)
+            result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0)
             if result:
                 text = str(getattr(result, "data", getattr(result, "output", result))).strip()
                 return text[:300]
@@ -825,7 +825,7 @@ class ArticleService:
 
         try:
             result = await trinity_bridge.run(
-                agent=agent, prompt=prompt, role="fast", timeout=50.0,
+                agent=agent, prompt=prompt, role="fast", timeout=120.0,
                 model_settings={"max_tokens": 8192}
             )
             if result:

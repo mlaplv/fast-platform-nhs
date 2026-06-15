@@ -91,9 +91,9 @@ async def test_build_marketing_benefits_block_full(mock_db: AsyncMock) -> None:
         assert "VOUCHER1" in block
         
         # Verify Loyalty Points
-        # earned_points = 500000 // 10000 = 50 pts
+        # earned_points = 500000 // 100000 = 5 pts
         assert "Tích lũy & Loyalty" in block or "Tích điểm Osmo" in block
-        assert "50 điểm" in block
+        assert "5 điểm" in block
         assert "12 điểm" in block
         
         # Verify Check-in info

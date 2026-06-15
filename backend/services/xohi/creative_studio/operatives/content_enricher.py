@@ -17,6 +17,7 @@ from backend.database.repositories import ContentCampaignRepository
 from backend.utils.text import extract_readable_text
 from backend.services.xohi.prompts import composer
 from backend.services.xohi.prompts.shields.service import shield_service
+from backend.services.prompt_entropy import build_entropy_system_prompt
 
 logger = logging.getLogger("api-gateway")
 
@@ -172,6 +173,8 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
             
             # ELITE V2.2: Use extra_components to maintain thread-safety
             system_prompt = composer.compose("booster_enrich", extra_components=[shield.id])
+            # SGE Shield V2.0: Inject tone + structure entropy
+            system_prompt = build_entropy_system_prompt(system_prompt, product_id=campaign.id)
             
             logs.append(f"📡 [CONNECT] Kết nối Neural Bridge (Role: BRAIN)...")
             await self._emit_progress(campaign, logs[-1])

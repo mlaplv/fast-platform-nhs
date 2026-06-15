@@ -1,6 +1,9 @@
 import pytest
 import asyncio
-from backend.services.prompt_entropy import get_dynamic_prompt_context, build_entropy_system_prompt
+from backend.services.prompt_entropy import (
+    get_dynamic_prompt_context, build_entropy_system_prompt,
+    TONE_SEEDS, STRUCTURE_SEEDS,
+)
 from backend.services.lexical_sanitizer import sanitize_ai_text
 
 @pytest.mark.asyncio
@@ -19,6 +22,22 @@ async def test_lexical_sanitizer_removes_buzzwords():
     assert "Thật không ngoa khi nói" not in cleaned_text
     assert "Tóm lại" not in cleaned_text
     assert "sản phẩm này rất tốt" in cleaned_text
+
+@pytest.mark.asyncio
+async def test_lexical_sanitizer_removes_extended_buzzwords():
+    """SGE Shield V2.0: Test extended Vietnamese AI buzzwords."""
+    raw_ai_text = (
+        "Nhìn chung, đây là một trong những sản phẩm tốt nhất. "
+        "Qua bài viết này, chúng ta có thể thấy hiệu quả rõ rệt. "
+        "Như vậy, sản phẩm cung cấp cho bạn giải pháp toàn diện."
+    )
+    
+    cleaned_text = sanitize_ai_text(raw_ai_text)
+    
+    assert "Nhìn chung" not in cleaned_text
+    assert "Qua bài viết" not in cleaned_text
+    assert "Như vậy" not in cleaned_text
+    assert "cung cấp cho bạn" not in cleaned_text
 
 @pytest.mark.asyncio
 async def test_prompt_entropy_deterministic_seed():
@@ -45,3 +64,46 @@ async def test_build_entropy_system_prompt():
     assert "Bạn là một AI." in final_prompt
     assert "[WRITING STYLE]" in final_prompt
     assert "[CONTENT STRUCTURE]" in final_prompt
+
+
+def test_tone_seeds_count():
+    """SGE Shield V2.0: Verify 10 tone personas are configured."""
+    assert len(TONE_SEEDS) == 10
+    ids = [t["id"] for t in TONE_SEEDS]
+    # Verify new osmo-specific personas exist
+    assert "beauty_editor" in ids
+    assert "nutrition_consultant" in ids
+
+
+def test_structure_seeds_count():
+    """SGE Shield V2.0: Verify 10 structure templates are configured."""
+    assert len(STRUCTURE_SEEDS) == 10
+    ids = [s["id"] for s in STRUCTURE_SEEDS]
+    # Verify new structures exist
+    assert "inverted_pyramid" in ids
+    assert "myth_busting" in ids
+    assert "timeline_journey" in ids
+
+
+def test_structure_seeds_have_detailed_instructions():
+    """SGE Shield V2.0: Verify each structure instruction is detailed (>100 chars)."""
+    for seed in STRUCTURE_SEEDS:
+        assert len(seed["instruction"]) >= 100, (
+            f"Structure '{seed['id']}' instruction too short: {len(seed['instruction'])} chars"
+        )
+
+
+def test_tone_seeds_have_detailed_instructions():
+    """SGE Shield V2.0: Verify each tone instruction is detailed (>100 chars)."""
+    for seed in TONE_SEEDS:
+        assert len(seed["instruction"]) >= 100, (
+            f"Tone '{seed['id']}' instruction too short: {len(seed['instruction'])} chars"
+        )
+
+
+def test_all_seeds_have_unique_ids():
+    """SGE Shield V2.0: Verify no duplicate IDs in tone or structure seeds."""
+    tone_ids = [t["id"] for t in TONE_SEEDS]
+    structure_ids = [s["id"] for s in STRUCTURE_SEEDS]
+    assert len(tone_ids) == len(set(tone_ids)), "Duplicate tone IDs found"
+    assert len(structure_ids) == len(set(structure_ids)), "Duplicate structure IDs found"

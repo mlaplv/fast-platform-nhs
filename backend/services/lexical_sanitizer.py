@@ -55,6 +55,18 @@ _BUZZWORD_MAP: dict[str, list[str]] = {
     r"[Ii]t's worth noting": ["Lưu ý rằng", "", "Cần biết"],
     r"[Ii]n conclusion": ["Tóm lại", "", "Cuối cùng"],
     r"[Ll]et's dive in": ["Hãy bắt đầu", "", "Cùng xem"],
+
+    # SGE Shield V2.0: Extended Vietnamese AI buzzwords
+    r"[Nn]hìn chung": ["Tổng thể", "Theo quan sát", ""],
+    r"[Tt]rên đây là": ["Đó là", "", "Vừa rồi là"],
+    r"[Hh]y vọng bài viết": ["", "Hy vọng nội dung", ""],
+    r"[Cc]húng ta hãy cùng": ["Hãy", "", "Cùng"],
+    r"[Qq]ua bài viết": ["Qua nội dung", "", "Từ những phân tích"],
+    r"[Nn]hư vậy": ["Vì thế", "Do đó", ""],
+    r"[Cc]ó thể nói": ["Rõ ràng", "Thực tế", ""],
+    r"[Mm]ột cách hiệu quả": ["Hiệu quả", "", "Tốt hơn"],
+    r"[Ll]à một trong những": ["Thuộc nhóm", "Nằm trong số", ""],
+    r"[Cc]ung cấp cho bạn": ["Cho bạn", "Giúp bạn", ""],
 }
 
 

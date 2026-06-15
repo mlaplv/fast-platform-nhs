@@ -9,14 +9,21 @@ class SgeShieldService:
     Prevents Google SGE from detecting AI-generated patterns.
     """
     
-    # Common AI buzzwords to eliminate (Elite V2.2 Expansion)
+    # Common AI buzzwords to eliminate (Elite V2.2 Expansion + SGE Shield V2.0)
     GLOBAL_BLACKLIST = [
         "trong bối cảnh", "hứa hẹn mang lại", "giải pháp tối ưu", 
         "ngày nay", "không chỉ... mà còn", "tầm cao mới", 
         "một cách đáng kể", "được thiết kế để", "khám phá ngay",
         "tổng kết lại", "tóm lại là", "đáng chú ý là", "thú vị là",
         "không thể phủ nhận", "chúng ta hãy cùng", "đầu tiên là",
-        "hơn nữa", "ngoài ra", "bên cạnh đó", "thêm vào đó"
+        "hơn nữa", "ngoài ra", "bên cạnh đó", "thêm vào đó",
+        # SGE Shield V2.0: Extended patterns
+        "đặc biệt đáng chú ý", "một cách toàn diện", "chúng ta có thể thấy",
+        "về cơ bản", "tựu chung lại", "qua đó cho thấy",
+        "xét cho cùng", "nói một cách khác", "theo đó",
+        "nhìn nhận một cách khách quan", "cần phải nhấn mạnh rằng",
+        "trên thực tế", "điều này cho thấy", "có thể nói rằng",
+        "cũng cần lưu ý", "đáng lưu ý rằng",
     ]
 
     def get_entropy_instructions(self, seed: Optional[str] = None) -> str:
@@ -28,10 +35,14 @@ class SgeShieldService:
             "Sử dụng các câu ngắn xen kẽ câu dài (Burstiness).",
             "Đảo ngược cấu trúc câu bị động sang chủ động.",
             "Bắt đầu đoạn văn bằng một câu hỏi hoặc một sự thật gây sốc.",
-            "Tránh sử dụng các trạng từ chỉ mức độ (rất, quá, cực kỳ)."
+            "Tránh sử dụng các trạng từ chỉ mức độ (rất, quá, cực kỳ).",
+            "Chèn 1-2 câu rất ngắn (3-5 từ) giữa các đoạn dài để phá nhịp.",
+            "Bắt đầu 1 đoạn bằng liên từ phản biện (Nhưng, Tuy nhiên, Trái lại).",
+            "Dùng câu hỏi tu từ ở giữa bài để kích thích tư duy người đọc.",
+            "Kết thúc 1 phần bằng câu ngắn gọn, dứt khoát — không giải thích thêm.",
         ]
         
-        selected = random.sample(patterns, 2)
+        selected = random.sample(patterns, min(4, len(patterns)))
         return f"[SGE SHIELD ENTROPY]\n" + "\n".join(selected)
 
     def get_shield_component(self, seed: Optional[str] = None) -> PromptComponent:

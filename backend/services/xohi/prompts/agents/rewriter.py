@@ -20,7 +20,7 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
 11. 🧭 DYNAMIC SEMANTIC SEO: Tự quyết định số lượng và thứ bậc Heading. Tiêu đề mục (<h2>, <h3>) PHẢI chứa từ khóa. TUYỆT ĐỐI KHÔNG dùng Title Case (viết hoa từng chữ cái đầu) cho các Heading, chỉ viết hoa chữ cái đầu tiên của câu (Sentence case). KHÔNG dùng lại các tiêu đề cố định.
 12. 📐 CHUẨN HTML HIERARCHY: Tuân thủ thứ bậc H2 -> H3. Có thể dùng thêm <ul>, <li>, <strong> để làm phong phú nội dung và tối ưu Featured Snippet cho SGE/AI Overviews. Tuyệt đối KHÔNG sử dụng thẻ <table>.
 13. 🔗 TRÍCH DẪN NGHIÊN CỨU & URL: Phải tích hợp các liên kết tham khảo (URL), tên nghiên cứu lâm sàng, tài liệu uy tín được cung cấp từ Bản Trình Báo và Ghi Chú vào bài viết để làm cơ sở biện luận chuyên sâu.
-14. 🧬 [HƯỚNG DẪN 7 PHƯƠNG ÁN CẤU TRÚC ENTROPY]: Khi [CONTENT STRUCTURE] ở cuối prompt chỉ định một cấu trúc, bạn PHẢI triển khai bài viết theo đúng mô tả cấu trúc đó:
+14. 🧬 [HƯỚNG DẪN 10 PHƯƠNG ÁN CẤU TRÚC ENTROPY]: Khi [CONTENT STRUCTURE] ở cuối prompt chỉ định một cấu trúc, bạn PHẢI triển khai bài viết theo đúng mô tả cấu trúc đó:
    - "Mở đầu gây tò mò" (hook_first): Bắt đầu bằng một câu hỏi hoặc sự thật gây bất ngờ. Sau đó triển khai nội dung chính, kết thúc bằng lời khuyên thực tế.
    - "Vấn đề → Giải pháp" (problem_solution): Mở đầu bằng việc nêu rõ vấn đề mà người đọc đang gặp. Phân tích nguyên nhân, sau đó đưa ra giải pháp cụ thể và kết luận.
    - "Kể chuyện trải nghiệm" (story_driven): Kể một câu chuyện ngắn hoặc trải nghiệm thực tế liên quan đến chủ đề. Rút ra bài học và liên kết với nội dung chính.
@@ -28,6 +28,12 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
    - "So sánh trước/sau" (comparison): So sánh tình trạng trước và sau khi sử dụng sản phẩm/phương pháp. Dùng dữ liệu cụ thể hoặc mô tả chi tiết sự khác biệt. Tuyệt đối không dùng table, hãy so sánh bằng các đoạn văn đối chiếu hoặc gạch đầu dòng.
    - "Hỏi đáp xen kẽ" (question_answer): Viết nội dung theo dạng hỏi-đáp. Xen kẽ câu hỏi thường gặp với câu trả lời chi tiết.
    - "Hỏi đáp tập trung" (qa_focused): Cấu trúc tập trung vào câu hỏi và câu trả lời ngắn gọn, đáp ứng kỳ vọng của người đọc cần tìm hiểu.
+   - "Kim tự tháp ngược" (inverted_pyramid): Thông tin quan trọng nhất đặt đầu tiên, chi tiết bổ sung tiếp theo, bối cảnh mở rộng ở cuối. Tuyệt đối không mở bài kiểu dẫn dắt dài dòng.
+   - "Bóc trần sự thật" (myth_busting): Nêu 1-2 quan niệm sai lầm phổ biến, phản biện bằng dữ liệu khoa học, đưa ra sự thật đúng đắn kèm lời khuyên cụ thể.
+   - "Hành trình theo thời gian" (timeline_journey): Trình bày theo trục thời gian hoặc các giai đoạn, phân tích nguyên nhân-kết quả ở mỗi mốc, kết thúc bằng dự báo xu hướng.
+15. ✍️ CÂU HOÀN CHỈNH: Mỗi câu BẮT BUỘC phải có đầy đủ chủ ngữ và vị ngữ, tạo thành một ý hoàn chỉnh về mặt ngữ nghĩa. CẤM viết câu cụt, câu thiếu thành phần chính.
+16. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Tuyệt đối không được xuống dòng hoặc ngắt đoạn khi chưa viết hết câu. Mỗi dòng/đoạn phải kết thúc bằng dấu chấm câu hợp lệ.
+17. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích ngay từ câu đầu tiên. CẤM mở đầu dài dòng, vòng vo. Mỗi câu phải mang giá trị thông tin thực sự, không có câu đệm hoặc câu chuyển tiếp rỗng.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [NỘI DUNG GỐC (FOUNDATION — TRI THỨC CỐT LÕI)]
@@ -97,11 +103,7 @@ ARTICLE_REWRITE_INSTRUCTIONS = PromptComponent(
 - MỤC TIÊU TỐI THƯỢNG: Giữ chân người đọc đến cuối bài (High Retention), tạo uy tín chuyên gia cho thương hiệu, và được Google/SGE trích dẫn làm nguồn.
 
 - CẤU TRÚC ĐỘNG — LUỒNG BÁO CHÍ CHUYÊN SÂU (Dynamic Journalistic Flow):
-  Nếu có phần [CONTENT STRUCTURE] ở cuối prompt, bạn phải ưu tiên áp dụng cấu trúc/phong cách tổ chức bài từ mục đó (ví dụ: viết theo lối kể chuyện, so sánh trước sau, hỏi đáp, hoặc listicle) làm bố cục bài viết. Nếu không có mục đó, mặc định viết lần lượt theo 4 pha sau, dùng <h2>, <h3> với tiêu đề chứa KEYWORD NGÁCH đặc thù của bài viết đó, KHÔNG dùng tên pha làm heading:
-  + [PHA 1 — Góc nhìn Đột phá/Vấn đề cốt lõi]: Nêu thực trạng hoặc luận điểm gây chú ý. Đặt câu hỏi khiến người đọc phải tiếp tục. Tránh mở bài sáo rỗng.
-  + [PHA 2 — Phân tích Chuyên sâu & Bằng chứng]: Dùng dữ liệu, con số, nghiên cứu thực tế. Dùng <ul>/<li> để liệt kê dữ kiện, giúp AI Overviews/Featured Snippet dễ trích xuất.
-  + [PHA 3 — Giải pháp & Hành động Thực tiễn]: Đưa ra khuyến nghị, bước đi cụ thể mà người đọc có thể áp dụng ngay. Thể hiện tính chuyên gia thực chiến.
-  + [PHA 4 — Tổng kết & Giá trị Đọng lại]: Kết luận bằng một thông điệp sâu sắc, đáng suy ngẫm. Không kêu gọi mua hàng trực tiếp; có thể dẫn liên kết liên quan một cách tự nhiên.
+  BẮT BUỘC: Bạn PHẢI áp dụng cấu trúc/phong cách từ phần [CONTENT STRUCTURE] ở cuối prompt. Mỗi bài viết sẽ được hệ thống tự động gán một cấu trúc khác nhau (ví dụ: kể chuyện, so sánh trước sau, hỏi đáp, kim tự tháp ngược, bóc trần sự thật, hành trình thời gian, listicle...). Bạn PHẢI tuân thủ đúng cấu trúc được chỉ định, TUYỆT ĐỐI KHÔNG mặc định viết theo 4 pha cố định. Dùng <h2>, <h3> với tiêu đề chứa KEYWORD NGÁCH đặc thù của bài viết đó, KHÔNG dùng tên pha/template làm heading.
 
 - ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
   1. Trình bày HTML chuyên nghiệp. Giữ lại toàn bộ hình ảnh (<img>) minh họa từ bài gốc. CẤM dùng Markdown.
