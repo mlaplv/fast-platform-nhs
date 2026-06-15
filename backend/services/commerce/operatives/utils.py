@@ -26,6 +26,9 @@ from backend.services.commerce.operatives.handlers.base import NeuralDNA, Suppor
 
 logger = logging.getLogger("arq.worker")
 
+# Global request/context level cache for product metadata to avoid redundant DB queries
+_product_metadata_cache: Dict[str, Dict[str, object]] = {}
+
 # ══════════════════════════════════════════════════════════════
 # GREETING TRIE (0ms, no LLM)
 # ══════════════════════════════════════════════════════════════
@@ -135,7 +138,9 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
             cached = await xohi_memory.client.get(cache_key)
             if cached:
                 data = json.loads(cached)
-                return data["ctx_text"], SupportProductInfo.model_validate(data["p_info"])
+                p_info = SupportProductInfo.model_validate(data["p_info"])
+                _product_metadata_cache[slug] = data.get("product_metadata") or {}
+                return data["ctx_text"], p_info
         except Exception:
             pass
 
@@ -256,13 +261,16 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
             ctx += f"- Tồn kho cảnh báo: Chỉ còn đúng {p_row.stock} sản phẩm (Rất khan hiếm).\n"
         ctx += f"- Hồ sơ pháp lý: {certs_str}.\n"
                 
+        _product_metadata_cache[slug] = p_row.product_metadata or {}
+
         if xohi_memory._use_redis and xohi_memory.client:
             try:
                 await xohi_memory.client.set(
                     cache_key,
                     json.dumps({
                         "ctx_text": ctx,
-                        "p_info": p_info.model_dump()
+                        "p_info": p_info.model_dump(),
+                        "product_metadata": p_row.product_metadata or {}
                     }),
                     ex=300
                 )

@@ -269,13 +269,14 @@ class FraudAnalyticsService:
             e.investigation_batch_id = f"batch_{date_from}_{date_to}"
         await self._session.commit()
 
+        import os
         return InvestigationReportResult(
             status="ready",
             date_from=date_from,
             date_to=date_to,
             total_fraud_clicks=report.total_suspected_clicks,
             estimated_wasted_vnd=report.estimated_wasted_budget_vnd,
-            csv_path=report.csv_path,
+            csv_path=f"/api/v1/ads-protection/download-report/{os.path.basename(report.csv_path)}",
             support_message_preview=report.support_message[:600] + "...",
         )
 

@@ -444,12 +444,15 @@ async def _try_db_first_fast_path(
     p_name = p_info.name
     price_display = p_info.price_display or f"{int(p_info.price):,}đ".replace(",", ".")
     
-    stmt = select(ProductBase.product_metadata).where(
-        ProductBase.id == p_info.id,
-        ProductBase.deleted_at.is_(None)
-    )
-    meta_res = await db.execute(stmt)
-    product_meta = meta_res.scalar_one_or_none() or {}
+    from backend.services.commerce.operatives.utils import _product_metadata_cache
+    product_meta = _product_metadata_cache.get(p_info.slug)
+    if product_meta is None:
+        stmt = select(ProductBase.product_metadata).where(
+            ProductBase.id == p_info.id,
+            ProductBase.deleted_at.is_(None)
+        )
+        meta_res = await db.execute(stmt)
+        product_meta = meta_res.scalar_one_or_none() or {}
 
     from backend.services.commerce.operatives.handlers.consultant_helpers import build_marketing_benefits_block
     marketing_block = await build_marketing_benefits_block(db, p_info, dna)

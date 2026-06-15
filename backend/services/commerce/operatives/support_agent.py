@@ -552,6 +552,115 @@ class SupportAgentOperative(BaseAgentOperative):
             await db.flush()
             return db_first_res
 
+        # ══ SYNC L0 KB FAST-PATH ══
+        if not is_system_prompt and not request.cart_items:
+            try:
+                repo = SupportKnowledgeRepository(session=db)
+                kb_service = SupportKnowledgeService(repo=repo)
+                is_short_query = len(request.message.strip()) < 25
+                threshold = 0.85 if is_short_query else 0.92
+                
+                raw_matches = await kb_service.search_relevant_knowledge_raw(
+                    db, request.message, limit=1
+                )
+                
+                if not raw_matches and is_short_query:
+                    keyword_matches = await kb_service.search_relevant_knowledge_keyword(db, request.message, limit=1)
+                    if keyword_matches and str(keyword_matches[0].get("answer", "")).strip():
+                        keyword_matches[0]["match_score"] = 1.0
+                        raw_matches = keyword_matches
+                
+                if raw_matches:
+                    match = raw_matches[0]
+                    score = float(match.get("match_score", 0))
+                    ans = str(match.get("answer", "")).strip()
+                    if score > threshold and ans:
+                        logger.info(f"✨ [Sync L0 KB Fast-Path] Short-circuiting (Score: {score} / Req: {threshold})")
+                        await self._save_history(
+                            db, session_id, request.message, ans,
+                            SupportIntent.PRODUCT_QUERY, request.product_slug, c_name,
+                            request.customer_phone
+                        )
+                        await self._emit_inbox_update(session_id, request.message)
+                        await db.flush()
+                        return SupportResponse(ok=True, reply=ans, intent=SupportIntent.PRODUCT_QUERY, session_id=session_id, status="DONE")
+            except Exception as kb_sync_err:
+                logger.warning(f"[SyncKBFastPath] Error: {kb_sync_err}")
+
+        # ══ SYNC RAG ARTICLE FAST-PATH ══
+        if not is_system_prompt:
+            try:
+                _CTV_KEYWORDS = ["ctv", "cộng tác viên", "tuyển dụng", "affiliate", "đại lý", "chiết khấu"]
+                _POLICY_KEYWORDS = ["chính sách", "bảo hành", "đổi trả", "hoàn tiền", "vận chuyển", "giao hàng"]
+                msg_lower = request.message.lower()
+                is_short = len(request.message.strip()) < 35
+                
+                if is_short and (any(kw in msg_lower for kw in _CTV_KEYWORDS) or any(kw in msg_lower for kw in _POLICY_KEYWORDS)):
+                    art_search_kw = request.message
+                    if any(kw in msg_lower for kw in _CTV_KEYWORDS):
+                        art_search_kw = "tuyển dụng cộng tác viên"
+                    elif any(kw in msg_lower for kw in _POLICY_KEYWORDS):
+                        art_search_kw = "chính sách"
+                    
+                    from backend.services.article_vector_service import article_vector_service
+                    art_rows = await article_vector_service.search_semantic(db, art_search_kw, limit=1)
+                    best_art = None
+                    if art_rows and art_rows[0].get("match_score", 0) > 0.65:
+                        best_art = art_rows[0]
+                        
+                    if not best_art:
+                        from backend.database.models.content import Article
+                        from backend.database import current_tenant_id
+                        from sqlalchemy import or_
+                        tid = current_tenant_id.get() or "default"
+                        art_kw = f"%{art_search_kw}%"
+                        art_stmt = (
+                            select(Article.title, Article.excerpt, Article.content, Article.slug, Article.category)
+                            .where(and_(
+                                Article.deleted_at.is_(None), Article.status == "PUBLISHED", Article.tenant_id == tid,
+                                or_(Article.title.ilike(art_kw), Article.excerpt.ilike(art_kw)),
+                            ))
+                            .order_by(Article.views.desc()).limit(1)
+                        )
+                        best_art = (await db.execute(art_stmt)).fetchone()
+                        
+                    if best_art:
+                        r_title = best_art.get("title") if isinstance(best_art, dict) else getattr(best_art, "title", "")
+                        r_content = best_art.get("content") if isinstance(best_art, dict) else getattr(best_art, "content", "")
+                        r_excerpt = best_art.get("excerpt") if isinstance(best_art, dict) else getattr(best_art, "excerpt", "")
+                        
+                        ans_parts = [f"Dạ Helen xin gửi chị đẹp thông tin chính thức về **{r_title}** ạ: 🌸"]
+                        if r_content:
+                            import re as _re
+                            html_text = str(r_content)
+                            html_text = _re.sub(r'</?(p|div|h1|h2|h3|h4|h5|h6|li|ul|ol|blockquote)>', '\n', html_text)
+                            html_text = _re.sub(r'<br\s*/?>', '\n', html_text)
+                            plain = _re.sub(r'<[^>]+>', '', html_text)
+                            lines = [line.strip() for line in plain.split('\n') if line.strip()]
+                            core_lines = []
+                            curr_len = 0
+                            for line in lines:
+                                core_lines.append(line)
+                                curr_len += len(line)
+                                if curr_len > 800:
+                                    core_lines.append("...")
+                                    break
+                            ans_parts.append("\n".join(core_lines))
+                        elif r_excerpt:
+                            ans_parts.append(r_excerpt.strip())
+                            
+                        ans_parts.append(
+                            "Để nhận được hướng dẫn chi tiết hoặc đăng ký làm đối tác, "
+                            "chị đẹp vui lòng liên hệ trực tiếp qua số Hotline hoặc các kênh hỗ trợ chính thức của thương hiệu nhé! 💖"
+                        )
+                        ans = "\n\n".join(ans_parts)
+                        await self._save_history(db, session_id, request.message, ans, SupportIntent.PRODUCT_QUERY, request.product_slug, c_name, request.customer_phone)
+                        await self._emit_inbox_update(session_id, request.message)
+                        await db.flush()
+                        return SupportResponse(ok=True, reply=ans, intent=SupportIntent.PRODUCT_QUERY, session_id=session_id, status="DONE")
+            except Exception as art_sync_err:
+                logger.warning(f"[SyncArticleFastPath] Error: {art_sync_err}")
+
         # Early exit for greeting trie
         if not is_system_prompt and not request.cart_items and _is_definite_greeting(request.message):
             _c = c_name if c_name not in ["Quý khách"] else ""
@@ -563,6 +672,19 @@ class SupportAgentOperative(BaseAgentOperative):
             await self._emit_inbox_update(session_id, request.message)
             await db.flush()
             return SupportResponse(ok=True, reply=greeting_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+
+        heuristic_res = await _try_heuristic_sync(self, request, db, session_id, p_info, c_name)
+        if heuristic_res:
+            return heuristic_res
+
+        order_fp = await _try_sync_order_fast_path(self, request, db, session_id, p_info, c_name)
+        if order_fp:
+            return order_fp
+
+        if order_draft:
+            slot_fp = await _try_sync_slot_fill(self, request, db, session_id, order_draft, c_name)
+            if slot_fp:
+                return slot_fp
 
         if not is_system_prompt:
             try:
@@ -583,19 +705,6 @@ class SupportAgentOperative(BaseAgentOperative):
                     return SupportResponse(ok=True, reply=str(f_reply), intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
             except Exception:
                 pass
-
-        heuristic_res = await _try_heuristic_sync(self, request, db, session_id, p_info, c_name)
-        if heuristic_res:
-            return heuristic_res
-
-        order_fp = await _try_sync_order_fast_path(self, request, db, session_id, p_info, c_name)
-        if order_fp:
-            return order_fp
-
-        if order_draft:
-            slot_fp = await _try_sync_slot_fill(self, request, db, session_id, order_draft, c_name)
-            if slot_fp:
-                return slot_fp
 
         enqueue_data = request.model_dump()
         enqueue_data["message"] = request.message

@@ -22,6 +22,7 @@ TARGET_KEYWORDS = {
     "campaign": ["campaign", "chien dich", "chien dichh", "chien dichx", "camp", "canh pain", "cam pain"],
     "brain":    ["brain", "nao", "tri thuc", "quan tri nao", "helen brain", "bo nao"],
     "voucher":  ["voucher", "khuyen mai", "ma giam gia", "km", "vou che", "voucher"],
+    "ads_protection": ["quang cao", "ads protection", "click tac", "click fraud", "bao cao", "phap y", "report ads", "báo cáo", "quảng cáo", "bao cao info"],
 }
 
 MODE_KEYWORDS = {
@@ -58,10 +59,11 @@ TARGET_TO_WIDGET = {
     "campaign": "show_campaigns",
     "brain":    "show_brain",
     "voucher":  "show_voucher_management",
+    "ads_protection": "show_ads_protection",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain", "voucher": "voucher"}
+VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain", "voucher": "voucher", "ads_protection": "quảng cáo"}
 
 # --- Phase 76.3: Pre-Normalized Keywords ---
 NORM_TARGET_KEYWORDS = {tgt: [normalize_vn(kw) for kw in kws] for tgt, kws in TARGET_KEYWORDS.items()}

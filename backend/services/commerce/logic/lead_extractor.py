@@ -10,6 +10,7 @@ if not os.environ.get("GOOGLE_API_KEY"):
 import asyncio
 import logging
 import re
+import time
 from typing import List, Optional, Dict, Union, TypedDict, Tuple
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent
@@ -93,6 +94,7 @@ def validate_vietnam_phone(phone: str) -> Optional[str]:
 
 class LeadExtractor:
     """Refined Logic Engine for Lead-to-Order Conversion."""
+    _resolved_product_cache: dict[tuple[str, Optional[str], Optional[str]], tuple[ProductBase, float]] = {}
 
     @staticmethod
     async def _hydrate_from_history(db: AsyncSession, session_id: str, lead: ExtractedLead) -> ExtractedLead:
@@ -212,7 +214,16 @@ class LeadExtractor:
     @staticmethod
     async def _resolve_product(db: AsyncSession, name: Optional[str] = None, slug: Optional[str] = None, tenant_id: str = "default") -> Optional[ProductBase]:
         """Fuzzy lookup product in DB with variants loaded (R110)."""
+        cache_key = (tenant_id, name, slug)
+        now = time.time()
+        is_debug = os.getenv("HELEN_DEBUG") == "1"
+        if not is_debug and cache_key in LeadExtractor._resolved_product_cache:
+            p, expire_time = LeadExtractor._resolved_product_cache[cache_key]
+            if now < expire_time:
+                return p
+
         try:
+            p = None
             # Elite V5.9.1: Global Slug Lookup with Tenant Priority (Worker Resilience)
             if slug:
                 stmt = select(ProductBase).where(ProductBase.slug == slug).options(selectinload(ProductBase.variants))
@@ -222,18 +233,17 @@ class LeadExtractor:
                 
                 res = await db.execute(stmt.limit(1))
                 p = res.scalar_one_or_none()
-                if p: return p
                 
-                # Fallback to fuzzy slug search if exact fails
-                stmt_fuzzy = select(ProductBase).where(ProductBase.slug.ilike(f"%{slug}%")).options(selectinload(ProductBase.variants)).limit(1)
-                if tenant_id and tenant_id != "default":
-                    from sqlalchemy import case
-                    stmt_fuzzy = stmt_fuzzy.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
+                if not p:
+                    # Fallback to fuzzy slug search if exact fails
+                    stmt_fuzzy = select(ProductBase).where(ProductBase.slug.ilike(f"%{slug}%")).options(selectinload(ProductBase.variants)).limit(1)
+                    if tenant_id and tenant_id != "default":
+                        from sqlalchemy import case
+                        stmt_fuzzy = stmt_fuzzy.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
+                    
+                    p = (await db.execute(stmt_fuzzy)).scalar_one_or_none()
                 
-                p_fuzzy = (await db.execute(stmt_fuzzy)).scalar_one_or_none()
-                if p_fuzzy: return p_fuzzy
-                
-            if name:
+            if not p and name:
                 stmt_name = select(ProductBase).where(
                     or_(ProductBase.name.ilike(f"%{name}%"), ProductBase.slug.ilike(f"%{name.replace(' ', '-')}%"))
                 ).options(selectinload(ProductBase.variants)).limit(1)
@@ -241,7 +251,12 @@ class LeadExtractor:
                     from sqlalchemy import case
                     stmt_name = stmt_name.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
                 
-                return (await db.execute(stmt_name)).scalar_one_or_none()
+                p = (await db.execute(stmt_name)).scalar_one_or_none()
+
+            if p:
+                # Cache product resolution for 60 seconds
+                LeadExtractor._resolved_product_cache[cache_key] = (p, now + 60.0)
+            return p
         except Exception as e:
             logger.warning("[LeadExtractor] _resolve_product fail: %s", e)
         return None

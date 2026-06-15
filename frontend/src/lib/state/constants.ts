@@ -84,6 +84,18 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "duyệt link": "SEO_LINK_REVIEW",
   "mở duyệt link": "SEO_LINK_REVIEW",
   "seo link review": "SEO_LINK_REVIEW",
+  "ads protection": "ADS_PROTECTION",
+  "click tặc": "ADS_PROTECTION",
+  "click tac": "ADS_PROTECTION",
+  "pháp y": "ADS_PROTECTION",
+  "phap y": "ADS_PROTECTION",
+  "báo cáo info": "ADS_PROTECTION",
+  "bao cao info": "ADS_PROTECTION",
+  "báo cáo": "ADS_PROTECTION",
+  "bao cao": "ADS_PROTECTION",
+  "mở quảng cáo": "ADS_PROTECTION",
+  "mở báo cáo": "ADS_PROTECTION",
+  "mở pháp y": "ADS_PROTECTION",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -115,6 +127,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_notification_management: "NOTIFICATION_MANAGEMENT",
   show_seo_graph: "SEO_GRAPH",
   show_seo_link_review: "SEO_LINK_REVIEW",
+  show_ads_protection: "ADS_PROTECTION",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {

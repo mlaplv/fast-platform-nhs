@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, UTC
 from typing import AsyncGenerator, Optional, Annotated
 
 from litestar import Controller, get, post, patch, delete, Request
-from litestar.response import ServerSentEvent
+from litestar.response import ServerSentEvent, File
 from litestar.exceptions import HTTPException
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -140,7 +140,12 @@ class AdsProtectionController(Controller):
         Trả về verdict để client quyết định có fire conversion pixel không.
         """
         # Extract client IP
-        ip = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.connection.ip
+        ip = (
+            request.headers.get("x-real-ip")
+            or request.headers.get("x-forwarded-for")
+            or (request.client.host if request.client else None)
+            or "127.0.0.1"
+        )
         if "," in ip:
             ip = ip.split(",")[0].strip()
         data.ip_address = ip
@@ -331,6 +336,22 @@ class AdsProtectionController(Controller):
             force_rebuild=data.force
         )
 
+    @get("/download-report/{filename:str}")
+    async def download_report(self, filename: str) -> File:
+        """Tải tệp báo cáo hoặc tệp CSV pháp y."""
+        import os
+        clean_filename = os.path.basename(filename)
+        file_path = Path("reports/click_fraud") / clean_filename
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Không tìm thấy tệp báo cáo.")
+        
+        media_type = "text/csv" if clean_filename.endswith(".csv") else "text/plain"
+        return File(
+            path=file_path,
+            filename=clean_filename,
+            media_type=media_type
+        )
+
     @get("/investigation-reports")
     async def list_investigation_reports(self) -> list[dict[str, str]]:
         """Lấy danh sách các tệp báo cáo pháp y đã tạo trong quá khứ."""
@@ -344,7 +365,7 @@ class AdsProtectionController(Controller):
             reports.append({
                 "name": f.name,
                 "date": f.name.replace("investigation_", "").replace(".txt", ""),
-                "path": f"/reports/click_fraud/{f.name}"
+                "path": f"/api/v1/ads-protection/download-report/{f.name}"
             })
         return reports
 
@@ -355,13 +376,30 @@ class AdsProtectionController(Controller):
         if not file_path.exists():
             return {"status": "not_found"}
         
-        content = file_path.read_text()
+        content = file_path.read_text(encoding="utf-8")
+        
+        import re
+        total_fraud_clicks = 0
+        estimated_wasted_vnd = 0
+        
+        # Parse total clicks
+        click_match = re.search(r"Total suspected invalid clicks\s*:\s*(\d+)", content)
+        if click_match:
+            total_fraud_clicks = int(click_match.group(1))
+        else:
+            total_fraud_clicks = content.count("GCLID:")
+            
+        # Parse wasted spend
+        wasted_match = re.search(r"Estimated wasted spend\s*:\s*([\d,]+)\s*VND", content)
+        if wasted_match:
+            estimated_wasted_vnd = int(wasted_match.group(1).replace(",", ""))
+            
         return {
             "status": "ready",
             "support_message_preview": content,
-            "total_fraud_clicks": content.count("GCLID:"),
-            "csv_path": f"/reports/click_fraud/{filename.replace('.txt', '.csv')}",
-            "estimated_wasted_vnd": 0
+            "total_fraud_clicks": total_fraud_clicks,
+            "csv_path": f"/api/v1/ads-protection/download-report/{filename.replace('.txt', '.csv')}",
+            "estimated_wasted_vnd": estimated_wasted_vnd
         }
 
     # ------------------------------------------------------------------

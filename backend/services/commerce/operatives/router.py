@@ -29,6 +29,8 @@ class SupportRouter:
         
     async def process(self, ctx: SupportContext) -> SupportContext:
         """Execute the pipeline of specialists based on priority hierarchy."""
+        import time
+        start_total = time.perf_counter()
 
         # 1. Chống Spammer bằng cách đếm tin nhắn trong 2 phút gần nhất tại Database (Anti-DoS Shield)
         try:
@@ -61,14 +63,20 @@ class SupportRouter:
                 ctx.intent = SupportIntent.ESCALATE
                 return ctx
 
+            start_handler = time.perf_counter()
             try:
                 # If a handler returns True, it has 'consumed' the logic and stops further specialists.
-                if await handler.handle(ctx):
-                    logger.debug(f"[SupportRouter] Pipeline consumed by {handler.__class__.__name__}")
+                consumed = await handler.handle(ctx)
+                duration = (time.perf_counter() - start_handler) * 1000
+                if consumed:
+                    logger.info(f"⏱️ [SupportRouter] {handler.__class__.__name__} consumed pipeline in {duration:.2f}ms")
                     break
+                else:
+                    logger.debug(f"⏱️ [SupportRouter] {handler.__class__.__name__} passed in {duration:.2f}ms")
             except Exception as e:
                 logger.error(f"[SupportRouter] Critical error in {handler.__class__.__name__}: {e}")
                 continue # Try the next handler if one fails
                 
-        # Final Post-Processing logic can go here (formatting, etc.)
+        total_duration = (time.perf_counter() - start_total) * 1000
+        logger.info(f"⏱️ [SupportRouter] Total pipeline processing time: {total_duration:.2f}ms")
         return ctx

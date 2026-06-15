@@ -12,7 +12,8 @@ logger = logging.getLogger("api-gateway")
 NAV_MSG_MAP = {
     "revenue": "biểu đồ doanh thu", "order": "quản lý đơn hàng", "product": "quản lý sản phẩm",
     "user": "danh sách nhân viên", "category": "quản lý danh mục", "news": "quản lý bài viết", 
-    "settings": "cài đặt hệ thống", "campaign": "quản lý chiến dịch", "analytics": "thống kê chi tiết"
+    "settings": "cài đặt hệ thống", "campaign": "quản lý chiến dịch", "analytics": "thống kê chi tiết",
+    "ads_protection": "Trung tâm Google Ads"
 }
 
 class RouterExecutor:

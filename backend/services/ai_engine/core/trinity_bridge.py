@@ -46,6 +46,7 @@ class TrinityBridge:
         self._initialized: bool = False
         self.ROLE_FAST: str = "fast"
         self.ROLE_BRAIN: str = "brain"
+        self._tenant_profile_cache: dict[str, tuple[Optional[str], list[str], float]] = {}
         
         # Elite V2.2: CPU Contention Guard (R4-Core Xeon Standard)
         # Prevents more than N concurrent heavy AI tasks from saturating the 4-core VPS.
@@ -132,9 +133,17 @@ class TrinityBridge:
         Single-query JOIN — tránh N+1 gây CONNECTION_LEAK_WARNING.
         """
         from backend.database import current_tenant_id
-        active_tenant = current_tenant_id.get()
+        active_tenant = current_tenant_id.get() or "default"
 
-        if not active_tenant:
+        # CTO-Guided: Enable in-memory TTL caching only when not debugging
+        is_debug = os.getenv("HELEN_DEBUG") == "1"
+        now = time.time()
+        if not is_debug and active_tenant in self._tenant_profile_cache:
+            p_model, waterfall, expire_time = self._tenant_profile_cache[active_tenant]
+            if now < expire_time:
+                return p_model, waterfall
+
+        if active_tenant == "default" and not current_tenant_id.get():
             return self.db_primary_model, self.db_waterfall
 
         try:
@@ -159,8 +168,13 @@ class TrinityBridge:
                 )
                 p = (await s.execute(stmt)).scalar_one_or_none()
                 if p:
-                    return p.primary_model, p.ai_models or []
-                return self.db_primary_model, self.db_waterfall
+                    res = (p.primary_model, p.ai_models or [])
+                else:
+                    res = (self.db_primary_model, self.db_waterfall)
+                
+                # Cache for 5 minutes (300 seconds)
+                self._tenant_profile_cache[active_tenant] = (res[0], res[1], now + 300.0)
+                return res
         except Exception as e:
             logger.warning(f"⚠️ [TrinityBridge] Failed to load tenant VoiceProfile for {active_tenant}: {e}")
             return self.db_primary_model, self.db_waterfall
