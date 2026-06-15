@@ -21,28 +21,43 @@ export const load: LayoutLoad = async ({ fetch }) => {
 
     // 2. Elite V2.2: Zero-Latency return with asynchronous background synchronization
     if (shopInfo) {
-        Promise.all([
-            fetch('/api/v1/client/settings/primary'),
-            fetch('/api/v1/client/home/vouchers')
-        ]).then(async ([shopResp, voucherResp]) => {
-            if (shopResp.ok) {
-                const freshShop = await shopResp.json();
-                sessionStorage.setItem('primary_config', JSON.stringify(freshShop));
-                
-                // Reactive sync back to UI state store (Nanobot)
-                const { getClientUi } = await import('$lib/state/commerce/ui.svelte');
-                getClientUi().settings = freshShop;
-            }
-            if (voucherResp.ok) {
-                const freshVouchersData = await voucherResp.json();
-                const freshVouchers = freshVouchersData.data || [];
-                sessionStorage.setItem('vouchers_config', JSON.stringify(freshVouchers));
-                
-                // Reactive sync back to Cart state store
-                const { getGlobalCart } = await import('$lib/state/commerce/cart.svelte');
-                getGlobalCart().setVouchers(freshVouchers);
-            }
-        }).catch(e => console.warn("[Background Sync Failed]", e));
+        let shouldSync = true;
+        if (browser) {
+            try {
+                const lastFetch = sessionStorage.getItem('last_config_fetch_time');
+                if (lastFetch && Date.now() - parseInt(lastFetch, 10) < 300000) {
+                    shouldSync = false;
+                }
+            } catch (e) {}
+        }
+
+        if (shouldSync) {
+            Promise.all([
+                fetch('/api/v1/client/settings/primary'),
+                fetch('/api/v1/client/home/vouchers')
+            ]).then(async ([shopResp, voucherResp]) => {
+                if (shopResp.ok) {
+                    const freshShop = await shopResp.json();
+                    sessionStorage.setItem('primary_config', JSON.stringify(freshShop));
+                    if (browser) {
+                        sessionStorage.setItem('last_config_fetch_time', Date.now().toString());
+                    }
+                    
+                    // Reactive sync back to UI state store (Nanobot)
+                    const { getClientUi } = await import('$lib/state/commerce/ui.svelte');
+                    getClientUi().settings = freshShop;
+                }
+                if (voucherResp.ok) {
+                    const freshVouchersData = await voucherResp.json();
+                    const freshVouchers = freshVouchersData.data || [];
+                    sessionStorage.setItem('vouchers_config', JSON.stringify(freshVouchers));
+                    
+                    // Reactive sync back to Cart state store
+                    const { getGlobalCart } = await import('$lib/state/commerce/cart.svelte');
+                    getGlobalCart().setVouchers(freshVouchers);
+                }
+            }).catch(e => console.warn("[Background Sync Failed]", e));
+        }
 
         return {
             shopInfo,
@@ -72,6 +87,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
             try {
                 sessionStorage.setItem('primary_config', JSON.stringify(freshShop));
                 sessionStorage.setItem('vouchers_config', JSON.stringify(freshVouchers));
+                sessionStorage.setItem('last_config_fetch_time', Date.now().toString());
             } catch (e) {}
         }
 

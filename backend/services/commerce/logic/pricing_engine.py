@@ -99,14 +99,15 @@ class PricingEngine:
                 # Global voucher applies to all items after combo discount
                 voucher_disc = PromotionService.calculate_voucher_discount(amount_after_combo, v)
 
-            if v.type == "SHIPPING":
-                # Shipping vouchers are handled separately at the end
-                shipping_voucher_discount += voucher_disc
-            else:
-                # Value vouchers (FIXED/PERCENT)
-                total_voucher_discount += voucher_disc
-            
-            breakdown.applied_voucher_ids.append(str(v.id))
+            if voucher_disc > 0:
+                if v.type == "SHIPPING":
+                    # Shipping vouchers are handled separately at the end
+                    shipping_voucher_discount += voucher_disc
+                else:
+                    # Value vouchers (FIXED/PERCENT)
+                    total_voucher_discount += voucher_disc
+                
+                breakdown.applied_voucher_ids.append(str(v.id))
         
         breakdown.voucher_discount = total_voucher_discount
 

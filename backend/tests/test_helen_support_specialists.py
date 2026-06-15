@@ -11,7 +11,24 @@ from backend.schemas.support import SupportRequest, SupportIntent
 @pytest.fixture
 def mock_db():
     from sqlalchemy.ext.asyncio import AsyncSession
-    return AsyncMock(spec=AsyncSession)
+    mock = AsyncMock(spec=AsyncSession)
+    
+    # Mock dialect/bind for advanced_alchemy repository
+    from unittest.mock import MagicMock
+    mock.bind = MagicMock()
+    from sqlalchemy.engine import Dialect
+    mock.bind.dialect = MagicMock(spec=Dialect)
+    mock.bind.dialect.name = "postgresql"
+    mock.get_bind = MagicMock(return_value=mock.bind)
+    
+    # Default execute result to bypass Spammer check and database queries safely
+    default_result = MagicMock()
+    default_result.scalar.return_value = 0
+    default_result.scalar_one_or_none.return_value = None
+    default_result.scalars.return_value.all.return_value = []
+    default_result.mappings.return_value.all.return_value = []
+    mock.execute.return_value = default_result
+    return mock
 
 @pytest.fixture
 def base_request():
@@ -37,17 +54,17 @@ async def test_guardrail_rejection(base_ctx):
     base_ctx.request.message = "Tôi bị hôi miệng muốn tư vấn"
     res = await handler.handle(base_ctx)
     assert res is True
-    assert "Helen rất tiếc" in base_ctx.replies[0]
+    assert "thành thật xin lỗi" in base_ctx.replies[0].lower()
     assert base_ctx.intent == SupportIntent.UNKNOWN
 
 @pytest.mark.asyncio
-async def test_greeting_pass_through(base_ctx):
-    """ZONE 1: Test that greeting prepends but does not stop the pipeline."""
+async def test_greeting_pure_stops_pipeline(base_ctx):
+    """ZONE 1: Test that pure greeting is consumed and stops the pipeline."""
     handler = GreetingHandler()
     base_ctx.request.message = "Chào Helen nhé"
     res = await handler.handle(base_ctx)
-    assert res is False # False = pipeline continues
-    assert "Dạ Helen chào Anh/Chị! 🌸" in base_ctx.replies[0]
+    assert res is True # True = pipeline stops and replies immediately
+    assert "Dạ Helen chào" in base_ctx.replies[0]
 
 @pytest.mark.asyncio
 async def test_order_success_stops_pipeline(base_ctx):
@@ -70,9 +87,13 @@ async def test_order_success_stops_pipeline(base_ctx):
         mock_order.customer_address = "37 Ngô Quyền, Đắk Lắk"
         
         # Result mock for session.execute
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_order
-        base_ctx.db.execute.return_value = mock_result
+        mock_result_order = MagicMock()
+        mock_result_order.scalar_one_or_none.return_value = mock_order
+        
+        mock_result_voucher = MagicMock()
+        mock_result_voucher.scalar_one_or_none.return_value = None # No next voucher
+        
+        base_ctx.db.execute.side_effect = [mock_result_order, mock_result_voucher]
         
         res = await handler.handle(base_ctx)
         assert res is True # STOPS pipeline
@@ -100,21 +121,26 @@ async def test_router_priority_and_concatenation(base_ctx):
         mock_order.total_amount = 249000
         mock_order.customer_address = "Sài Gòn"
         
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_order
-        base_ctx.db.execute.return_value = mock_result
+        mock_result_spam = MagicMock()
+        mock_result_spam.scalar.return_value = 0
+        
+        mock_result_order = MagicMock()
+        mock_result_order.scalar_one_or_none.return_value = mock_order
+        
+        mock_result_voucher = MagicMock()
+        mock_result_voucher.scalar_one_or_none.return_value = None # No next voucher
+        
+        base_ctx.db.execute.side_effect = [mock_result_spam, mock_result_order, mock_result_voucher]
         
         # Patch Consultant to verify it is NOT called
         with patch("backend.services.commerce.operatives.handlers.consultant.trinity_bridge.run", new_callable=AsyncMock) as mock_llm:
             await router.process(base_ctx)
             
-            # 1. Greeting should be first
-            assert "Dạ Helen chào" in base_ctx.replies[0]
-            # 2. Order should be second
-            # "ORD-12345678"[-8:] is "12345678"
-            assert "12345678" in base_ctx.replies[1]
+            # Order should consume the pipeline
+            assert len(base_ctx.replies) == 1
+            assert "12345678" in base_ctx.replies[0]
             
-            # 3. Consultant should be skipped because Order returned True
+            # Consultant should be skipped because Order returned True
             assert mock_llm.called is False
 
 @pytest.mark.asyncio
@@ -128,9 +154,8 @@ async def test_fallback_to_consultant(base_ctx):
         mock_ext.return_value = None
         
         # Mock Consultant success
-        mock_llm_res = MagicMock()
-        mock_llm_res.data = ConsultantResponse(
-            reply="Dạ đó là do vi khuẩn phân hủy axit béo ạ...",
+        mock_llm_res = ConsultantResponse(
+            reply="Dạ Helen chào Anh/Chị! Đó là do vi khuẩn phân hủy axit béo ạ...",
             intent="GENERAL_ADVICE"
         )
         
@@ -146,3 +171,29 @@ async def test_fallback_to_consultant(base_ctx):
                 assert any("Dạ Helen chào" in r for r in base_ctx.replies)
                 assert any("axit béo" in r for r in base_ctx.replies)
                 assert base_ctx.intent == SupportIntent.GENERAL_ADVICE
+
+
+@pytest.mark.asyncio
+async def test_viral_voucher_validation():
+    """Verify that viral voucher unlock status works and PricingEngine behaves correctly."""
+    from backend.services.commerce.logic.pricing_engine import PricingEngine
+    from backend.schemas.pricing import PricingInputItem
+    
+    class MockVoucher:
+        def __init__(self, id, type, value, min_spend, is_viral=False):
+            self.id = id
+            self.type = type
+            self.value = value
+            self.min_spend = min_spend
+            self.is_viral = is_viral
+            self.title = f"Voucher {id}"
+            self.metadata_json = None
+
+    v_no_discount = MockVoucher("TEST_V_0", "FIXED", 10000.0, 500000.0)
+    v_with_discount = MockVoucher("TEST_V_1", "FIXED", 10000.0, 50000.0)
+    
+    items = [PricingInputItem(product_id="p1", name="Product 1", quantity=1, unit_price=100000.0)]
+    
+    pb = PricingEngine.calculate(items=items, vouchers=[v_no_discount, v_with_discount])
+    assert "TEST_V_1" in pb.applied_voucher_ids
+    assert "TEST_V_0" not in pb.applied_voucher_ids

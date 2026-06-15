@@ -301,6 +301,17 @@ class CheckoutService:
 
         # [ELITE V2.2] Chặn cấp độ backend cho phạm vi áp dụng (Product Scope Enforcement)
         for v in vouchers:
+            if v.is_viral:
+                from backend.services.viral_share_service import viral_share_service
+                is_unlocked = await viral_share_service.is_viral_unlocked(
+                    user_id=user_id,
+                    phone=payload.customer_phone,
+                    voucher_id=v.id
+                )
+                if not is_unlocked:
+                    logger.warning(f"[SECURITY-ALERT] Locked Viral Voucher Attempt: Code={v.id}, User={user_id}, Phone={payload.customer_phone}")
+                    raise ValidationException(f"Mã giảm giá {v.id} chưa được mở khóa. Vui lòng hoàn thành chia sẻ để nhận mã!")
+
             applicable_product_ids = []
             if v.metadata_json and isinstance(v.metadata_json, dict):
                 applicable_product_ids = v.metadata_json.get("applicable_product_ids") or []

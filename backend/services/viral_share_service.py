@@ -281,6 +281,13 @@ class ViralShareService:
             logger.warning(f"[ViralShare] Voucher not found or expired: {voucher_id}")
             raise ValueError(f"Không tìm thấy mã quà tặng '{voucher_id}' hợp lệ hoặc chương trình đã kết thúc.")
 
+        # Record unlock status in Redis for later validation during checkout
+        if user_id:
+            try:
+                await self.record_viral_unlock(db_session, user_id, voucher.id)
+            except Exception as exc:
+                logger.error(f"[ViralShare] Failed to record viral unlock: {exc}")
+
         return {
             "valid": True,
             "voucher_code": voucher.id,
@@ -290,6 +297,50 @@ class ViralShareService:
             "min_spend": voucher.min_spend,
             "trust_score": trust_score,
         }
+
+    async def record_viral_unlock(self, db_session: AsyncSession, user_id: str, voucher_id: str) -> None:
+        """
+        Record that a user has successfully unlocked a viral voucher.
+        Stores in Redis with a 24-hour expiration.
+        """
+        if not self._redis:
+            return
+        
+        from backend.database.models.auth import User
+        stmt = select(User.phone).where(User.id == user_id)
+        res = await db_session.execute(stmt)
+        phone = res.scalar_one_or_none()
+
+        r = cast(_redis.Redis, self._redis)
+        await r.set(f"viral:unlocked:user:{user_id}:{voucher_id}", "1", ex=86400)
+        if phone:
+            import re as _re
+            normalized_phone = _re.sub(r"[\s\.\-\+]", "", phone)
+            if normalized_phone.startswith("84") and len(normalized_phone) >= 11:
+                normalized_phone = "0" + normalized_phone[2:]
+            await r.set(f"viral:unlocked:phone:{normalized_phone}:{voucher_id}", "1", ex=86400)
+        logger.info(f"[ViralShare] Recorded viral unlock for user_id={user_id}, phone={phone}, voucher_id={voucher_id}")
+
+    async def is_viral_unlocked(self, user_id: Optional[str], phone: Optional[str], voucher_id: str) -> bool:
+        """
+        Check if a viral voucher is unlocked for a user or phone.
+        """
+        if not self._redis:
+            # If Redis is unavailable, fall back to True (graceful degradation)
+            return True
+            
+        r = cast(_redis.Redis, self._redis)
+        if user_id:
+            if await r.get(f"viral:unlocked:user:{user_id}:{voucher_id}"):
+                return True
+        if phone:
+            import re as _re
+            normalized_phone = _re.sub(r"[\s\.\-\+]", "", phone)
+            if normalized_phone.startswith("84") and len(normalized_phone) >= 11:
+                normalized_phone = "0" + normalized_phone[2:]
+            if await r.get(f"viral:unlocked:phone:{normalized_phone}:{voucher_id}"):
+                return True
+        return False
 
     async def get_campaign_details(
         self,

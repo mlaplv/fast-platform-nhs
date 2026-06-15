@@ -484,43 +484,112 @@ class ReviewService:
         rating_pool = [5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 3]
         rating = random.choice(rating_pool)
 
-        # --- 5. Style-specific prompt instructions ---
-        style_instructions: dict[str, str] = {
-            "tiktok": (
-                "Phong cách TikTok Shop: rất ngắn (tối đa 20 từ), đưa 1-2 emoji tự nhiên, "
-                "giọng Gen Z/trẻ trung, không quá trang trọng. VD: '✨ món này xịt lắm, da mình mịn hờ'"
-            ),
-            "shopee": (
-                "Phong cách Shopee: trung bình 25-35 từ, chân thực như user thật, "
-                "có đề cập 1 chi tiết cụ thể (mùi hương, cảm giác, vỏ hộp, tốc độ giao hàng)."
-            ),
-            "lazada": (
-                "Phong cách Lazada: chuyên nghiệp hơn, khoảng 30-40 từ, "
-                "có nhận xét kỹ thuật (chất liệu, công nghệ, hiệu quả rõ ràng)."
-            ),
-            "authentic": (
-                "Phong cách tự nhiên: viết như nhắn tin thực tế, "
-                "không theo form cở nào, có thể có typo nhỏ, ngắn gọn và chân thực nhất."
-            ),
-        }
+        # --- 5. Style-specific prompt instructions & System prompts ---
+        if entity_type == "NEWS":
+            style_instructions = {
+                "tiktok": (
+                    "Phong cách TikTok (độc giả trẻ): cực kỳ ngắn gọn (dưới 20 từ, tối đa 100 ký tự), "
+                    "đưa 1-2 emoji tự nhiên, giọng trẻ trung/Gen Z. VD: '✨ thông tin hữu ích ghê, đúng cái mình đang tìm kiếm luôn'"
+                ),
+                "shopee": (
+                    "Phong cách bình luận chia sẻ: trung bình 20-30 từ, chia sẻ ngắn gọn về trải nghiệm thực tế "
+                    "hoặc thói quen liên quan đến bài viết. VD: 'Mình từng thử đổi thói quen như bài viết và thấy đỡ hẳn.'"
+                ),
+                "lazada": (
+                    "Phong cách khách quan: khoảng 25-35 từ, nhận xét về tính thực tế hoặc giá trị kiến thức "
+                    "mà bài viết mang lại. VD: 'Bài viết phân tích rất chi tiết và khoa học, giúp mình hiểu rõ nguyên nhân.'"
+                ),
+                "authentic": (
+                    "Phong cách tự nhiên: bình luận cực kỳ ngắn gọn như comment dạo trên mạng xã hội, "
+                    "giọng văn chân thực, không trang trọng. VD: 'bài viết hay quá, lưu lại để áp dụng mới được'"
+                ),
+            }
+            context_lines = [f"Tiêu đề bài viết: {entity_name}"]
+            if entity_desc:
+                context_lines.append(f"Tóm tắt bài viết: {entity_desc[:200]}")
+            context_lines.append(f"Số sao đánh giá bài viết: {rating}/5")
+            content_foundation = "\n".join(context_lines)
 
-        # --- 6. Build prompt — dùng REVIEW_BOOSTER pattern ---
-        context_lines = [f"Tên sản phẩm: {entity_name}"]
-        if entity_desc:
-            context_lines.append(f"Mô tả: {entity_desc[:200]}")
-        if entity_attrs:
-            attrs_text = ", ".join(f"{k}: {v}" for k, v in list(entity_attrs.items())[:5])
-            context_lines.append(f"Thuộc tính: {attrs_text}")
-        context_lines.append(f"Số sao đánh giá: {rating}/5")
-        content_foundation = "\n".join(context_lines)
+            system_prompt = f"""Bạn là một độc giả Việt Nam vừa đọc xong bài viết tin tức.
+Nhiệm vụ: Viết ĐÚNG 1 CÂU BÌNH LUẬN/ĐÁNH GIÁ chân thực, không hoa mỹ về bài viết này.
+{style_instructions[style]}
+CHỈ THỊ QUAN TRỌNG:
+1. BÁM SÁT TIÊU ĐỀ BÀI VIẾT trong câu một cách tự nhiên (không bắt buộc bê nguyên xi cả tiêu đề dài dòng, chỉ cần đề cập ý chính hoặc tên chủ đề bài viết).
+2. Các câu bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (Có đầy đủ chủ ngữ + vị ngữ).
+3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.
+4. Hãy chủ động viết ngắn gọn ngay từ đầu (TỐI ĐA 30 từ, dưới 140 ký tự).
+5. Chỉ trả về ĐÚNG 1 CÂU bình luận duy nhất, không thêm bất kỳ văn bản giải thích nào khác."""
 
-        system_prompt = f"""Bạn là một khách hàng Việt Nam vừa mua và dùng xong sản phẩm.
+        elif entity_type == "CATEGORY":
+            style_instructions = {
+                "tiktok": (
+                    "Phong cách TikTok Shop: cực kỳ ngắn gọn (dưới 20 từ, tối đa 100 ký tự), đưa 1-2 emoji tự nhiên, "
+                    "giọng Gen Z/trẻ trung. VD: '✨ danh mục này nhiều món xinh xỉu, săn sale mỏi tay luôn'"
+                ),
+                "shopee": (
+                    "Phong cách Shopee: trung bình 25-35 từ, chia sẻ cảm nhận về sự phong phú của danh mục sản phẩm này."
+                ),
+                "lazada": (
+                    "Phong cách Lazada: chuyên nghiệp hơn, khoảng 30-40 từ, đánh giá độ đa dạng, mức giá sản phẩm."
+                ),
+                "authentic": (
+                    "Phong cách tự nhiên: bình luận ngắn gọn, chân thực như khách mua hàng bình thường."
+                ),
+            }
+            context_lines = [f"Tên danh mục sản phẩm: {entity_name}"]
+            if entity_desc:
+                context_lines.append(f"Mô tả danh mục: {entity_desc[:200]}")
+            context_lines.append(f"Số sao đánh giá: {rating}/5")
+            content_foundation = "\n".join(context_lines)
+
+            system_prompt = f"""Bạn là một khách hàng Việt Nam vừa trải nghiệm mua sắm các sản phẩm thuộc danh mục sản phẩm này.
+Nhiệm vụ: Viết ĐÚNG 1 CÂU ĐÁNH GIÁ chân thực, không hoa mỹ.
+{style_instructions[style]}
+CHỈ THỊ QUAN TRỌNG:
+1. BÁM SÁT TÊN DANH MỤC trong câu một cách tự nhiên.
+2. Các câu bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (Có đầy đủ chủ ngữ + vị ngữ).
+3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.
+4. Hãy chủ động viết ngắn gọn ngay từ đầu (TỐI ĐA 30 từ, dưới 140 ký tự).
+5. Chỉ trả về ĐÚNG 1 CÂU duy nhất, không thêm bất kỳ văn bản giải thích nào khác."""
+
+        else: # PRODUCT
+            style_instructions = {
+                "tiktok": (
+                    "Phong cách TikTok Shop: rất ngắn (tối đa 20 từ), đưa 1-2 emoji tự nhiên, "
+                    "giọng Gen Z/trẻ trung, không quá trang trọng. VD: '✨ món này xịt lắm, da mình mịn hờ'"
+                ),
+                "shopee": (
+                    "Phong cách Shopee: trung bình 25-35 từ, chân thực như user thật, "
+                    "có đề cập 1 chi tiết cụ thể (mùi hương, cảm giác, vỏ hộp, tốc độ giao hàng)."
+                ),
+                "lazada": (
+                    "Phong cách Lazada: chuyên nghiệp hơn, khoảng 30-40 từ, "
+                    "có nhận xét kỹ thuật (chất liệu, công nghệ, hiệu quả rõ ràng)."
+                ),
+                "authentic": (
+                    "Phong cách tự nhiên: viết như nhắn tin thực tế, "
+                    "không theo form cở nào, có thể có typo nhỏ, ngắn gọn và chân thực nhất."
+                ),
+            }
+            context_lines = [f"Tên sản phẩm: {entity_name}"]
+            if entity_desc:
+                context_lines.append(f"Mô tả: {entity_desc[:200]}")
+            if entity_attrs:
+                attrs_text = ", ".join(f"{k}: {v}" for k, v in list(entity_attrs.items())[:5])
+                context_lines.append(f"Thuộc tính: {attrs_text}")
+            context_lines.append(f"Số sao đánh giá: {rating}/5")
+            content_foundation = "\n".join(context_lines)
+
+            system_prompt = f"""Bạn là một khách hàng Việt Nam vừa mua và dùng xong sản phẩm.
 Nhiệm vụ: Viết ĐÚNG 1 CÂU ĐÁNH GIÁ chân thực, không phản cảm, không hoa mỹ.
 {style_instructions[style]}
-CHỈ THỊ "THẬT":
+CHỈ THỊ QUAN TRỌNG:
 1. BÁM SÁT TÊN SẢN PHẨM trong câu.
-2. Đa dạng hóa: không lặp cấu trúc "Sản phẩm tốt, thấm nhanh...".
-3. Chỉ trả về ĐÚNG 1 CÂU duy nhất, không thêm gì khác."""
+2. Các câu bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (Có đầy đủ chủ ngữ + vị ngữ).
+3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.
+4. Hãy chủ động viết ngắn gọn ngay từ đầu (TỐI ĐA 30 từ, dưới 140 ký tự).
+5. Đa dạng hóa: không lặp cấu trúc "Sản phẩm tốt, thấm nhanh...".
+6. Chỉ trả về ĐÚNG 1 CÂU duy nhất, không thêm bất kỳ văn bản giải thích nào khác."""
 
         prompt = f"Dữ liệu: {content_foundation}"
 
@@ -538,7 +607,7 @@ CHỈ THỊ "THẬT":
             )
             content_raw = str(getattr(response, "data", response)).strip()
             # Sanitize: bỏ quote dư và xử lý newline
-            content_raw = content_raw.strip('"\' \n').split('\n')[0][:200]
+            content_raw = content_raw.strip('"\' \n').split('\n')[0][:500]
         except Exception as exc:
             logger.error(f"[ReviewService.ai_seed_one] LLM failed: {exc}")
             raise ValueError(f"AI không thể tạo nội dung: {exc}")
