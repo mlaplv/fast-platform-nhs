@@ -19,8 +19,46 @@
   interface Props {
     newsList: NewsItem[];
     categoryName?: string;
+    serverTotal?: number;
   }
-  let { newsList = [], categoryName = "Tin tức" }: Props = $props();
+  let { newsList = [], categoryName = "Tin tức", serverTotal = 0 }: Props = $props();
+
+  let allNews = $state<NewsItem[]>([...newsList]);
+  let currentOffset = $state(newsList.length);
+  let isLoading = $state(false);
+
+  async function loadMore() {
+    if (isLoading) return;
+    if (allNews.length >= (serverTotal || 0)) return;
+    isLoading = true;
+    try {
+      const res = await fetch(`/api/v1/client/news?limit=20&offset=${currentOffset}`);
+      if (res.ok) {
+        const data = await res.json();
+        const newItems = (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[];
+        allNews = [...allNews, ...newItems];
+        currentOffset += newItems.length;
+      }
+    } catch (e) {
+      console.error('[LOAD MORE NEWS FAILED]', e);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function setupInfiniteScroll(node: HTMLElement) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    }, { threshold: 0.1 });
+    observer.observe(node);
+    return {
+      destroy() {
+        observer.unobserve(node);
+      }
+    };
+  }
 
   const searchStore = getSearchStore();
   let searchQuery = $state("");
@@ -68,7 +106,7 @@
   };
 
   const enhancedNews = $derived(() => {
-    return newsList.map((item, i) => {
+    return allNews.map((item, i) => {
       const tags = getArticleTags(item);
       const featImg = item.featuredImage || (item as any).featured_image || "";
       const created = item.createdAt || (item as any).created_at;
@@ -230,6 +268,32 @@
             XÓA TẤT CẢ BỘ LỌC
           </button>
        </div>
+    {/if}
+
+    <!-- Pagination (Elite Style) -->
+    {#if categoryName !== 'CHÍNH SÁCH'}
+      {#if allNews.length < (serverTotal || 0)}
+        <div class="mt-8 flex flex-col items-center justify-center pt-6 gap-4" use:setupInfiniteScroll>
+            <button 
+              onclick={loadMore}
+              disabled={isLoading}
+              class="w-full py-4 bg-white border border-gray-200 text-[11px] font-black tracking-[0.1em] hover:bg-[#C18F7E] hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">
+              {#if isLoading}
+                ĐANG TẢI...
+              {:else}
+                XEM THÊM TIN BÀI
+              {/if}
+            </button>
+        </div>
+      {:else if (serverTotal || 0) > 0}
+        <div class="mt-8 text-center py-6 pt-6">
+           <span class="text-[9px] font-black text-gray-400 tracking-widest opacity-60 flex items-center justify-center gap-3">
+             <div class="w-8 h-px bg-gray-200"></div>
+             ĐÃ HIỂN THỊ TOÀN BỘ {serverTotal} BÀI VIẾT
+             <div class="w-8 h-px bg-gray-200"></div>
+           </span>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>

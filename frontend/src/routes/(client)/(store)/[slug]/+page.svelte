@@ -246,9 +246,9 @@
   {/if}
 {:else if data.type === 'news'}
   {#if data.isMobile}
-    <NewsListMobile newsList={data.items} categoryName={data.categoryName} />
+    <NewsListMobile newsList={data.items} categoryName={data.categoryName} serverTotal={data.serverTotal} />
   {:else}
-    <NewsListDesktop newsList={data.items} categoryName={data.categoryName} />
+    <NewsListDesktop newsList={data.items} categoryName={data.categoryName} serverTotal={data.serverTotal} />
   {/if}
 {:else if data.type === 'category'}
   {#if data.isMobile}

@@ -124,6 +124,8 @@ class AiInspector(BaseAgentOperative):
         try:
             res = await trinity_bridge.run(self._agent, draft[:50000], system_prompt=system_prompt, role="pro", safety_none=True) 
             raw = res
+            if raw is None:
+                raise ValueError("Hệ thống AI quá tải hoặc quá thời gian chờ.")
             if hasattr(raw, 'data') and not hasattr(raw, 'geo_score'):
                 raw = raw.data
                 

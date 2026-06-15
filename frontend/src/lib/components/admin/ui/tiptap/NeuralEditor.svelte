@@ -82,10 +82,11 @@
 
   // Keep editBuffer in sync when content is set from outside (Zero-Flicker)
   $effect(() => { 
+    const val = content;
     untrack(() => {
       // CNS V2.2: Use a safer comparison to avoid reactive loops while typing
-      if (content !== undefined && content !== editBuffer) {
-        editBuffer = content; 
+      if (val !== undefined && val !== editBuffer) {
+        editBuffer = val; 
       }
     });
   });

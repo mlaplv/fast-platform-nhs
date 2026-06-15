@@ -250,6 +250,9 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 raw = res
                 logger.warning(f"✅ [PlagiarismCop] Brain returned. Type: {type(raw).__name__}")
 
+                if raw is None:
+                    raise ValueError("Hệ thống AI quá tải hoặc quá thời gian chờ.")
+
                 if hasattr(raw, 'data') and not hasattr(raw, 'uniqueness_score'):
                     raw = raw.data
                     logger.warning("📦 [PlagiarismCop] Unpacked raw.data")

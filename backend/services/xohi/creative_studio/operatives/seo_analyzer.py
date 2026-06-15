@@ -226,6 +226,8 @@ DRAFT:
                 role="brain",
                 timeout=180.0
             )
+            if response is None:
+                raise ValueError("Hệ thống AI quá tải hoặc quá thời gian chờ.")
             report = response
             report.logs = logs
             

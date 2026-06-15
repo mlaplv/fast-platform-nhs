@@ -141,17 +141,21 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
   // ── 2. News list ─────────────────────────────────────────────────────────
   if (slug === 'bai-viet') {
-    const newsRes = await fetch(`/api/v1/client/news`, {
+    const newsRes = await fetch(`/api/v1/client/news?limit=25`, {
       signal: AbortSignal.timeout(3000)
     }).catch(e => { console.error('[NEWS FETCH FAILED]', e); return null; });
 
     if (!newsRes?.ok) throw error(404, { message: 'Hiện tại chưa có bài viết nào.' });
 
     const data = await newsRes.json() as Record<string, unknown>;
+    const items = (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[];
+    const total = typeof data.total === 'number' ? data.total : (Array.isArray(data) ? data.length : items.length);
+
     return {
       type: 'news' as const,
       categoryName: 'Hướng dẫn - kiến thức',
-      items: (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[]
+      items,
+      serverTotal: total
     };
   }
 
