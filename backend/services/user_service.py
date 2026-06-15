@@ -98,7 +98,7 @@ class UserService:
         # 2. Scalar Projection Fetch
         stmt = (
             select(
-                User.id, User.email, User.name, User.status, User.created_at
+                User.id, User.email, User.username, User.name, User.status, User.created_at
             )
             .where(where_clause)
             .limit(limit).offset(offset).order_by(User.created_at.desc())
@@ -218,7 +218,7 @@ class UserService:
             role_codes = ["CUSTOMER"]
 
         if role_codes:
-            role_stmt = select(Role).where(Role.code.in_(role_codes))
+            role_stmt = select(Role).options(selectinload(Role.permissions)).where(Role.code.in_(role_codes))
             role_res = await db_session.execute(role_stmt)
             new_user.roles = list(role_res.scalars().all())
 
@@ -229,15 +229,23 @@ class UserService:
     @staticmethod
     async def update_user(db_session: AsyncSession, user_id: str, data: Dict[str, object]) -> User:
         """Moves logic from UserController.update_user. Elite V2.2: Returns hydrated model."""
-        stmt = select(User).where(User.id == user_id).options(selectinload(User.roles))
+        stmt = select(User).where(User.id == user_id).options(
+            selectinload(User.roles).selectinload(Role.permissions)
+        )
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
 
         if not user:
             raise NotFoundException(f"User {user_id} not found")
 
-        if "username" in data: user.username = str(data["username"])
-        if "email" in data: user.email = str(data["email"])
+        if "username" in data:
+            val = str(data["username"]).strip()
+            if val:
+                user.username = val
+        if "email" in data:
+            val = str(data["email"]).strip()
+            if val:
+                user.email = val
         if "name" in data: user.name = str(data["name"])
         if "status" in data: user.status = str(data["status"])
         if "gender" in data: user.gender = str(data["gender"])
@@ -270,7 +278,7 @@ class UserService:
             if UserService._is_elite_admin(user.username, user.email) and "SUPER_ADMIN" not in role_codes:
                 role_codes.append("SUPER_ADMIN")
                 
-            role_stmt = select(Role).where(Role.code.in_(role_codes))
+            role_stmt = select(Role).options(selectinload(Role.permissions)).where(Role.code.in_(role_codes))
             role_res = await db_session.execute(role_stmt)
             user.roles = list(role_res.scalars().all())
 
@@ -425,7 +433,7 @@ class UserService:
         )
 
         # Assign CUSTOMER role if it exists in seed
-        role_stmt = select(Role).where(Role.code == "CUSTOMER")
+        role_stmt = select(Role).options(selectinload(Role.permissions)).where(Role.code == "CUSTOMER")
         role_res = await db.execute(role_stmt)
         customer_role = role_res.scalar_one_or_none()
         if customer_role:

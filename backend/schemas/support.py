@@ -80,6 +80,7 @@ class SupportRequest(BaseModel):
     cart_items: Optional[List[Dict[str, JSONValue]]] = Field(default=None, description="Current cart snapshot from client localStorage.")
     selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
     pricing_context: Optional[PricingBreakdown] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")
+    cart_epoch: Optional[int] = Field(default=None, description="Current cart epoch on the client to prevent race conditions")
 
     @field_validator("message", mode="before")
     @classmethod

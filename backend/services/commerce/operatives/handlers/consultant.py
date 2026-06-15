@@ -104,7 +104,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         # ═══════════════════════════════════════════════════════
         # [DB-FIRST LAYER] Kiểm tra dữ liệu sản phẩm trong DB
         # ═══════════════════════════════════════════════════════
-        db_direct = _try_db_product_direct(ctx, msg_norm)
+        db_direct = await _try_db_product_direct(ctx, msg_norm)
         if db_direct:
             logger.info("✅ [DB-First] Trả kết quả trực tiếp từ DB — AI bypass hoàn toàn")
             ctx.replies.append(db_direct)
@@ -381,16 +381,26 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         else:
             base_prompt = composer.compose("helen_consultant_premium", context=composer_context)
 
+        marketing_block = ""
+        if ctx.p_info:
+            from backend.services.commerce.operatives.handlers.consultant_helpers import build_marketing_benefits_block
+            marketing_block = await build_marketing_benefits_block(ctx.db, ctx.p_info, ctx.dna)
+
         full_prompt = (
             f"{base_prompt}\n"
             f"{integration_ctx}\n"
             f"{fomo_ctx}\n"
             f"{loyalty_ctx}\n"
             f"{lead_alert}\n"
+        )
+        if marketing_block:
+            full_prompt += f"\n[CHƯƠNG TRÌNH MARKETING ĐANG ÁP DỤNG CHO SẢN PHẨM]\n{marketing_block}\n"
+            
+        full_prompt += (
             f"\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)]\n{pre_retrieved_ctx or 'Không tìm thấy kết quả bổ sung.'}\n"
             f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"
             f"\nCHỈ THỊ TƯ VẤN:\n"
-            f"- ƯU TIÊN TUYỆT ĐỐI dữ liệu trong [DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)] và [PRODUCT] để trả lời ngay.\n"
+            f"- ƯU TIÊN TUYỆT ĐỐI dữ liệu trong [DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)], [PRODUCT] và [CHƯƠNG TRÌNH MARKETING ĐANG ÁP DỤNG CHO SẢN PHẨM] để trả lời ngay.\n"
             f"- CẤM TUYỆT ĐỐI gọi các Tool tìm kiếm nếu thông tin cần trả lời đã nằm trong ngữ cảnh trên.\n"
         )
 

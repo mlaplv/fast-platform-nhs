@@ -1,9 +1,11 @@
 from __future__ import annotations
 import logging
 from typing import Optional, TYPE_CHECKING
+from sqlalchemy.ext.asyncio import AsyncSession
 
 if TYPE_CHECKING:
-    from backend.services.commerce.operatives.handlers.base import SupportContext
+    from backend.services.commerce.operatives.handlers.base import SupportContext, NeuralDNA
+    from backend.schemas.support import SupportProductInfo
 
 logger = logging.getLogger("arq.worker")
 
@@ -12,7 +14,105 @@ def _wrap_prefix(text: str) -> str:
         return f"[z2] {text}"
     return text
 
-def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
+async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProductInfo, dna: Optional[NeuralDNA]) -> str:
+    from backend.database.models.promotion import Voucher, ComboDeal
+    from backend.services.commerce.loyalty import LoyaltyService
+    from datetime import datetime, timezone
+    from sqlalchemy import select, and_, or_
+
+    now = datetime.now(timezone.utc)
+    
+    # 1. Combo
+    combo_desc = "Mua combo nhận thêm quà tặng đặc biệt."
+    try:
+        c_stmt = select(ComboDeal).where(
+            and_(
+                ComboDeal.deleted_at.is_(None),
+                ComboDeal.is_active == True,
+                or_(ComboDeal.start_date.is_(None), ComboDeal.start_date <= now),
+                or_(ComboDeal.end_date.is_(None), ComboDeal.end_date >= now),
+            )
+        )
+        c_rows = (await db.execute(c_stmt)).scalars().all()
+        for c in c_rows:
+            cond = c.condition_payload or {}
+            p_ids = cond.get("product_ids", [])
+            p_ids_str = [str(pid) for pid in p_ids]
+            if not p_ids_str or str(p_info.id) in p_ids_str:
+                rwd = c.reward_payload or {}
+                buy_qty = cond.get("buy_qty", 2)
+                get_qty = rwd.get("get_qty", 1)
+                combo_desc = f"Mua {buy_qty} tặng {get_qty} (Ưu đãi {c.name})"
+                break
+    except Exception as e:
+        logger.warning(f"[MarketingBlock] Combo query failed: {e}")
+
+    # 2. Voucher
+    voucher_desc = "Nhập mã `OSMO5K` giảm ngay 5.000đ cho mọi đơn hàng"
+    try:
+        v_stmt = select(Voucher).where(
+            and_(
+                Voucher.deleted_at.is_(None),
+                Voucher.is_active == True,
+                or_(Voucher.is_viral == False, Voucher.is_viral.is_(None)),
+                or_(Voucher.start_date.is_(None), Voucher.start_date <= now),
+                or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
+            )
+        ).order_by(Voucher.priority.desc())
+        v_rows = (await db.execute(v_stmt)).scalars().all()
+        
+        best_v = None
+        max_sav = 0.0
+        subtotal = float(p_info.price or 0.0)
+        for v in v_rows:
+            if subtotal < (v.min_spend or 0):
+                continue
+            sav = float(v.value) if v.type == "FIXED" else (subtotal * float(v.value) / 100 if v.type == "PERCENT" else 30000.0)
+            if v.type == "PERCENT" and v.max_discount:
+                sav = min(sav, float(v.max_discount))
+            if sav > max_sav:
+                max_sav, best_v = sav, v
+        
+        if best_v:
+            voucher_desc = f"Nhập mã **`{best_v.id}`** giảm ngay {int(max_sav):,}đ trực tiếp cho sản phẩm này".replace(",", ".")
+    except Exception as e:
+        logger.warning(f"[MarketingBlock] Voucher query failed: {e}")
+
+    # 3. Tích điểm (Loyalty)
+    try:
+        earned_points = int(p_info.price // 10000)
+        earned_vnd = earned_points * 10000
+        point_val_desc = f"Tích lũy **{earned_points} điểm** (~{earned_vnd:,}đ)".replace(",", ".")
+        if dna and dna.available_points > 0:
+            points_desc = f"{point_val_desc}. Bạn hiện có **{dna.available_points} điểm** (~{dna.available_points * 10000:,}đ) để dùng ngay!".replace(",", ".")
+        else:
+            points_desc = f"{point_val_desc} cho đơn sau. Chia sẻ link nhận thêm voucher 20k!"
+    except Exception as e:
+        logger.warning(f"[MarketingBlock] Loyalty points logic failed: {e}")
+        points_desc = "Tích lũy điểm thưởng hấp dẫn cho đơn hàng sau."
+
+    # 4. Check-in
+    checkin_desc = "Mỗi ngày điểm danh nhận ngay **1 điểm** (10.000đ) miễn phí!"
+    try:
+        checkin_cfg = await LoyaltyService._get_checkin_config(db)
+        cycle_days = checkin_cfg.get("cycle_days", 7)
+        rewards = checkin_cfg.get("rewards", [1, 1, 1, 1, 1, 1, 2])
+        day1_val = rewards[0] if len(rewards) > 0 else 1
+        day7_val = rewards[-1] if len(rewards) > 0 else 2
+        checkin_desc = f"Mỗi ngày điểm danh nhận ngay **{day1_val} điểm** ({day1_val * 10}k), ngày thứ {cycle_days} nhận **{day7_val} điểm** ({day7_val * 10}k) miễn phí!"
+    except Exception as e:
+        logger.warning(f"[MarketingBlock] Check-in config fetch failed: {e}")
+
+    marketing_block = (
+        f"🎁 **ƯU ĐÃI ĐỘC QUYỀN ĐANG ÁP DỤNG:**\n"
+        f"1. **Combo Tiết kiệm**: {combo_desc}\n"
+        f"2. **Voucher áp dụng**: {voucher_desc}\n"
+        f"3. **Tích điểm Osmo**: {points_desc}\n"
+        f"4. **Điểm danh nhận quà**: {checkin_desc}"
+    )
+    return marketing_block
+
+async def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
     """Fast-Path DB-First Consultation: Tạo kịch bản bán hàng động siêu tốc (<20ms) cho lượt click đầu tiên."""
     if not ctx.product_ctx or not ctx.p_info:
         return None
@@ -38,15 +138,8 @@ def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
     if ingredient_lines:
         ing_text = "\n".join(f"🧬 {line}" for line in ingredient_lines[:4])
 
-    # 2. Trích xuất Vouchers đang diễn ra
-    voucher_lines: list[str] = []
-    for line in ctx.cart_text.split("\n"):
-        if line.strip().startswith("- Mã"):
-            voucher_lines.append(line.strip().replace("- Mã", "🎟️ Mã"))
-    
-    promo_text = ""
-    if voucher_lines:
-        promo_text = "\n" + "\n".join(voucher_lines[:2])
+    # 2. Tạo bộ marketing benefits
+    marketing_block = await build_marketing_benefits_block(ctx.db, ctx.p_info, ctx.dna)
 
     # 3. Dựng kịch bản Sales Assassin 5 bước siêu súc tích (<250 từ) chuẩn Helen
     parts = [
@@ -64,16 +157,12 @@ def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
         "",
         "✨ **Hiệu quả thực tế:** Sau 14 ngày, làn da sẽ cải thiện rõ rệt, mịn màng, sáng khỏe và củng cố hàng rào bảo vệ da săn chắc hơn.",
         "",
-        f"💰 **Ưu đãi độc quyền hôm nay:**"
+        marketing_block,
+        ""
     ])
 
     if price_display:
-        parts.append(f"• Giá hiện tại: **{price_display}**")
-        
-    if promo_text:
-        parts.append(f"• Quà tặng: Tặng kèm quà độc quyền theo sản phẩm.{promo_text}")
-    else:
-        parts.append("• Quà tặng: Tặng kèm quà độc quyền theo sản phẩm.")
+        parts.append(f"💰 **Giá ưu đãi độc quyền**: {price_display}")
         
     parts.extend([
         "",
@@ -82,7 +171,7 @@ def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
 
     return _wrap_prefix("\n".join(parts))
 
-def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
+async def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
     """DB-First Layer: Trả lời trực tiếp từ DB nếu câu hỏi có cấu trúc rõ ràng và DB có đủ dữ liệu."""
     if not ctx.product_ctx or not ctx.p_info:
         return None
@@ -96,7 +185,7 @@ def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
     # Lượt đầu tiên click "Tư vấn" -> Dùng Fast-Path DB-First Template để phản hồi siêu tốc (<20ms)
     if "[system_consult]" in ctx.request.message:
         if not ctx.history_text.strip():
-            fast_reply = _generate_fast_db_consultation(ctx)
+            fast_reply = await _generate_fast_db_consultation(ctx)
             if fast_reply:
                 return fast_reply
         return None
@@ -104,6 +193,9 @@ def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
     p_name = ctx.p_info.name
     price_display = ctx.p_info.price_display
     product_ctx = ctx.product_ctx
+
+    # Build marketing block
+    marketing_block = await build_marketing_benefits_block(ctx.db, ctx.p_info, ctx.dna)
 
     # Trường hợp 1: Hỏi về thành phần / công dụng
     is_ingredient_query = any(kw in msg_norm for kw in [
@@ -128,6 +220,7 @@ def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
             return (
                 f"Dạ đây là thông tin kỹ thuật chính thức từ hãng về **{p_name}** ạ! ✨\n\n"
                 f"🧪 **Thành phần & Công dụng nổi bật:**\n{ing_text}\n\n"
+                f"{marketing_block}\n\n"
                 f"{price_txt}"
                 f"Anh/Chị muốn Helen tư vấn thêm về cách sử dụng phù hợp với tình trạng da của mình không ạ? 🌸"
             )
@@ -153,6 +246,7 @@ def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
             return (
                 f"Dạ để Anh/Chị an tâm tuyệt đối, đây là bảo chứng uy tín chính thức của **{p_name}** ạ! 🛡️\n\n"
                 f"{trust_text}\n\n"
+                f"{marketing_block}\n\n"
                 f"Sản phẩm 100% chính hãng, nhập khẩu nguyên đai nguyên kiện, đầy đủ hồ sơ pháp lý chuẩn Bộ Y Tế Việt Nam ạ. "
                 f"Anh/Chị yên tâm đặt hàng nhé! 🌸"
             )
@@ -162,13 +256,37 @@ def _generate_db_fallback(ctx: SupportContext) -> str:
     """Smart DB Fallback: Khi AI lỗi hoặc timeout > 10s, tự động dựng câu trả lời chuyên nghiệp từ DB."""
     # 🚀 Elite V6.2: Order Fallback Guard
     # If in order flow, avoid outputting irrelevant product specs
-    if ctx.order_draft and (ctx.order_draft.customer_phone or ctx.order_draft.customer_address or ctx.order_draft.items):
-        missing = ctx.order_draft.missing_slots
+    import re
+    msg_clean = ctx.request.message.lower().strip()
+    is_checkout_msg = any(kw in msg_clean for kw in ["tính tiền", "tinh tien", "thanh toán", "thanh toan", "mua", "đặt", "lấy", "ship", "giao", "chốt", "lên đơn", "order", "checkout"])
+    
+    from backend.schemas.support import SupportIntent
+    is_order_intent = False
+    if hasattr(ctx, "intent") and ctx.intent:
+        is_order_intent = ctx.intent in (SupportIntent.PURCHASE, SupportIntent.ORDER_STATUS)
+    
+    is_order_flow = (
+        (ctx.order_draft and (ctx.order_draft.customer_phone or ctx.order_draft.customer_address or ctx.order_draft.items))
+        or bool(ctx.request.cart_items)
+        or is_checkout_msg
+        or is_order_intent
+    )
+
+    if is_order_flow:
+        if ctx.order_draft:
+            missing = ctx.order_draft.missing_slots
+        else:
+            missing = []
+            if not re.search(r"0\d{8,10}", msg_clean):
+                missing.append("Số điện thoại")
+            if "/" not in msg_clean and not any(kw in msg_clean for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "hcm", "hn"]):
+                missing.append("Địa chỉ cụ thể")
+
         if missing:
             missing_str = " và ".join(missing)
             return _wrap_prefix(
-                f"Dạ Helen đang xử lý thông tin đơn hàng của mình ạ. ✨ "
-                f"Anh/Chị vui lòng cho em xin thêm {missing_str} để em hoàn tất lên bill gửi hàng ngay nhé! 🌸"
+                f"Dạ Helen đang kết nối lại với hệ thống tạo đơn. ✨ "
+                f"Anh/Chị vui lòng cho em xin thêm {missing_str} để em hỗ trợ lên bill và giao hàng tận nơi cho mình ngay nhé! 🌸"
             )
         else:
             return _wrap_prefix(

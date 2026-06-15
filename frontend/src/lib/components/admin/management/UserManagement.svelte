@@ -338,7 +338,7 @@
       {/if}
 
       <!-- Professional Table Header -->
-      <div class="hidden md:grid grid-cols-[60px_60px_minmax(250px,2fr)_1fr_120px] gap-0 border-b border-white/10 bg-black/40 text-[9px] font-mono text-gray-500 tracking-widest font-bold items-center">
+      <div class="hidden md:grid grid-cols-[60px_60px_minmax(250px,2fr)_1fr_120px] gap-0 border border-white/5 bg-white/[0.02] rounded-2xl text-[9px] font-mono text-gray-500 tracking-widest font-bold items-center mb-4">
         <div class="flex items-center justify-center p-4">
           <button 
             onclick={toggleSelectAll}
@@ -349,15 +349,15 @@
             {/if}
           </button>
         </div>
-        <div class="flex items-center justify-center p-4 border-l border-white/5">
+        <div class="flex items-center justify-center p-4">
           <ChevronDown size={12} class="opacity-30" />
         </div>
-        <div class="p-4 border-l border-white/5">Identity_Signature</div>
-        <div class="p-4 border-l border-white/5">Assigned_Tiers</div>
-        <div class="p-4 border-l border-white/5 text-right">Access</div>
+        <div class="p-4">Identity_Signature</div>
+        <div class="p-4">Assigned_Tiers</div>
+        <div class="p-4 text-right">Access</div>
       </div>
 
-      <div class="flex flex-col gap-4 sm:gap-0 sm:divide-y sm:divide-white/[0.02] px-4 sm:px-0">
+      <div class="flex flex-col gap-3 px-4 sm:px-0">
         {#each users as user (user.id)}
           <UserRow 
             {user} 

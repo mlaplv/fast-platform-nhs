@@ -421,7 +421,7 @@ def _validate_grounding(reply: str, ctx: SupportContext) -> str:
 def _sanitize_response(text: str) -> str:
     """Surgical leak prevention."""
     clean = re.sub(r"<thought>.*?</thought>", "", text, flags=re.DOTALL)
-    clean = re.sub(r"/\w+(/\w+)+(\.\w+)?", "[REDACTED_PATH]", clean)
+    clean = re.sub(r"/[a-zA-Z_]\w*(/[a-zA-Z_]\w*)+(\.\w+)?", "[REDACTED_PATH]", clean)
     clean = re.sub(r"(0|84|(\+84))(\d{2,3})[\s\.\-]?(\d{3})[\s\.\-]?(\d{3,4})", r"\1\3****\5", clean)
     for _p in _SYSTEM_LEAK_PATTERNS:
         if _p.search(clean):

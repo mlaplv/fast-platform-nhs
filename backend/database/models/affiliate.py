@@ -46,7 +46,7 @@ class AffiliateProfile(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
     ctv_code: Mapped[str] = mapped_column(String(20), unique=True, index=True)   # VD: "MINHTU01"
-    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)  # PENDING|ACTIVE|SUSPENDED|BANNED
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=False)  # PENDING|ACTIVE|SUSPENDED|BANNED
 
     # Commission Config
     commission_tier_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("commission_tiers.id"), nullable=True)

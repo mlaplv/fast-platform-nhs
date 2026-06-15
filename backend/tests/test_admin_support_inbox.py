@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime
 from uuid import uuid4
+from typing import Generator, Dict, Any, List
 
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -14,29 +15,29 @@ from backend.schemas.support_inbox import SupportSessionListResponse, SupportSes
 # Elite V2.2: Isolated Integration Test Suite for Admin Support Inbox
 
 @pytest.fixture
-def mock_db():
+def mock_db() -> AsyncMock:
     return AsyncMock()
 
 @pytest.fixture
-def test_client(mock_db):
+def test_client(mock_db: AsyncMock) -> Generator[TestClient, None, None]:
     # Elite V2.2: Clean guard bypass by clearing the controller's guards for the test
     AdminSupportInboxController.guards = []
     
     # Isolated app that only contains the target controller
-    app = Litestar(
+    app: Litestar = Litestar(
         route_handlers=[AdminSupportInboxController],
         dependencies={"db_session": lambda: mock_db}
     )
     
     # Provide a mock admin user in the scope for all requests
-    with TestClient(app=app, session_data={"user": {"id": "admin-1", "roles": ["admin"]}}) as client:
+    with TestClient(app=app) as client:
         yield client
 
 @pytest.mark.asyncio
-async def test_api_list_sessions(test_client, mock_db):
+async def test_api_list_sessions(test_client: TestClient, mock_db: AsyncMock) -> None:
     """Test GET /api/v1/admin/support/inbox/sessions"""
     # Mocking DB results
-    mock_row = MagicMock()
+    mock_row: MagicMock = MagicMock()
     mock_row.session_id = "s1"
     mock_row.customer_name = "User 1"
     mock_row.customer_phone = "090"
@@ -44,7 +45,7 @@ async def test_api_list_sessions(test_client, mock_db):
     mock_row.intent = "PURCHASE"
     mock_row.created_at = datetime.now()
     
-    mock_agg = MagicMock()
+    mock_agg: MagicMock = MagicMock()
     mock_agg.session_id = "s1"
     mock_agg.message_count = 5
     mock_agg.last_message_at = datetime.now()
@@ -62,17 +63,17 @@ async def test_api_list_sessions(test_client, mock_db):
         resp = test_client.get("/api/v1/admin/support/inbox/sessions")
         
         assert resp.status_code == HTTP_200_OK
-        data = resp.json()
+        data: Dict[str, object] = resp.json()
         assert data["total"] == 1
         assert data["data"][0]["session_id"] == "s1"
         assert data["data"][0]["is_high_intent"] is True
 
 @pytest.mark.asyncio
-async def test_api_get_session(test_client, mock_db):
+async def test_api_get_session(test_client: TestClient, mock_db: AsyncMock) -> None:
     """Test GET /api/v1/admin/support/inbox/sessions/{session_id}"""
-    session_id = "s1"
+    session_id: str = "s1"
     
-    mock_msg = MagicMock()
+    mock_msg: MagicMock = MagicMock()
     mock_msg.id = str(uuid4())
     mock_msg.role = "user"
     mock_msg.content = "Encrypted"
@@ -92,18 +93,18 @@ async def test_api_get_session(test_client, mock_db):
             resp = test_client.get(f"/api/v1/admin/support/inbox/sessions/{session_id}")
             
             assert resp.status_code == HTTP_200_OK
-            data = resp.json()
+            data: Dict[str, object] = resp.json()
             assert data["session_id"] == session_id
             assert data["is_takeover"] is True
             assert data["messages"][0]["content"] == "Decrypted"
 
 @pytest.mark.asyncio
-async def test_api_revoke_message(test_client, mock_db):
+async def test_api_revoke_message(test_client: TestClient, mock_db: AsyncMock) -> None:
     """Test POST /api/v1/admin/support/inbox/sessions/{sid}/messages/{mid}/revoke"""
-    session_id = "s1"
-    msg_id = "m1"
+    session_id: str = "s1"
+    msg_id: str = "m1"
     
-    mock_msg = MagicMock(spec=SupportChatHistory)
+    mock_msg: MagicMock = MagicMock(spec=SupportChatHistory)
     mock_msg.is_revoked = False
     
     mock_db.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=mock_msg))

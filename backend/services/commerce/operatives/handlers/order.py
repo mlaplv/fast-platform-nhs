@@ -9,6 +9,7 @@ from backend.services.commerce.logic.location_resolver import location_resolver
 from backend.services.xohi_memory import xohi_memory
 from backend.schemas.support import SupportIntent
 from backend.schemas.order import OrderDraft
+from litestar.exceptions import ValidationException
 import os
 import re
 import traceback
@@ -211,7 +212,8 @@ class OrderHandler(BaseHandler):
                                     name=str(it.get("name", "Sản phẩm")),
                                     quantity=int(it.get("quantity", 1)),
                                     price=float(it.get("price", 0)),
-                                    id=str(it.get("product_id") or it.get("id") or "")
+                                    id=str(it.get("product_id") or it.get("id") or ""),
+                                    gifts=it.get("gifts") or []
                                 ) for it in ctx.order_draft.items
                             ]
                         
@@ -237,10 +239,15 @@ class OrderHandler(BaseHandler):
         
         if (is_strong_intent or is_staff_order) and (not draft_filled or need_items or is_complete_now):
             try:
+                msg_lower = ctx.request.message.lower()
+                is_cart_checkout = any(kw in msg_lower for kw in ["tính tiền", "tinh tien", "thanh toán", "thanh toan", "checkout"])
+                passed_cart_items = ctx.request.cart_items if is_cart_checkout else None
+
                 lead_data = await lead_extractor.extract_and_convert(
                     ctx.db, ctx.request.message, ctx.session_id, 
                     current_product_slug=ctx.request.product_slug,
-                    cart_text=ctx.cart_text
+                    cart_text=ctx.cart_text,
+                    cart_items=passed_cart_items
                 )
                 ctx.lead_data = lead_data
 
@@ -249,7 +256,7 @@ class OrderHandler(BaseHandler):
                     if not ctx.order_draft:
                         ctx.order_draft = OrderDraft(
                             session_id=ctx.session_id,
-                            items=[it.model_dump() for it in lead_data.items]
+                            items=[it.model_dump() if hasattr(it, "model_dump") else it for it in lead_data.items]
                         )
                     
                     # Update slots
@@ -257,7 +264,7 @@ class OrderHandler(BaseHandler):
                     if lead_data.customer_address: ctx.order_draft.customer_address = lead_data.customer_address
                     if lead_data.customer_name: ctx.order_draft.customer_name = lead_data.customer_name
                     if lead_data.items:
-                        ctx.order_draft.items = [it.model_dump() for it in lead_data.items]
+                        ctx.order_draft.items = [it.model_dump() if hasattr(it, "model_dump") else it for it in lead_data.items]
                     if lead_data.is_definite_purchase:
                         ctx.order_draft.is_definite_intent = True
                     
@@ -331,7 +338,11 @@ class OrderHandler(BaseHandler):
                 # V7.0: Build item context string for smarter acknowledgment
                 item_ctx = ""
                 if lead_data.items:
-                    item_names_list = [f"{it.name} x{it.quantity}" for it in lead_data.items[:2]]
+                    item_names_list = []
+                    for it in lead_data.items[:2]:
+                        name = it.name if hasattr(it, "name") else it.get("name", "SP")
+                        qty = it.quantity if hasattr(it, "quantity") else it.get("quantity", 1)
+                        item_names_list.append(f"{name} x{qty}")
                     item_ctx = f" **{', '.join(item_names_list)}**"
                 elif p_name_short:
                     item_ctx = f" **{p_name_short}**"

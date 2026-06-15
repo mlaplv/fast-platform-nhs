@@ -9,7 +9,11 @@ from backend.database.models.system import SupportChatHistory
 @pytest.fixture
 def mock_db():
     from sqlalchemy.ext.asyncio import AsyncSession
-    return AsyncMock(spec=AsyncSession)
+    db = AsyncMock(spec=AsyncSession)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    db.execute.return_value = mock_result
+    return db
 
 @pytest.mark.asyncio
 async def test_v37_ghost_address_blocking(mock_db):

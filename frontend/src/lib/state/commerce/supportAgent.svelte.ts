@@ -3,6 +3,7 @@ import { browser } from "$app/environment";
 import { getNotificationState } from "$lib/state/notification.svelte";
 import { authStore } from "$lib/state/authStore.svelte";
 import { logger } from "$lib/utils/logger";
+import { getGlobalCart } from "./cart.svelte";
 
 export interface SupportProductInfo {
     id: string;
@@ -623,7 +624,8 @@ class SupportAgentState {
                 user_id: userId || null,
                 cart_items: cartItems || null,
                 selected_vouchers: selectedVouchers || null,
-                pricing_context: pricingContext || null
+                pricing_context: pricingContext || null,
+                cart_epoch: getGlobalCart().epoch
             }, { withCredentials: true });
 
             if (res && res.session_id) {
@@ -653,7 +655,47 @@ class SupportAgentState {
 
                 logger.log("🧩 [Helen Chat] Received Response:", res);
                 if (res.metadata) logger.log("🧠 [Helen Thoughts]:", res.metadata);
-                if (res.ui_metadata) logger.log("📊 [Helen UI Meta]:", res.ui_metadata);
+                if (res.ui_metadata) {
+                    logger.log("📊 [Helen UI Meta]:", res.ui_metadata);
+                    
+                    if (res.ui_metadata.update_cart) {
+                        const updateCart = res.ui_metadata.update_cart as {
+                            items: Array<{
+                                id: string;
+                                product: {
+                                    id: string;
+                                    name: string;
+                                    price: number;
+                                    discountPrice: number;
+                                    slug: string;
+                                };
+                                variant?: {
+                                    id: string;
+                                    sku: string;
+                                    price: number;
+                                    discountPrice: number;
+                                    tierIndex: number[];
+                                };
+                                quantity: number;
+                                selected: boolean;
+                            }>;
+                            epoch: number;
+                        };
+                        const cartStore = getGlobalCart();
+                        if (updateCart.epoch >= cartStore.epoch) {
+                            logger.log(`🔄 [CartSync] Syncing cart to epoch ${updateCart.epoch} (local: ${cartStore.epoch})`);
+                            if (updateCart.items.length === 0) {
+                                cartStore.clearCart();
+                            } else {
+                                cartStore.items = updateCart.items;
+                                cartStore.save();
+                            }
+                            cartStore.epoch = updateCart.epoch;
+                        } else {
+                            logger.warn(`🛡️ [CartSync] Ignored stale cart sync epoch ${updateCart.epoch} (local: ${cartStore.epoch})`);
+                        }
+                    }
+                }
 
                 // Check for Async Protocol (Elite V2.2)
                 if (res.status === "PROCESSING") {

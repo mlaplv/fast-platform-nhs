@@ -82,6 +82,7 @@ async def _try_sync_order_fast_path(
     actual_price = unit_price
     actual_qty = quantity
     gift_lines: List[str] = []
+    gift_list: List[dict] = []
     variant_sku = ""
     if resolved_product:
         best_variant, protocol_qty, _ = LeadExtractor._resolve_optimal_variant(resolved_product, quantity)
@@ -94,7 +95,8 @@ async def _try_sync_order_fast_path(
                 try: v_attrs = json.loads(v_attrs)
                 except Exception: v_attrs = {}
             if isinstance(v_attrs, dict):
-                for g in (v_attrs.get("gifts") or []):
+                gift_list = v_attrs.get("gifts") or []
+                for g in gift_list:
                     if isinstance(g, dict) and g.get("name"):
                         gift_lines.append(f"🎁 + {g['name']} (x{g.get('qty', 1)})")
 
@@ -176,6 +178,7 @@ async def _try_sync_order_fast_path(
         "name": f"{p_name_full} ({variant_sku})" if variant_sku else p_name_full,
         "price": actual_price,
         "quantity": actual_qty,
+        "gifts": gift_list,
     }
 
     draft = OrderDraft(
@@ -306,6 +309,7 @@ async def _try_sync_slot_fill(
                 )
             user_id = str(resolved_user.id) if resolved_user else "guest"
 
+            from backend.services.commerce.logic.lead_extractor import LeadExtractor
             enriched_items = []
             for it in draft.items:
                 enriched_item = dict(it)
@@ -313,6 +317,25 @@ async def _try_sync_slot_fill(
                 enriched_item.setdefault("product_id", enriched_item.get("id", ""))
                 enriched_item.setdefault("quantity", enriched_item.get("qty", 1))
                 enriched_item.setdefault("unit_price", enriched_item.get("price", 0))
+                
+                # Dynamic fallback gift resolution if gifts is missing/empty
+                if not enriched_item.get("gifts"):
+                    resolved_p = await LeadExtractor._resolve_product(
+                        db, name=enriched_item.get("name"),
+                        slug=enriched_item.get("id"), tenant_id=tid
+                    )
+                    if resolved_p:
+                        best_v, _, _ = LeadExtractor._resolve_optimal_variant(resolved_p, int(enriched_item["quantity"]))
+                        if best_v:
+                            v_attrs = best_v.attributes or {}
+                            if isinstance(v_attrs, str):
+                                try:
+                                    v_attrs = json.loads(v_attrs)
+                                except Exception:
+                                    v_attrs = {}
+                            if isinstance(v_attrs, dict):
+                                enriched_item["gifts"] = v_attrs.get("gifts") or []
+                
                 enriched_items.append(enriched_item)
 
             subtotal = sum(float(it.get("price") or it.get("unit_price") or 0.0) * int(it.get("quantity") or it.get("qty") or 1) for it in enriched_items)

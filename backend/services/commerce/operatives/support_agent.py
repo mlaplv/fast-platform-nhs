@@ -169,6 +169,29 @@ class SupportAgentOperative(BaseAgentOperative):
         )
         order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
+        # Check if the message is a cart checkout intent
+        msg_lower = request.message.lower()
+        is_cart_checkout = any(kw in msg_lower for kw in ["tính tiền", "tinh tien", "thanh toán", "thanh toan", "checkout"])
+
+        if not is_cart_checkout and request.product_slug:
+            # Direct Product Flow: If there is an existing draft, check if it's for a different product
+            if order_draft and order_draft.items:
+                stmt = select(ProductBase.id, ProductBase.slug).where(ProductBase.slug == request.product_slug)
+                curr_p = (await db.execute(stmt)).first()
+                if curr_p:
+                    curr_p_id, curr_p_slug = str(curr_p.id), str(curr_p.slug)
+                    different = False
+                    for item in order_draft.items:
+                        item_id = str(item.get("product_id") or item.get("id") or "")
+                        # If the item ID does not match current product ID and doesn't contain the slug
+                        if item_id != curr_p_id and curr_p_slug not in item_id:
+                            different = True
+                            break
+                    if different:
+                        logger.info(f"🔄 [SupportAgent/Brain] Product mismatch: Resetting order_draft from previous page in RAM and Redis.")
+                        order_draft = None
+                        await xohi_memory.clear_order_draft(session_id)
+
         hist_text = await _fetch_chat_context(db, session_id)
         dna = await _fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
@@ -263,6 +286,105 @@ class SupportAgentOperative(BaseAgentOperative):
                 "missing_slots": ctx.order_draft.missing_slots,
                 "is_definite": ctx.lead_data.is_definite_purchase if ctx.lead_data else False
             })
+        
+        # 🚀 Elite V7.2: Bidirectional Cart Sync with Epoch-based locking
+        incoming_cart = request.cart_items or []
+        draft_items = ctx.order_draft.items if ctx.order_draft else []
+        
+        # Check differences
+        incoming_map = {}
+        for item in incoming_cart:
+            prod = item.get("product") or {}
+            var = item.get("variant") or {}
+            p_id = str(var.get("id") or prod.get("id") or "")
+            qty = int(item.get("quantity") or 1)
+            if p_id:
+                incoming_map[p_id] = qty
+                
+        draft_map = {}
+        for item in draft_items:
+            p_id = str(item.get("variant_id") or item.get("product_id") or item.get("id") or "")
+            qty = int(item.get("quantity") or 1)
+            if p_id:
+                draft_map[p_id] = item
+        
+        has_changes = len(incoming_map) != len(draft_map)
+        if not has_changes:
+            for p_id, qty in incoming_map.items():
+                if p_id not in draft_map or int(draft_map[p_id].get("quantity") or 1) != qty:
+                    has_changes = True
+                    break
+        
+        should_clear_cart = bool(ctx.processed_order_id)
+        
+        if has_changes or should_clear_cart:
+            new_epoch = (request.cart_epoch or 0) + 1
+            if should_clear_cart:
+                ctx.ui_metadata["update_cart"] = {
+                    "items": [],
+                    "epoch": new_epoch
+                }
+            else:
+                updated_items = []
+                for p_id, d_item in draft_map.items():
+                    variant_obj = v_map.get(p_id)
+                    product_obj = None
+                    if variant_obj:
+                        product_obj = p_map.get(str(variant_obj.product_id))
+                    else:
+                        product_obj = p_map.get(p_id)
+                    
+                    if not product_obj and not variant_obj:
+                        try:
+                            var_res = (await db.execute(select(ProductVariant).where(ProductVariant.id == p_id))).scalar_one_or_none()
+                            if var_res:
+                                variant_obj = var_res
+                                product_obj = (await db.execute(select(ProductBase).where(ProductBase.id == var_res.product_id))).scalar_one_or_none()
+                            else:
+                                product_obj = (await db.execute(select(ProductBase).where(ProductBase.id == p_id))).scalar_one_or_none()
+                        except Exception as fe:
+                            logger.warning(f"[SupportAgent] Sync db fetch failed for ID {p_id}: {fe}")
+                    
+                    prod_dict = {}
+                    if product_obj:
+                        prod_dict = {
+                            "id": str(product_obj.id),
+                            "name": str(product_obj.name),
+                            "price": float(product_obj.price or 0),
+                            "discountPrice": float(product_obj.discount_price or product_obj.price or 0),
+                            "slug": str(product_obj.slug or "")
+                        }
+                    else:
+                        prod_dict = {
+                            "id": p_id,
+                            "name": d_item.get("name", "Sản phẩm"),
+                            "price": float(d_item.get("price") or 0),
+                            "discountPrice": float(d_item.get("price") or 0),
+                            "slug": ""
+                        }
+                        
+                    var_dict = None
+                    if variant_obj:
+                        var_dict = {
+                            "id": str(variant_obj.id),
+                            "sku": str(variant_obj.sku or ""),
+                            "price": float(variant_obj.price or 0),
+                            "discountPrice": float(variant_obj.discount_price or variant_obj.price or 0),
+                            "tierIndex": variant_obj.tier_index or []
+                        }
+                        
+                    updated_items.append({
+                        "id": p_id,
+                        "product": prod_dict,
+                        "variant": var_dict,
+                        "quantity": int(d_item.get("quantity") or 1),
+                        "selected": True
+                    })
+                
+                ctx.ui_metadata["update_cart"] = {
+                    "items": updated_items,
+                    "epoch": new_epoch
+                }
         
         ctx.ui_metadata["is_optimal_price"] = ctx.cart_text.find("[XÁC NHẬN]: Khách đã dùng mã tối ưu") != -1
         grounded_reply = _validate_grounding(final_reply, ctx)
@@ -392,11 +514,34 @@ class SupportAgentOperative(BaseAgentOperative):
         )
         order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
+        # Check if the message is a cart checkout intent
+        msg_lower = request.message.lower()
+        is_cart_checkout = any(kw in msg_lower for kw in ["tính tiền", "tinh tien", "thanh toán", "thanh toan", "checkout"])
+
+        if not is_cart_checkout and request.product_slug:
+            # Direct Product Flow: If there is an existing draft, check if it's for a different product
+            if order_draft and order_draft.items:
+                stmt = select(ProductBase.id, ProductBase.slug).where(ProductBase.slug == request.product_slug)
+                curr_p = (await db.execute(stmt)).first()
+                if curr_p:
+                    curr_p_id, curr_p_slug = str(curr_p.id), str(curr_p.slug)
+                    different = False
+                    for item in order_draft.items:
+                        item_id = str(item.get("product_id") or item.get("id") or "")
+                        # If the item ID does not match current product ID and doesn't contain the slug
+                        if item_id != curr_p_id and curr_p_slug not in item_id:
+                            different = True
+                            break
+                    if different:
+                        logger.info(f"🔄 [SupportAgent] Product mismatch: Resetting order_draft from previous page in RAM and Redis.")
+                        order_draft = None
+                        await xohi_memory.clear_order_draft(session_id)
+
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
         is_system_prompt = request.message.strip().startswith("[system_")
 
         # ══ SYNC DB-FIRST FAST-PATH ══
-        db_first_res = await _try_db_first_fast_path(db, request, p_info, c_name, cur_settings, ctx_text)
+        db_first_res = await _try_db_first_fast_path(db, request, p_info, c_name, cur_settings, ctx_text, dna=dna)
         if db_first_res:
             await self._save_history(
                 db, session_id, request.message, db_first_res.reply,
@@ -421,8 +566,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
         if not is_system_prompt:
             try:
-                from backend.services.commerce.logic.lead_extractor import LeadExtractor
-                masked_msg = await LeadExtractor._mask_sensitive_medical_terms(db, request.message)
+                masked_msg = await self._mask_sensitive_medical_terms(request.message)
                 fast_res = await asyncio.wait_for(
                     trinity_bridge.run(
                         _fast_intent_agent, masked_msg,

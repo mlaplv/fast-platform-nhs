@@ -303,6 +303,14 @@ export function createAnalysisController(config: {
 
     async function runCopyrightCheck(force = false, skipSave = false) {
         if (isCopyrightLoading) return;
+        
+        const content = (config.getContent ?? config.getEditedDraft)();
+        const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
+        if (!cleanContent) {
+            nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
         boosterAnnotations = []; currentAnalysisStep = 0;
@@ -349,6 +357,14 @@ export function createAnalysisController(config: {
             nanobot.showToast(`[LOCK] Cấp độ tác chiến chưa đạt: Cần Uniqueness > 60% để mở khóa SEO Scan. (Hiện tại: ${copyrightScore ?? 0}%)`, "warning");
             return;
         }
+
+        const content = (config.getContent ?? config.getEditedDraft)();
+        const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
+        if (!cleanContent) {
+            nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang phân tích SEO..."; activeTab = 'seo';
         boosterAnnotations = []; currentAnalysisStep = 0;
@@ -395,6 +411,14 @@ export function createAnalysisController(config: {
             nanobot.showToast(`[LOCK] Tín hiệu SEO chưa đủ mạnh: Cần SEO Score > 60 để kích hoạt AI Mod. (Hiện tại: ${seoScore ?? 0})`, "warning");
             return;
         }
+
+        const content = (config.getContent ?? config.getEditedDraft)();
+        const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
+        if (!cleanContent) {
+            nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang kiểm định AI..."; activeTab = 'ai';
         boosterAnnotations = []; currentAnalysisStep = 0;

@@ -435,7 +435,7 @@ def _generate_fomo_instructions(pb: Dict[str, object], all_vouchers: List[Vouche
 
 async def _try_db_first_fast_path(
     db: AsyncSession, request: SupportRequest, p_info: Optional[SupportProductInfo],
-    c_name: str, cur_settings: Dict[str, str], ctx_text: str
+    c_name: str, cur_settings: Dict[str, str], ctx_text: str, dna: Optional[NeuralDNA] = None
 ) -> Optional[SupportResponse]:
     if not p_info:
         return None
@@ -450,6 +450,9 @@ async def _try_db_first_fast_path(
     )
     meta_res = await db.execute(stmt)
     product_meta = meta_res.scalar_one_or_none() or {}
+
+    from backend.services.commerce.operatives.handlers.consultant_helpers import build_marketing_benefits_block
+    marketing_block = await build_marketing_benefits_block(db, p_info, dna)
 
     benefit_lines: list[str] = []
     section_label = "Công dụng nổi bật của sản phẩm:"
@@ -503,9 +506,10 @@ async def _try_db_first_fast_path(
     if "[system_consult]" in msg_norm:
         benefit_text = "\n".join(benefit_lines[:4]) if benefit_lines else "🧬 Chiết xuất thảo dược tự nhiên chuẩn Nhật Bản."
         db_first_reply = (
-            f"Dạ Helen chào Anh/Chị! Rất vui được tư vấn liệu trình chăm sóc da hoàn hảo với {p_name} ạ! ✨\n\n"
+            f"Dạ Helen chào Anh/Chị! Rất vui được tư vấn liệu trình chăm sóc da hoàn hảo với **{p_name}** ạ! ✨\n\n"
             f"🌸 {section_label}\n"
             f"{benefit_text}\n\n"
+            f"{marketing_block}\n\n"
             f"💰 Giá ưu đãi độc quyền: {price_display}\n\n"
             f"💬 Để nhận quà tặng độc quyền kèm đơn hàng hôm nay, Anh/Chị nhắn ngay Số Điện Thoại + Địa Chỉ để Helen lên đơn giao tận nơi nhé! 🌸"
         )
@@ -538,6 +542,7 @@ async def _try_db_first_fast_path(
             f"{safety_line}"
             f"• Phù hợp cho nhiều loại da, kể cả da nhạy cảm.\n"
             f"{cert_line}\n"
+            f"{marketing_block}\n\n"
             f"Anh/Chị cần Helen tư vấn kỹ hơn về cách kết hợp sản phẩm vào chu trình dưỡng da hiện tại không ạ? 🌸"
         )
     elif "xuất xứ" in msg_norm or "nguồn gốc" in msg_norm:
@@ -562,13 +567,15 @@ async def _try_db_first_fast_path(
         db_first_reply = (
             f"Dạ để Anh/Chị an tâm tuyệt đối, đây là nguồn gốc xuất xứ chính thức của **{p_name}** ạ! 🛡️\n\n"
             f"{origin_line}{cert_line_origin}\n\n"
+            f"{marketing_block}\n\n"
             f"Sản phẩm nhập khẩu chính ngạch từ {origin_country}, đầy đủ hóa đơn đỏ, hóa đơn VAT và tem chống hàng giả nên mình hoàn toàn yên tâm khi sử dụng ạ. 🌸"
         )
     elif "công dụng" in msg_norm or "thành phần" in msg_norm:
         benefit_text_4 = "\n".join(benefit_lines[:6]) if benefit_lines else "🧬 Chứa các dưỡng chất tự nhiên cao cấp củng cố hàng rào bảo vệ da, giúp da căng bóng, mịn màng và trắng sáng khỏe mạnh."
         db_first_reply = (
-            f"Dạ gửi Anh/Chị thông tin chi tiết về thành phần & công dụng của {p_name} ạ! ✨\n\n"
+            f"Dạ gửi Anh/Chị thông tin chi tiết về thành phần & công dụng của **{p_name}** ạ! ✨\n\n"
             f"{benefit_text_4}\n\n"
+            f"{marketing_block}\n\n"
             f"Anh/Chị nhắn lại tình trạng da hiện tại (da khô, dầu, mụn...) để Helen hướng dẫn cách sử dụng đạt hiệu quả tốt nhất nhé! 🌸"
         )
 

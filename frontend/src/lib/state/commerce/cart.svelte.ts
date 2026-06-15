@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import type { Product, ProductVariant, Voucher } from '$lib/types';
-import { getContext, setContext } from 'svelte';
+import { getContext, setContext, untrack } from 'svelte';
 import { authStore } from '../authStore.svelte';
 
 export interface CartItem {
@@ -32,6 +32,7 @@ export class CartStore {
     selectedVoucherIds = $state<string[]>([]);
     giftInfo = $state<GiftInfo | null>(null);
     isGiftModalOpen = $state<boolean>(false);
+    epoch = $state<number>(0);
     
     // Performance Lookup Indexes (Elite V2.2)
     voucherIndexMap = new Map<string, Voucher>();
@@ -65,6 +66,9 @@ export class CartStore {
                         giftInfo: this.giftInfo
                     };
                     localStorage.setItem(key, JSON.stringify(dataToSave));
+                    untrack(() => {
+                        this.epoch++;
+                    });
                 });
             });
         }

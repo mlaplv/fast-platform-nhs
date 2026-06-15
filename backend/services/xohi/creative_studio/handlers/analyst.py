@@ -43,7 +43,7 @@ class AnalystHandler:
             campaign = await campaign_repo.get(campaign_id)
             if not campaign: return GenericResponse(status="error", message="Campaign not found")
         else:
-            if not raw_content: return GenericResponse(status="error", message="No content provided for ad-hoc analysis")
+            if not raw_content: return GenericResponse(status="error", message="Chưa có nội dung để phân tích.")
             
             # ELITE V2.2: Context Enforcement from Router
             # Mapping frontend content_type to internal Category domain

@@ -197,7 +197,7 @@
 
           <!-- Username -->
           <div class="flex flex-col gap-2 relative group">
-            <label for="f-username" class="text-[9px] font-mono text-gray-500 tracking-widest">Login_Alias</label>
+            <label for="f-username" class="text-[9px] font-mono text-gray-500 tracking-widest">Login_Alias (Username)</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none"><UserCircle size={14} class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors" /></div>
               <input id="f-username" bind:value={formData.username} type="text" placeholder="SHADOW_AGENT_01"

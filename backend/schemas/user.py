@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
     id: str
     email: str
+    username: Optional[str] = None
     name: str = "Unknown"
     status: str = "ACTIVE"
     roles: List[RoleResponse] = Field(default_factory=list)

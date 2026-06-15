@@ -42,6 +42,7 @@ class LeadOrderItem(BaseModel):
     quantity: int = Field(1, description="Số lượng")
     price: Optional[float] = Field(0.0, description="Giá sản phẩm nếu có")
     id: Optional[str] = Field(None, description="Mã định danh sản phẩm (slug/uuid)")
+    gifts: Optional[List[object]] = Field(default_factory=list, description="Quà tặng kèm")
 
 class ExtractedLead(BaseModel):
     model_config = ConfigDict(strict=False)
@@ -128,7 +129,7 @@ class LeadExtractor:
         return lead
 
     @staticmethod
-    async def _hydrate_from_redis(session_id: str, lead: ExtractedLead, message: str) -> ExtractedLead:
+    async def _hydrate_from_redis(session_id: str, lead: ExtractedLead, message: str, has_web_cart: bool = False) -> ExtractedLead:
         """Elite V3.6: Fast L0 hydration from Redis OrderDraft."""
         raw_draft = await xohi_memory.get_order_draft(session_id)
         if not raw_draft:
@@ -163,7 +164,7 @@ class LeadExtractor:
             # we MUST preserve the draft items and quantities. LLM extraction in these turns often defaults 
             # to quantity 1 of the viewed product page, causing state loss.
             should_hydrate_draft_items = False
-            if draft.items:
+            if draft.items and not has_web_cart:
                 if not lead.items:
                     should_hydrate_draft_items = True
                 else:
@@ -310,7 +311,8 @@ class LeadExtractor:
         message: str, 
         session_id: str,
         current_product_slug: Optional[str] = None,
-        cart_text: str = ""
+        cart_text: str = "",
+        cart_items: Optional[List[Dict[str, Union[str, int, float, bool, None, dict, list]]]] = None
     ) -> Optional[ExtractedLead]:
         """
         Atomic Extraction -> Validation -> Conversion Loop.
@@ -337,6 +339,62 @@ class LeadExtractor:
             else:
                 logger.warning(f"[LeadExtractor] Unknown result type: {type(result)}")
                 return None
+
+            # 🚀 Elite V7.2: Incremental Merge for Web Chat (SSOT)
+            baseline_items: List[LeadOrderItem] = []
+            if cart_items is not None:
+                for item in cart_items:
+                    prod = item.get("product") or {}
+                    var = item.get("variant") or {}
+                    qty = int(item.get("quantity") or 1)
+                    item_id = str(var.get("id") or prod.get("id") or "")
+                    item_name = str(prod.get("name") or "")
+                    item_price = float(var.get("discountPrice") or var.get("price") or prod.get("discountPrice") or prod.get("price") or 0.0)
+                    
+                    if item_id and item_name:
+                        baseline_items.append(LeadOrderItem(
+                            name=item_name,
+                            quantity=qty,
+                            price=item_price,
+                            id=item_id
+                        ))
+                
+                # Perform the incremental merge
+                msg_lower = message.lower()
+                is_add_intent = any(kw in msg_lower for kw in ["thêm", "mua thêm", "lấy thêm", "cộng thêm", "gửi thêm", "ship thêm"])
+                is_remove_intent = any(kw in msg_lower for kw in ["xóa", "bỏ", "hủy", "remove", "delete"])
+                
+                merged_items: List[LeadOrderItem] = list(baseline_items)
+                
+                if is_remove_intent:
+                    new_merged: List[LeadOrderItem] = []
+                    for b_item in merged_items:
+                        if b_item.name.lower() in msg_lower or (b_item.id and b_item.id.lower() in msg_lower):
+                            logger.info(f"🗑️ [LeadExtractor] Removing item {b_item.name} due to remove intent.")
+                            continue
+                        new_merged.append(b_item)
+                    merged_items = new_merged
+                else:
+                    if lead.items:
+                        for ext in lead.items:
+                            matched = None
+                            for b_item in merged_items:
+                                if ext.id and b_item.id and ext.id == b_item.id:
+                                    matched = b_item
+                                    break
+                                if ext.name.lower() in b_item.name.lower() or b_item.name.lower() in ext.name.lower():
+                                    matched = b_item
+                                    break
+                            
+                            if matched:
+                                if is_add_intent:
+                                    matched.quantity += ext.quantity
+                                else:
+                                    if ext.quantity != matched.quantity:
+                                        matched.quantity = ext.quantity
+                            else:
+                                merged_items.append(ext)
+                lead.items = merged_items
 
             # 🚀 1.1 SEMANTIC AUTOCRACY (Elite V3.0)
             # Dựa hoàn toàn vào kết quả trích xuất items của PydanticAI. Xóa bỏ cản trở của Regex.
@@ -366,7 +424,7 @@ class LeadExtractor:
             
             # 🚀 Elite V3.8: Hybrid Intent Trust
             # If we have contact info, the user is obviously chốt đơn.
-            if lead.customer_phone or lead.customer_address:
+            if (lead.customer_phone or lead.customer_address) and lead.items:
                 if not lead.is_definite_purchase:
                     logger.info("💡 [LeadExtractor] Hybrid Trust: Info provided -> Forcing is_definite_purchase=True")
                     lead.is_definite_purchase = True
@@ -377,7 +435,7 @@ class LeadExtractor:
             is_confirmation = message.lower().strip() in ["ok", "chốt", "đồng ý", "gửi đi", "vâng", "đúng rồi"]
             
             # Layer 0: Redis L0 Hydration (Fastest)
-            lead = await LeadExtractor._hydrate_from_redis(session_id, lead, message)
+            lead = await LeadExtractor._hydrate_from_redis(session_id, lead, message, has_web_cart=(cart_items is not None))
 
             # Layer 1: History Hydration (Fallback for consistency)
             if is_confirmation or (has_any_data and (not lead.customer_phone or not lead.customer_address or not lead.items)):
@@ -498,8 +556,18 @@ class LeadExtractor:
                         item.id = resolved_product.slug
                         if best_variant:
                             item.price = float(best_variant.discount_price or best_variant.price)
+                            v_attrs = best_variant.attributes or {}
+                            if isinstance(v_attrs, str):
+                                try:
+                                    import json
+                                    v_attrs = json.loads(v_attrs)
+                                except Exception:
+                                    v_attrs = {}
+                            if isinstance(v_attrs, dict):
+                                item.gifts = v_attrs.get("gifts") or []
                         else:
                             item.price = float(resolved_product.discount_price or resolved_product.price)
+                            item.gifts = []
 
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
