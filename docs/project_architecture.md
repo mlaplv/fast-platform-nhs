@@ -1,6 +1,6 @@
-# SƠ ĐỒ VÀ PHÂN TÍCH KIẾN TRÚC DỰ ÁN (ELITE V2.2)
+# SƠ ĐỒ VÀ PHÂN TÍCH KIẾN TRÚC DỰ ÁN (ELITE V2.3 - SOC ACTIVATED)
 
-Tài liệu này cung cấp sơ đồ cây thư mục kiến trúc của dự án Fast-Platform (Elite V2.2) cùng với phân tích chi tiết về điểm mấu chốt, điểm ưu và điểm nhược trong thiết kế hệ thống.
+Tài liệu này cung cấp sơ đồ cây thư mục kiến trúc của dự án Fast-Platform (Elite V2.3) cùng với phân tích chi tiết về điểm mấu chốt, điểm ưu và điểm nhược trong thiết kế hệ thống, đặc biệt tích hợp hạ tầng **Security Operations Center (SOC)**.
 
 ---
 
@@ -18,6 +18,8 @@ fast-platform-core/
 │   │   │   ├── checkout.py, order.py         # Quy trình giỏ hàng, đặt hàng và thanh toán
 │   │   │   └── support.py, tts.py            # AI tư vấn (Helen) và chuyển đổi giọng nói (Text-to-Speech)
 │   │   ├── admin_*.py                        # Nhóm điều hướng quản trị (admin_ctv, admin_support,...)
+│   │   ├── health.py                         # [SOC V2.3] Giám sát cơ sở dữ liệu, snapshot hệ thống & live SSE telemetry
+│   │   ├── security.py                       # [SOC V2.3] Điều khiển registry kết nối, kill switch & Redis ops panel
 │   │   └── auth.py, seo.py, category.py      # Các controller dùng chung cho phân quyền và SEO
 │   │
 │   ├── services/                             # 🧠 TẦNG BUSINESS LOGIC & AI SERVICES
@@ -32,44 +34,39 @@ fast-platform-core/
 │   │   │       └── handlers/                 # Phân luồng xử lý: consultant (tư vấn), order (đặt hàng)...
 │   │   ├── ads_protection/                   # Dịch vụ chống click tặc, phân tích Ads Forensic (Xohi)
 │   │   ├── xohi/                             # Studio tự động hóa và sinh bài viết chuẩn SGE
+│   │   ├── connection_registry.py            # [SOC V2.3] Registry giám sát và ngắt kết nối live stream (zombie switch)
+│   │   ├── db_health_service.py              # [SOC V2.3] Chẩn đoán DB pool status, leaks, slow queries, locks & vacuum
+│   │   ├── health_service.py                 # [SOC V2.3] Trích xuất snapshot phần cứng VPS (CPU/RAM/Redis)
 │   │   ├── auth_service.py                   # Xử lý xác thực người dùng
 │   │   └── event_bus.py                      # Hệ thống Bus sự kiện đồng bộ/bất đồng bộ
 │   │
 │   ├── database/                             # 💾 TẦNG DỮ LIỆU (SQLAlchemy 2.0 ORM)
-│   │   ├── alchemy_config.py                 # Khởi tạo kết nối DB & Session Management
+│   │   ├── alchemy_config.py                 # [SOC V2.3] SQLAlchemy event listeners đếm leaks & slow queries
 │   │   ├── repositories.py                   # Pattern Repository truy vấn Database an toàn
 │   │   └── models/                           # Các thực thể dữ liệu (commerce, content, seo, auth, ads...)
 │   │
 │   ├── routers/                              # 🌐 TẦNG STREAMING & REAL-TIME
 │   │   ├── intent.py, intent_core.py         # Nhận diện ý định giọng nói và điều phối luồng
-│   │   └── content_stream.py, voice_stream.py# Stream kết quả âm thanh và văn bản real-time
+│   │   └── content_stream.py, voice_stream.py# [SOC V2.3] Hook đăng ký vòng đời kết nối với registry
 │   │
 │   ├── schemas/                              # 🛡️ Pydantic V2 Schemas để Validation/Serialization
 │   ├── infra/                                # ⚙️ Cấu hình hạ tầng (arq_config cho Background Worker)
 │   └── constants/                            # 📌 Quản lý các biến hằng số (commerce, permissions, voice...)
 │
+│
 ├── frontend/                                 # ⚡ HỆ THỐNG FRONTEND (SvelteKit 5 + TypeScript + Runes)
-│   ├── svelte.config.js, vite.config.js      # File cấu hình build và môi trường SvelteKit/Vite
 │   ├── src/
-│   │   ├── app.html                          # HTML template gốc
-│   │   ├── hooks.server.ts                   # Hooks xử lý Auth Session và Security Headers ở Server
-│   │   │
 │   │   ├── routes/                           # 🚦 ĐỊNH TUYẾN TRANG (SvelteKit Directory Routing)
-│   │   │   ├── (client)/                     # 🛒 Nhóm giao diện Storefront cho Khách hàng công khai
-│   │   │   │   └── (store)/                  # Chi tiết giỏ hàng, khuyến mại, search, và [slug] (sản phẩm)
-│   │   │   ├── (admin)/                      # 🔑 Nhóm quản trị hệ thống
-│   │   │   │   └── dashboard/                # Trang tổng quan điều phối kinh doanh & kỹ thuật
-│   │   │   └── auth/                         # Giao diện đăng nhập, đăng ký
+│   │   │   ├── (client)/                     # 🛒 Nhóm storefront công khai cho khách hàng
+│   │   │   └── (admin)/                      # 🔑 Nhóm quản trị hệ thống
 │   │   │
 │   │   └── lib/                              # 📦 THƯ VIỆN GIAO DIỆN & TRẠNG THÁI CHUNG
-│   │       ├── components/                   # UI Components phân tách theo phân hệ
-│   │       │   ├── storefront/               # Components bán hàng (Cart, Product Card...)
-│   │       │   ├── admin/                    # Components quản trị (User table, Bento cards...)
-│   │       │   └── widgets/                  # Tiện ích tương tác giọng nói, Ads Protection widget...
-│   │       ├── state/                        # Quản lý Client State sử dụng Svelte 5 Runes ($state, $derived)
-│   │       ├── constants/                    # Hằng số toàn cục (zIndex.ts, route paths...)
-│   │       ├── api/                          # SDK giao tiếp với Backend Litestar
-│   │       └── styles/                       # CSS Vanilla
+│   │       ├── components/                   # UI Components
+│   │       │   ├── admin/
+│   │       │   │   └── management/
+│   │       │   │       └── SecuritySOC.svelte# [SOC V2.3] Dashboard Svelte 5 tabbed tích hợp Connections/DB/Redis
+│   │       │   └── storefront/, widgets/
+│   │       └── state/                        # Quản lý Client State sử dụng Svelte 5 Runes ($state)
 │
 ├── scripts/                                  # 🛠️ CÁC TOOL SCRIPTS (Sync, setup SSL, database seed)
 ├── docker-compose.yml                        # 🐳 Điều phối môi trường Container (Backend, Frontend, Redis, DB)
@@ -81,14 +78,19 @@ fast-platform-core/
 ## II. ĐIỂM MẤU CHỐT TRONG KIẾN TRÚC (KEY ARCHITECTURAL POINTS)
 
 1. **Kiến trúc hướng Agent (Agent-Centric Architecture):**
-   - Không chỉ là một ứng dụng CRUD thông thường, hệ thống tích hợp sâu các tác nhân AI thông minh (Helen Agent, Ads Forensic Agent, Viral Share Agent) làm lõi cốt lõi để xử lý nghiệp vụ tự động hóa từ phân tích click ảo đến đặt hàng và tư vấn khách hàng.
+   - Hệ thống tích hợp sâu các tác nhân AI thông minh (Helen Agent, Ads Forensic Agent, Viral Share Agent) làm lõi xử lý nghiệp vụ tự động hóa từ phân tích click ảo đến đặt hàng và tư vấn khách hàng.
    - Giao tiếp giữa các Agent thông qua cầu nối trung gian `TrinityBridge` và hệ thống định tuyến ngữ nghĩa `SemanticRouter`.
 
-2. **Ứng dụng Svelte 5 Runes:**
-   - Việc chuyển dịch sang Svelte 5 (sử dụng `$state`, `$derived`, `$effect`, `$props`) giúp quản lý trạng thái động của các Widget điều hướng giọng nói và giỏ hàng cực kỳ hiệu quả mà không bị overhead (bloat) như các cơ chế Virtual DOM khác.
-   - Phân cấp rõ ràng giữa hai Route Group chính là `(client)` và `(admin)`, trong đó client tối ưu tối đa về thời gian tải trang (CRO) và không yêu cầu đăng nhập bắt buộc.
+2. **Hạ tầng SOC - Thiết kế Zero-Overhead & On-Demand Activation (Bảo vệ VPS 4GB):**
+   - **Tắt mặc định (Default Off)**: Các module nặng như Connection Registry hay SSE Live Stream Monitor được vô hiệu hóa mặc định để bảo toàn tài nguyên RAM/CPU.
+   - **Watchdog Tự động ngắt**: Khi Admin kích hoạt giám sát, hệ thống sẽ tự khởi động một luồng đếm ngược (watchdog). Nếu không phát hiện thao tác hoặc sau thời gian cấu hình (ví dụ 60 phút), registry sẽ tự chuyển sang trạng thái ngắt kết nối để giải phóng RAM tối đa.
+   - **In-Memory SQLAlchemy Listener**: Việc đếm connection leaks và slow queries được thực hiện trực tiếp trên in-memory dict thông qua SQLAlchemy event listeners, đảm bảo không sinh thêm câu lệnh SQL dư thừa làm chậm luồng xử lý chính.
 
-3. **Luồng dữ liệu chặt chẽ (Strict Data Flow Protocol):**
+3. **Ứng dụng Svelte 5 Runes & HUD Giao diện Phân tách (Bento Grid / Tabbed Panel):**
+   - Việc quản lý trạng thái động của các Widget điều hướng giọng nói và tab SOC sử dụng `$state`, `$derived`, `$effect` của Svelte 5 giúp giảm thiểu tối đa overhead.
+   - Giao diện `SecuritySOC.svelte` phân chia khoa học thành 4 tab chức năng chuyên sâu, tương tác thời gian thực với backend qua hệ thống kiểm soát quyền `SYS_ADMIN`.
+
+4. **Luồng dữ liệu chặt chẽ (Strict Data Flow Protocol):**
    - Client hoàn toàn không được truy vấn trực tiếp cơ sở dữ liệu. Mọi tương tác bắt buộc phải đi qua API Endpoint (Litestar Controllers) -> Services (Business Logic) -> Repositories (Database Access) -> SQLAlchemy 2.0 ORM.
    - Ép kiểu tĩnh 100% bằng TypeScript ở Frontend và sử dụng Pydantic V2 để validate đầu vào/đầu ra ở Backend.
 
@@ -96,24 +98,27 @@ fast-platform-core/
 
 ## III. ĐIỂM ƯU (STRENGTHS)
 
-* **Hiệu năng vượt trội (High Performance):**
-  - Litestar là một ASGI framework cực kỳ gọn nhẹ và tối ưu, cho tốc độ xử lý nhanh hơn nhiều so với các framework truyền thống. Kết hợp với Svelte 5 (Zero-Hydration client state), giúp giữ thời gian phản hồi API luôn ở mức cực thấp (<200ms).
+* **Hiệu năng vượt trội & Chống rò rỉ (High Performance & Anti-Leak):**
+  - Kết hợp Litestar ASGI gọn nhẹ và Svelte 5 giúp thời gian phản hồi API luôn ở mức cực thấp (<200ms).
+  - Tích hợp **Connection Registry & Kill Switch** cho phép dọn dẹp cưỡng bức các kết nối SSE/WS rác hoặc IP spam (zombie connections) giúp bảo vệ RAM tối đa.
+* **Database Telehealth Chuyên sâu:**
+  - Hệ thống giám sát được chi tiết Pool status, Active locks, các cặp blocking queries gây treo db và độ phân mảnh (Bloat %) của từng bảng.
+  - Cho phép quản trị viên thực thi **VACUUM ANALYZE** an toàn chạy nền (non-blocking) đối với các bảng whitelisted nhằm thu hồi không gian lưu trữ vật lý tức thời.
+* **Redis Ops Panel An toàn:**
+  - Thay vì sử dụng lệnh `KEYS` nguy hiểm gây nghẽn Redis đơn luồng, hệ thống sử dụng cơ chế `SCAN` tuần tự an toàn.
+  - Cung cấp tính năng Flush theo từng Namespace whitelisted (`pulse:`, `spam:`, `helen:`) giải quyết triệt để vấn đề đầy bộ nhớ Redis.
 * **Tối ưu hóa SEO tối đa:**
-  - Cấu trúc thư mục được thiết kế để tích hợp chặt chẽ với các dịch vụ SEO tự động (`seo_service.py`, `seo_graph_service.py`), hỗ trợ kết xuất SSR động cho các trang sản phẩm và tin tức nhằm đạt điểm số Lighthouse tối đa.
-* **Cơ chế AI modular, dễ mở rộng:**
-  - AI Engine được tách biệt độc lập trong `backend/services/ai_engine/`. Điều này cho phép dễ dàng thay thế các mô hình ngôn ngữ lớn (LLM) thông qua cấu hình `LiteLLM` hoặc thay đổi prompt system mà không ảnh hưởng đến logic nghiệp vụ thương mại cốt lõi.
-* **Hệ thống bảo vệ chủ động (Ads Protection & Security):**
-  - Kiến trúc có sẵn module giám sát `ads_protection` chuyên biệt chống click tặc, đồng thời áp dụng chính sách "Four Eyes Policy" (`four_eyes.py`) đối với các thao tác cấu hình hệ thống nhạy cảm.
+  - Cấu trúc thư mục được thiết kế để tích hợp chặt chẽ với các dịch vụ SEO tự động (`seo_service.py`), hỗ trợ kết xuất SSR động cho các trang sản phẩm và tin tức nhằm đạt điểm số Lighthouse tối đa.
 
 ---
 
-## IV. ĐIỂM NHƯỢC (WEAKNESSS)
+## IV. ĐIỂM NHƯỢC (WEAKNESSES)
 
-* **Rủi ro rò rỉ tài nguyên & Bộ nhớ hạn chế:**
-  - Hệ thống chạy real-time stream (SSE/WebSockets cho giọng nói và phản hồi chat) trên máy chủ có tài nguyên giới hạn (4GB RAM). Việc quản lý giải phóng kết nối (`dispose`) nếu không được thực hiện nghiêm ngặt rất dễ gây tràn bộ nhớ (Memory Leak) hoặc nghẽn Event Loop.
+* **Độ phức tạp khi giám sát thời gian thực:**
+  - Việc quản lý registry kết nối hoạt động bất đồng bộ (`asyncio`) đòi hỏi kiểm tra kỹ trạng thái kết nối ở các generator loop để tránh exception `RuntimeError` khi đóng kết nối đột ngột từ phía client.
+* **Giới hạn an toàn của VACUUM & Redis Flush:**
+  - Việc giới hạn danh sách bảng whitelisted có quyền chạy `VACUUM` hoặc các key được phép `FLUSH` là bắt buộc để tránh phá hủy cấu trúc dữ liệu hệ thống từ tài khoản admin bị lộ. Lập trình viên cần bổ sung thủ công cấu hình khi thêm bảng nghiệp vụ mới.
 * **Độ phức tạp cao trong việc debug luồng AI:**
   - Với sự tham gia của nhiều agent, semantic routers, và prompt entropy, việc tái dựng và debug một lỗi cụ thể trong quá trình chat/đặt hàng đòi hỏi phải phân tích log rất sâu qua nhiều tầng (Trinity Bridge -> Support Agent -> Handlers).
 * **Nguy cơ lỗi giao diện khi binding Svelte 5:**
-  - Việc cấm sử dụng fallback values trực tiếp cho `$bindable` props (bẫy binding của Svelte 5) yêu cầu lập trình viên phải luôn khởi tạo trạng thái an toàn ở mức Store hoặc `onMount`. Nếu quên, ứng dụng có thể gặp lỗi crash `props_invalid_value` trên client.
-* **Phụ thuộc lớn vào API bên thứ ba:**
-  - Các tính năng chính phụ thuộc chặt chẽ vào độ ổn định của API bên thứ ba (Google Ads API, Zalo OA API, các nhà cung cấp mô hình AI qua LiteLLM). Bất kỳ sự cố kết nối hoặc thay đổi chính sách nào từ đối tác cũng có thể gây ảnh hưởng trực tiếp đến hệ thống.
+  - Việc cấm sử dụng fallback values trực tiếp cho `$bindable` props yêu cầu lập trình viên phải luôn khởi tạo trạng thái an toàn ở mức Store hoặc `onMount` để tránh lỗi crash `props_invalid_value` trên client.
