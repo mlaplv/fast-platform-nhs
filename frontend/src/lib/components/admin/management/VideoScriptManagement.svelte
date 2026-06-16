@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, slide } from "svelte/transition";
-  import { untrack } from "svelte";
+  import { untrack, onDestroy } from "svelte";
   import Video from "@lucide/svelte/icons/video";
   import Search from "@lucide/svelte/icons/search";
   import Plus from "@lucide/svelte/icons/plus";
@@ -443,22 +443,103 @@
     nanobot.showToast("Đã xóa phân cảnh!", "info");
   }
 
-  // High-fidelity Vietnamese Edge TTS voiceover preview helper
+  // High-fidelity Vietnamese Edge TTS voiceover prefetch & play engine
   let currentAudio: HTMLAudioElement | null = null;
-  function speakVoiceover(text: string) {
+  let currentAudioUrl: string | null = null;
+  let sceneAudioCache = new Map<number, string>(); // scene_number -> blobUrl
+  let isPreloadingAudio = $state(false);
+
+  async function preloadScriptAudio() {
+    if (typeof window === "undefined" || !activeScript?.structured_script?.scenes?.length) return;
+    
+    isPreloadingAudio = true;
+    const apiBase = window.location.origin;
+    const scenes = activeScript.structured_script.scenes;
+    const voiceToLoad = selectedVoice;
+    
+    // Thu hồi toàn bộ Object URLs cũ để tránh rò rỉ bộ nhớ
+    sceneAudioCache.forEach(url => URL.revokeObjectURL(url));
+    sceneAudioCache.clear();
+    
+    // Tải trước nối tiếp để không làm nghẽn băng thông và tránh rate limit của Microsoft
+    for (const scene of scenes) {
+      if (!scene.voiceover) continue;
+      
+      // Kiểm tra nếu người dùng đã chuyển kịch bản hoặc giọng đọc khác trong lúc đang tải
+      if (selectedVoice !== voiceToLoad) break;
+      
+      const url = `${apiBase}/api/v1/client/tts/stream?text=${encodeURIComponent(scene.voiceover)}&voice=${voiceToLoad}`;
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const blob = await response.blob();
+          // Bảo vệ nếu blob rỗng hoặc lỗi JSON trả về từ server
+          if (blob.size > 0 && !blob.type.includes("json")) {
+            const blobUrl = URL.createObjectURL(blob);
+            sceneAudioCache.set(scene.scene_number, blobUrl);
+          }
+        }
+      } catch (e) {
+        console.warn(`[TTS Preload] Không thể tải trước âm thanh cho phân cảnh ${scene.scene_number}:`, e);
+      }
+    }
+    isPreloadingAudio = false;
+  }
+
+  // Tự động tải trước âm thanh khi người dùng mở kịch bản hoặc chuyển giọng nói khác
+  $effect(() => {
+    if (activeScript && selectedVoice) {
+      preloadScriptAudio();
+    }
+  });
+
+  onDestroy(() => {
+    sceneAudioCache.forEach(url => URL.revokeObjectURL(url));
+  });
+
+  async function speakVoiceover(sceneNumber: number, text: string) {
     if (typeof window === "undefined") return;
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
     }
+    if (currentAudioUrl) {
+      // Chỉ thu hồi đường dẫn động, giữ nguyên cache tĩnh tải trước
+      const isFromCache = Array.from(sceneAudioCache.values()).includes(currentAudioUrl);
+      if (!isFromCache) {
+        URL.revokeObjectURL(currentAudioUrl);
+      }
+      currentAudioUrl = null;
+    }
     
-    // Tận dụng API Client TTS công khai đã tích hợp sẵn trên backend (chạy trên port 8000 được Caddy định tuyến)
+    // 1. Kiểm tra trong bộ nhớ đệm tải trước (Instant Playback - Triệt tiêu giật lag)
+    if (sceneAudioCache.has(sceneNumber)) {
+      currentAudioUrl = sceneAudioCache.get(sceneNumber)!;
+      currentAudio = new Audio(currentAudioUrl);
+      currentAudio.play().catch(e => {
+        console.warn("[TTS] Lỗi phát âm thanh từ bộ đệm:", e);
+      });
+      return;
+    }
+    
+    // 2. Chế độ Fallback tải trực tiếp nếu chưa kịp nạp vào bộ đệm
     const apiBase = window.location.origin;
     const url = `${apiBase}/api/v1/client/tts/stream?text=${encodeURIComponent(text)}&voice=${selectedVoice}`;
-    currentAudio = new Audio(url);
-    currentAudio.play().catch(e => {
-      console.warn("[TTS] Lỗi phát âm thanh hoặc bị trình duyệt chặn tự phát:", e);
-    });
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      
+      if (blob.size > 0 && !blob.type.includes("json")) {
+        currentAudioUrl = URL.createObjectURL(blob);
+        currentAudio = new Audio(currentAudioUrl);
+        currentAudio.play().catch(e => {
+          console.warn("[TTS] Lỗi phát âm thanh tự phát:", e);
+        });
+      }
+    } catch (e) {
+      console.warn("[TTS] Không thể lấy dữ liệu âm thanh:", e);
+    }
   }
 
   // Playback Simulator core
@@ -470,7 +551,7 @@
     let sceneStart = 0;
 
     if (ttsEnabled) {
-      speakVoiceover(activeScript.structured_script.scenes[0].voiceover);
+      speakVoiceover(activeScript.structured_script.scenes[0].scene_number, activeScript.structured_script.scenes[0].voiceover);
     }
 
     playbackInterval = setInterval(() => {
@@ -486,7 +567,7 @@
           sceneStart += currentScene.duration;
           activeSceneIdx!++;
           if (ttsEnabled) {
-            speakVoiceover(activeScript.structured_script.scenes[activeSceneIdx!].voiceover);
+            speakVoiceover(activeScript.structured_script.scenes[activeSceneIdx!].scene_number, activeScript.structured_script.scenes[activeSceneIdx!].voiceover);
           }
         } else {
           stopPlayback();
@@ -503,6 +584,13 @@
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
+    }
+    if (currentAudioUrl) {
+      const isFromCache = Array.from(sceneAudioCache.values()).includes(currentAudioUrl);
+      if (!isFromCache) {
+        URL.revokeObjectURL(currentAudioUrl);
+      }
+      currentAudioUrl = null;
     }
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -737,6 +825,13 @@
                 <option value="vi-VN-HoaiMyNeural">Hoài Mỹ (Nữ - Bắc - TikTok)</option>
                 <option value="vi-VN-NamMinhNeural">Nam Minh (Nam - Bắc - Reviewer)</option>
               </select>
+            {/if}
+
+            {#if isPreloadingAudio}
+              <span class="flex items-center gap-1 text-[10px] text-yellow-500 font-mono px-2 animate-pulse">
+                <RefreshCw class="w-3 h-3 animate-spin text-yellow-500" />
+                <span>Đang tải audio...</span>
+              </span>
             {/if}
 
             {#if isPlaying}

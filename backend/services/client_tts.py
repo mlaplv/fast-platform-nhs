@@ -12,9 +12,10 @@ logger = logging.getLogger("api-gateway")
 
 async def stream_tts_public(text: str, voice: str = "vi-VN-HoaiMyNeural") -> AsyncGenerator[bytes, None]:
     """
-    Elite Master Stream (V4.1 - Guarded Output)
-    Provides a single, continuous audio stream. Raises on empty output.
+    Elite Master Stream (V4.2 - Guarded Output with Robust Auto-Retry & Backoff)
+    Provides a single, continuous audio stream. Retries on connection failure.
     """
+    import asyncio
     sanitized_text: str = _sanitize_text(text)
     if not sanitized_text:
         logger.warning("[TTS-Public] Empty text after sanitization — skipping.")
@@ -22,18 +23,34 @@ async def stream_tts_public(text: str, voice: str = "vi-VN-HoaiMyNeural") -> Asy
 
     # Chỉ cho phép 2 giọng đọc chuẩn của Microsoft Edge Việt Nam để đảm bảo an toàn hệ thống
     target_voice = voice if voice in ["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"] else "vi-VN-HoaiMyNeural"
-    communicate = edge_tts.Communicate(sanitized_text, target_voice)
+    
+    max_attempts = 4
     audio_yielded: bool = False
-    try:
-        async for data in communicate.stream():
-            if data["type"] == "audio":
-                audio_yielded = True
-                yield data["data"]
-    except Exception as e:
-        logger.error(f"[TTS-Public] Master Stream failed: {e}")
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            communicate = edge_tts.Communicate(sanitized_text, target_voice)
+            async for data in communicate.stream():
+                if data["type"] == "audio":
+                    audio_yielded = True
+                    yield data["data"]
+            # Nếu chạy thành công toàn bộ vòng lặp và đã nhận được âm thanh, kết thúc
+            if audio_yielded:
+                break
+        except Exception as e:
+            logger.warning(f"[TTS-Public] Attempt {attempt} failed: {e}")
+            if attempt == max_attempts:
+                logger.error(f"[TTS-Public] Master Stream failed after {max_attempts} attempts: {e}")
+            else:
+                # Exponential backoff (đợi 0.2s, 0.4s, 0.8s trước khi thử lại)
+                await asyncio.sleep(0.2 * (2 ** (attempt - 1)))
+                
+        if audio_yielded:
+            # Nếu đã phát âm thanh nhưng giữa chừng bị ngắt kết nối, không thử lại để tránh trùng lặp dữ liệu âm thanh đã phát
+            break
 
     if not audio_yielded:
-        logger.error("[TTS-Public] No audio bytes received from edge-tts (Microsoft service may be unavailable).")
+        logger.error("[TTS-Public] No audio bytes received from edge-tts after multiple attempts.")
 
 
 def _sanitize_text(text: str) -> str:
