@@ -84,6 +84,104 @@
   let selectedLogs = $state<Set<number>>(new Set());
   let detailLog = $state<AuditLog | null>(null);
 
+  // --- SOC Extensions States V2.3 ---
+  let activeTab = $state<'infra' | 'connections' | 'database' | 'redis'>('infra');
+  
+  // Connections registry states
+  let isRegistryEnabled = $state(false);
+  let registryAutoDisableMinutes = $state(60);
+  let connections = $state<ConnectionRegistryItem[]>([]);
+  let connKillIp = $state("");
+  let registryLoading = $state(false);
+
+  // Database health states
+  let dbPool = $state<DbPoolStatus | null>(null);
+  let dbLeaks = $state<DbLeakStats | null>(null);
+  let dbSlowQueries = $state<DbSlowQueryStats | null>(null);
+  let dbLocks = $state<DbLockEntry[]>([]);
+  let dbLockPairs = $state<DbLockPair[]>([]);
+  let dbBloat = $state<DbBloatEntry[]>([]);
+  let dbVacuumLoading = $state<string | null>(null);
+
+  // Redis ops states
+  let redisInfo = $state<RedisInfo | null>(null);
+  let redisPattern = $state("*");
+  let redisKeys = $state<string[]>([]);
+  let redisKeysLoading = $state(false);
+  let redisFlushPrefix = $state("pulse:");
+  let redisFlushLoading = $state(false);
+
+  interface ConnectionRegistryItem {
+    session_id: string;
+    conn_type: string;
+    path: string;
+    ip: string;
+    user_agent: string;
+    connected_at: string;
+    last_ping_at: string;
+    age_seconds: number;
+  }
+
+  interface DbPoolStatus {
+    pool_size: number;
+    checkedin: number;
+    checkedout: number;
+    overflow: number;
+    invalid: number;
+    pool_timeout: number;
+    recycle_interval: number;
+  }
+
+  interface DbLeakStats {
+    total_leaks_detected: number;
+    last_leak_duration_ms: number;
+    last_leak_time: string | null;
+  }
+
+  interface DbSlowQueryStats {
+    total_slow_queries: number;
+    last_slow_query_sql: string;
+    last_slow_query_duration_ms: number;
+    last_slow_query_time: string | null;
+  }
+
+  interface DbLockEntry {
+    pid: number;
+    query: string;
+    state: string;
+    wait_event_type: string | null;
+    wait_event: string | null;
+    duration_seconds: number | null;
+  }
+
+  interface DbLockPair {
+    blocked_pid: number;
+    blocked_query: string;
+    blocking_pid: number;
+    blocking_query: string;
+  }
+
+  interface DbBloatEntry {
+    tablename: string;
+    total_size: string;
+    dead_rows: number;
+    live_rows: number;
+    dead_ratio_pct: number;
+    last_vacuum: string | null;
+    last_autovacuum: string | null;
+    last_analyze: string | null;
+    needs_vacuum: boolean;
+  }
+
+  interface RedisInfo {
+    used_memory_mb: number;
+    maxmemory_mb: number;
+    used_memory_peak_mb: number;
+    maxmemory_policy: string;
+    connected_clients: number;
+    uptime_seconds: number;
+  }
+
   // --- Derived Computations ---
   // Elite V2.2: Sort containers by RAM consumption descending so heavy containers are highlighted first
   let sortedContainers = $derived(
@@ -110,10 +208,227 @@
   );
 
   // --- Operational Logic ---
+  function handleTabChange(tabId: typeof activeTab) {
+    if (tabId === 'connections') {
+      refreshConnections();
+      apiClient.post("/api/v1/security/connections/monitor", { enable: isRegistryEnabled }).then((res: any) => {
+        const data = res.data || res;
+        isRegistryEnabled = data.enabled;
+        registryAutoDisableMinutes = data.auto_disable_minutes;
+      });
+    } else if (tabId === 'database') {
+      loadDbHealthData();
+    } else if (tabId === 'redis') {
+      loadRedisData();
+      scanRedisKeys();
+    } else if (tabId === 'infra') {
+      loadSOCData();
+    }
+  }
+
+  async function toggleConnectionRegistry(enable: boolean) {
+    registryLoading = true;
+    try {
+      const res: any = await apiClient.post("/api/v1/security/connections/monitor", {
+        enable,
+        auto_disable_minutes: registryAutoDisableMinutes
+      });
+      const data = res.data || res;
+      isRegistryEnabled = data.enabled;
+      registryAutoDisableMinutes = data.auto_disable_minutes;
+      nanobot.ui.showToast(enable ? "CONNECTION MONITOR ACTIVE" : "CONNECTION MONITOR INACTIVE", "success");
+      await refreshConnections();
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi thay đổi chế độ giám sát", "error");
+    } finally {
+      registryLoading = false;
+    }
+  }
+
+  async function refreshConnections() {
+    try {
+      const res: any = await apiClient.get(`/api/v1/security/connections?t=${Date.now()}`);
+      const data = res.data || res;
+      connections = data.connections || [];
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleKillConnection(sessionId: string) {
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "NGẮT KẾT NỐI SSE/WS",
+      message: `Xác nhận ngắt kết nối session ID: ${sessionId}?`,
+      confirmLabel: "KILL CONNECTION",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    try {
+      const res: any = await apiClient.delete(`/api/v1/security/connections/${sessionId}`);
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        await refreshConnections();
+      } else {
+        nanobot.ui.showToast(data.message, "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi ngắt kết nối", "error");
+    }
+  }
+
+  async function handleKillIp() {
+    if (!connKillIp.trim()) return;
+    const ip = connKillIp.trim();
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "NGẮT TOÀN BỘ KẾT NỐI THEO IP",
+      message: `Xác nhận ngắt toàn bộ các kết nối từ địa chỉ IP: ${ip}?`,
+      confirmLabel: "KILL ALL FROM IP",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    try {
+      const res: any = await apiClient.post(`/api/v1/security/connections/kill-all`, { ip });
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        connKillIp = "";
+        await refreshConnections();
+      } else {
+        nanobot.ui.showToast(data.message, "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi ngắt kết nối IP", "error");
+    }
+  }
+
+  async function loadDbHealthData() {
+    try {
+      const [healthRes, locksRes, bloatRes] = await Promise.all([
+        apiClient.get<any>(`/api/v1/health/db?t=${Date.now()}`),
+        apiClient.get<any>(`/api/v1/health/db/locks?t=${Date.now()}`),
+        apiClient.get<any>(`/api/v1/health/db/bloat?t=${Date.now()}`)
+      ]);
+      const health = healthRes.data || healthRes;
+      const locks = locksRes.data || locksRes;
+      const bloat = bloatRes.data || bloatRes;
+
+      dbPool = health.pool;
+      dbLeaks = health.leaks;
+      dbSlowQueries = health.slow_queries;
+      dbLocks = locks.active_queries || [];
+      dbLockPairs = locks.blocking_pairs || [];
+      dbBloat = bloat.tables || [];
+    } catch (e) {
+      console.error(e);
+      nanobot.ui.showToast("Lỗi tải thông tin cơ sở dữ liệu", "error");
+    }
+  }
+
+  async function handleVacuum(table: string) {
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "VACUUM ANALYZE",
+      message: `Xác nhận chạy VACUUM ANALYZE cho bảng ${table}? Việc này giúp dọn dẹp hàng rác vật lý và cập nhật thống kê mà không khóa bảng.`,
+      confirmLabel: "TRIGGER VACUUM",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    dbVacuumLoading = table;
+    try {
+      const res: any = await apiClient.post(`/api/v1/health/db/vacuum`, { table });
+      const data = res.data || res;
+      if (data.status === "success" || data.success) {
+        nanobot.ui.showToast(data.message || "Đã vacuum bảng thành công", "success");
+        await loadDbHealthData();
+      } else {
+        nanobot.ui.showToast(data.message || "Vacuum thất bại", "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi chạy vacuum", "error");
+    } finally {
+      dbVacuumLoading = null;
+    }
+  }
+
+  async function loadRedisData() {
+    try {
+      const res: any = await apiClient.get(`/api/v1/security/redis/info?t=${Date.now()}`);
+      redisInfo = res.data || res;
+    } catch (e) {
+      console.error(e);
+      nanobot.ui.showToast("Lỗi tải thông tin Redis", "error");
+    }
+  }
+
+  async function scanRedisKeys() {
+    redisKeysLoading = true;
+    try {
+      const res: any = await apiClient.get(`/api/v1/security/redis/keys?pattern=${encodeURIComponent(redisPattern)}`);
+      redisKeys = res.data || res || [];
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi quét keys", "error");
+    } finally {
+      redisKeysLoading = false;
+    }
+  }
+
+  async function handleDeleteRedisKey(key: string) {
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "XÓA KEY REDIS",
+      message: `Bạn có chắc chắn muốn xóa key '${key}' khỏi Redis không?`,
+      confirmLabel: "DELETE KEY",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    try {
+      const res: any = await apiClient.delete(`/api/v1/security/redis/key/${key}`);
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        redisKeys = redisKeys.filter(k => k !== key);
+      } else {
+        nanobot.ui.showToast(data.message, "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi xóa key", "error");
+    }
+  }
+
+  async function handleFlushNamespace() {
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "DỌN DẸP NAMESPACE REDIS",
+      message: `Xác nhận xóa sạch toàn bộ các key có prefix '${redisFlushPrefix}'?`,
+      confirmLabel: "FLUSH NAMESPACE",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    redisFlushLoading = true;
+    try {
+      const res: any = await apiClient.post(`/api/v1/security/redis/flush-namespace`, {
+        prefix: redisFlushPrefix
+      });
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        if (redisPattern.startsWith(redisFlushPrefix)) {
+          await scanRedisKeys();
+        }
+        await loadRedisData();
+      } else {
+        nanobot.ui.showToast(data.message, "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi dọn dẹp namespace", "error");
+    } finally {
+      redisFlushLoading = false;
+    }
+  }
+
   async function loadSOCData(): Promise<void> {
     isLoading = true;
     try {
       const t: number = Date.now();
+
       const [draftsRes, logsRes, statusRes, containersRes, phoneRes] = await Promise.all([
         apiClient.get<SecurityDraft[]>(`/api/v1/security/drafts?t=${t}`),
         apiClient.get<AuditLog[]>(`/api/v1/security/audit-logs?limit=100&t=${t}`),
@@ -331,7 +646,17 @@
   onMount(() => {
     loadSOCData();
     animLoop();
-    const interval = setInterval(loadSOCData, 10000); // 10s cycle for live resources
+    const interval = setInterval(() => {
+      if (activeTab === 'infra') {
+        loadSOCData();
+      } else if (activeTab === 'connections') {
+        refreshConnections();
+      } else if (activeTab === 'database') {
+        loadDbHealthData();
+      } else if (activeTab === 'redis') {
+        loadRedisData();
+      }
+    }, 10000); // 10s cycle for live resources
     return () => {
       clearInterval(interval);
       cancelAnimationFrame(animFrameId);
@@ -433,9 +758,27 @@
     </div>
   </header>
 
+  <!-- SOC Extensions Tab Navigation V2.3 -->
+  <div class="flex border-b border-white/5 bg-black/40 px-6 z-10">
+    {#each [
+      { id: 'infra', label: 'CORE INFRA & AUDIT' },
+      { id: 'connections', label: 'CONNECTIONS REGISTRY' },
+      { id: 'database', label: 'DATABASE HEALTH' },
+      { id: 'redis', label: 'REDIS OPS PANEL' }
+    ] as tab}
+      <button
+        onclick={() => { activeTab = tab.id as any; handleTabChange(tab.id as any); }}
+        class="py-3 px-4 text-xs font-black tracking-widest border-b-2 transition-all cursor-pointer
+               {activeTab === tab.id ? 'border-cyan-500 text-cyan-400 bg-cyan-500/[0.02]' : 'border-transparent text-gray-500 hover:text-gray-300'}"
+      >
+        {tab.label}
+      </button>
+    {/each}
+  </div>
+
   <main class="flex-1 flex overflow-hidden z-10">
     <!-- Action Sidebar (Floating) -->
-    {#if selectedLogs.size > 0}
+    {#if selectedLogs.size > 0 && activeTab === 'infra'}
       <div 
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-cyan-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-cyan-400/50 backdrop-blur-md animate-in slide-in-from-bottom-4"
         style="z-index: {Z_INDEX_ADMIN.HUD_FLOATING};"
@@ -452,8 +795,9 @@
         </div>
       </div>
     {/if}
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <!-- Live Core Infrastructure (SOC Container Monitor) -->
+    {#if activeTab === 'infra'}
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Live Core Infrastructure (SOC Container Monitor) -->
       {#if containers.length > 0}
         <div class="p-6 border-b border-cyan-500/10 space-y-4 bg-cyan-950/[0.01]">
           <div class="flex justify-between items-center">
@@ -710,6 +1054,370 @@
         </div>
       </div>
     </aside>
+    {/if}
+
+    {#if activeTab === 'connections'}
+      <div class="flex-1 flex flex-col overflow-hidden p-6 space-y-6" in:fade>
+        <!-- Connection Registry Dashboard -->
+        <div class="flex justify-between items-center bg-black/40 border border-white/5 rounded-2xl p-6">
+          <div class="space-y-1">
+            <h2 class="text-sm font-black tracking-widest text-cyan-400">CONNECTION LIFECYCLE MONITOR REGISTRY</h2>
+            <p class="text-[10px] text-gray-500 font-mono">Giám sát và kiểm soát cưỡng bức các kết nối Live Stream SSE/WebSocket trong thời gian thực</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] text-gray-500 font-black">WATCHDOG DISABLE (MINUTES):</span>
+              <input
+                type="number"
+                bind:value={registryAutoDisableMinutes}
+                min="5"
+                max="240"
+                class="w-16 bg-black/60 border border-white/10 rounded px-2 py-1 text-[10px] text-white"
+              />
+            </div>
+            <button
+              onclick={() => toggleConnectionRegistry(!isRegistryEnabled)}
+              disabled={registryLoading}
+              class="px-4 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all cursor-pointer flex items-center gap-2
+                     {isRegistryEnabled ? 'bg-rose-500/20 border border-rose-500/40 text-rose-400 hover:bg-rose-500/30' : 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30'}"
+            >
+              {#if registryLoading}
+                <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              {:else}
+                {isRegistryEnabled ? 'DISABLE REGISTRY (OFF)' : 'ENABLE REGISTRY (ON)'}
+              {/if}
+            </button>
+          </div>
+        </div>
+
+        <!-- Connection IP Kill Switch Tool -->
+        <div class="bg-black/40 border border-white/5 rounded-2xl p-6 flex items-center justify-between gap-6">
+          <div class="space-y-1 shrink-0">
+            <h3 class="text-xs font-black tracking-widest text-white">FORCE DISCONNECT BY CLIENT IP</h3>
+            <p class="text-[9px] text-gray-500">Nhập IP của click tặc hoặc zombie connection để ngắt toàn bộ phiên kết nối</p>
+          </div>
+          <div class="flex gap-2 flex-1 max-w-md">
+            <input
+              type="text"
+              bind:value={connKillIp}
+              placeholder="e.g. 192.168.1.1 hoặc 103.1.236.14"
+              class="flex-1 bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              onclick={handleKillIp}
+              disabled={!connKillIp.trim()}
+              class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-505 disabled:opacity-40 text-white text-[10px] font-black tracking-widest transition-all cursor-pointer"
+            >
+              FORCE DISCONNECT IP
+            </button>
+          </div>
+        </div>
+
+        <!-- Connections Table -->
+        <div class="flex-1 bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-white/5 flex justify-between items-center">
+            <span class="text-[10px] font-black tracking-widest text-cyan-400 uppercase">ACTIVE SESSIONS SATELLITE ({connections.length})</span>
+            <button onclick={refreshConnections} class="p-2 text-gray-500 hover:text-cyan-400 transition-colors">
+              <RefreshCw size={14} />
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto scrollbar-mission">
+            <table class="w-full text-left font-mono text-[10px]">
+              <thead class="bg-white/[0.02] text-gray-500 tracking-wider font-black uppercase border-b border-white/5">
+                <tr>
+                  <th class="p-3">Session ID</th>
+                  <th class="p-3">Type</th>
+                  <th class="p-3">Path</th>
+                  <th class="p-3">Client IP</th>
+                  <th class="p-3">Connected At</th>
+                  <th class="p-3 text-right">Age (s)</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/[0.03]">
+                {#each connections as conn}
+                  <tr class="hover:bg-cyan-500/[0.02] transition-colors">
+                    <td class="p-3 text-cyan-400 font-bold">{conn.session_id.slice(0, 8)}...</td>
+                    <td class="p-3"><span class="px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-400 border border-cyan-500/20 text-[8px] font-bold">{conn.conn_type}</span></td>
+                    <td class="p-3 text-gray-400 truncate max-w-[200px]" title={conn.path}>{conn.path}</td>
+                    <td class="p-3 text-gray-300">{conn.ip}</td>
+                    <td class="p-3 text-gray-500">{new Date(conn.connected_at).toLocaleTimeString([], { hour12: false })}</td>
+                    <td class="p-3 text-right font-black text-white">{conn.age_seconds}</td>
+                    <td class="p-3 text-right">
+                      <button
+                        onclick={() => handleKillConnection(conn.session_id)}
+                        class="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 text-[9px] font-black transition-all cursor-pointer"
+                      >
+                        KILL
+                      </button>
+                    </td>
+                  </tr>
+                {:else}
+                  <tr>
+                    <td colspan="7" class="p-12 text-center text-gray-600 italic">Không tìm thấy kết nối active nào. Bật Connection Registry để bắt đầu theo dõi.</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    {#if activeTab === 'database'}
+      <div class="flex-1 flex flex-col overflow-hidden p-6 space-y-6" in:fade>
+        <!-- DB Summary cards -->
+        <div class="grid grid-cols-5 gap-4">
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Connection Pool Size</span>
+            <span class="text-xl font-black text-cyan-400">{dbPool?.pool_size || 0}</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Active Connections</span>
+            <span class="text-xl font-black text-white">{dbPool?.checkedout || 0}</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Idle Connections</span>
+            <span class="text-xl font-black text-emerald-400">{dbPool?.checkedin || 0}</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px] border-rose-500/10">
+            <span class="text-[8px] text-rose-400/60 font-black tracking-widest uppercase">Total Leaks (Checkout > 10s)</span>
+            <span class="text-xl font-black text-rose-400">{dbLeaks?.total_leaks_detected || 0}</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px] border-orange-500/10">
+            <span class="text-[8px] text-orange-400/60 font-black tracking-widest uppercase">Slow Queries (> 1s)</span>
+            <span class="text-xl font-black text-orange-400">{dbSlowQueries?.total_slow_queries || 0}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 flex-1 overflow-hidden">
+          <!-- Active Locks -->
+          <div class="bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center">
+              <span class="text-[10px] font-black tracking-widest text-cyan-400 uppercase">ACTIVE QUERIES & LOCK STATUS ({dbLocks.length})</span>
+              <button onclick={loadDbHealthData} class="p-2 text-gray-500 hover:text-cyan-400 transition-colors">
+                <RefreshCw size={14} />
+              </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto scrollbar-mission p-4 space-y-4">
+              <!-- Blocked pairs warning -->
+              {#if dbLockPairs.length > 0}
+                <div class="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 space-y-2">
+                  <span class="text-[9px] text-rose-400 font-black tracking-widest uppercase block animate-pulse">⚠️ DETECTED TRANSACTION LOCK BLOCKING PAIRS</span>
+                  {#each dbLockPairs as pair}
+                    <div class="text-[9px] font-mono border-t border-rose-500/20 pt-2 space-y-1">
+                      <div class="text-rose-400 font-bold">Blocked PID {pair.blocked_pid}: <span class="text-white">{pair.blocked_query}</span></div>
+                      <div class="text-emerald-400 font-bold">Blocking PID {pair.blocking_pid}: <span class="text-white">{pair.blocking_query}</span></div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+
+              <!-- Locks table -->
+              <table class="w-full text-left font-mono text-[9px]">
+                <thead class="bg-white/[0.02] text-gray-500 tracking-wider font-black uppercase border-b border-white/5">
+                  <tr>
+                    <th class="p-2">PID</th>
+                    <th class="p-2">Query</th>
+                    <th class="p-2">State</th>
+                    <th class="p-2">Wait Event</th>
+                    <th class="p-2 text-right">Age (s)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.03]">
+                  {#each dbLocks as lock}
+                    <tr class="hover:bg-cyan-500/[0.02]">
+                      <td class="p-2 text-cyan-400">{lock.pid}</td>
+                      <td class="p-2 text-gray-300 truncate max-w-[180px]" title={lock.query}>{lock.query}</td>
+                      <td class="p-2"><span class="px-1 py-0.5 rounded text-[7px] font-bold bg-white/5 {lock.state === 'active' ? 'text-cyan-400' : 'text-gray-500'}">{lock.state}</span></td>
+                      <td class="p-2 text-gray-500">{lock.wait_event || 'None'}</td>
+                      <td class="p-2 text-right text-white font-bold">{lock.duration_seconds?.toFixed(1) || 0}</td>
+                    </tr>
+                  {:else}
+                    <tr>
+                      <td colspan="5" class="p-8 text-center text-gray-600 italic">Không có truy vấn active nào đang chạy hoặc bị khóa.</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Fragmentation & Vacuum -->
+          <div class="bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center">
+              <span class="text-[10px] font-black tracking-widest text-cyan-400 uppercase">DATABASE BLOAT & VACUUM CONTROL ({dbBloat.length})</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto scrollbar-mission">
+              <table class="w-full text-left font-mono text-[9px]">
+                <thead class="bg-white/[0.02] text-gray-500 tracking-wider font-black uppercase border-b border-white/5">
+                  <tr>
+                    <th class="p-3">Table Name</th>
+                    <th class="p-3">Size</th>
+                    <th class="p-3 text-right">Dead Rows</th>
+                    <th class="p-3 text-right">Ratio</th>
+                    <th class="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.03]">
+                  {#each dbBloat as b}
+                    <tr class="hover:bg-cyan-500/[0.02] {b.needs_vacuum ? 'bg-orange-500/[0.02]' : ''}">
+                      <td class="p-3 text-white font-bold">{b.tablename}</td>
+                      <td class="p-3 text-gray-400">{b.total_size}</td>
+                      <td class="p-3 text-right text-gray-300 font-bold">{b.dead_rows.toLocaleString()} / {b.live_rows.toLocaleString()}</td>
+                      <td class="p-3 text-right font-black {b.dead_ratio_pct > 20 ? 'text-orange-400' : 'text-emerald-400'}">{b.dead_ratio_pct.toFixed(1)}%</td>
+                      <td class="p-3 text-right">
+                        {#if ["support_chat_history", "seo_contextual_links", "product_combo", "order_draft", "session_log"].includes(b.tablename)}
+                          <button
+                            onclick={() => handleVacuum(b.tablename)}
+                            disabled={dbVacuumLoading !== null}
+                            class="px-2.5 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/20 text-[9px] font-black transition-all cursor-pointer flex items-center justify-center min-w-[70px]"
+                          >
+                            {#if dbVacuumLoading === b.tablename}
+                              <div class="w-2.5 h-2.5 border border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                            {:else}
+                              VACUUM
+                            {/if}
+                          </button>
+                        {:else}
+                          <span class="text-[8px] text-gray-600 italic">SYSTEM LOCK</span>
+                        {/if}
+                      </td>
+                    </tr>
+                  {:else}
+                    <tr>
+                      <td colspan="5" class="p-8 text-center text-gray-600 italic">Không thể quét độ phân mảnh hoặc cơ sở dữ liệu trống.</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    {#if activeTab === 'redis'}
+      <div class="flex-1 flex flex-col overflow-hidden p-6 space-y-6" in:fade>
+        <!-- Redis memory info -->
+        <div class="grid grid-cols-4 gap-4">
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Used Memory</span>
+            <span class="text-xl font-black text-cyan-400">{redisInfo?.used_memory_mb || 0} MB</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Peak Used Memory</span>
+            <span class="text-xl font-black text-white">{redisInfo?.used_memory_peak_mb || 0} MB</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Max Memory / Policy</span>
+            <span class="text-xl font-black text-emerald-400">{redisInfo?.maxmemory_mb || 0} MB / {redisInfo?.maxmemory_policy || 'None'}</span>
+          </div>
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[80px]">
+            <span class="text-[8px] text-gray-500 font-black tracking-widest uppercase">Connected Clients</span>
+            <span class="text-xl font-black text-purple-400">{redisInfo?.connected_clients || 0} clients</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 flex-1 overflow-hidden">
+          <!-- Keys Scan Utility -->
+          <div class="col-span-2 bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center gap-4">
+              <span class="text-[10px] font-black tracking-widest text-cyan-400 uppercase shrink-0">SAFE SCAN KEYS UTILITY</span>
+              <div class="flex-1 flex max-w-sm gap-2">
+                <input
+                  type="text"
+                  bind:value={redisPattern}
+                  placeholder="e.g. pulse:* hoặc helen:*"
+                  class="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-white"
+                  onkeydown={(e) => e.key === 'Enter' && scanRedisKeys()}
+                />
+                <button
+                  onclick={scanRedisKeys}
+                  disabled={redisKeysLoading}
+                  class="px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-[10px] font-black tracking-widest transition-all cursor-pointer"
+                >
+                  {#if redisKeysLoading}
+                    <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  {:else}
+                    SCAN
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto scrollbar-mission">
+              <table class="w-full text-left font-mono text-[10px]">
+                <thead class="bg-white/[0.02] text-gray-500 tracking-wider font-black uppercase border-b border-white/5">
+                  <tr>
+                    <th class="p-3">Key Name</th>
+                    <th class="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.03]">
+                  {#each redisKeys as key}
+                    <tr class="hover:bg-cyan-500/[0.02]">
+                      <td class="p-3 text-white font-bold">{key}</td>
+                      <td class="p-3 text-right">
+                        <button
+                          onclick={() => handleDeleteRedisKey(key)}
+                          class="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 text-[9px] font-black cursor-pointer"
+                        >
+                          DELETE
+                        </button>
+                      </td>
+                    </tr>
+                  {:else}
+                    <tr>
+                      <td colspan="2" class="p-8 text-center text-gray-600 italic">Quét keys để bắt đầu kiểm tra. Sử dụng SCAN an toàn cho hiệu năng VPS.</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Namespace Flush -->
+          <div class="bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+            <div class="space-y-4">
+              <div class="space-y-1">
+                <h3 class="text-xs font-black tracking-widest text-cyan-400">FLUSH NAMESPACE UTILITY</h3>
+                <p class="text-[9px] text-gray-500 font-mono">Dọn dẹp hàng loạt key Redis thuộc namespace whitelisted để giải phóng bộ nhớ VPS ngay lập tức.</p>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] text-gray-500 font-black block">SELECT PREFIX NAMESPACE:</label>
+                <select
+                  bind:value={redisFlushPrefix}
+                  class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="pulse:">pulse: (Connection status)</option>
+                  <option value="tts:req:">tts:req: (Text-to-speech cache)</option>
+                  <option value="security:blacklist:">security:blacklist: (Ban list)</option>
+                  <option value="spam:">spam: (Rate limit history)</option>
+                  <option value="helen:">helen: (Helen advisor temp cache)</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              onclick={handleFlushNamespace}
+              disabled={redisFlushLoading}
+              class="w-full py-3 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-[10px] font-black tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              {#if redisFlushLoading}
+                <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              {:else}
+                FLUSH NAMESPACE KEYS
+              {/if}
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
   </main>
 
   <!-- Detail Modal -->
