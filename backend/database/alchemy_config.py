@@ -12,7 +12,21 @@ from litestar.datastructures import State
 from litestar.types import Scope
 
 import time
+from datetime import datetime, timezone
+
 logger = logging.getLogger("api-gateway")
+
+# [SOC Monitor V2.3] In-memory counters — zero overhead (no I/O, no network).
+# Tự động tích lũy từ event listeners sẵn có, luôn ON nhưng không tốn tài nguyên.
+_DB_STATS: dict = {
+    "leak_count": 0,                  # Tổng số lần connection giữ quá 10s
+    "last_leak_duration_ms": 0,       # Duration của leak gần nhất
+    "last_leak_time": None,           # ISO timestamp
+    "slow_query_count": 0,            # Tổng số query chậm > 1s
+    "last_slow_query_sql": "",        # 200 ký tự đầu
+    "last_slow_query_duration_ms": 0, # Duration ms
+    "last_slow_query_time": None,     # ISO timestamp
+}
 
 class EliteSQLAlchemyAsyncConfig(BaseSQLAlchemyAsyncConfig):
     """
@@ -120,6 +134,11 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, execmany)
         total = time.perf_counter() - context._query_start_time
         if total > 1.0:
             logger.warning(f"⚠️ [SLOW_QUERY] Duration: {total:.4f}s | SQL: {statement}")
+            # [SOC Monitor] Tích lũy để expose qua /health/db
+            _DB_STATS["slow_query_count"] += 1
+            _DB_STATS["last_slow_query_sql"] = statement[:200]
+            _DB_STATS["last_slow_query_duration_ms"] = int(total * 1000)
+            _DB_STATS["last_slow_query_time"] = datetime.now(timezone.utc).isoformat()
 
 from sqlalchemy.pool import Pool
 
@@ -130,12 +149,16 @@ def receive_checkout(dbapi_connection, connection_record, connection_proxy):
 
 @event.listens_for(Pool, "checkin")
 def receive_checkin(dbapi_connection, connection_record):
-    """Tính toán và cảnh báo nếu connection bị chiếm giữ quá lâu (nguy cơ leak)."""
+    """Tính toán và cảnh báo nếu connection bị chiếm giữ quá lâu (ngưy cơ leak)."""
     checkout_time = connection_record.info.get("checkout_time")
     if checkout_time:
         duration = time.perf_counter() - checkout_time
-        if duration > 10.0:  # Ngưỡng 10 giây giữ kết nối
+        if duration > 10.0:
             logger.warning(
                 f"⚠️ [CONNECTION_LEAK_WARNING] Connection checkout duration: {duration:.4f}s! "
-                f"Phát hiện nguy cơ rò rỉ kết nối (leak) hoặc transaction bị treo lâu."
+                f"Phát hiện ngưy cơ rò rỉ kết nối (leak) hoặc transaction bị treo lâu."
             )
+            # [SOC Monitor] Tích lũy để expose qua /health/db
+            _DB_STATS["leak_count"] += 1
+            _DB_STATS["last_leak_duration_ms"] = int(duration * 1000)
+            _DB_STATS["last_leak_time"] = datetime.now(timezone.utc).isoformat()

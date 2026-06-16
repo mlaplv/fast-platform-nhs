@@ -61,8 +61,8 @@ class ClientPulseController(Controller):
             raise ValidationException("Invalid session_id format")
 
         async def event_generator() -> AsyncGenerator[bytes, None]:
-            from backend.services.xohi_memory import xohi_memory
-
+            from backend.services.connection_registry import connection_registry
+            
             # Initial keep-alive to establish connection
             yield b": link-success\n\n"
 
@@ -79,6 +79,17 @@ class ClientPulseController(Controller):
             # Đây là chuẩn của pulse_stream.py admin (R82.1 Lifecycle Management).
             start_time = asyncio.get_running_loop().time()
             max_age = 4 * 3600  # 4-hour hard cut-off
+
+            # Register connection if registry is enabled
+            ip_address = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "")
+            connection_registry.register(
+                session_id=session_id,
+                conn_type="SSE_PULSE_CLIENT",
+                path=request.url.path,
+                ip=ip_address,
+                user_agent=user_agent
+            )
 
             # --- PHASE 1: ACTIVE LISTENING (Elite V2.2 Resilience) ---
             # R82.31: We SUBSCRIBE FIRST to ensure we catch the wave while checking the history.
@@ -110,6 +121,12 @@ class ClientPulseController(Controller):
             last_ping_time = asyncio.get_running_loop().time()
             try:
                 while True:
+                    # Check if connection was killed by admin
+                    if connection_registry.is_killed(session_id):
+                        logger.warning(f"[ClientPulse] Connection force-disconnected by admin: {session_id}")
+                        yield b"event: force_disconnect\ndata: {\"reason\": \"admin_kill\"}\n\n"
+                        break
+
                     # [FIX V2.3] Hard max_age cutoff — recycle zombie connections after 4h
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > max_age:
@@ -144,6 +161,7 @@ class ClientPulseController(Controller):
                         if current_time - last_ping_time > 15.0:
                             yield b": ping\n\n"
                             last_ping_time = current_time
+                            connection_registry.touch(session_id)
 
                     except asyncio.TimeoutError:
                         # Periodically send ping when there are no new messages to keep connection active
@@ -151,12 +169,15 @@ class ClientPulseController(Controller):
                         if current_time - last_ping_time > 15.0:
                             yield b": ping\n\n"
                             last_ping_time = current_time
-                        
+                            connection_registry.touch(session_id)
+
             except (asyncio.CancelledError, GeneratorExit):
                 logger.debug(f"[ClientPulse] Client disconnected from {channel}.")
             except Exception as e:
                 logger.error(f"[ClientPulse] Protocol error: {e}")
             finally:
+                # Unregister from registry
+                connection_registry.unregister(session_id)
                 # Elite V3.5: Comprehensive Resource Disposal to protect 2GB VPS memory limit (R00/I)
                 try:
                     await pubsub.unsubscribe(channel)

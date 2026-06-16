@@ -17,9 +17,12 @@ class ContentStreamController(Controller):
     guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/{campaign_id:uuid}")
-    async def stream_campaign(self, campaign_id: UUID) -> Stream:
+    async def stream_campaign(self, request: Request, campaign_id: UUID) -> Stream:
         """Stream campaign events (Standardized V2.2)."""
+        import uuid
+        from backend.services.connection_registry import connection_registry
         cid_str = str(campaign_id)
+        stream_session_id = f"content_{cid_str}_{str(uuid.uuid4())[:8]}"
         
         async def event_generator() -> AsyncGenerator[bytes, None]:
             # R76: Queue safety (Limit to 100 events)
@@ -44,10 +47,27 @@ class ContentStreamController(Controller):
             
             logger.info(f"[ContentStream] Linked to campaign {cid_str}")
 
+            # Register connection if registry is enabled
+            ip_address = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "")
+            connection_registry.register(
+                session_id=stream_session_id,
+                conn_type="SSE_CONTENT",
+                path=request.url.path,
+                ip=ip_address,
+                user_agent=user_agent
+            )
+
             try:
                 yield b": initial-sync\n\n"
                 
                 while True:
+                    # Check if connection was killed by admin
+                    if connection_registry.is_killed(stream_session_id):
+                        logger.warning(f"[ContentStream] Connection force-disconnected by admin: {stream_session_id}")
+                        yield b"event: force_disconnect\ndata: {\"reason\": \"admin_kill\"}\n\n"
+                        break
+
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > max_age:
                         logger.info(f"[ContentStream] Cut-off for {cid_str} (30m).")
@@ -63,9 +83,11 @@ class ContentStreamController(Controller):
                             break
 
                         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+                        connection_registry.touch(stream_session_id)
                         
                     except asyncio.TimeoutError:
                         yield b": ping\n\n"
+                        connection_registry.touch(stream_session_id)
             except (asyncio.CancelledError, GeneratorExit):
                 pass
             except Exception as e:
@@ -76,6 +98,7 @@ class ContentStreamController(Controller):
                 event_bus.unsubscribe("CONTENT_STEP_COMPLETED", filter_callback)
                 event_bus.unsubscribe("CAMPAIGN_PURGED", filter_callback)
                 event_bus.unsubscribe("MEDIA_ANALYZED", filter_callback)
+                connection_registry.unregister(stream_session_id)
                 logger.info(f"[ContentStream] Unlinked from campaign {cid_str}")
 
         # R90: Standardized Proxy Headers

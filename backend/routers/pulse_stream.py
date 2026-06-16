@@ -26,6 +26,10 @@ class PulseStreamController(Controller):
     @get("/stream")
     async def stream_pulse(self, request: Request) -> Stream:
         """Stream system events via Native SSE (Standardized Metric V2.2 - Hardened)."""
+        import uuid
+        from backend.services.connection_registry import connection_registry
+        
+        stream_session_id = f"pulse_admin_{str(uuid.uuid4())[:8]}"
         
         async def event_generator(scope: dict) -> AsyncGenerator[bytes, None]:
             queue = asyncio.Queue(maxsize=100)
@@ -36,11 +40,28 @@ class PulseStreamController(Controller):
             start_time = asyncio.get_running_loop().time()
             max_age = 4 * 3600  # 4-hour hard cut-off
             
+            # Register connection if registry is enabled
+            ip_address = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "")
+            connection_registry.register(
+                session_id=stream_session_id,
+                conn_type="SSE_PULSE_ADMIN",
+                path=request.url.path,
+                ip=ip_address,
+                user_agent=user_agent
+            )
+            
             try:
                 # Elite V2.2: Protocol handshake
                 yield b": connectivity-handshake\n\n"
                 
                 while True:
+                    # Check if connection was killed by admin
+                    if connection_registry.is_killed(stream_session_id):
+                        logger.warning(f"[PulseStream] Connection force-disconnected by admin: {stream_session_id}")
+                        yield b"event: force_disconnect\ndata: {\"reason\": \"admin_kill\"}\n\n"
+                        break
+
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > max_age:
                         yield b"event: recycle\ndata: {\"message\": \"Recycling connection.\"}\n\n"
@@ -65,11 +86,13 @@ class PulseStreamController(Controller):
                             "timestamp": event.timestamp
                         }
                         yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+                        connection_registry.touch(stream_session_id)
                         
                     except asyncio.TimeoutError:
                         # R82: Standardized Heartbeat Event (Frontend Observable)
                         # This keeps the TCP connection 'hot' for proxies like Caddy
                         yield b"event: HEARTBEAT\ndata: {}\n\n"
+                        connection_registry.touch(stream_session_id)
                         
             except (asyncio.CancelledError, GeneratorExit):
                 logger.info("[PulseStream] Client disconnected (Normal).")
@@ -77,6 +100,7 @@ class PulseStreamController(Controller):
                 logger.error(f"[PulseStream] Connection error: {e}")
             finally:
                 event_bus.unsubscribe_broadcast(queue)
+                connection_registry.unregister(stream_session_id)
                 logger.info("[PulseStream] Client unlinked.")
 
         # Elite V2.2: Hardened Headers for Enterprise Proxies
