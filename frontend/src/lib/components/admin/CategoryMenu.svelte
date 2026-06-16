@@ -99,6 +99,7 @@
       color: "#FF33FF", // vibrant-purple
       children: [
         { label: "Content Factory", widget: "CAMPAIGNS" },
+        { label: "Kịch bản Video", widget: "VIDEO_SCRIPT_MANAGEMENT" },
         { label: "Ads Protection", widget: "ADS_PROTECTION" },
         { label: "SEO Graph", widget: "SEO_GRAPH" },
         { label: "Duyệt Link SGE", widget: "SEO_LINK_REVIEW" }

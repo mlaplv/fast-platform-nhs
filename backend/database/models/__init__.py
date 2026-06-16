@@ -9,6 +9,7 @@ from backend.database.models.promotion import Banner, Voucher, ComboDeal
 from backend.database.models.ads import ClickFraudEvent, GoogleAdsCampaignLog, IPBlacklist, NegativeKeyword, AIPolicyAuditLog
 from backend.database.models.affiliate import CommissionTier, AffiliateProfile, CommissionLedger, WithdrawalRequest
 from backend.database.models.seo import SeoNode, SeoEdge, SeoPillarEmbedding, SeoContextualLink
+from backend.database.models.video_marketing import VideoScriptStyle, VideoScript
 
 __all__ = [
     "Base",
@@ -61,4 +62,6 @@ __all__ = [
     "SeoEdge",
     "SeoPillarEmbedding",
     "SeoContextualLink",
+    "VideoScriptStyle",
+    "VideoScript",
 ]

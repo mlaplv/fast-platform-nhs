@@ -930,3 +930,45 @@ export interface ProductFormState {
   lastMarketSync?: string;
   generateKnowledgeGraph?: boolean;
 }
+
+export interface VideoScene {
+  scene_number: number;
+  duration: number;
+  visual_description: string;
+  voiceover: string;
+  audio_cue?: string;
+  image_prompt?: string;
+  image_url?: string;
+  scene_notes?: string;
+}
+
+export interface VideoScriptStructured {
+  title: string;
+  target_audience: string;
+  style_name: string;
+  total_duration: number;
+  notes?: string;
+  scenes: VideoScene[];
+}
+
+export interface VideoScript {
+  id: string;
+  product_id: string | null;
+  product_name: string | null;
+  style_id: string;
+  style_name: string | null;
+  style_platform: string | null;
+  title: string;
+  structured_script: VideoScriptStructured;
+  created_at: string;
+}
+
+export interface VideoScriptStyle {
+  id: string;
+  name: string;
+  platform: string;
+  hook_template: string;
+  style_instruction: string;
+  is_active: boolean;
+}
+

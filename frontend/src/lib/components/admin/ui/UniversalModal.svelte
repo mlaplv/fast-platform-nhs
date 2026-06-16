@@ -41,6 +41,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
 import CtvManagement from "../management/CtvManagement.svelte";
 import SeoGraphManagement from "../management/SeoGraphManagement.svelte";
 import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview.svelte";
+import VideoScriptManagement from "../management/VideoScriptManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -77,6 +78,7 @@ import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview
     CTV_MANAGEMENT: CtvManagement,
     SEO_GRAPH: SeoGraphManagement,
     SEO_LINK_REVIEW: SeoContextualLinkReview,
+    VIDEO_SCRIPT_MANAGEMENT: VideoScriptManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -108,6 +110,7 @@ import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview
     CTV_MANAGEMENT: "QUẢN LÝ HỆ THỐNG LIÊN KẾT (CTV)",
     SEO_GRAPH: "SEO PILLAR & CLUSTER GRAPH NETWORK",
     SEO_LINK_REVIEW: "DUYỆT LIÊN KẾT NGỮ CẢNH SGE",
+    VIDEO_SCRIPT_MANAGEMENT: "KỊCH BẢN VIDEO MARKETING",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -250,7 +253,7 @@ import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'NOTIFICATION_MANAGEMENT', 'SEO_GRAPH', 'SEO_LINK_REVIEW'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT', 'NOTIFICATION_MANAGEMENT', 'SEO_GRAPH', 'SEO_LINK_REVIEW', 'VIDEO_SCRIPT_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

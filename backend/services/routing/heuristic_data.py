@@ -23,6 +23,7 @@ TARGET_KEYWORDS = {
     "brain":    ["brain", "nao", "tri thuc", "quan tri nao", "helen brain", "bo nao"],
     "voucher":  ["voucher", "khuyen mai", "ma giam gia", "km", "vou che", "voucher"],
     "ads_protection": ["quang cao", "ads protection", "click tac", "click fraud", "bao cao", "phap y", "report ads", "báo cáo", "quảng cáo", "bao cao info"],
+    "video_script": ["kich ban video", "kich ban", "script video", "video script", "kich ban marketing", "quản lý kịch bản", "kich ban video marketing"],
 }
 
 MODE_KEYWORDS = {
@@ -60,10 +61,11 @@ TARGET_TO_WIDGET = {
     "brain":    "show_brain",
     "voucher":  "show_voucher_management",
     "ads_protection": "show_ads_protection",
+    "video_script": "show_video_script_management",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain", "voucher": "voucher", "ads_protection": "quảng cáo"}
+VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain", "voucher": "voucher", "ads_protection": "quảng cáo", "video_script": "kịch bản video"}
 
 # --- Phase 76.3: Pre-Normalized Keywords ---
 NORM_TARGET_KEYWORDS = {tgt: [normalize_vn(kw) for kw in kws] for tgt, kws in TARGET_KEYWORDS.items()}

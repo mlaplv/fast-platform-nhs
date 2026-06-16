@@ -83,6 +83,7 @@ from backend.controllers.security import SecurityController
 from backend.controllers.settings import SettingsController
 from backend.controllers.tts_handler import TTSController
 from backend.controllers.user import UserController
+from backend.controllers.video_marketing.script_controller import VideoScriptController
 
 # Admin Support & CTV Controllers
 from backend.controllers.admin_ctv import AdminCtvController
@@ -237,6 +238,7 @@ public_routes = [
     DiagnosticController,
     PromotionController,
     SeoController,
+    VideoScriptController,
 ]
 
 # Ordered middleware – authentication early

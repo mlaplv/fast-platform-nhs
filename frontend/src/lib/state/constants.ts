@@ -96,6 +96,10 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "mở quảng cáo": "ADS_PROTECTION",
   "mở báo cáo": "ADS_PROTECTION",
   "mở pháp y": "ADS_PROTECTION",
+  "kịch bản video": "VIDEO_SCRIPT_MANAGEMENT",
+  "mở kịch bản": "VIDEO_SCRIPT_MANAGEMENT",
+  "video script": "VIDEO_SCRIPT_MANAGEMENT",
+  "quản lý kịch bản": "VIDEO_SCRIPT_MANAGEMENT",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -128,6 +132,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_seo_graph: "SEO_GRAPH",
   show_seo_link_review: "SEO_LINK_REVIEW",
   show_ads_protection: "ADS_PROTECTION",
+  show_video_script_management: "VIDEO_SCRIPT_MANAGEMENT",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -154,4 +159,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   NOTIFICATION_MANAGEMENT: "Quản trị Tín hiệu & Thông báo",
   SEO_GRAPH: "Mạng lưới SEO Graph",
   SEO_LINK_REVIEW: "Duyệt liên kết ngữ cảnh SGE",
+  VIDEO_SCRIPT_MANAGEMENT: "Kịch bản Video Marketing",
 };

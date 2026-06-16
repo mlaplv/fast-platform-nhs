@@ -10,7 +10,7 @@ import edge_tts
 logger = logging.getLogger("api-gateway")
 
 
-async def stream_tts_public(text: str) -> AsyncGenerator[bytes, None]:
+async def stream_tts_public(text: str, voice: str = "vi-VN-HoaiMyNeural") -> AsyncGenerator[bytes, None]:
     """
     Elite Master Stream (V4.1 - Guarded Output)
     Provides a single, continuous audio stream. Raises on empty output.
@@ -20,7 +20,9 @@ async def stream_tts_public(text: str) -> AsyncGenerator[bytes, None]:
         logger.warning("[TTS-Public] Empty text after sanitization — skipping.")
         return
 
-    communicate = edge_tts.Communicate(sanitized_text, "vi-VN-HoaiMyNeural")
+    # Chỉ cho phép 2 giọng đọc chuẩn của Microsoft Edge Việt Nam để đảm bảo an toàn hệ thống
+    target_voice = voice if voice in ["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"] else "vi-VN-HoaiMyNeural"
+    communicate = edge_tts.Communicate(sanitized_text, target_voice)
     audio_yielded: bool = False
     try:
         async for data in communicate.stream():
@@ -55,8 +57,8 @@ def _sanitize_text(text: str) -> str:
     # 3. Fix number-unit concatenation (e.g. '30g' -> '30 g')
     text = re.sub(r'(\d+)([a-zA-Z]+)', r'\1 \2', text)
     
-    # 4. Fix missing space after punctuation
-    text = re.sub(r'([\.!\?,])([^\s])', r'\1 \2', text)
+    # 4. Fix missing space after punctuation (only if followed by a non-punctuation word character)
+    text = re.sub(r'([\.!\?,])([^\s\.!\?,])', r'\1 \2', text)
     
     # 5. Clean up excessive whitespace and control chars
     text = re.sub(r'\s+', ' ', text).strip()

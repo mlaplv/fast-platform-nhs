@@ -27,7 +27,7 @@ class PublicTTSController(Controller):
     path: Final[str] = "/api/v1/client/tts"
 
     @get("/stream")
-    async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None, id: Optional[str] = None) -> Stream:
+    async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None, id: Optional[str] = None, voice: Optional[str] = None) -> Stream:
         """Standardized TTS GET Entry. Elite V7.3 Native Streaming."""
         self._validate_request(request)
         
@@ -37,7 +37,7 @@ class PublicTTSController(Controller):
             if stored:
                 target_text = stored
         
-        return self._create_tts_stream(target_text)
+        return self._create_tts_stream(target_text, voice or "vi-VN-HoaiMyNeural")
 
     @post("/prepare")
     async def prepare_tts_stream(self, request: Request, data: TTSRequest) -> dict[str, str]:
@@ -78,7 +78,7 @@ class PublicTTSController(Controller):
         history.append(now)
         RATE_LIMIT_STORE[ip] = history
 
-    def _create_tts_stream(self, input_text: str) -> Stream:
+    def _create_tts_stream(self, input_text: str, voice: str = "vi-VN-HoaiMyNeural") -> Stream:
         """Elite Stream Factory."""
         headers: Final[dict[str, str]] = {
             "Content-Type": "audio/mpeg",
@@ -88,4 +88,4 @@ class PublicTTSController(Controller):
             "Connection": "keep-alive",
             "X-RateLimit-Limit": str(LIMIT_MAX_REQUESTS),
         }
-        return Stream(stream_tts_public(input_text[:20000]), headers=headers)
+        return Stream(stream_tts_public(input_text[:20000], voice=voice), headers=headers)

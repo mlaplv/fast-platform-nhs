@@ -57,7 +57,8 @@ export type WidgetType =
   | "NOTIFICATION_LIST"
   | "SEO_GRAPH"
   | "SEO_LINK_REVIEW"
-  | "VOUCHER_MANAGEMENT";
+  | "VOUCHER_MANAGEMENT"
+  | "VIDEO_SCRIPT_MANAGEMENT";
 
 export type NanoBotState =
   | "IDLE"
@@ -509,3 +510,42 @@ export interface RewriteResult {
     combinations: string[];
     seo_metadata: string;
 }
+
+export interface VideoScene {
+  scene_number: number;
+  duration: number;
+  visual_description: string;
+  voiceover: string;
+  audio_cue?: string;
+  image_prompt?: string;
+}
+
+export interface VideoScriptStructured {
+  title: string;
+  target_audience: string;
+  style_name: string;
+  total_duration: number;
+  scenes: VideoScene[];
+}
+
+export interface VideoScript {
+  id: string;
+  product_id: string | null;
+  product_name: string | null;
+  style_id: string;
+  style_name: string | null;
+  style_platform: string | null;
+  title: string;
+  structured_script: VideoScriptStructured;
+  created_at: string;
+}
+
+export interface VideoScriptStyle {
+  id: string;
+  name: string;
+  platform: string;
+  hook_template: string;
+  style_instruction: string;
+  is_active: boolean;
+}
+

@@ -5,7 +5,7 @@ from backend.database.models import (
     ProductBase, ProductVariant, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
     ContentCampaign, MediaRegistry, MediaUsage, Appointment, ContentScout,
-    SupportKnowledge
+    SupportKnowledge, VideoScriptStyle, VideoScript
 )
 from typing import TypedDict, List, Optional
 class UserDict(TypedDict):
@@ -93,6 +93,12 @@ class SystemReviewRepository(SQLAlchemyAsyncRepository[SystemReview]):
 class SupportKnowledgeRepository(SQLAlchemyAsyncRepository[SupportKnowledge]):
     model_type = SupportKnowledge
 
+class VideoScriptStyleRepository(SQLAlchemyAsyncRepository[VideoScriptStyle]):
+    model_type = VideoScriptStyle
+
+class VideoScriptRepository(SQLAlchemyAsyncRepository[VideoScript]):
+    model_type = VideoScript
+
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
 # ==========================================
@@ -161,3 +167,9 @@ async def provide_system_review_repo(db_session: AsyncSession) -> SystemReviewRe
 
 async def provide_support_kb_repo(db_session: AsyncSession) -> SupportKnowledgeRepository:
     return SupportKnowledgeRepository(session=db_session)
+
+async def provide_video_style_repo(db_session: AsyncSession) -> VideoScriptStyleRepository:
+    return VideoScriptStyleRepository(session=db_session)
+
+async def provide_video_script_repo(db_session: AsyncSession) -> VideoScriptRepository:
+    return VideoScriptRepository(session=db_session)
