@@ -73,14 +73,26 @@ class InternalBus:
         finally:
             self.unsubscribe(event_name, callback)
 
-    def subscribe_broadcast(self, queue: asyncio.Queue):
+    def subscribe_broadcast(self, queue: asyncio.Queue) -> None:
+        # [FIX V2.3] Hard cap: Tối đa 200 admin SSE subscriber cùng lúc.
+        # Nếu vượt giới hạn, tự động dọn subscriber chết (queue đầy / closed) trước.
+        MAX_BROADCAST_SUBS = 200
+        if len(self.broadcast_subscribers) >= MAX_BROADCAST_SUBS:
+            # Purge dead queues first (queues that are full = client not consuming)
+            self.broadcast_subscribers = [
+                q for q in self.broadcast_subscribers if not q.full()
+            ]
+            # If still over limit after purge, reject new subscriber
+            if len(self.broadcast_subscribers) >= MAX_BROADCAST_SUBS:
+                logger.error(f"[EventBus] MAX BROADCAST SUBSCRIBERS ({MAX_BROADCAST_SUBS}) reached. Rejecting new connection.")
+                return
         self.broadcast_subscribers.append(queue)
         logger.debug(f"[EventBus] Added broadcast subscriber (Total: {len(self.broadcast_subscribers)})")
 
-    def unsubscribe_broadcast(self, queue: asyncio.Queue):
+    def unsubscribe_broadcast(self, queue: asyncio.Queue) -> None:
         if queue in self.broadcast_subscribers:
             self.broadcast_subscribers.remove(queue)
-            logger.debug(f"[EventBus] Removed broadcast subscriber")
+            logger.debug(f"[EventBus] Removed broadcast subscriber (Remaining: {len(self.broadcast_subscribers)})")
 
     async def emit(self, event_name: str, payload: Dict[str, object]):
         """Emit event to queue for background processing (Non-blocking for Request)"""
@@ -244,6 +256,7 @@ class InternalBus:
             logger.error(f"[EventBus] Redis listener error: {e}")
 
     async def _worker(self):
+        _cycle = 0
         while True:
             event = await self.queue.get()
             try:
@@ -260,6 +273,20 @@ class InternalBus:
                             sub_queue.put_nowait(event)
                         except asyncio.QueueFull:
                             pass # Skip slow broadcast listeners
+
+                # [FIX V2.3] Dọn dẹp dead broadcast subscribers định kỳ (mỗi 500 events)
+                # Tab admin đóng không unsubscribe đúng cách sẽ để lại queue rác trong list.
+                # Nhận diện: queue của closed tab sẽ luôn FULL (không ai consume)
+                _cycle += 1
+                if _cycle % 500 == 0:
+                    before = len(self.broadcast_subscribers)
+                    self.broadcast_subscribers = [
+                        q for q in self.broadcast_subscribers if not q.full()
+                    ]
+                    after = len(self.broadcast_subscribers)
+                    if before != after:
+                        logger.info(f"[EventBus] Periodic cleanup: removed {before - after} dead broadcast subscriber(s). Active: {after}")
+
             except Exception as e:
                 logger.error(f"[EventBus] Error processing {event.name}: {e}")
             finally:

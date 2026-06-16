@@ -62,10 +62,10 @@ class ClientPulseController(Controller):
 
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
-            
+
             # Initial keep-alive to establish connection
             yield b": link-success\n\n"
-            
+
             if not xohi_memory._use_redis or not xohi_memory.client:
                 logger.error("[ClientPulse] Redis is offline. Cannot stream events.")
                 return
@@ -73,7 +73,13 @@ class ClientPulseController(Controller):
             pubsub = xohi_memory.client.pubsub()
             channel: str = f"pulse:{session_id}"
             cache_key: str = f"pulse:{session_id}:cache"
-            
+
+            # [FIX V2.3] Hard cutoff: 4h max per connection to prevent zombie SSE on VPS RAM.
+            # Browser EventSource tự động reconnect sau khi nhận 'recycle' event.
+            # Đây là chuẩn của pulse_stream.py admin (R82.1 Lifecycle Management).
+            start_time = asyncio.get_running_loop().time()
+            max_age = 4 * 3600  # 4-hour hard cut-off
+
             # --- PHASE 1: ACTIVE LISTENING (Elite V2.2 Resilience) ---
             # R82.31: We SUBSCRIBE FIRST to ensure we catch the wave while checking the history.
             await pubsub.subscribe(channel)
@@ -85,56 +91,63 @@ class ClientPulseController(Controller):
                 if cached_data:
                     payload: dict[str, object] = json.loads(cached_data)
                     logger.info(f"[ClientPulse] Cache hit for session {session_id}. Delivering missed event.")
-                    
+
                     # Elite V2.6: Standard Named SSE Format
                     event_name = payload.get("event", "SUPPORT_RESPONSE_READY")
-                    msg_id = f"{session_id}:{int(asyncio.get_event_loop().time())}"
+                    msg_id = f"{session_id}:{int(asyncio.get_running_loop().time())}"
                     yield f"id: {msg_id}\n".encode("utf-8")
                     yield f"event: {event_name}\n".encode("utf-8")
                     yield f"retry: 3000\n".encode("utf-8")
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
-                    
+
                     # Elite V2.2 Fix: Do NOT close connection on DONE. The SSE stream must remain open
                     # to receive SUPPORT_INBOX_UPDATE events (Admin manual replies).
                     # Closing it causes the browser EventSource to enter an infinite reconnect loop.
             except Exception as ce:
                 logger.warning(f"[ClientPulse] Cache catch-up failed: {ce}")
-            
+
             # --- PHASE 3: REAL-TIME STREAMING ---
-            last_ping_time = asyncio.get_event_loop().time()
+            last_ping_time = asyncio.get_running_loop().time()
             try:
                 while True:
+                    # [FIX V2.3] Hard max_age cutoff — recycle zombie connections after 4h
+                    elapsed = asyncio.get_running_loop().time() - start_time
+                    if elapsed > max_age:
+                        logger.info(f"[ClientPulse] Max age (4h) reached for {session_id}. Recycling connection.")
+                        yield b"event: recycle\ndata: {\"message\": \"Connection recycled. Reconnecting...\"}\n\n"
+                        break
+
                     try:
                         # Elite V3.5: Stable Async Polling to prevent CPU loop and Redis timeout exceptions
                         message = await pubsub.get_message(ignore_subscribe_messages=True)
-                        
+
                         if message and message['type'] == 'message':
                             logger.info(f"[ClientPulse] Received event from Redis for {session_id}: {message['data']}")
                             payload = json.loads(message['data'])
-                            
+
                             # Elite V2.6: Standard Named SSE Format (Mandatory for Frontend Listeners)
                             event_name = payload.get("event")
                             if not event_name:
                                 event_name = "SUPPORT_INBOX_UPDATE" if "is_revoked" in payload else "SUPPORT_RESPONSE_READY"
-                            
-                            msg_id = f"{session_id}:{int(asyncio.get_event_loop().time())}"
+
+                            msg_id = f"{session_id}:{int(asyncio.get_running_loop().time())}"
                             yield f"id: {msg_id}\n".encode("utf-8")
                             yield f"event: {event_name}\n".encode("utf-8")
                             yield f"retry: 3000\n".encode("utf-8")
                             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                         else:
                             # Explicit yield to prevent tight loop
-                            await asyncio.sleep(0.5)
-                        
+                            await asyncio.sleep(0.2)
+
                         # Heartbeat validation
-                        current_time = asyncio.get_event_loop().time()
+                        current_time = asyncio.get_running_loop().time()
                         if current_time - last_ping_time > 15.0:
                             yield b": ping\n\n"
                             last_ping_time = current_time
-                                
+
                     except asyncio.TimeoutError:
                         # Periodically send ping when there are no new messages to keep connection active
-                        current_time = asyncio.get_event_loop().time()
+                        current_time = asyncio.get_running_loop().time()
                         if current_time - last_ping_time > 15.0:
                             yield b": ping\n\n"
                             last_ping_time = current_time
