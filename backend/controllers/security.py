@@ -477,7 +477,7 @@ class SecurityController(Controller):
             connections=items,
         )
 
-    @delete("/connections/{session_id:str}")
+    @delete("/connections/{session_id:str}", status_code=200)
     async def kill_connection(self, session_id: str) -> SuccessResponse:
         """
         Force kill an active connection by setting its kill flag.
@@ -549,7 +549,7 @@ class SecurityController(Controller):
             return []
         return keys
 
-    @delete("/redis/key/{key:str}")
+    @delete("/redis/key/{key:str}", status_code=200)
     async def delete_redis_key(self, key: str) -> SuccessResponse:
         """
         Delete a specific key from Redis.
