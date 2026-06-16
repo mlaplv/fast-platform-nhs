@@ -443,38 +443,51 @@ class WorkerSettings:
     keep_result = 3600
 
 class WorkerHighSettings(WorkerSettings):
-    """Priority Worker for Helen (Client Support)."""
+    """Priority Worker for Helen (Client Support) + Cron Scheduler.
+    
+    [FIX V2.3] Cron jobs chuyển về đây vì worker_high là process duy nhất
+    có restart:always và không bị khóa sau docker profile 'admin'.
+    worker_default có profiles:[admin] → không tự khởi động → cron KHÔNG BAO GIỜ chạy.
+    """
     queue_name = "high"
     functions = [
-        run_agent_task, helen_follow_up_job, send_otp_email, 
-        run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, 
+        run_agent_task, helen_follow_up_job, send_otp_email,
+        run_fraud_forensic, helen_self_learning_job, generate_review_kg_job,
         cleanup_old_notifications, expire_loyalty_points_job,
-        seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job
+        seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job,
+        seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job,
+        cleanup_old_tasks,
     ]
-    redis_settings = get_redis_settings() # Explicitly call again to be safe
+    redis_settings = get_redis_settings()
     max_jobs = 15
+    cron_jobs = [
+        # Expire loyalty points lúc 0:00 AM mỗi ngày
+        cron(expire_loyalty_points_job, hour=0, minute=0),
+        # SEO orphan cleanup lúc 1:00 AM mỗi ngày
+        cron(seo_nightly_reconciliation_job, hour=1, minute=0),
+        # Helen self-learning scan lúc 2:00 AM mỗi ngày
+        cron(helen_self_learning_job, hour=2, minute=0),
+        # Dọn dẹp agent tasks cũ lúc 3:00 AM mỗi ngày
+        cron(cleanup_old_tasks, hour=3, minute=0),
+        # Dọn dẹp notifications cũ lúc 4:00 AM mỗi ngày
+        cron(cleanup_old_notifications, hour=4, minute=0),
+    ]
 
 class WorkerDefaultSettings(WorkerSettings):
-    """Standard Worker for XoHi (Creative Studio)."""
+    """Standard Worker for XoHi (Creative Studio) — profile: admin.
+    
+    Chỉ khởi động khi: docker compose --profile admin up
+    Không chứa cron_jobs vì không đảm bảo luôn chạy.
+    """
     queue_name = "default"
     functions = [
-        run_agent_task, helen_follow_up_job, send_otp_email, 
-        run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, 
+        run_agent_task, helen_follow_up_job, send_otp_email,
+        run_fraud_forensic, helen_self_learning_job, generate_review_kg_job,
         cleanup_old_notifications, expire_loyalty_points_job,
-        seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job
+        seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job,
+        seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job,
+        cleanup_old_tasks,
     ]
-    redis_settings = get_redis_settings() # Explicitly call again to be safe
+    redis_settings = get_redis_settings()
     max_jobs = 5
-    cron_jobs = [
-        # Schedule points expiration at 0:00 AM every day
-        cron(expire_loyalty_points_job, hour=0, minute=0),
-        # Schedule self-learning scan at 2:00 AM every day
-        cron(helen_self_learning_job, hour=2, minute=0),
-        # Schedule cleanup at 3:00 AM every day
-        cron(cleanup_old_tasks, hour=3, minute=0),
-        # Schedule notification retention cleanup at 4:00 AM every day
-        cron(cleanup_old_notifications, hour=4, minute=0),
-        # Schedule SEO orphan cleanup at 1:00 AM every day
-        cron(seo_nightly_reconciliation_job, hour=1, minute=0),
-    ]
 
