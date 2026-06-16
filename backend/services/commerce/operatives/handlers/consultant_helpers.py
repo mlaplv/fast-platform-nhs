@@ -16,39 +16,89 @@ def _wrap_prefix(text: str) -> str:
 
 async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProductInfo, dna: Optional[NeuralDNA]) -> str:
     from backend.database.models.promotion import Voucher, ComboDeal
+    from backend.database.models.commerce import ProductBase
+    from backend.services.commerce.promotion import PromotionService
     from backend.services.commerce.loyalty import LoyaltyService
     from datetime import datetime, timezone
     from sqlalchemy import select, and_, or_
+    from sqlalchemy.orm import selectinload
 
     now = datetime.now(timezone.utc)
     
-    # 1. Combo
     combo_desc = "Mua combo nhận thêm quà tặng đặc biệt."
     try:
-        c_stmt = select(ComboDeal).where(
-            and_(
-                ComboDeal.deleted_at.is_(None),
-                ComboDeal.is_active == True,
-                or_(ComboDeal.start_date.is_(None), ComboDeal.start_date <= now),
-                or_(ComboDeal.end_date.is_(None), ComboDeal.end_date >= now),
-            )
+        prod_stmt = (
+            select(ProductBase)
+            .options(selectinload(ProductBase.variants))
+            .where(ProductBase.id == p_info.id)
         )
-        c_rows = (await db.execute(c_stmt)).scalars().all()
-        for c in c_rows:
-            cond = c.condition_payload or {}
-            p_ids = cond.get("product_ids", [])
-            p_ids_str = [str(pid) for pid in p_ids]
-            if not p_ids_str or str(p_info.id) in p_ids_str:
-                rwd = c.reward_payload or {}
-                buy_qty = cond.get("buy_qty", 2)
-                get_qty = rwd.get("get_qty", 1)
-                combo_desc = f"Mua {buy_qty} tặng {get_qty} (Ưu đãi {c.name})"
-                break
+        prod_res = await db.execute(prod_stmt)
+        product = prod_res.scalar_one_or_none()
+        
+        combo_lines = []
+        if product and product.variants:
+            def get_combo_qty(v) -> int:
+                attrs = v.attributes or {}
+                return int(attrs.get("combo_qty") or attrs.get("comboQty") or 1)
+            
+            sorted_vars = sorted(product.variants, key=get_combo_qty)
+            has_combos = any(get_combo_qty(v) > 1 for v in sorted_vars)
+            
+            if has_combos:
+                for v in sorted_vars:
+                    c_qty = get_combo_qty(v)
+                    opt_name = ""
+                    tier_idx = v.tier_index
+                    if tier_idx and product.tier_variations:
+                        names = []
+                        for i, idx in enumerate(tier_idx):
+                            if i < len(product.tier_variations):
+                                opts = product.tier_variations[i].get("options", [])
+                                if isinstance(opts, list) and idx < len(opts):
+                                    names.append(str(opts[idx]))
+                        opt_name = " - ".join(names)
+                    else:
+                        opt_name = v.sku or f"Gói {c_qty} sp"
+                        
+                    if opt_name.startswith("Hộp 1 Tuýp") or opt_name.startswith("Combo"):
+                        pass
+                    else:
+                        opt_name = f"Hộp {c_qty} sp" if c_qty == 1 else f"Combo {c_qty} sp"
+                    
+                    v_price = (v.discount_price or v.price) * c_qty
+                    gifts = v.attributes.get("gifts") if v.attributes else None
+                    gift_desc = ""
+                    if gifts:
+                        gift_items = [f"{g.get('qty', g.get('quantity', 1))}x {g.get('name')}" for g in gifts]
+                        gift_desc = f" (Tặng {', '.join(gift_items)})"
+                    combo_lines.append(f"• **{opt_name}**: {int(v_price):,}đ{gift_desc}".replace(",", "."))
+                    
+        if combo_lines:
+            combo_desc = "\n   " + "\n   ".join(combo_lines)
+        else:
+            c_stmt = select(ComboDeal).where(
+                and_(
+                    ComboDeal.deleted_at.is_(None),
+                    ComboDeal.is_active == True,
+                    or_(ComboDeal.start_date.is_(None), ComboDeal.start_date <= now),
+                    or_(ComboDeal.end_date.is_(None), ComboDeal.end_date >= now),
+                )
+            )
+            c_rows = (await db.execute(c_stmt)).scalars().all()
+            for c in c_rows:
+                cond = c.condition_payload or {}
+                p_ids = cond.get("product_ids", [])
+                p_ids_str = [str(pid) for pid in p_ids]
+                if not p_ids_str or str(p_info.id) in p_ids_str:
+                    rwd = c.reward_payload or {}
+                    buy_qty = cond.get("buy_qty", 2)
+                    get_qty = rwd.get("get_qty", 1)
+                    combo_desc = f"Mua {buy_qty} tặng {get_qty} (Ưu đãi {c.name})"
+                    break
     except Exception as e:
         logger.warning(f"[MarketingBlock] Combo query failed: {e}")
 
-    # 2. Voucher
-    voucher_desc = "Nhập mã `OSMO5K` giảm ngay 5.000đ cho mọi đơn hàng"
+    voucher_desc = "Không có voucher khả dụng cho sản phẩm này."
     try:
         v_stmt = select(Voucher).where(
             and_(
@@ -61,24 +111,44 @@ async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProduc
         ).order_by(Voucher.priority.desc())
         v_rows = (await db.execute(v_stmt)).scalars().all()
         
-        best_v = None
-        max_sav = 0.0
+        discount_vouchers = []
+        shipping_vouchers = []
         subtotal = float(p_info.price or 0.0)
+        
         for v in v_rows:
             if subtotal < (v.min_spend or 0):
                 continue
-            sav = float(v.value) if v.type == "FIXED" else (subtotal * float(v.value) / 100 if v.type == "PERCENT" else 30000.0)
-            if v.type == "PERCENT" and v.max_discount:
-                sav = min(sav, float(v.max_discount))
-            if sav > max_sav:
-                max_sav, best_v = sav, v
-        
-        if best_v:
-            voucher_desc = f"Nhập mã **`{best_v.id}`** giảm ngay {int(max_sav):,}đ trực tiếp cho sản phẩm này".replace(",", ".")
+            if v.type == "SHIPPING":
+                shipping_vouchers.append(v)
+            else:
+                discount_vouchers.append(v)
+                
+        best_disc_v = None
+        max_disc_sav = 0.0
+        for v in discount_vouchers:
+            sav = PromotionService.calculate_voucher_discount(subtotal, v)
+            if sav > max_disc_sav:
+                max_disc_sav, best_disc_v = sav, v
+                
+        best_ship_v = None
+        max_ship_sav = 0.0
+        for v in shipping_vouchers:
+            sav = PromotionService.calculate_voucher_discount(subtotal, v)
+            if sav > max_ship_sav:
+                max_ship_sav, best_ship_v = sav, v
+                
+        voucher_parts = []
+        if best_disc_v:
+            cond_str = f" cho đơn hàng từ {int(best_disc_v.min_spend):,}đ".replace(",", ".") if best_disc_v.min_spend else ""
+            voucher_parts.append(f"• **Giảm giá**: Nhập mã **`{best_disc_v.id}`** giảm ngay {int(max_disc_sav):,}đ trực tiếp cho sản phẩm này{cond_str}".replace(",", "."))
+        if best_ship_v:
+            voucher_parts.append(f"• **Vận chuyển**: Nhập mã **`{best_ship_v.id}`** giảm đến {int(max_ship_sav):,}đ phí vận chuyển".replace(",", "."))
+            
+        if voucher_parts:
+            voucher_desc = "\n   " + "\n   ".join(voucher_parts)
     except Exception as e:
         logger.warning(f"[MarketingBlock] Voucher query failed: {e}")
 
-    # 3. Tích điểm (Loyalty)
     try:
         from backend.constants.commerce import LoyaltyConfig
         earned_points = int(p_info.price // LoyaltyConfig.EARNING_RATE_VND)
@@ -92,7 +162,6 @@ async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProduc
         logger.warning(f"[MarketingBlock] Loyalty points logic failed: {e}")
         points_desc = "Tích lũy điểm thưởng hấp dẫn cho đơn hàng sau."
 
-    # 4. Check-in
     checkin_desc = "Mỗi ngày điểm danh nhận ngay **1 điểm** (10.000đ) miễn phí!"
     try:
         checkin_cfg = await LoyaltyService._get_checkin_config(db)
@@ -105,7 +174,7 @@ async def build_marketing_benefits_block(db: AsyncSession, p_info: SupportProduc
         logger.warning(f"[MarketingBlock] Check-in config fetch failed: {e}")
 
     marketing_block = (
-        f"🎁 **ƯU ĐÃI ĐỘC QUYỀN ĐANG ÁP DỤNG:**\n"
+        f"🎁 **Ưu đãi độc quyền đang áp dụng:**\n"
         f"1. **Combo Tiết kiệm**: {combo_desc}\n"
         f"2. **Voucher áp dụng**: {voucher_desc}\n"
         f"3. **Tích điểm Osmo**: {points_desc}\n"

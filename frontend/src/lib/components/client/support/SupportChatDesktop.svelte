@@ -363,8 +363,8 @@
                 class="text-[9px] text-[#FFB7C5] font-black tracking-[0.25em] opacity-90"
               >
                 {supportAgent.helenEnabled
-                  ? "ĐANG HOẠT ĐỘNG"
-                  : "CHUYÊN VIÊN TRỰC"}
+                  ? "Đang trực tuyến"
+                  : "Chuyên viên trực"}
               </p>
             </div>
           </div>

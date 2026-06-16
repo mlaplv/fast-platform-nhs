@@ -49,12 +49,18 @@ async def test_build_marketing_benefits_block_full(mock_db: AsyncMock) -> None:
     mock_voucher_1.discount_value = 50000.0
     mock_voucher_1.min_spend = 400000.0
     mock_voucher_1.priority = 10
+    mock_voucher_1.type = "FIXED"
+    mock_voucher_1.value = 50000.0
+    mock_voucher_1.max_discount = None
     
     mock_voucher_2 = MagicMock()
     mock_voucher_2.id = "VOUCHER2"
     mock_voucher_2.discount_value = 20000.0
     mock_voucher_2.min_spend = 0.0
     mock_voucher_2.priority = 5
+    mock_voucher_2.type = "FIXED"
+    mock_voucher_2.value = 20000.0
+    mock_voucher_2.max_discount = None
 
     mock_vouchers_res = MagicMock()
     mock_vouchers_res.scalars.return_value.all.return_value = [mock_voucher_1, mock_voucher_2]
