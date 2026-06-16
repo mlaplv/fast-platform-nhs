@@ -438,6 +438,36 @@ async def _try_db_first_fast_path(
     c_name: str, cur_settings: Dict[str, str], ctx_text: str, dna: Optional[NeuralDNA] = None
 ) -> Optional[SupportResponse]:
     if not p_info:
+        # Elite V7.5: Article fast-path when p_info is None but article context exists
+        if ctx_text and "Loại trang: BÀI VIẾT" in ctx_text:
+            msg_norm = request.message.lower().strip()
+            if "[system_consult]" in msg_norm:
+                import re as _re
+                _title_match = _re.search(r"Tiêu đề: (.+)", ctx_text)
+                _excerpt_match = _re.search(r"Tóm tắt: (.+)", ctx_text)
+                _category_match = _re.search(r"Danh mục: (.+)", ctx_text)
+
+                _art_title = _title_match.group(1).strip() if _title_match else "bài viết này"
+                _art_excerpt = _excerpt_match.group(1).strip() if _excerpt_match else ""
+                _art_category = _category_match.group(1).strip() if _category_match else ""
+
+                parts: list[str] = [
+                    f"Dạ Helen thấy Anh/Chị đang đọc bài viết **{_art_title}** ạ! 📖✨",
+                ]
+                if _art_excerpt:
+                    parts.append(f"\n📌 **Tóm tắt**: {_art_excerpt}")
+                if _art_category:
+                    parts.append(f"📂 Danh mục: {_art_category}")
+                parts.append(
+                    "\nAnh/Chị muốn Helen tóm tắt nội dung chính, giải đáp thắc mắc "
+                    "hay tư vấn sản phẩm liên quan đến chủ đề này không ạ? 🌸"
+                )
+                from backend.services.commerce.operatives.utils import _sanitize_response
+                safe_reply = _sanitize_response("\n".join(parts))
+                return SupportResponse(
+                    ok=True, reply=safe_reply, intent=SupportIntent.PRODUCT_QUERY,
+                    session_id=request.session_id, status="DONE"
+                )
         return None
     
     msg_norm = request.message.lower().strip()

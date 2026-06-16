@@ -6,9 +6,17 @@
   import { afterNavigate } from '$app/navigation';
   import type { PageData } from './$types';
   import { resolveOptimizedImageUrl } from '$lib/state/utils';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import { untrack } from 'svelte';
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
+
+  $effect(() => {
+    const title = data.article?.title || '';
+    untrack(() => { supportAgent.currentArticleTitle = title; });
+    return () => { untrack(() => { supportAgent.currentArticleTitle = ''; }); };
+  });
 
   afterNavigate(() => {
     if (typeof window !== 'undefined') {

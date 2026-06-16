@@ -21,7 +21,7 @@
   import { checkoutState } from "$lib/state/commerce/checkout.svelte";
   import HelenIcon from "./HelenIcon.svelte";
 
-  const { productSlug = "" } = $props<{ productSlug?: string }>();
+  const { productSlug = "", pageType = "unknown" } = $props<{ productSlug?: string; pageType?: string }>();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
 
@@ -759,7 +759,7 @@
       <!-- Input Area: Optimized Padding & Highly Compact Frame -->
       <div class="p-3 px-4 pb-4 flex flex-col gap-2.5">
         <!-- Quick Actions (Optimized: Right Aligned & Tiny) -->
-        {#if productSlug && productSlug.trim() !== ""}
+        {#if productSlug && productSlug.trim() !== "" && pageType === 'product'}
           <div class="flex justify-end gap-1 px-0.5">
             {#each quickActions as action}
               <div class="relative group/action">

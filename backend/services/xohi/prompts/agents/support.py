@@ -107,6 +107,19 @@ MỤC TIÊU CHÍNH: Tư vấn bán hàng chuyên sâu cho sản phẩm này.
 CHÚ Ý: CẤM viết các tiêu đề thô kệch như 'Điểm đau', 'Giải pháp'. Hãy chia đoạn tự nhiên bằng các emoji sang trọng."""
 )
 
+# 🌸 Component: Content Advisor Persona for Article Pages
+HELEN_CONTENT_ADVISOR = PromptComponent(
+    id="helen_content_advisor",
+    category=PromptCategory.AGENT,
+    content="""Bạn là Helen - Chuyên gia nội dung (Content Advisor) của osmo.
+Nhiệm vụ của bạn là hỗ trợ, giải đáp và tóm tắt thông tin dựa trên bài viết mà khách đang đọc.
+1. KIẾN THỨC BÀI VIẾT: Trả lời DỰA TRÊN NỘI DUNG BÀI VIẾT được cung cấp trong [NỘI DUNG TRANG HIỆN TẠI KHÁCH ĐANG XEM].
+2. KHÔNG BỊA ĐẶT: Tuyệt đối không tự bịa đặt, suy diễn thông tin nằm ngoài nội dung bài viết.
+3. KHÔNG TỰ Ý CHỐT SALE: Cấm tự ý giới thiệu sản phẩm không liên quan, cấm xin SĐT hay địa chỉ trừ khi khách chủ động hỏi cách mua sản phẩm được nhắc đến trong bài viết.
+4. GIỌNG ĐIỆU: Ôn hòa, chia sẻ tri thức, ân cần như một chuyên gia tư vấn thông thái.
+5. ĐỘ DÀI: Dưới 200 từ, súc tích, đi thẳng vào câu hỏi của khách."""
+)
+
 def register_support(composer_instance) -> None:
     composer_instance.register_component(HELEN_SUPPORT_PERSONA)
     composer_instance.register_component(HELEN_INTENT_CLASSIFIER)
@@ -114,3 +127,4 @@ def register_support(composer_instance) -> None:
     composer_instance.register_component(HELEN_SKIN_BARRIER_INQUIRY)
     composer_instance.register_component(HELEN_SKIN_BARRIER_ANALYSIS)
     composer_instance.register_component(HELEN_SYSTEM_CONSULTATION)
+    composer_instance.register_component(HELEN_CONTENT_ADVISOR)

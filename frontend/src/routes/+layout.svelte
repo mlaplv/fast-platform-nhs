@@ -22,10 +22,12 @@
   // Elite V2.2: Global Navigation Guard & State Reset Protocol
   $effect(() => {
     const path = page.url.pathname;
+    const type = page.data?.type || 'unknown';
     const isNavigating = !!navigating;
 
     untrack(() => {
         supportAgent.setPath(path);
+        supportAgent.setPageType(type);
         
         // Elite V2.2: Instant UI Recovery Protocol
         // We force reset these states immediately on ANY navigation to prevent black screens
@@ -69,7 +71,7 @@
   let isMounted = $state(false);
 
   // Elite V2.2: Dynamic Component State (Post-Mount Resolution & Non-Overlapping Imports)
-  let chatComponent = $state<Component<{ productSlug?: string }> | null>(null);
+  let chatComponent = $state<Component<{ productSlug?: string; pageType?: string }> | null>(null);
   let searchComponent = $state<Component<{ variant: string }> | null>(null);
   let DailyCheckinComponent = $state<Component | null>(null);
 
@@ -440,7 +442,7 @@
     {#if ui?.isMobile}
       {#if chatComponent}
         {@const Chat = chatComponent}
-        <Chat productSlug={page.params.slug} />
+        <Chat productSlug={page.params.slug} pageType={page.data?.type || 'unknown'} />
       {/if}
       {#if searchComponent}
         {@const Search = searchComponent}
@@ -449,7 +451,7 @@
     {:else}
       {#if chatComponent}
         {@const Chat = chatComponent}
-        <Chat productSlug={page.params.slug} />
+        <Chat productSlug={page.params.slug} pageType={page.data?.type || 'unknown'} />
       {/if}
     {/if}
   {/if}

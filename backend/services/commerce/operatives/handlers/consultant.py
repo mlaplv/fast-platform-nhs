@@ -367,7 +367,9 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             "cart_text": ctx.cart_text
         }
 
-        if is_skin_barrier_session:
+        if ctx.page_type == "article":
+            base_prompt = composer.compose("helen_content_advisor", context=composer_context)
+        elif is_skin_barrier_session:
             if "[system_skin_barrier]" in ctx.request.message:
                 clean_msg = "Sản phẩm này có an toàn cho da của tôi không? Xin hãy kiểm tra giúp."
                 composer_context["clean_msg"] = clean_msg
@@ -395,7 +397,19 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         )
         if marketing_block:
             full_prompt += f"\n[CHƯƠNG TRÌNH MARKETING ĐANG ÁP DỤNG CHO SẢN PHẨM]\n{marketing_block}\n"
-            
+
+        # Elite V7.5: Article-Aware Prompt Instructions
+        if ctx.page_type == "article" and ctx.product_ctx:
+            full_prompt += (
+                "\n[CHỈ THỊ ĐẶC BIỆT - TRANG BÀI VIẾT]:\n"
+                "Khách đang đọc một bài viết trên website, KHÔNG phải trang sản phẩm.\n"
+                "- Trả lời DỰA TRÊN NỘI DUNG BÀI VIẾT được cung cấp trong [NỘI DUNG TRANG HIỆN TẠI KHÁCH ĐANG XEM].\n"
+                "- CẤM tự bịa thông tin không có trong bài viết.\n"
+                "- KHÔNG tư vấn bán sản phẩm hoặc xin SĐT/Địa chỉ trừ khi khách hỏi trực tiếp.\n"
+                "- Nếu bài viết liên quan đến sản phẩm, có thể gợi ý khách xem sản phẩm tương ứng.\n"
+                "- Giọng điệu: Chuyên gia nội dung ân cần, KHÔNG phải Sales Assassin.\n"
+            )
+
         full_prompt += (
             f"\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)]\n{pre_retrieved_ctx or 'Không tìm thấy kết quả bổ sung.'}\n"
             f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"

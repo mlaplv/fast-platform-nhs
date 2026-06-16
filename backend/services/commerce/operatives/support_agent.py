@@ -196,6 +196,15 @@ class SupportAgentOperative(BaseAgentOperative):
         dna = await _fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
 
+        # Elite V7.5: Derive page_type from context resolution
+        _page_type = "unknown"
+        if p_info:
+            _page_type = "product"
+        elif ctx_text and "Loại trang: BÀI VIẾT" in ctx_text:
+            _page_type = "article"
+        elif not request.product_slug:
+            _page_type = "homepage"
+
         try:
             repo = SupportKnowledgeRepository(session=db)
             kb_service = SupportKnowledgeService(repo=repo)
@@ -259,7 +268,8 @@ class SupportAgentOperative(BaseAgentOperative):
             db=db, request=request, session_id=session_id, dna=dna,
             product_ctx=ctx_text, history_text=hist_text, knowledge_index=kb_index,
             p_info=p_info, cart_text=cart_text, order_draft=order_draft,
-            zalo_enabled=zalo_on, messenger_enabled=msg_on
+            zalo_enabled=zalo_on, messenger_enabled=msg_on,
+            page_type=_page_type, article_ctx=ctx_text if _page_type == "article" else ""
         )
         
         try:
@@ -538,6 +548,15 @@ class SupportAgentOperative(BaseAgentOperative):
                         await xohi_memory.clear_order_draft(session_id)
 
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
+
+        # Elite V7.5: Derive page_type from context resolution
+        page_type = "unknown"
+        if p_info:
+            page_type = "product"
+        elif ctx_text and "Loại trang: BÀI VIẾT" in ctx_text:
+            page_type = "article"
+        elif not request.product_slug:
+            page_type = "homepage"
         is_system_prompt = request.message.strip().startswith("[system_")
 
         # ══ SYNC DB-FIRST FAST-PATH ══
@@ -588,7 +607,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 logger.warning(f"[SyncKBFastPath] Error: {kb_sync_err}")
 
         # ══ SYNC RAG ARTICLE FAST-PATH ══
-        if not is_system_prompt:
+        # Skip when article context already resolved from _fetch_product_context (Phase 1)
+        if not is_system_prompt and page_type != "article":
             try:
                 _CTV_KEYWORDS = ["ctv", "cộng tác viên", "tuyển dụng", "affiliate", "đại lý", "chiết khấu"]
                 _POLICY_KEYWORDS = ["chính sách", "bảo hành", "đổi trả", "hoàn tiền", "vận chuyển", "giao hàng"]

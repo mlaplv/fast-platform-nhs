@@ -147,6 +147,17 @@ class GreetingHandler(BaseHandler):
                     ctx.replies.append(
                         "Anh/Chị muốn Helen tư vấn chi tiết về công dụng, thành phần hay lên đơn luôn cho mình nhé! 🌸"
                     )
+            elif ctx.page_type == "article" and ctx.product_ctx:
+                # Elite V7.5: Đang ở trang bài viết — Greeting chuyên gia nội dung
+                import re as _re
+                _title_match = _re.search(r"Tiêu đề: (.+)", ctx.product_ctx)
+                _art_title = _title_match.group(1).strip() if _title_match else "bài viết này"
+                prefix += (
+                    f"Em thấy mình đang đọc bài viết **{_art_title}** — "
+                    "nếu mình cần Helen tóm tắt nội dung chính, giải đáp thắc mắc "
+                    "hay tư vấn sản phẩm liên quan, cứ nhắn em nhé! 📖✨"
+                )
+                ctx.replies.append(prefix)
             else:
                 # Ở Homepage / Category / Cart — Smart Hook
                 ctx.replies.append(prefix)

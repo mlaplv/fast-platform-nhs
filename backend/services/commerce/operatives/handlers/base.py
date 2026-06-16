@@ -62,6 +62,10 @@ class SupportContext(BaseModel):
     # Execution Loop Guard (Elite V3.0)
     tool_calls_count: int = 0
 
+    # Elite V7.5: Page Type Awareness (Article-Aware Grounding)
+    page_type: str = "unknown"  # "product" | "article" | "homepage" | "unknown"
+    article_ctx: str = ""  # Article ground truth context when page_type="article"
+
 # Late binding for Pydantic V2
 SupportContext.model_rebuild()
 

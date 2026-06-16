@@ -241,8 +241,42 @@ async def _generate_fast_db_consultation(ctx: SupportContext) -> Optional[str]:
 
     return _wrap_prefix("\n".join(parts))
 
+async def _generate_article_context_reply(ctx: SupportContext) -> Optional[str]:
+    """Article-Aware DB-First: Tạo phản hồi từ nội dung bài viết khách đang xem."""
+    if ctx.page_type != "article" or not ctx.product_ctx:
+        return None
+
+    import re as _re
+    title_match = _re.search(r"Tiêu đề: (.+)", ctx.product_ctx)
+    excerpt_match = _re.search(r"Tóm tắt: (.+)", ctx.product_ctx)
+    category_match = _re.search(r"Danh mục: (.+)", ctx.product_ctx)
+
+    art_title = title_match.group(1).strip() if title_match else "bài viết này"
+    art_excerpt = excerpt_match.group(1).strip() if excerpt_match else ""
+    art_category = category_match.group(1).strip() if category_match else ""
+
+    parts = [
+        f"Dạ Helen thấy Anh/Chị đang đọc bài viết **{art_title}** ạ! 📖✨",
+    ]
+    if art_excerpt:
+        parts.append(f"\n📌 **Tóm tắt**: {art_excerpt}")
+    if art_category:
+        parts.append(f"📂 Danh mục: {art_category}")
+    parts.append(
+        "\nAnh/Chị muốn Helen tóm tắt nội dung chính, giải đáp thắc mắc "
+        "hay tư vấn sản phẩm liên quan đến chủ đề này không ạ? 🌸"
+    )
+    return _wrap_prefix("\n".join(parts))
+
 async def _try_db_product_direct(ctx: SupportContext, msg_norm: str) -> Optional[str]:
     """DB-First Layer: Trả lời trực tiếp từ DB nếu câu hỏi có cấu trúc rõ ràng và DB có đủ dữ liệu."""
+    # Elite V7.5: Article-Aware path — handle article pages first
+    if ctx.page_type == "article" and ctx.product_ctx:
+        if "[system_consult]" in ctx.request.message:
+            return await _generate_article_context_reply(ctx)
+        # For other messages on article pages, let them fall through to AI with article context
+        return None
+
     if not ctx.product_ctx or not ctx.p_info:
         return None
     # Câu hỏi hội thoại cá nhân phức tạp → xuống AI

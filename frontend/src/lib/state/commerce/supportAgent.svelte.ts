@@ -95,18 +95,24 @@ class SupportAgentState {
 
     // Elite V2.2: Context & Pulse Intelligence
     currentPath = $state("");
+    pageType = $state("unknown");
     currentProductName = $state(""); // Elite V6.3: Track current product name for greeting
+    currentArticleTitle = $state(""); // Elite V7.5: Track current article title for greeting
     aiPulse = $state(false);
 
-    // Derived context computed from path
+    // Derived context computed from path and pageType
     currentContext = $derived.by(() => {
+        if (this.pageType === "product") return "product";
+        if (this.pageType === "article") return "article";
+        if (this.pageType === "category") return "category";
+        if (this.pageType === "news") return "news";
         if (!this.currentPath) return "default";
         if (this.currentPath === "/" || this.currentPath === "") return "home";
         // Handle both clean URLs and potential product prefixes
         if (this.currentPath.includes("-sua-rua-mat-") ||
             this.currentPath.includes("-kem-duong-") ||
             this.currentPath.includes("-serum-") ||
-            this.currentPath.split("/").length >= 2 && this.currentPath.length > 20) {
+            (this.currentPath.split("/").length >= 2 && this.currentPath.length > 20 && !this.currentPath.endsWith(".html") && !this.currentPath.includes("/bai-viet"))) {
             return "product";
         }
         if (this.currentPath.startsWith("/cart")) return "cart";
@@ -136,6 +142,11 @@ class SupportAgentState {
         if (isProductPage) {
             const prodHook = pName ? `siêu phẩm **${pName}**` : "sản phẩm này";
             return `${greeting} Rất vui được gặp lại mình. Em thấy mình đang quan tâm đến ${prodHook} - đây là dòng sản phẩm cao cấp nhà osmo đó ạ. ${nameLabel} có muốn Helen tư vấn kỹ hơn không? ✨💄`;
+        }
+
+        if (this.currentContext === "article") {
+            const artTitle = this.currentArticleTitle || "bài viết này";
+            return `${greeting} Em thấy mình đang đọc bài viết **${artTitle}** — nếu mình cần Helen tóm tắt nội dung chính, giải đáp thắc mắc hay tư vấn sản phẩm liên quan, cứ nhắn em nhé! 📖✨`;
         }
 
         if (user?.name) {
@@ -220,6 +231,14 @@ class SupportAgentState {
                 this.triggerPulse();
             }
         }
+    }
+
+    /**
+     * Update current page type context reactively from SvelteKit page store
+     */
+    setPageType(type: string) {
+        if (!browser) return;
+        this.pageType = type;
     }
 
     /**

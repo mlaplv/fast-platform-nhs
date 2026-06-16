@@ -159,6 +159,11 @@ composer.register_template(PromptTemplate(
     components=["helen_system_consultation"]
 ))
 
+composer.register_template(PromptTemplate(
+    name="helen_content_advisor",
+    components=["helen_content_advisor"]
+))
+
 # Micsmo Routing & STT Templates
 composer.register_template(PromptTemplate(
     name="stt_corrector_premium",

@@ -105,33 +105,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
     """Fetch product info via SQLAlchemy 2.0 Scalar projection."""
     if not slug:
         return "", None
-        
-    if any(p in slug for p in ["chinh-sach", "gioi-thieu", "tuyen-dung", "dieu-khoan", "thanh-toan", "kiem-hang", "bao-hanh"]):
-        try:
-            from backend.database.models.content import Article
-            from backend.database import current_tenant_id
-            tid = current_tenant_id.get() or "default"
-            
-            stmt = select(Article.title, Article.excerpt, Article.content).where(and_(
-                Article.slug == slug,
-                Article.status == "PUBLISHED",
-                Article.deleted_at.is_(None),
-                Article.tenant_id == tid
-            )).limit(1)
-            row = (await db.execute(stmt)).first()
-            if row:
-                plain_content = re.sub(r'<[^>]+>', ' ', str(row.content or ""))[:1500].strip()
-                ctx_text = (
-                    f"[NỘI DUNG TRANG HIỆN TẠI KHÁCH ĐANG XEM]\n"
-                    f"Tiêu đề: {row.title}\n"
-                    f"Tóm tắt: {row.excerpt or ''}\n"
-                    f"Chi tiết: {plain_content}\n"
-                )
-                return ctx_text, None
-        except Exception as ae:
-            logger.warning(f"[SupportAgent] Fetch article context for slug '{slug}' failed: {ae}")
-        return "", None
-        
+
     cache_key = f"support:prod_ctx:slug={slug}"
     if xohi_memory._use_redis and xohi_memory.client:
         try:
@@ -163,6 +137,47 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         res = await db.execute(stmt)
         p_row = res.first()
         if not p_row:
+            # ══ TIER 3: Article Fallback ══
+            # Product not found — try Article table before returning empty
+            try:
+                from backend.database.models.content import Article
+                from backend.database import current_tenant_id
+                tid = current_tenant_id.get() or "default"
+
+                art_stmt = select(
+                    Article.title, Article.slug, Article.excerpt,
+                    Article.content, Article.category
+                ).where(and_(
+                    Article.slug == slug,
+                    Article.status == "PUBLISHED",
+                    Article.deleted_at.is_(None),
+                    Article.tenant_id == tid
+                )).limit(1)
+                art_row = (await db.execute(art_stmt)).first()
+
+                if art_row:
+                    plain_content = re.sub(r'<[^>]+>', ' ', str(art_row.content or ""))
+                    # Truncate at sentence boundary to avoid mid-sentence cutoff
+                    if len(plain_content) > 2000:
+                        cut_pos = plain_content.rfind('.', 0, 2000)
+                        if cut_pos > 500:
+                            plain_content = plain_content[:cut_pos + 1]
+                        else:
+                            plain_content = plain_content[:2000]
+                    plain_content = plain_content.strip()
+
+                    ctx_text = (
+                        f"[NỘI DUNG TRANG HIỆN TẠI KHÁCH ĐANG XEM]\n"
+                        f"Loại trang: BÀI VIẾT\n"
+                        f"Tiêu đề: {art_row.title}\n"
+                        f"Danh mục: {art_row.category or 'Bài viết'}\n"
+                        f"Tóm tắt: {art_row.excerpt or ''}\n"
+                        f"Chi tiết:\n{plain_content}\n"
+                    )
+                    logger.info(f"📖 [SupportAgent] Article context resolved for slug '{slug}': {art_row.title}")
+                    return ctx_text, None
+            except Exception as ae:
+                logger.warning(f"[SupportAgent] Article fallback for slug '{slug}' failed: {ae}")
             return "", None
             
         img_url = p_row.images[0] if p_row.images and len(p_row.images) > 0 else None

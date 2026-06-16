@@ -18,7 +18,7 @@
   import { checkoutState } from "$lib/state/commerce/checkout.svelte";
   import HelenIcon from "./HelenIcon.svelte";
 
-  const { productSlug = "" } = $props<{ productSlug?: string }>();
+  const { productSlug = "", pageType = "unknown" } = $props<{ productSlug?: string; pageType?: string }>();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
 
@@ -651,7 +651,7 @@
       class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-[3px] pt-1 pb-4"
     >
       <!-- Quick Actions: full-width equal pills, tap-friendly -->
-      {#if productSlug && productSlug.trim() !== ""}
+      {#if productSlug && productSlug.trim() !== "" && pageType === 'product'}
         <div class="w-full flex gap-1.5 pb-2.5 overflow-x-auto hide-scrollbar">
           {#each quickActions as action}
             <div class="relative flex-1 min-w-0">
