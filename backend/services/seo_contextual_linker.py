@@ -137,6 +137,7 @@ class SeoContextualLinker:
         article_id: str,
         article_content: str,
         article_title: str,
+        target_pillar_id: Optional[str] = None,
     ) -> int:
         """
         Main pipeline. Chạy sau khi SeoMatchingService hoàn tất.
@@ -150,6 +151,12 @@ class SeoContextualLinker:
         if not pillars:
             logger.info("[ContextualLinker] No pillars found — skipping")
             return 0
+
+        if target_pillar_id:
+            pillars = [p for p in pillars if p["id"] == target_pillar_id]
+            if not pillars:
+                logger.info(f"[ContextualLinker] Target pillar {target_pillar_id} not found — skipping")
+                return 0
 
         # Lọc bỏ các pillars đã có sẵn link trỏ đến trong article_content để tránh Double Link (Google Link Spam Penalty)
         active_pillars = []
@@ -376,15 +383,51 @@ class SeoContextualLinker:
                     if p["id"] not in entity_pillar_map[name]:
                         entity_pillar_map[name].append(p["id"])
 
-            # Also use pillar label/topic as entity
-            label = (p.get("label") or "").lower().strip()
-            topic = (p.get("pillar_topic") or "").lower().strip()
-            for term in [label, topic]:
-                if term and len(term) >= 3:
-                    if term not in entity_pillar_map:
-                        entity_pillar_map[term] = []
-                    if p["id"] not in entity_pillar_map[term]:
-                        entity_pillar_map[term].append(p["id"])
+            # Also use pillar label/topic as entity (cleaned and chunked to handle product names without volume/weight suffixes)
+            label = p.get("label") or ""
+            topic = p.get("pillar_topic")
+            
+            additional_terms = []
+            if topic:
+                additional_terms.append(topic.lower().strip())
+            
+            # Split by common delimiters and clean weight/volume suffixes
+            parts = re.split(r'[-—|/(~]', label)
+            core = parts[0].strip()
+            core_cleaned = re.sub(r'\s*\d+(?:\.\d+)?\s*(?:g|gr|ml|l|kg|oz)\b.*$', '', core, flags=re.IGNORECASE).strip()
+            
+            if len(core_cleaned) >= 3:
+                additional_terms.append(core_cleaned.lower())
+                
+                # Strip common brand names
+                lower_core = core_cleaned.lower()
+                for brand in ["miccosmo white label", "miccosmo hurry harry", "miccosmo", "hurry harry", "white label"]:
+                    if lower_core.startswith(brand):
+                        suffix = core_cleaned[len(brand):].strip()
+                        if len(suffix) >= 3:
+                            additional_terms.append(suffix.lower())
+                
+                # Extract bigrams and trigrams
+                words = core_cleaned.split()
+                if len(words) >= 2:
+                    for i in range(len(words) - 1):
+                        additional_terms.append(f"{words[i]} {words[i+1]}".lower())
+                    for i in range(len(words) - 2):
+                        additional_terms.append(f"{words[i]} {words[i+1]} {words[i+2]}".lower())
+            
+            stop_words = {
+                "kem", "serum", "gel", "tinh chất", "sữa rửa", "nước hoa", "mặt nạ", "kem dưỡng", "dưỡng da",
+                "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão", "lão hóa", "chăm sóc", "tẩy tế", "tế bào", "nhạy cảm",
+                "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả"
+            }
+            
+            for t in additional_terms:
+                t_clean = t.strip()
+                if len(t_clean) >= 4 and t_clean not in stop_words:
+                    if t_clean not in entity_pillar_map:
+                        entity_pillar_map[t_clean] = []
+                    if p["id"] not in entity_pillar_map[t_clean]:
+                        entity_pillar_map[t_clean].append(p["id"])
 
         if not entity_pillar_map:
             return []

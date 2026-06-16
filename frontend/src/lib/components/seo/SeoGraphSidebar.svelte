@@ -148,6 +148,16 @@
 		};
 		return map[tier] ?? tier;
 	}
+
+	function getLinkTypeLabel(type: string): string {
+		const map: Record<string, string> = {
+			pillar_cluster: 'Cluster chính',
+			related: 'Liên kết liên quan',
+			manual: 'Gán thủ công',
+			ai_suggested: 'AI đề xuất (Chờ duyệt)'
+		};
+		return map[type] ?? type;
+	}
 </script>
 
 <div class="sidebar">
@@ -197,7 +207,7 @@
 				<h3 class="section-title">Liên kết hiện tại</h3>
 				<div class="edge-info" class:confirmed={currentEdge.is_confirmed} class:ai={!currentEdge.is_confirmed}>
 					<span class="edge-type">
-						{currentEdge.is_confirmed ? '✅' : '🟠'} {currentEdge.link_type}
+						{currentEdge.is_confirmed ? '✅' : '🟠'} {getLinkTypeLabel(currentEdge.link_type)}
 					</span>
 					{#if currentEdge.ai_confidence !== null}
 						<div class="confidence-bar">

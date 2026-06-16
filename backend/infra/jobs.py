@@ -534,6 +534,7 @@ async def seo_pillar_auto_link_job(
                         article_id=article_id,
                         article_content=article.content,
                         article_title=article.title,
+                        target_pillar_id=pillar_id,
                     )
                     total_suggestions += count
                     await db.commit()
