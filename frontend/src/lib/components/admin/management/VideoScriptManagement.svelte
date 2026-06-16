@@ -27,6 +27,9 @@
   import Link from "@lucide/svelte/icons/link";
   import FileText from "@lucide/svelte/icons/file-text";
   import Upload from "@lucide/svelte/icons/upload";
+  import Terminal from "@lucide/svelte/icons/terminal";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Eye from "@lucide/svelte/icons/eye";
 
   import type { BaseWidgetProps, VideoScript, VideoScriptStyle } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -81,11 +84,103 @@
 
   // Playback Timeline simulator state
   let isPlaying = $state(false);
+  let playbackInterval: ReturnType<typeof setInterval>;
+  let selectedVoice = $state("vi-VN-HoaiMyNeural");
+  let ttsEnabled = $state(true);
   let activeSceneIdx = $state<number | null>(null);
   let playbackTime = $state(0);
-  let ttsEnabled = $state(true);
-  let selectedVoice = $state("vi-VN-HoaiMyNeural");
-  let playbackInterval: ReturnType<typeof setInterval>;
+
+  // Clypra & AI Prompt states
+  let isClypraLoading = $state(false);
+  let showPromptHub = $state(false);
+  let activePromptTab = $state<"midjourney" | "runway" | "heygen" | "gemini">("midjourney");
+
+  async function openInClypra() {
+    if (!activeScript) return;
+    isClypraLoading = true;
+    try {
+      const res = await apiClient.post<{ data: { launched: boolean } }>(
+        `/api/v1/video/script/${activeScript.id}/clypra/open?voice=${selectedVoice}`
+      );
+      if (res.data && res.data.launched) {
+        nanobot.showToast("Đã xuất timeline và khởi chạy Clypra Editor!", "success");
+      } else {
+        nanobot.showToast("Đã lưu project.json, hãy mở Clypra thủ công để chỉnh sửa.", "warning");
+      }
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      nanobot.showToast(`Lỗi kết nối Clypra: ${msg}`, "error");
+    } finally {
+      isClypraLoading = false;
+    }
+  }
+
+  function getMidjourneyPrompt(scene: any, aspect: string) {
+    const desc = scene.visual_description || "";
+    const notes = scene.scene_notes || "";
+    const ar = aspect === "9:16" ? "9:16" : "16:9";
+    return `A high-fidelity commercial cinematography storyboard slot. ${desc}. ${notes}. Clean look, photorealistic, 8k resolution, cinematic lighting, commercial grade --ar ${ar} --style raw --v 6.0`;
+  }
+
+  function getRunwayPrompt(scene: any) {
+    const desc = scene.visual_description || "";
+    const notes = scene.scene_notes || "";
+    return `Cinematic, hyper-realistic video. ${desc}. Camera motion: ${notes}. Smooth transition, high dynamic range, photorealistic commercial styling, 8k.`;
+  }
+
+  function getGeminiPrompt(scene: any) {
+    const desc = scene.visual_description || "";
+    const notes = scene.scene_notes || "";
+    const voice = scene.voiceover || "";
+    return `[LỆNH TẠO VIDEO TRỰC TIẾP] Hãy sử dụng công cụ tạo video (Imagen Video / Vids / Google Video generator) tích hợp của bạn để sinh ra video trực tiếp cho phân cảnh sau:
+- Mô tả hình ảnh (Visual Description): ${desc}
+- Lời thoại (Voiceover): ${voice}
+- Chuyển động camera & Ghi chú: ${notes}
+- Phong cách: Điện ảnh thương mại, độ phân giải 8K, ánh sáng chuyên nghiệp.
+
+YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên mô tả trên.`;
+  }
+
+  function getGeminiMasterPrompt() {
+    if (!activeScript || !activeScript.structured_script?.scenes) return "";
+    let text = `[LỆNH ĐIỀU HÀNH ĐẠO DIỄN - TẠO DỰ ÁN VIDEO TOÀN BỘ KỊCH BẢN]\n`;
+    text += `Bạn là Đạo diễn Video AI kiêm Trợ lý sinh video của Google. Dưới đây là kịch bản marketing chi tiết cho sản phẩm "${activeScript.title || 'sản phẩm'}":\n\n`;
+    activeScript.structured_script.scenes.forEach((scene: any, idx: number) => {
+      const num = scene.scene_number || (idx + 1);
+      text += `Phân cảnh #${num}:\n`;
+      text += `- Mô tả hình ảnh: ${scene.visual_description || ""}\n`;
+      text += `- Lời thoại: ${scene.voiceover || ""}\n`;
+      text += `- Ghi chú & Chuyển động: ${scene.scene_notes || ""}\n\n`;
+    });
+    text += `YÊU CẦU THỰC THI:\n`;
+    text += `1. Hãy kích hoạt ngay chức năng sinh video tích hợp (Imagen/Google Vids) để tạo các đoạn video phân cảnh trực tiếp.\n`;
+    text += `2. Cung cấp các mô tả video đầu ra, đồng thời đưa ra các chỉ dẫn cụ thể về nhịp độ để tối ưu hóa việc xuất bản dự án video.`;
+    return text;
+  }
+
+  function copyAllPrompts(type: "midjourney" | "runway" | "heygen" | "gemini") {
+    if (!activeScript || !activeScript.structured_script?.scenes) return;
+    const aspect = activeScript.structured_script.aspect_ratio || "16:9";
+    let text = "";
+    
+    if (type === "gemini") {
+      text = getGeminiMasterPrompt();
+    } else {
+      activeScript.structured_script.scenes.forEach((scene: any, idx: number) => {
+        const num = scene.scene_number || (idx + 1);
+        if (type === "midjourney") {
+          text += `Scene #${num} Midjourney Prompt:\n${getMidjourneyPrompt(scene, aspect)}\n\n`;
+        } else if (type === "runway") {
+          text += `Scene #${num} Runway Prompt:\n${getRunwayPrompt(scene)}\n\n`;
+        } else if (type === "heygen") {
+          text += `Scene #${num} Voiceover:\n${scene.voiceover || ""}\n\n`;
+        }
+      });
+    }
+    
+    navigator.clipboard.writeText(text.trim());
+    nanobot.showToast("Đã sao chép tất cả prompt vào clipboard!", "success");
+  }
 
   // Deep copy selected script to active copy
   $effect(() => {
@@ -879,6 +974,69 @@
           ></textarea>
         </div>
 
+        <!-- Cầu nối Video Editor & AI Prompt Hub Bento Card -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Cầu nối Clypra Studio -->
+          <div class="bg-[#0b0c10]/60 border border-cyan-500/20 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-all duration-500"></div>
+            
+            <div class="flex items-center justify-between border-b border-gray-900/60 pb-3 mb-4">
+              <div class="flex items-center gap-2">
+                <Film class="w-4 h-4 text-cyan-400" />
+                <span class="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">CLYPRA EDITOR STUDIO</span>
+              </div>
+              <span class="text-[9px] font-mono bg-cyan-900/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">LOCAL PRODUCTION</span>
+            </div>
+            
+            <div class="space-y-4">
+              <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
+                Đóng gói toàn bộ phân cảnh thành Timeline Project chuẩn Clypra (tự động ghép ảnh storyboard, sinh giọng đọc TTS, chèn phụ đề) và mở trình chỉnh sửa Clypra chỉ với 1 click.
+              </p>
+              
+              <button 
+                onclick={openInClypra}
+                disabled={isClypraLoading}
+                class="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-gray-800 disabled:to-gray-800 text-white rounded-lg font-semibold text-xs border border-cyan-400/20 transition-all shadow-md shadow-cyan-500/10 hover:shadow-cyan-500/25 active:scale-[0.98]"
+              >
+                {#if isClypraLoading}
+                  <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>ĐANG ĐÓNG GÓI & KHỞI CHẠY...</span>
+                {:else}
+                  <ExternalLink class="w-3.5 h-3.5" />
+                  <span>MỞ TRỰC TIẾP TRONG CLYPRA EDITOR</span>
+                {/if}
+              </button>
+            </div>
+          </div>
+
+          <!-- Trung tâm AI Generative Prompt -->
+          <div class="bg-[#0b0c10]/60 border border-purple-500/20 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all duration-500"></div>
+            
+            <div class="flex items-center justify-between border-b border-gray-900/60 pb-3 mb-4">
+              <div class="flex items-center gap-2">
+                <Sparkles class="w-4 h-4 text-purple-400" />
+                <span class="text-[10px] font-mono font-bold tracking-widest text-purple-400 uppercase">AI GENERATIVE PROMPT HUB</span>
+              </div>
+              <span class="text-[9px] font-mono bg-purple-900/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20 animate-pulse">GENERATIVE PIXEL</span>
+            </div>
+            
+            <div class="space-y-4">
+              <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
+                Trích xuất hàng loạt các câu lệnh (prompts) tối ưu riêng cho từng nền tảng AI Video (Runway, Sora) và AI Image (Midjourney, Flux) để tạo ra thước phim điện ảnh cao cấp.
+              </p>
+              
+              <button 
+                onclick={() => showPromptHub = true}
+                class="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-semibold text-xs border border-purple-400/20 transition-all shadow-md shadow-purple-500/10 hover:shadow-purple-500/25 active:scale-[0.98]"
+              >
+                <Eye class="w-3.5 h-3.5" />
+                <span>XEM & SAO CHÉP AI PROMPT BATCH</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Storyblock Timeline container -->
         {#if activeScript.structured_script?.scenes?.length > 0}
           <div class="space-y-4">
@@ -1327,6 +1485,150 @@
           }}
           onPickClose={() => showLibraryModalIdx = null}
         />
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- AI Prompt Generator Hub Drawer -->
+{#if showPromptHub}
+  <div class="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" transition:fade={{ duration: 150 }}>
+    <!-- Backdrop click to close -->
+    <button class="absolute inset-0 cursor-default focus:outline-none" onclick={() => showPromptHub = false}></button>
+    
+    <div 
+      class="relative w-full max-w-2xl h-full bg-[#070709] border-l border-gray-900 shadow-2xl flex flex-col z-10"
+      transition:slide={{ axis: 'x', duration: 250 }}
+    >
+      <!-- Drawer Header -->
+      <div class="p-5 border-b border-gray-900 flex items-center justify-between bg-black/40">
+        <div class="flex items-center gap-2">
+          <Sparkles class="w-5 h-5 text-cyan-400" />
+          <div>
+            <h3 class="text-sm font-semibold text-gray-100 uppercase tracking-wider">AI Prompt Bridge Center</h3>
+            <p class="text-[10px] text-gray-500 font-mono mt-0.5">Xuất prompt chuẩn hóa cho các nền tảng AI Video & Image</p>
+          </div>
+        </div>
+        <button 
+          onclick={() => showPromptHub = false}
+          class="p-1.5 hover:bg-gray-900 rounded-lg text-gray-400 hover:text-white transition-colors"
+        >
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+
+      <!-- Tabs & Copy All -->
+      <div class="px-5 py-3 bg-[#0a0a0d] border-b border-gray-900 flex items-center justify-between">
+        <div class="flex gap-2">
+          <button 
+            onclick={() => activePromptTab = 'midjourney'}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                   {activePromptTab === 'midjourney' 
+                     ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400 shadow-sm shadow-cyan-500/10' 
+                     : 'border-transparent text-gray-400 hover:text-white'}"
+          >
+            Midjourney / Flux (Ảnh)
+          </button>
+          <button 
+            onclick={() => activePromptTab = 'runway'}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                   {activePromptTab === 'runway' 
+                     ? 'bg-purple-950/40 border-purple-500/30 text-purple-400 shadow-sm shadow-purple-500/10' 
+                     : 'border-transparent text-gray-400 hover:text-white'}"
+          >
+            Runway Gen-3 (Video)
+          </button>
+          <button 
+            onclick={() => activePromptTab = 'heygen'}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                   {activePromptTab === 'heygen' 
+                     ? 'bg-pink-950/40 border-pink-500/30 text-pink-400 shadow-sm shadow-pink-500/10' 
+                     : 'border-transparent text-gray-400 hover:text-white'}"
+          >
+            HeyGen (Lời thoại)
+          </button>
+          <button 
+            onclick={() => activePromptTab = 'gemini'}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                   {activePromptTab === 'gemini' 
+                     ? 'bg-blue-950/40 border-blue-500/30 text-blue-400 shadow-sm shadow-blue-500/10' 
+                     : 'border-transparent text-gray-400 hover:text-white'}"
+          >
+            Gemini Pro (Đạo diễn)
+          </button>
+        </div>
+        
+        <button 
+          onclick={() => copyAllPrompts(activePromptTab)}
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-950 hover:bg-gray-900 text-xs text-gray-300 rounded-lg border border-gray-800 transition-all"
+        >
+          <Copy class="w-3.5 h-3.5" />
+          <span>Sao chép tất cả</span>
+        </button>
+      </div>
+
+      <!-- Prompts List -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+        {#if activeScript && activeScript.structured_script?.scenes}
+          {#if activePromptTab === 'gemini'}
+            <!-- Master Prompt for Gemini Pro -->
+            <div class="bg-blue-950/10 border border-blue-500/20 rounded-xl p-4 space-y-3 relative group">
+              <div class="flex items-center justify-between border-b border-blue-500/20 pb-2">
+                <span class="text-[10px] font-mono font-bold text-blue-400 uppercase">Master Prompt cho Gemini Pro (Toàn bộ kịch bản)</span>
+                <button 
+                  onclick={() => {
+                    navigator.clipboard.writeText(getGeminiMasterPrompt());
+                    nanobot.showToast("Đã sao chép Master Prompt cho Gemini Pro!", "success");
+                  }}
+                  class="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-all"
+                  title="Sao chép Master Prompt"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
+                Dán câu lệnh tổng quát này vào Gemini Pro để nhận phân tích, tối ưu hoá nhịp độ và đạo diễn hình ảnh nâng cao cho toàn bộ kịch bản của sếp:
+              </p>
+              <pre class="text-xs text-blue-200 leading-relaxed font-mono whitespace-pre-wrap select-all bg-black/40 border border-blue-500/10 p-3 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">{getGeminiMasterPrompt()}</pre>
+            </div>
+          {/if}
+
+          {#each activeScript.structured_script.scenes as scene, idx}
+            {@const aspect = activeScript.structured_script.aspect_ratio || "16:9"}
+            {@const promptText = activePromptTab === 'midjourney' 
+              ? getMidjourneyPrompt(scene, aspect)
+              : activePromptTab === 'runway' 
+                ? getRunwayPrompt(scene)
+                : activePromptTab === 'gemini'
+                  ? getGeminiPrompt(scene)
+                  : (scene.voiceover || "")}
+            
+            <div class="bg-[#0b0b0f] border border-gray-900 rounded-xl p-4 space-y-3 relative group">
+              <div class="flex items-center justify-between border-b border-gray-900/50 pb-2">
+                <span class="text-[10px] font-mono font-bold text-gray-400 uppercase">Phân cảnh #{scene.scene_number || (idx + 1)}</span>
+                <button 
+                  onclick={() => {
+                    navigator.clipboard.writeText(promptText);
+                    nanobot.showToast(`Đã sao chép prompt phân cảnh ${scene.scene_number}!`, "success");
+                  }}
+                  class="p-1 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
+                  title="Sao chép prompt này"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
+              
+              <p class="text-xs text-gray-300 leading-relaxed font-mono whitespace-pre-wrap select-all bg-black/30 border border-gray-900/60 p-3 rounded-lg">
+                {promptText || "(Không có nội dung)"}
+              </p>
+              
+              <div class="flex items-center justify-between text-[9px] text-gray-500 font-mono">
+                <span>Tỷ lệ: {aspect}</span>
+                <span>Thời lượng: {scene.duration} giây</span>
+              </div>
+            </div>
+          {/each}
+        {/if}
       </div>
     </div>
   </div>

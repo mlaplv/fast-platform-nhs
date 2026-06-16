@@ -1,5 +1,19 @@
 import logging
+import os
+import json
+import subprocess
+import time
+import shutil
+import re
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional
+
+import PIL.Image
+import PIL.ImageDraw
+import edge_tts
 from litestar import Controller, get, post, patch, delete, Response, Request
 from litestar.exceptions import HTTPException
 from sqlalchemy import select, func
@@ -9,7 +23,7 @@ from sqlalchemy.orm import selectinload
 from backend.database.models.video_marketing import VideoScript, VideoScriptStyle
 from backend.database.models.commerce import ProductBase
 from backend.services.video_marketing.product_resolver_service import product_resolver_service
-from backend.services.video_marketing.script_generator_service import script_generator_service
+from backend.services.video_marketing.script_generator_service import script_generator_service, VideoScriptModel
 from backend.services.video_marketing.schemas import (
     GenerateScriptRequest, CreateStyleRequest, VideoScriptResponse, VideoStyleResponse, VideoScriptListResponse, UpdateScriptRequest
 )
@@ -90,7 +104,6 @@ class VideoScriptController(Controller):
         if not script:
             raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
             
-        from backend.services.video_marketing.script_generator_service import VideoScriptModel
         result = VideoScriptResponse(
             id=script.id,
             product_id=script.product_id,
@@ -156,10 +169,6 @@ class VideoScriptController(Controller):
     @get("/script/{script_id:str}/export")
     async def export_script(self, request: Request, db_session: AsyncSession, script_id: str) -> Response:
         """Xuất kịch bản ra định dạng Markdown chuyên nghiệp tối ưu cho AI & Con người."""
-        import datetime
-        import json
-        import urllib.parse
-
         stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.deleted_at == None)
         res = await db_session.execute(stmt)
         script = res.scalar_one_or_none()
@@ -209,7 +218,7 @@ class VideoScriptController(Controller):
         md.append(f"style: {json.dumps(data.get('style_name', 'N/A'), ensure_ascii=False)}")
         md.append(f"target_audience: {json.dumps(data.get('target_audience', 'N/A'), ensure_ascii=False)}")
         md.append(f"total_duration: {data.get('total_duration', 0)}")
-        md.append(f"exported_at: \"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\"")
+        md.append(f"exported_at: \"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\"")
         md.append("---")
         md.append("")
         
@@ -300,14 +309,11 @@ class VideoScriptController(Controller):
         res = await db_session.execute(list_stmt)
         scripts = res.scalars().all()
         
-        from backend.services.video_marketing.script_generator_service import VideoScriptModel
-        
         data_list = []
         for script in scripts:
             # Safely parse structured script
             structured = script.structured_script
             if isinstance(structured, str):
-                import json
                 structured = json.loads(structured)
             
             data_list.append(
@@ -329,7 +335,6 @@ class VideoScriptController(Controller):
     @delete("/script/{script_id:str}", status_code=200)
     async def delete_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse:
         """Soft delete a video script."""
-        from datetime import datetime, timezone
         stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.deleted_at.is_(None))
         res = await db_session.execute(stmt)
         script = res.scalar_one_or_none()
@@ -372,7 +377,6 @@ class VideoScriptController(Controller):
         res_refresh = await db_session.execute(stmt_refresh)
         script_refreshed = res_refresh.scalar_one()
         
-        from backend.services.video_marketing.script_generator_service import VideoScriptModel
         result = VideoScriptResponse(
             id=script_refreshed.id,
             product_id=script_refreshed.product_id,
@@ -389,4 +393,398 @@ class VideoScriptController(Controller):
             message="Cập nhật kịch bản video thành công!",
             data=result
         )
+
+    @post("/script/{script_id:str}/clypra/open")
+    async def open_in_clypra(
+        self,
+        db_session: AsyncSession,
+        script_id: str,
+        voice: str = "vi-VN-HoaiMyNeural"
+    ) -> SuccessResponse[dict]:
+        """Tải các tài nguyên âm thanh/hình ảnh, tạo file dự án JSON cho Clypra và kích hoạt khởi chạy editor."""
+        # 1. Tìm kịch bản trong DB
+        stmt = select(VideoScript).options(
+            selectinload(VideoScript.style),
+            selectinload(VideoScript.product)
+        ).where(VideoScript.id == script_id).where(VideoScript.deleted_at.is_(None))
+        res = await db_session.execute(stmt)
+        script = res.scalar_one_or_none()
+        
+        if not script:
+            raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+            
+        data = script.structured_script
+        scenes = data.get("scenes", [])
+        
+        # Lấy hình ảnh của sản phẩm thực tế để mapping tự động
+        product_images = []
+        if script.product and script.product.images:
+            for img in script.product.images:
+                if img:
+                    product_images.append(img)
+        
+        # 2. Xác định tỷ lệ khung hình & kích thước canvas dựa trên style
+        style_platform = ""
+        if script.style and script.style.platform:
+            style_platform = script.style.platform.lower()
+            
+        is_vertical = any(keyword in style_platform for keyword in ["tiktok", "reels", "shorts", "vertical"])
+        
+        aspect_ratio = "9:16" if is_vertical else "16:9"
+        canvas_width = 1080 if is_vertical else 1920
+        canvas_height = 1920 if is_vertical else 1080
+        
+        # 3. Tạo thư mục làm việc cục bộ của Clypra
+        clypra_projects_dir = Path("/home/lv/.local/share/com.clypra.editor/projects")
+        clypra_projects_dir.mkdir(parents=True, exist_ok=True)
+        
+        assets_dir = clypra_projects_dir / f"assets_{script_id}"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 3.1. Copy brand logo watermark
+        logo_filename = "brand_logo.png"
+        logo_path = assets_dir / logo_filename
+        logo_success = False
+        
+        logo_paths = [
+            "/app/frontend/static/uploads/img/logo.png",
+            "/app/frontend/static/uploads/img/Logo.png",
+            "/app/frontend/static/uploads/img/logo_transparent.webp",
+            "/app/frontend/static/favicon.svg",
+            "/opt/fast-platform/frontend/static/favicon.svg",
+            "/media/lv/data/fast-platform-core/frontend/static/favicon.svg"
+        ]
+        
+        for lp in logo_paths:
+            p = Path(lp)
+            if p.exists():
+                try:
+                    shutil.copy2(str(p), str(logo_path))
+                    logo_success = True
+                    break
+                except Exception as ex:
+                    logger.warning(f"Failed to copy logo from {lp}: {ex}")
+                    
+        media_assets = []
+        if logo_success:
+            media_assets.append({
+                "id": "asset_brand_logo",
+                "name": "brand_logo.png",
+                "path": str(logo_path),
+                "type": "image",
+                "duration": 3600.0,
+                "width": 200,
+                "height": 200,
+                "size": os.path.getsize(logo_path)
+            })
+            
+        clips = []
+        start_time = 0.0
+        
+        # Thư mục chứa các tệp nhị phân tĩnh
+        ffprobe_bin = "/media/lv/data/fast-platform-core/scripts/ffprobe"
+        
+        # 4. Xử lý từng phân cảnh
+        for idx, scene in enumerate(scenes):
+            scene_number = scene.get("scene_number", idx + 1)
+            duration = float(scene.get("duration", 4.0))
+            voiceover = scene.get("voiceover", "")
+            image_url = scene.get("image_url", "")
+            visual_description = scene.get("visual_description", "")
+            
+            # 4.1. Tạo tệp âm thanh TTS bằng edge_tts
+            audio_filename = f"audio_scene_{scene_number}.mp3"
+            audio_path = assets_dir / audio_filename
+            audio_duration = duration
+            
+            if voiceover:
+                try:
+                    clean_voiceover = re.sub(r'[<>]', '', voiceover)
+                    clean_voiceover = re.sub(r'<[^>]*>', '', clean_voiceover)
+                    clean_voiceover = clean_voiceover[:20000]
+                    clean_voiceover = re.sub(r'(\d+)([a-zA-Z]+)', r'\1 \2', clean_voiceover)
+                    clean_voiceover = re.sub(r'([\.!\?,])([^\s\.!\?,])', r'\1 \2', clean_voiceover)
+                    clean_voiceover = re.sub(r'\s+', ' ', clean_voiceover).strip()
+
+                    communicate = edge_tts.Communicate(clean_voiceover, voice)
+                    await communicate.save(str(audio_path))
+                    
+                    # Đo thời lượng thực tế của âm thanh bằng ffprobe
+                    if audio_path.exists() and os.path.exists(ffprobe_bin):
+                        cmd = [
+                            ffprobe_bin, "-v", "error", "-show_entries", "format=duration",
+                            "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)
+                        ]
+                        probe_res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                        if probe_res.returncode == 0:
+                            audio_duration = float(probe_res.stdout.strip())
+                except Exception as ex:
+                    logger.warning(f"Failed to generate TTS audio for scene {scene_number}: {ex}")
+            
+            actual_duration = max(duration, audio_duration)
+            
+            # 4.2. Tải/Sao chép ảnh Storyboard hoặc sinh ảnh solid màu đen nếu không có
+            image_filename = f"image_scene_{scene_number}.png"
+            image_path = assets_dir / image_filename
+            image_success = False
+            
+            # Nếu phân cảnh chưa có ảnh, tự động gán ảnh từ danh sách ảnh sản phẩm thực tế
+            if not image_url and product_images:
+                image_url = product_images[idx % len(product_images)]
+
+            if image_url:
+                local_source_path = None
+                if image_url.startswith("/"):
+                    paths_to_check = [
+                        Path("/app/frontend/static") / image_url.lstrip("/"),
+                        Path("/opt/fast-platform/frontend/static") / image_url.lstrip("/"),
+                        Path(os.getcwd()) / "frontend/static" / image_url.lstrip("/"),
+                        Path("/media/lv/data/fast-platform-core") / image_url.lstrip("/"),
+                        Path("/media/lv/data/fast-platform-core/backend") / image_url.lstrip("/"),
+                    ]
+                    for p in paths_to_check:
+                        if p.exists():
+                            local_source_path = p
+                            break
+                            
+                if local_source_path:
+                    try:
+                        shutil.copy2(str(local_source_path), str(image_path))
+                        image_success = True
+                    except Exception as ex:
+                        logger.warning(f"Failed to copy local image for scene {scene_number}: {ex}")
+                elif image_url.startswith("http"):
+                    try:
+                        req = urllib.request.Request(
+                            image_url, 
+                            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                        )
+                        with urllib.request.urlopen(req, timeout=10) as response, open(image_path, 'wb') as out_file:
+                            out_file.write(response.read())
+                        image_success = True
+                    except Exception as ex:
+                        logger.warning(f"Failed to download remote image for scene {scene_number}: {ex}")
+                        
+            # Tạo ảnh solid nếu download/copy thất bại
+            if not image_success:
+                try:
+                    img = PIL.Image.new("RGB", (canvas_width, canvas_height), color=(18, 18, 24))
+                    draw = PIL.ImageDraw.Draw(img)
+                    
+                    text_title = f"PHÂN CẢNH {scene_number}"
+                    text_desc = visual_description[:50] + "..." if len(visual_description) > 50 else visual_description
+                    
+                    # Vẽ text cơ bản lên ảnh
+                    draw.text((canvas_width // 2, canvas_height // 2 - 40), text_title, fill=(255, 255, 255), anchor="mm")
+                    draw.text((canvas_width // 2, canvas_height // 2 + 20), text_desc, fill=(160, 160, 160), anchor="mm")
+                    img.save(image_path)
+                    image_success = True
+                except Exception as ex:
+                    logger.error(f"Failed to draw PIL placeholder for scene {scene_number}: {ex}")
+                    
+            # 4.3. Đăng ký Media Assets cho Clypra
+            media_assets.append({
+                "id": f"asset_image_{scene_number}",
+                "name": f"image_scene_{scene_number}.png",
+                "path": str(image_path),
+                "type": "image",
+                "duration": 3600.0,
+                "width": canvas_width,
+                "height": canvas_height,
+                "size": os.path.getsize(image_path) if image_path.exists() else 0
+            })
+            
+            if audio_path.exists():
+                media_assets.append({
+                    "id": f"asset_audio_{scene_number}",
+                    "name": f"audio_scene_{scene_number}.mp3",
+                    "path": str(audio_path),
+                    "type": "audio",
+                    "duration": audio_duration,
+                    "size": os.path.getsize(audio_path) if audio_path.exists() else 0
+                })
+                
+            # 4.4. Đăng ký Clips lên Timeline Tracks
+            # Image Clip
+            clips.append({
+                "id": f"clip_image_{scene_number}",
+                "trackId": "track_video",
+                "mediaId": f"asset_image_{scene_number}",
+                "startTime": start_time,
+                "duration": actual_duration,
+                "trimIn": 0.0,
+                "trimOut": actual_duration,
+                "x": 0.0,
+                "y": 0.0,
+                "width": canvas_width,
+                "height": canvas_height,
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "aspectRatioLocked": True,
+                "fitMode": "cover",
+                "kind": "image"
+            })
+            
+            # Audio Clip
+            if audio_path.exists():
+                clips.append({
+                    "id": f"clip_audio_{scene_number}",
+                    "trackId": "track_audio",
+                    "mediaId": f"asset_audio_{scene_number}",
+                    "startTime": start_time,
+                    "duration": audio_duration,
+                    "trimIn": 0.0,
+                    "trimOut": audio_duration,
+                    "x": 0.0,
+                    "y": 0.0,
+                    "width": 0.0,
+                    "height": 0.0,
+                    "opacity": 1.0,
+                    "rotation": 0.0,
+                    "volume": 1.0,
+                    "kind": "audio"
+                })
+                
+            # Subtitle (Text) Clip
+            if voiceover:
+                clips.append({
+                    "id": f"clip_text_{scene_number}",
+                    "trackId": "track_text",
+                    "mediaId": "",
+                    "startTime": start_time,
+                    "duration": actual_duration,
+                    "trimIn": 0.0,
+                    "trimOut": actual_duration,
+                    "x": 0.0,
+                    "y": float(canvas_height - 220),
+                    "width": float(canvas_width),
+                    "height": 160.0,
+                    "opacity": 1.0,
+                    "rotation": 0.0,
+                    "kind": "text",
+                    "text": voiceover,
+                    "fontFamily": "Inter",
+                    "fontSize": 48 if aspect_ratio == "16:9" else 36,
+                    "fontWeight": "bold",
+                    "color": "#ffffff",
+                    "align": "center",
+                    "valign": "middle",
+                    "lineHeight": 1.2,
+                    "paddingX": 10.0,
+                    "paddingY": 10.0,
+                    "textRole": "caption",
+                    "stroke": {
+                        "color": "#000000",
+                        "width": 4.0
+                    }
+                })
+                
+            start_time += actual_duration
+            
+        # Thêm clip logo watermark nếu có logo thành công
+        if logo_success:
+            clips.append({
+                "id": "clip_brand_logo",
+                "trackId": "track_logo",
+                "mediaId": "asset_brand_logo",
+                "startTime": 0.0,
+                "duration": start_time,
+                "trimIn": 0.0,
+                "trimOut": start_time,
+                "x": float(canvas_width - 150) if is_vertical else float(canvas_width - 220),
+                "y": 40.0,
+                "width": 100.0 if is_vertical else 160.0,
+                "height": 100.0 if is_vertical else 160.0,
+                "opacity": 0.85,
+                "rotation": 0.0,
+                "aspectRatioLocked": True,
+                "fitMode": "contain",
+                "kind": "image"
+            })
+            
+        # 5. Ghi tệp dự án project.json của Clypra
+        project_id = f"project-{script_id}"
+        project_json = {
+            "id": project_id,
+            "name": script.title,
+            "created_at": int(time.time() * 1000),
+            "modified_at": int(time.time() * 1000),
+            "aspect_ratio": aspect_ratio,
+            "canvas_width": canvas_width,
+            "canvas_height": canvas_height,
+            "frame_rate": 30,
+            "duration": start_time,
+            "media_assets": media_assets,
+            "tracks": [
+                {
+                    "id": "track_video",
+                    "type": "video",
+                    "name": "Storyboard Visuals",
+                    "muted": False,
+                    "locked": False,
+                    "visible": True,
+                    "height": 68
+                },
+                {
+                    "id": "track_logo",
+                    "type": "video",
+                    "name": "Brand Logo Watermark",
+                    "muted": False,
+                    "locked": False,
+                    "visible": True,
+                    "height": 50
+                },
+                {
+                    "id": "track_audio",
+                    "type": "audio",
+                    "name": "Voiceover TTS",
+                    "muted": False,
+                    "locked": False,
+                    "visible": True,
+                    "height": 52
+                },
+                {
+                    "id": "track_text",
+                    "type": "text",
+                    "name": "Subtitles",
+                    "muted": False,
+                    "locked": False,
+                    "visible": True,
+                    "height": 30
+                }
+            ],
+            "clips": clips,
+            "transitions": [],
+            "timeline_schema_version": 1
+        }
+        
+        project_file_path = clypra_projects_dir / f"{project_id}.json"
+        with open(project_file_path, "w", encoding="utf-8") as f:
+            json.dump(project_json, f, ensure_ascii=False, indent=2)
+            
+        # 6. Khởi chạy Clypra trong môi trường nền có DISPLAY
+        launched = False
+        try:
+            env = os.environ.copy()
+            if "DISPLAY" not in env:
+                env["DISPLAY"] = ":0"
+            subprocess.Popen(["clypra", str(project_file_path)], env=env)
+            launched = True
+        except Exception as e:
+            logger.error(f"Failed to launch Clypra with project: {e}")
+            try:
+                subprocess.Popen(["clypra"], env=env)
+                launched = True
+            except Exception as ex:
+                logger.error(f"Failed to launch Clypra fallback: {ex}")
+                
+        return SuccessResponse(
+            message="Đã đóng gói dự án và khởi chạy Clypra thành công!",
+            data={
+                "project_id": project_id,
+                "project_path": str(project_file_path),
+                "launched": launched
+            }
+        )
+
 
