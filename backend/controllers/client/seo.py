@@ -312,24 +312,42 @@ class PublicGoogleMerchantController(Controller):
         # ── R3: GTIN from ProductBase.sku (barcode) ──
         gtin = str(p.sku or "").strip()
 
-        # ── Image resolving ──
+        # ── Image and Video resolving ──
         p_images = p.images or []
-        img_url = self._resolve_full_url(p_images[0], site_url) if p_images else f"{site_url}/favicon.svg"
-
-        # ── Separate images vs videos (SGE 2026: video goes to g:video_link) ──
-        additional_imgs: list[str] = []
-        video_links: list[str] = []
-        for media in p_images[1:11]:
+        
+        all_imgs: list[str] = []
+        all_videos: list[str] = []
+        
+        # 1. Process p_images (Desktop Media)
+        for media in p_images:
+            if not media:
+                continue
             full_url = self._resolve_full_url(media, site_url)
             if self._is_video(media):
-                video_links.append(full_url)
+                all_videos.append(full_url)
             else:
-                additional_imgs.append(full_url)
-
-        # Also check metadata.video_url
-        meta_video = str(meta.get("video_url") or "")
+                all_imgs.append(full_url)
+                
+        # 2. Process metadata.video_url
+        meta_video = str(meta.get("video_url") or "").strip()
         if meta_video:
-            video_links.append(self._resolve_full_url(meta_video, site_url))
+            full_video_url = self._resolve_full_url(meta_video, site_url)
+            if full_video_url not in all_videos:
+                all_videos.append(full_video_url)
+
+        # 3. Main image is the first actual image
+        img_url = all_imgs[0] if all_imgs else f"{site_url}/favicon.svg"
+        
+        # 4. Additional images are the rest of the images (up to 10)
+        additional_imgs = all_imgs[1:11]
+        
+        # 5. Filter video links to ensure they are valid for GMC (direct video file or YouTube)
+        video_links = [
+            vid for vid in all_videos
+            if (any(vid.lower().split("?")[0].endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi", ".mpg", ".mpeg", ".wmv", ".flv"))
+                or "youtube.com" in vid.lower()
+                or "youtu.be" in vid.lower())
+        ]
 
         # ── Google Product Category: unified to 473 (Skin Care) for all cosmetics ──
         google_category = self._CATEGORY_MAP.get(str(p.category_id or ""), "473")
@@ -813,7 +831,7 @@ class PublicGoogleMerchantController(Controller):
     def _is_video(self, path: str) -> bool:
         """Check if media path is a video file."""
         lower = path.lower().split("?")[0]
-        return any(lower.endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi"))
+        return any(lower.endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi", ".mpg", ".mpeg", ".wmv", ".flv"))
 
     def _normalize_feed_text(self, text: str) -> str:
         if not text:
@@ -845,6 +863,22 @@ class PublicGoogleMerchantController(Controller):
             text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         # Clean up any resulting double spaces
         text = re.sub(r'\s+', ' ', text).strip()
+
+        # 3. De-duplicate consecutive repeated words (case-insensitive)
+        words = text.split()
+        cleaned_words = []
+        for word in words:
+            if not cleaned_words:
+                cleaned_words.append(word)
+            else:
+                last_w = cleaned_words[-1].lower().strip(".,;:!?&-+")
+                curr_w = word.lower().strip(".,;:!?&-+")
+                if last_w == curr_w and last_w:
+                    if word.endswith((".", ",", ";", ":", "!", "?", "-")):
+                        cleaned_words[-1] = cleaned_words[-1] + word[-1]
+                    continue
+                cleaned_words.append(word)
+        text = " ".join(cleaned_words)
         return text
 
 

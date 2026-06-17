@@ -72,6 +72,15 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		import service_proxy
 	}
 
+	# WASM & AI Core Static Assets CORS policy (Elite V3.0)
+	@wasm_assets path /wasm/* /vad/* /models/*
+	handle @wasm_assets {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		header Access-Control-Allow-Headers "*"
+		import service_proxy
+	}
+
 	@robots_txt {
 		host {$APP_DOMAIN} {$ADMIN_DOMAIN}
 		path /robots.txt
