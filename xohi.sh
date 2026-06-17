@@ -49,6 +49,12 @@ else
     echo -e "${GREEN}[ELITE MODE] Hệ thống phát hiện RAM dồi dào (${TOTAL_RAM_GB}GB). Chạy tối đa tốc độ!${NC}"
 fi
 
+# Extract REDIS_PASSWORD from .env
+REDIS_PASS=""
+if [ -f .env ]; then
+    REDIS_PASS=$(grep -E "^REDIS_PASSWORD=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+fi
+
 # Helper: OS & Arch check
 # [LONG-TERM NOTE: INTEL MAC WORKAROUND]
 # Starting from 2024/2025, modern AI libraries (like onnxruntime) dropped support 
@@ -503,11 +509,19 @@ function purge_helen_data() {
     # 2. Redis Purge (Memory Caches)
     echo -e "${CYAN}-> [2/2] Đang xóa bộ nhớ đệm AI (Redis)...${NC}"
     # Use scan + xargs to avoid blocking Redis if large keys exist (Elite V2.2 RAM Guard)
-    docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-    docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-    docker exec fast_platform_redis redis-cli --scan --pattern "support:kb:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-    docker exec fast_platform_redis redis-cli --scan --pattern "support:presence:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-    docker exec fast_platform_redis redis-cli --scan --pattern "support:takeover:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    if [ -n "$REDIS_PASS" ]; then
+        docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+        docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+        docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "support:kb:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+        docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "support:presence:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+        docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "support:takeover:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+    else
+        docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+        docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+        docker exec fast_platform_redis redis-cli --scan --pattern "support:kb:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+        docker exec fast_platform_redis redis-cli --scan --pattern "support:presence:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+        docker exec fast_platform_redis redis-cli --scan --pattern "support:takeover:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    fi
     
     echo -e "${GREEN}[SUCCESS] Đã làm sạch toàn bộ dữ liệu Helen cực kỳ triệt để!${NC}"
     # Trigger inbox update across browsers (Global Admin Pulse)
@@ -865,8 +879,13 @@ function reset_db_for_marketing() {
         
         echo -e "${CYAN}-> Làm sạch bộ nhớ đệm (Redis)...${NC}"
         if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
-            docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-            docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+            if [ -n "$REDIS_PASS" ]; then
+                docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+                docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli -a "$REDIS_PASS" del || true
+            else
+                docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+                docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+            fi
         fi
         
         echo -e "${GREEN}[OK] Đã hoàn tất quy trình reset database phục vụ Marketing.${NC}"
@@ -1059,6 +1078,7 @@ function total_garbage_clean() {
     if command -v pnpm &> /dev/null; then
         pnpm store prune &>/dev/null || true
         rm -rf ~/.cache/pnpm 2>/dev/null || true
+        rm -rf ~/.local/share/pnpm 2>/dev/null || true
     fi
     sudo apt-get clean &>/dev/null || true
     sudo journalctl --vacuum-time=3d &>/dev/null || true

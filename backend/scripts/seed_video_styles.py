@@ -16,42 +16,42 @@ from backend.database.models.video_marketing import VideoScriptStyle
 INITIAL_STYLES = [
     {
         "id": "tiktok_drama",
-        "name": "Drama Kịch Tính TikTok",
+        "name": "Drama Kịch Tính TikTok (Chuyển Đổi Cao)",
         "platform": "TikTok",
-        "hook_template": "Bắt đầu bằng một câu hỏi sốc, một lời tuyên bố ngược đời hoặc một tình huống oái oăm trong 3 giây đầu để giữ chân người dùng.",
-        "style_instruction": "Xây dựng câu chuyện kịch tính kịch bản nhịp cực nhanh (2-4 giây mỗi cảnh). Lời thoại (Voiceover) mang tính nhấn nhá mạnh mẽ, châm biếm hoặc tò mò. Sử dụng nhạc nền tiết tấu dồn dập và hiệu ứng âm thanh (SFX) giật mình ở các phân đoạn quan trọng. Kết thúc bằng CTA rõ ràng khích lệ mua ngay để giải quyết vấn đề.",
+        "hook_template": "Phát biểu ngược đời hoặc phủ nhận niềm tin cũ của khách hàng trong 3s đầu: 'Ngừng bôi kem chống nắng ngay nếu da bạn đang mụn bọc!', hoặc tạo cảnh cãi vã oái oăm về tình huống sử dụng sản phẩm.",
+        "style_instruction": "Tạo kịch tính cực cao, nhịp dựng cực nhanh (1.5 - 3 giây mỗi phân cảnh). Lời thoại (Voiceover) mang tính đối thoại trực diện, có xung đột nhẹ ở phần đầu, sau đó giải quyết vấn đề bằng sản phẩm. Sử dụng hiệu ứng âm thanh dồn dập (Dramatic swoosh, vinyl scratch, record scratch). Kêu gọi hành động (CTA) khẩn cấp với số lượng có hạn.",
         "is_active": True
     },
     {
         "id": "reviewer_experience",
-        "name": "Trải Nghiệm Thực Tế (Reviewer)",
-        "platform": "TikTok/YouTube",
-        "hook_template": "Bắt đầu trực tiếp bằng hành động đập hộp hoặc bôi/thử sản phẩm lên da/tay kèm lời thốt lên bất ngờ về hiệu quả thực sự.",
-        "style_instruction": "Góc quay chân thực, cận cảnh bao bì và chất lượng sản phẩm (Texture/Spec). Lời thoại tự nhiên giống như đang chia sẻ lời khuyên chân thành với bạn thân. Nêu rõ ưu điểm và nhược điểm nhẹ để tăng tính khách quan (chuẩn E-E-A-T). CTA hướng tới việc xem giỏ hàng hoặc click link ở bio.",
+        "name": "Trải Nghiệm Thực Tế (E-E-A-T Reviewer)",
+        "platform": "TikTok/Reels",
+        "hook_template": "Cận cảnh trải nghiệm thực tế với biểu cảm sửng sốt: 'U là trời, bỏ túi ngay em này nếu không muốn hối hận cả đời!', hoặc đập hộp trực quan không cắt ghép.",
+        "style_instruction": "Tập trung vào tính khách quan và khoa học (E-E-A-T). Lời thoại như một người bạn thân chia sẻ bí kíp, giọng điệu tự nhiên, chân thành. Nêu rõ 3 điểm vượt trội của sản phẩm và chỉ ra 1 nhược điểm nhỏ không đáng kể để tăng độ uy tín. Visual cận cảnh chất kem/chi tiết kỹ thuật, hiệu ứng âm thanh lofi nhẹ nhàng.",
         "is_active": True
     },
     {
         "id": "pain_point_solve",
-        "name": "Giải Quyết Nỗi Đau (Pain-Agony-Relief)",
+        "name": "Giải Quyết Nỗi Đau Sâu Sắc (PAS Framework)",
         "platform": "Shorts/Reels",
-        "hook_template": "Đánh thẳng vào nỗi sợ hoặc nỗi đau lớn nhất của khách hàng (ví dụ: da mụn thâm đen, tóc rụng hói đầu) bằng hình ảnh và câu hỏi trực diện trong 3s đầu.",
-        "style_instruction": "Phần đầu đồng cảm sâu sắc với sự đau khổ của khách hàng khi thử nhiều cách không hiệu quả. Phần giữa giới thiệu sản phẩm như là vị cứu tinh duy nhất có chứng chứng nhận rõ ràng. Phần cuối đưa ra bằng chứng trước/sau (Before/After) thuyết phục và CTA mua kèm ưu đãi giảm giá.",
+        "hook_template": "Đánh thẳng vào nỗi ám ảnh tồi tệ nhất của khách hàng kèm câu hỏi tu từ: 'Mặt sần sùi mụn thâm làm bạn mất tự tin trước đám đông đúng không?', hiển thị hình ảnh so sánh cực kỳ tương phản.",
+        "style_instruction": "Áp dụng công thức PAS (Problem - Agitate - Solve). 30% thời lượng đầu đồng cảm sâu sắc với nỗi sợ hãi hoặc đau đớn của khách hàng. 40% tiếp theo giới thiệu cơ chế hoạt động khoa học của sản phẩm (USP vượt trội so với đối thủ). 30% cuối đưa ra bằng chứng trước/sau (Before/After) thuyết phục và CTA ưu đãi giới hạn.",
         "is_active": True
     },
     {
         "id": "unboxing_asmr",
-        "name": "Đập Hộp ASMR",
+        "name": "Đập Hộp ASMR Sang Trọng",
         "platform": "TikTok/Shorts",
-        "hook_template": "Bắt đầu bằng âm thanh sắc nét thực tế (tiếng bóc seal nilon, tiếng cạy nắp chai nhựa) không nhạc nền trong 3s đầu.",
-        "style_instruction": "Hạn chế tối đa lời thoại nói, tập trung vào tiếng động vật lý (ASMR) chất lượng cao. Visual cực kỳ sạch sẽ, tối giản và cao cấp. Chỉ thuyết minh hoặc chèn phụ đề chữ nhẹ nhàng khi cần giải thích cách dùng. Nhạc nền nhẹ nhàng, lo-fi thư giãn. Phù hợp cho các dòng sản phẩm cao cấp.",
+        "hook_template": "Tập trung 100% vào âm thanh vật lý chất lượng cao (tiếng bóc seal, tiếng cạy nắp sản phẩm thủy tinh kịch tính) trong 3s đầu không nhạc nền.",
+        "style_instruction": "Kịch bản đậm chất nghệ thuật và tối giản. Không dùng nhiều lời thoại, tập trung mô tả chi tiết tiếng động vật lý (ASMR) sắc nét. Visual cực kỳ sạch sẽ, tinh tế, sử dụng tone màu pastel/dark sang trọng. Phụ đề xuất hiện chậm rãi, thanh lịch. Nhạc nền lofi/ambient thư thái.",
         "is_active": True
     },
     {
         "id": "youtube_widescreen_review",
-        "name": "Đánh Giá Chi Tiết (YouTube 16:9 Widescreen)",
+        "name": "Đánh Giá Chi Tiết Chuyên Sâu (YouTube Widescreen)",
         "platform": "YouTube",
-        "hook_template": "Nêu trực tiếp giải pháp cho một vấn đề lớn và tóm tắt nhanh 3 nội dung chính của video trong 10 giây đầu để người xem không rời đi.",
-        "style_instruction": "Kịch bản chi tiết chuyên sâu, nhịp độ vừa phải (5-8 giây mỗi cảnh) thiết kế chuẩn cho định dạng ngang 16:9 của YouTube. Lời thoại (Voiceover) mang tính phân tích, cung cấp thông tin hữu ích và trung thực. Visual mô tả các góc quay ngang rộng, cận cảnh sản phẩm, so sánh thông số kĩ thuật. Kết thúc bằng CTA đăng ký kênh và nhấp link mua hàng dưới phần mô tả.",
+        "hook_template": "Đặt vấn đề thời sự hoặc nhu cầu cấp thiết của thị trường và tóm tắt nhanh 3 bài học đắt giá người xem sẽ nhận được ở video trong 10s đầu.",
+        "style_instruction": "Kịch bản chuyên sâu chuẩn định dạng ngang 16:9. Nhịp điệu phân tích vừa phải, chắc chắn (4 - 6 giây mỗi cảnh). Lời thoại cung cấp thông tin giá trị cao, giải thích nguyên lý khoa học đằng sau sản phẩm. Phân tích đối thủ cạnh tranh một cách khách quan để làm nổi bật USP của sản phẩm ta. CTA đăng ký kênh và nhấp link mua hàng.",
         "is_active": True
     }
 ]

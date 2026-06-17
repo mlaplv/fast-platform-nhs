@@ -46,6 +46,7 @@ def sync_to_vps():
     # Execute rsync directly
     cmd = [
         "rsync", "-avz",
+        "--delete",
         "--no-owner", "--no-group",
         "--exclude", ".git/",
         "--exclude", "node_modules/",
