@@ -278,10 +278,8 @@ class CtvService:
             )
         )
 
-        import asyncio
-        ledger_task = db_session.execute(ledger_stmt)
-        withdrawal_task = db_session.execute(withdrawal_stmt)
-        ledger_res, withdrawal_res = await asyncio.gather(ledger_task, withdrawal_task)
+        ledger_res = await db_session.execute(ledger_stmt)
+        withdrawal_res = await db_session.execute(withdrawal_stmt)
 
         real_total_com = float(ledger_res.scalar() or 0.0)
         real_paid_com = float(withdrawal_res.scalar() or 0.0)

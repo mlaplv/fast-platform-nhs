@@ -7,7 +7,8 @@ WATCH_DIR = "/media/lv/data/fast-platform-core"
 EXCLUDE_DIRS = {
     '.git', 'node_modules', '.venv', 'backups', 'logs', '.pytest_cache', 
     '__pycache__', '.svelte-kit', '.next', '.vscode', '.cursor', '.idea',
-    'temp', 'tmp', 'cache', 'uploads', 'dist', 'build'
+    'temp', 'tmp', 'cache', 'uploads', 'dist', 'build',
+    'reports', 'scratch', 'backend/brain', 'backend/backend', 'frontend/static/client_uploads', 'frontend/static/v65_assets'
 }
 
 def should_ignore(file):
@@ -66,6 +67,12 @@ def sync_to_vps():
         "--exclude", "tmp/",
         "--exclude", "cache/",
         "--exclude", "uploads/",
+        "--exclude", "reports/",
+        "--exclude", "scratch/",
+        "--exclude", "backend/brain/",
+        "--exclude", "backend/backend/",
+        "--exclude", "frontend/static/client_uploads/",
+        "--exclude", "frontend/static/v65_assets/",
         "--exclude", "__pycache__/",
         "--exclude", "*.log",
         "--exclude", "*.db",

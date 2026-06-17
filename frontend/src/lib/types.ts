@@ -936,9 +936,6 @@ export interface VideoScene {
   duration: number;
   visual_description: string;
   voiceover: string;
-  audio_cue?: string;
-  image_prompt?: string;
-  image_url?: string;
   scene_notes?: string;
 }
 
@@ -949,6 +946,10 @@ export interface VideoScriptStructured {
   total_duration: number;
   notes?: string;
   scenes: VideoScene[];
+  competitor_analysis?: any;
+  aspect_ratio?: string;
+  landing_page_headlines?: any[];
+  evaluation?: any;
 }
 
 export interface VideoScript {

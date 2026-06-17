@@ -54,6 +54,8 @@ class StallDetectorMiddleware:
             # Ads Protection AI (Elite V3.0)
             "/api/v1/ads-protection/ai-suggest",
             "/api/v1/ads-protection/generate-investigation-report",
+            # Video Script Generation (AI + Search intensive, self-managed timeouts)
+            "/api/v1/video/",
         ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

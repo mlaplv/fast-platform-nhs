@@ -1,20 +1,13 @@
 import logging
 import os
 import json
-import subprocess
 import time
-import shutil
 import re
 import urllib.parse
 import urllib.request
-import zipfile
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import List, Optional
 
-import PIL.Image
-import PIL.ImageDraw
-import edge_tts
 from litestar import Controller, get, post, patch, delete, Response, Request
 from litestar.exceptions import HTTPException
 from sqlalchemy import select, func
@@ -24,10 +17,13 @@ from sqlalchemy.orm import selectinload
 from backend.database.models.video_marketing import VideoScript, VideoScriptStyle
 from backend.database.models.commerce import ProductBase
 from backend.database.models.content import Article
+from pydantic_ai import Agent
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.xohi.prompts import composer
 from backend.services.video_marketing.product_resolver_service import product_resolver_service
 from backend.services.video_marketing.script_generator_service import script_generator_service, VideoScriptModel
 from backend.services.video_marketing.schemas import (
-    GenerateScriptRequest, CreateStyleRequest, VideoScriptResponse, VideoStyleResponse, VideoScriptListResponse, UpdateScriptRequest
+    GenerateScriptRequest, CreateStyleRequest, VideoScriptResponse, VideoStyleResponse, VideoScriptListResponse, UpdateScriptRequest, ScriptEvaluationReport
 )
 from backend.schemas.common import SuccessResponse
 from backend.guards import PermissionGuard
@@ -40,6 +36,71 @@ class VideoScriptController(Controller):
     path = "/api/v1/video"
     tags = ["Video Marketing"]
     guards = [PermissionGuard(PermissionEnum.CONTENT_WRITE)]
+
+    @post("/script/analyze-competitors")
+    async def analyze_competitors(self, db_session: AsyncSession, data: GenerateScriptRequest) -> SuccessResponse:
+        """Phân tích đối thủ cạnh tranh & điểm mạnh sản phẩm trước khi sinh kịch bản."""
+        source_name = ""
+        source_desc = ""
+        
+        if data.source_type == "product":
+            if not data.product_id:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+                
+            key = product_resolver_service._extract_slug_or_id(data.product_id)
+            prod_stmt = select(ProductBase).where(
+                (ProductBase.id == key) | 
+                (ProductBase.slug == key) | 
+                (ProductBase.sku == key)
+            ).where(ProductBase.deleted_at.is_(None))
+            prod_res = await db_session.execute(prod_stmt)
+            product = prod_res.scalar_one_or_none()
+            if not product:
+                raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm.")
+            source_name = product.name
+            source_desc = product.description or ""
+            
+        elif data.source_type == "article":
+            if not data.article_id:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+                
+            art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
+            art_res = await db_session.execute(art_stmt)
+            article = art_res.scalar_one_or_none()
+            if not article:
+                raise HTTPException(status_code=404, detail="Không tìm thấy bài viết.")
+            source_name = article.title
+            source_desc = article.content or article.excerpt or ""
+            
+        elif data.source_type == "custom":
+            if not data.description:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
+            source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
+            source_desc = data.description
+        else:
+            raise HTTPException(status_code=400, detail="source_type không hợp lệ")
+
+        await db_session.close()
+
+        try:
+            analysis = await script_generator_service.analyze_competitors(source_name, source_desc)
+            return SuccessResponse(message="Phân tích đối thủ thành công!", data=analysis)
+        except Exception as e:
+            logger.error(f"⚠️ [VideoController] Competitor analysis failed: {e}")
+            fallback = {
+                "competitor_weaknesses": [
+                    "Đối thủ chưa tối ưu trải nghiệm cho khách hàng Việt Nam",
+                    "Chi phí cao, giá bán chưa tối ưu so với giá trị thực tế",
+                    "Thiếu sự hỗ trợ trực tiếp và đồng hành chuyên nghiệp"
+                ],
+                "our_strengths": [
+                    "Giải pháp trực diện nỗi đau của khách hàng",
+                    "Tối ưu chi phí tốt nhất thị trường",
+                    "Đồng hành chuyên nghiệp 24/7"
+                ],
+                "core_message": f"Sản phẩm {source_name} là sự lựa chọn vượt trội nhất dành cho bạn!"
+            }
+            return SuccessResponse(message="Phân tích đối thủ (Fallback) thành công!", data=fallback)
 
     @post("/script/generate")
     async def generate_script(self, db_session: AsyncSession, data: GenerateScriptRequest) -> SuccessResponse[VideoScriptResponse]:
@@ -110,12 +171,15 @@ class VideoScriptController(Controller):
         # Giải phóng connection về pool ngay lập tức trước khi gọi AI/Search tốn thời gian
         await db_session.close()
 
-        # 2. Phân tích đối thủ cạnh tranh bằng Google Search & AI phản biện
+        # 2. Phân tích đối thủ cạnh tranh bằng Google Search & AI phản biện (nếu chưa có từ client)
         competitor_analysis = None
-        try:
-            competitor_analysis = await script_generator_service.analyze_competitors(source_name, source_desc)
-        except Exception as e:
-            logger.error(f"⚠️ [VideoController] Competitor analysis failed: {e}. Proceeding with default template.")
+        if data.competitor_analysis:
+            competitor_analysis = data.competitor_analysis.model_dump()
+        else:
+            try:
+                competitor_analysis = await script_generator_service.analyze_competitors(source_name, source_desc)
+            except Exception as e:
+                logger.error(f"⚠️ [VideoController] Competitor analysis failed: {e}. Proceeding with default template.")
 
         # 3. Sinh kịch bản qua AI Core
         try:
@@ -132,13 +196,16 @@ class VideoScriptController(Controller):
 
         # 4. Lưu kịch bản vào cơ sở dữ liệu (sử dụng session mới để không giữ connection quá lâu)
         from backend.database.alchemy_config import alchemy_config
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+
         async with alchemy_config.create_session_maker()() as new_session:
             script_db = VideoScript(
                 product_id=product_id,
                 style_id=data.style_id,
                 title=generated_script.title,
                 structured_script=generated_script.model_dump(),
-                tenant_id="smartshop"
+                tenant_id=active_tenant
             )
             new_session.add(script_db)
             await new_session.commit()
@@ -240,7 +307,10 @@ class VideoScriptController(Controller):
     @get("/script/{script_id:str}/export")
     async def export_script(self, request: Request, db_session: AsyncSession, script_id: str) -> Response:
         """Xuất kịch bản ra định dạng Markdown chuyên nghiệp tối ưu cho AI & Con người."""
-        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.deleted_at == None)
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+
+        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
         res = await db_session.execute(stmt)
         script = res.scalar_one_or_none()
         
@@ -255,30 +325,12 @@ class VideoScriptController(Controller):
         scheme = "https" if request.url.scheme == "https" or "https" in request.headers.get("x-forwarded-proto", "") else "http"
         base_url = f"{scheme}://{host}"
         
-        # Tạo danh sách phân cảnh đã nâng cấp đường dẫn tuyệt đối cho ảnh và audio
+        # Tạo danh sách phân cảnh
         updated_scenes = []
         for scene in scenes:
             scene_copy = dict(scene)
-            
-            # Chuyển đổi image_url tương đối thành tuyệt đối
-            img_url = scene_copy.get("image_url")
-            if img_url:
-                if img_url.startswith("/"):
-                    img_url = f"{base_url}{img_url}"
-                scene_copy["image_url"] = img_url
-            else:
-                scene_copy["image_url"] = ""
-                
-            # Tạo đường dẫn tải file âm thanh TTS trực tiếp cho phân cảnh (cả giọng Nam và Nữ)
-            voiceover_text = scene_copy.get("voiceover", "")
-            if voiceover_text:
-                encoded_text = urllib.parse.quote(voiceover_text)
-                scene_copy["voiceover_audio_hoaimy"] = f"{base_url}/api/v1/client/tts/stream?text={encoded_text}&voice=vi-VN-HoaiMyNeural"
-                scene_copy["voiceover_audio_namminh"] = f"{base_url}/api/v1/client/tts/stream?text={encoded_text}&voice=vi-VN-NamMinhNeural"
-            else:
-                scene_copy["voiceover_audio_hoaimy"] = ""
-                scene_copy["voiceover_audio_namminh"] = ""
-                
+            # Remove legacy / audio cue fields
+            scene_copy.pop("audio_cue", None)
             updated_scenes.append(scene_copy)
             
         md = []
@@ -310,17 +362,8 @@ class VideoScriptController(Controller):
             md.append(f"### Phân Cảnh {scene.get('scene_number')} ({scene.get('duration')}s)")
             md.append(f"- **Mô tả hình ảnh (Visuals)**: {scene.get('visual_description')}")
             md.append(f"- **Lời thoại (Voiceover)**: \"{scene.get('voiceover')}\"")
-            if scene.get("voiceover_audio_hoaimy"):
-                md.append(f"- **Tải Voice Hoài Mỹ (Nữ)**: [Link Audio MP3]({scene.get('voiceover_audio_hoaimy')})")
-                md.append(f"- **Tải Voice Nam Minh (Nam)**: [Link Audio MP3]({scene.get('voiceover_audio_namminh')})")
-            if scene.get("audio_cue"):
-                md.append(f"- **Âm thanh/SFX**: {scene.get('audio_cue')}")
-            if scene.get("image_url"):
-                md.append(f"- **Link ảnh phân cảnh**: [Link Ảnh Storyboard]({scene.get('image_url')})")
-            if scene.get("image_prompt"):
-                md.append(f"- **AI Image Prompt**: `{scene.get('image_prompt')}`")
             if scene.get("scene_notes"):
-                md.append(f"- **Ghi chú phân cảnh**: *{scene.get('scene_notes')}*")
+                md.append(f"- **Chuyển động camera & Ghi chú**: {scene.get('scene_notes')}")
             md.append("")
             md.append("-" * 40)
             md.append("")
@@ -357,10 +400,13 @@ class VideoScriptController(Controller):
         search: Optional[str] = None
     ) -> VideoScriptListResponse:
         """Lấy danh sách các kịch bản video đã tạo với phân trang & tìm kiếm."""
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+
         stmt = select(VideoScript).options(
             selectinload(VideoScript.product),
             selectinload(VideoScript.style)
-        ).where(VideoScript.deleted_at.is_(None))
+        ).where(VideoScript.deleted_at.is_(None)).where(VideoScript.tenant_id == active_tenant)
         
         if search:
             stmt = stmt.where(VideoScript.title.ilike(f"%{search}%"))
@@ -368,7 +414,7 @@ class VideoScriptController(Controller):
         stmt = stmt.order_by(VideoScript.created_at.desc())
         
         # Query total count
-        count_stmt = select(func.count()).select_from(VideoScript).where(VideoScript.deleted_at.is_(None))
+        count_stmt = select(func.count()).select_from(VideoScript).where(VideoScript.deleted_at.is_(None)).where(VideoScript.tenant_id == active_tenant)
         if search:
             count_stmt = count_stmt.where(VideoScript.title.ilike(f"%{search}%"))
             
@@ -406,7 +452,10 @@ class VideoScriptController(Controller):
     @delete("/script/{script_id:str}", status_code=200)
     async def delete_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse:
         """Soft delete a video script."""
-        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.deleted_at.is_(None))
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+
+        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at.is_(None))
         res = await db_session.execute(stmt)
         script = res.scalar_one_or_none()
         
@@ -425,7 +474,10 @@ class VideoScriptController(Controller):
         data: UpdateScriptRequest
     ) -> SuccessResponse[VideoScriptResponse]:
         """Cập nhật thông tin chi tiết (tiêu đề, ghi chú, phân cảnh) của kịch bản."""
-        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.deleted_at.is_(None))
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+
+        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at.is_(None))
         res = await db_session.execute(stmt)
         script = res.scalar_one_or_none()
         
@@ -464,6 +516,184 @@ class VideoScriptController(Controller):
             message="Cập nhật kịch bản video thành công!",
             data=result
         )
+
+    @post("/script/{script_id:str}/evaluate")
+    async def evaluate_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse[ScriptEvaluationReport]:
+        """Đánh giá kịch bản video theo 5 chuẩn chuyên nghiệp quốc tế."""
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+        
+        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
+        res = await db_session.execute(stmt)
+        script = res.scalar_one_or_none()
+        
+        if not script:
+            raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+        
+        # 1. Chuẩn bị kịch bản text để gửi cho LLM
+        model_data = VideoScriptModel(**script.structured_script)
+        
+        script_text = f"TIÊU ĐỀ: {model_data.title}\n"
+        script_text += f"PHONG CÁCH: {model_data.style_name}\n"
+        script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        script_text += "DANH SÁCH PHÂN CẢNH:\n"
+        for scene in model_data.scenes:
+            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+            script_text += f"Visual: {scene.visual_description}\n"
+            script_text += f"Voiceover: {scene.voiceover}\n"
+            if scene.scene_notes:
+                script_text += f"Notes: {scene.scene_notes}\n"
+        
+        # 2. Gọi AI để đánh giá (sử dụng trinity_bridge)
+        try:
+            prompt_content = composer.compose("video_script_evaluation")
+            eval_agent = Agent(
+                output_type=ScriptEvaluationReport,
+                retries=2
+            )
+            report = await trinity_bridge.run(
+                agent=eval_agent,
+                prompt=script_text,
+                system_prompt=prompt_content,
+                role="brain",
+                per_model_timeout=35.0
+            )
+            
+            # 3. Cập nhật kết quả vào database
+            model_dump = model_data.model_dump()
+            model_dump["evaluation"] = report.model_dump()
+            script.structured_script = model_dump
+            await db_session.commit()
+            
+            return SuccessResponse(
+                message="Đánh giá kịch bản thành công!",
+                data=report
+            )
+        except Exception as e:
+            logger.error(f"❌ [ScriptEvaluation] Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Lỗi khi đánh giá kịch bản: {str(e)}")
+
+    @post("/script/{script_id:str}/optimize")
+    async def optimize_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse[VideoScriptResponse]:
+        """Tự động tối ưu/sửa lỗi kịch bản dựa trên báo cáo đánh giá lỗi."""
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get() or "osmo.vn"
+        
+        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
+        res = await db_session.execute(stmt)
+        script = res.scalar_one_or_none()
+        
+        if not script:
+            raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+            
+        model_data = VideoScriptModel(**script.structured_script)
+        if not model_data.evaluation:
+            raise HTTPException(status_code=400, detail="Vui lòng thực hiện đánh giá kịch bản trước khi chạy tính năng tối ưu.")
+            
+        # 1. Chuẩn bị đầu vào cho tối ưu hóa
+        evaluation_report = ScriptEvaluationReport(**model_data.evaluation)
+        
+        script_text = f"TIÊU ĐỀ: {model_data.title}\n"
+        script_text += f"PHONG CÁCH: {model_data.style_name}\n"
+        script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        script_text += "DANH SÁCH PHÂN CẢNH HIỆN TẠI:\n"
+        for scene in model_data.scenes:
+            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+            script_text += f"Visual: {scene.visual_description}\n"
+            script_text += f"Voiceover: {scene.voiceover}\n"
+            if scene.scene_notes:
+                script_text += f"Notes: {scene.scene_notes}\n"
+                
+        # Thêm phần báo cáo lỗi
+        error_context = "BÁO CÁO LỖI KỸ THUẬT PHÁT HIỆN:\n"
+        for field in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity"]:
+            crit = getattr(evaluation_report, field)
+            if crit.score < 8:
+                error_context += f"- Tiêu chí '{field}' (Điểm: {crit.score}/10):\n"
+                error_context += f"  + Lỗi: {', '.join(crit.cons)}\n"
+                error_context += f"  + Đề xuất sửa: {', '.join(crit.suggestions)}\n"
+        
+        input_prompt = f"{script_text}\n\n{error_context}"
+        
+        try:
+            # 2. Gọi AI để tối ưu hóa
+            prompt_content = composer.compose("video_script_optimization")
+            opt_agent = Agent(
+                output_type=VideoScriptModel,
+                retries=2
+            )
+            optimized_script = await trinity_bridge.run(
+                agent=opt_agent,
+                prompt=input_prompt,
+                system_prompt=prompt_content,
+                role="brain",
+                per_model_timeout=35.0
+            )
+            
+            # Tự động cập nhật thuộc tính bổ sung
+            optimized_script.competitor_analysis = model_data.competitor_analysis
+            optimized_script.aspect_ratio = model_data.aspect_ratio
+            
+            # 3. Chạy lại đánh giá tự động trên kịch bản mới này để cập nhật điểm mới luôn!
+            eval_prompt_content = composer.compose("video_script_evaluation")
+            eval_agent = Agent(
+                output_type=ScriptEvaluationReport,
+                retries=2
+            )
+            
+            new_script_text = f"TIÊU ĐỀ: {optimized_script.title}\n"
+            new_script_text += f"PHONG CÁCH: {optimized_script.style_name}\n"
+            new_script_text += f"ĐỐI TƯỢNG: {optimized_script.target_audience}\n"
+            new_script_text += "DANH SÁCH PHÂN CẢNH:\n"
+            for scene in optimized_script.scenes:
+                new_script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+                new_script_text += f"Visual: {scene.visual_description}\n"
+                new_script_text += f"Voiceover: {scene.voiceover}\n"
+                if scene.scene_notes:
+                    new_script_text += f"Notes: {scene.scene_notes}\n"
+            
+            new_report = await trinity_bridge.run(
+                agent=eval_agent,
+                prompt=new_script_text,
+                system_prompt=eval_prompt_content,
+                role="brain",
+                per_model_timeout=35.0
+            )
+            
+            optimized_script.evaluation = new_report.model_dump()
+            
+            # 4. Lưu vào database
+            script.title = optimized_script.title
+            script.structured_script = optimized_script.model_dump()
+            await db_session.commit()
+            
+            # Refresh to populate relationships
+            stmt_refresh = select(VideoScript).options(
+                selectinload(VideoScript.product),
+                selectinload(VideoScript.style)
+            ).where(VideoScript.id == script_id)
+            res_refresh = await db_session.execute(stmt_refresh)
+            script_refreshed = res_refresh.scalar_one()
+            
+            result = VideoScriptResponse(
+                id=script_refreshed.id,
+                product_id=script_refreshed.product_id,
+                product_name=script_refreshed.product.name if script_refreshed.product else None,
+                style_id=script_refreshed.style_id,
+                style_name=script_refreshed.style.name if script_refreshed.style else None,
+                style_platform=script_refreshed.style.platform if script_refreshed.style else None,
+                title=script_refreshed.title,
+                structured_script=optimized_script,
+                created_at=script_refreshed.created_at.isoformat()
+            )
+            
+            return SuccessResponse(
+                message="Tối ưu kịch bản và tự động cập nhật điểm số mới thành công!",
+                data=result
+            )
+        except Exception as e:
+            logger.error(f"❌ [ScriptOptimization] Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Lỗi khi tối ưu hóa kịch bản: {str(e)}")
 
 
 

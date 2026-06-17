@@ -35,7 +35,9 @@ TABLES_TO_TRUNCATE = [
     "google_ads_campaign_logs",
     "system_otps",
     "notifications",
-    "appointments"
+    "appointments",
+    "video_scripts",
+    "drafts"
 ]
 
 async def reset_database():
@@ -54,6 +56,11 @@ async def reset_database():
                 print("⏳ 2. Đang xóa cấu hình giọng nói của các tài khoản khách hàng...")
                 voice_delete = await session.execute(text("DELETE FROM voice_profiles WHERE user_id != 'user_admin';"))
                 print(f"   ✅ Đã xóa {voice_delete.rowcount} voice profiles.")
+
+                # 2.5. Xóa campaigns của các tài khoản khác admin
+                print("⏳ 2.5. Đang xóa campaigns của các tài khoản khách hàng...")
+                campaign_delete = await session.execute(text("DELETE FROM content_campaigns WHERE user_id != 'user_admin';"))
+                print(f"   ✅ Đã xóa {campaign_delete.rowcount} campaigns.")
 
                 # 3. Xóa tất cả user ngoại trừ 'user_admin' (mlap)
                 print("⏳ 3. Đang xóa các tài khoản người dùng thử nghiệm...")

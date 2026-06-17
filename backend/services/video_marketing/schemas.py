@@ -2,6 +2,25 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from backend.services.video_marketing.script_generator_service import VideoScriptModel
 
+class CompetitorAnalysisInput(BaseModel):
+    competitor_weaknesses: List[str] = Field(..., description="Danh sách điểm yếu lớn của đối thủ")
+    our_strengths: List[str] = Field(..., description="Danh sách điểm mạnh nổi trội của ta")
+    core_message: str = Field(..., description="Thông điệp cốt lõi đắt giá nhất")
+
+class EvaluationCriterion(BaseModel):
+    score: int = Field(..., description="Điểm số đánh giá từ 1 đến 10")
+    pros: List[str] = Field(..., description="Các điểm làm tốt (đúng chuẩn)")
+    cons: List[str] = Field(..., description="Các lỗi kỹ thuật kịch bản (cần sửa)")
+    suggestions: List[str] = Field(..., description="Đề xuất viết lại/chỉnh sửa cụ thể")
+
+class ScriptEvaluationReport(BaseModel):
+    hook_retention: EvaluationCriterion = Field(..., description="Sức hút Hook 3s đầu & Khả năng giữ chân người xem")
+    audio_visual_harmony: EvaluationCriterion = Field(..., description="Độ đồng bộ nghe - nhìn (Thời lượng thoại vs Visual Pacing)")
+    ai_generation_viability: EvaluationCriterion = Field(..., description="Độ khả thi khi sinh video bằng Runway/Midjourney (Tránh từ trừu tượng)")
+    platform_optimization: EvaluationCriterion = Field(..., description="Độ tối ưu hóa theo định dạng và thuật toán nền tảng")
+    brand_integrity: EvaluationCriterion = Field(..., description="Tính bảo toàn nhận diện bao bì & logo sản phẩm")
+    overall_recommendation: str = Field(..., description="Định hướng chiến lược tổng quan của Đạo diễn AI")
+
 class GenerateScriptRequest(BaseModel):
     source_type: str = Field("product", description="Loại nguồn đầu vào: product, article, hoặc custom")
     product_id: Optional[str] = Field(None, description="ID sản phẩm nếu source_type là product")
@@ -10,6 +29,7 @@ class GenerateScriptRequest(BaseModel):
     style_id: str = Field(..., description="ID phong cách video (ví dụ: tiktok_drama)")
     aspect_ratio: Optional[str] = Field("9:16", description="Tỷ lệ khung hình: 16:9 (ngang) hoặc 9:16 (dọc)")
     target_duration: Optional[int] = Field(30, description="Thời lượng mục tiêu của video tính bằng giây")
+    competitor_analysis: Optional[CompetitorAnalysisInput] = Field(None, description="Thông tin đối thủ cạnh tranh và USP đã phân tích trước đó")
 
 class CreateStyleRequest(BaseModel):
     id: str = Field(..., description="Mã phong cách viết (slug, ví dụ: tiktok_trend_2026)")

@@ -463,10 +463,9 @@ class SeoController(Controller):
 
         query = query.order_by(SeoContextualLink.created_at.desc()).limit(limit).offset(offset)
 
-        # Chạy song song cả 2 truy vấn để giảm tối đa latency
-        stats_task = db_session.execute(stats_query)
-        links_task = db_session.execute(query)
-        stats_res, links_res = await asyncio.gather(stats_task, links_task)
+        # Chạy tuần tự các truy vấn để tránh lỗi concurrency trên AsyncSession
+        stats_res = await db_session.execute(stats_query)
+        links_res = await db_session.execute(query)
 
         stats = {"pending": 0, "approved": 0, "rejected": 0, "applied": 0}
         for st, count in stats_res.all():

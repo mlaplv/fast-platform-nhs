@@ -20,10 +20,12 @@ class SceneModel(BaseModel):
     visual_description: str = Field(..., description="Mô tả chi tiết hình ảnh hiển thị trên màn hình, bao gồm góc máy, hành động của nhân vật")
     voiceover: str = Field(..., description="Lời thoại thuyết minh bằng tiếng Việt, súc tích, nhịp điệu sinh động và thuyết phục")
     duration: float = Field(..., description="Thời lượng phân cảnh tính bằng giây (từ 2.0 đến 7.0)")
-    audio_cue: Optional[str] = Field(None, description="Mô tả nhạc nền (BGM) hoặc hiệu ứng âm thanh (SFX) ở cảnh này")
-    image_prompt: Optional[str] = Field(None, description="Mô tả chi tiết hình ảnh bằng tiếng Việt (thuần Việt 100%) để làm Prompt tạo hình ảnh/cảnh nền AI")
-    image_url: Optional[str] = Field(None, description="Đường dẫn hình ảnh đã gán cho cảnh (nếu có)")
     scene_notes: Optional[str] = Field(None, description="Ghi chú đạo diễn dành riêng cho cảnh này")
+
+class LandingPageHeadlineMatch(BaseModel):
+    headline: str = Field(..., description="Tiêu đề chính (H1) tối ưu hóa cho trang đích, đồng bộ với Hook của kịch bản")
+    subheadline: str = Field(..., description="Tiêu đề phụ (H2) làm nổi bật giải pháp, USP của sản phẩm")
+    match_psychology: str = Field(..., description="Tâm lý kích hoạt cảm xúc (ví dụ: 'Sợ hãi / Cảnh báo', 'Lợi ích tức thì', 'Tò mò/Khám phá')")
 
 class VideoScriptModel(BaseModel):
     title: str = Field(..., description="Tiêu đề gợi ý của video marketing hoặc tên chiến dịch")
@@ -34,6 +36,8 @@ class VideoScriptModel(BaseModel):
     total_duration: float = Field(..., description="Tổng thời lượng ước tính của cả video (bằng tổng thời lượng các cảnh)")
     competitor_analysis: Optional[dict] = Field(None, description="Phân tích đối thủ cạnh tranh từ Google Search & AI")
     aspect_ratio: Optional[str] = Field(None, description="Tỷ lệ khung hình được định cấu hình")
+    landing_page_headlines: Optional[List[LandingPageHeadlineMatch]] = Field(None, description="3 cặp H1 Headline & H2 Subheadline tương thích, tạo Message Match tối ưu CR trang đích")
+    evaluation: Optional[dict] = Field(None, description="Báo cáo đánh giá chất lượng kịch bản từ Đạo diễn AI")
 
 # ── Service Class ─────────────────────────────────────────────────────────────
 
@@ -48,7 +52,7 @@ class ScriptGeneratorService:
         # Khởi tạo Agent PydanticAI để ép cấu trúc kịch bản
         self.agent = Agent(
             output_type=VideoScriptModel,
-            retries=3
+            retries=2
         )
 
     async def analyze_competitors(self, name: str, description: str) -> dict:
@@ -207,7 +211,8 @@ Hãy lồng ghép khéo léo thông điệp cốt lõi và các USP của chúng
             agent=self.agent,
             prompt=prompt_with_config,
             system_prompt=system_prompt,
-            role="brain"
+            role="brain",
+            per_model_timeout=35.0
         )
         
         # Gán thêm dữ liệu phân tích và khung hình vào object trả về

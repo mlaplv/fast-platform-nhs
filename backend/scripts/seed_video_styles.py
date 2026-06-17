@@ -47,6 +47,14 @@ INITIAL_STYLES = [
         "is_active": True
     },
     {
+        "id": "product_closeup",
+        "name": "Quảng Cáo Cận Cảnh (Không Mặt / Chỉ Cận Cảnh Da & Tay)",
+        "platform": "TikTok/Reels/Shorts",
+        "hook_template": "Cận cảnh khoảnh khắc ấn tượng nhất của sản phẩm tác động lên da (nhấn đầu xịt sương mịn, giọt serum chảy chậm trên vùng da xỉn màu...) gây kích thích thị giác cực mạnh trong 3 giây đầu.",
+        "style_instruction": "Tập trung 100% vào sản phẩm, kết cấu và hiệu quả sử dụng thực tế trên da. KỊCH BẢN KHÔNG ĐƯỢC XUẤT HIỆN GƯƠNG MẶT người, chỉ được phép sử dụng bàn tay thao tác mở nắp, nhấn vòi, và thoa nhẹ chất kem/serum lên vùng da nhạy cảm cần chăm sóc (như nách, bẹn, cánh tay). Visual sử dụng góc quay siêu cận (Extreme Close-up), quay chậm (Slow Motion) từng khoảnh khắc chất kem thẩm thấu nhanh chóng, không để lại vết bết dính. Lời thoại (Voiceover) ngắn gọn, giọng đọc nhẹ nhàng, mô tả chân thực cảm giác mát mịn, khô thoáng và sự thay đổi độ sáng khỏe của làn da tức thì. Nhạc nền hiện đại, êm dịu, tinh tế.",
+        "is_active": True
+    },
+    {
         "id": "youtube_widescreen_review",
         "name": "Đánh Giá Chi Tiết Chuyên Sâu (YouTube Widescreen)",
         "platform": "YouTube",

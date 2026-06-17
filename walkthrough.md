@@ -8,6 +8,16 @@ Dựa theo báo cáo lỗi của hệ thống, nguyên nhân gốc rễ xuất p
 - **Hệ quả**: Trình duyệt bị ép phải tính toán lại toàn bộ Layout đồng bộ (Synchronous Layout) ngay trong khung hình đó để trả về vị trí Scroll mới nhất thay vì được phép vẽ ra màn hình. Quá trình này gây lãng phí 52ms.
 - **Trạng thái**: Đã được xử lý ở bước trước bằng cách bọc lệnh Đọc vào `requestAnimationFrame`, phá vỡ chuỗi đồng bộ Ghi ➡️ Đọc. (Đang chờ đồng bộ lên VPS).
 
+### 2. Tabbed Inspiration & CRO Panel (`ScriptEditorWorkspace.svelte`)
+*   **Unified Tab Panel**: Replaced the two separate, blocky collapsible drop components (`CompetitiveIntel` and `LandingPageMatchCard`) with an elegant, unified tabbed container to save vertical space and maintain high-density aesthetics.
+*   **Neon Accent Styling**: Designed high-contrast tabs (Yellow accent for "Phân tích đối thủ", Cyan accent for "Tối ưu Landing Page") that match the design theme, with custom Svelte transition transitions (`slide` and `fade`).
+*   **Bespoke Export & Delete buttons**: Replaced the entire bottom/header playback control bar with clean, dedicated `EXPORT MD` and `Delete` action buttons in the script header.
+*   **Header Prompt Action**: Added a direct "Mở Prompt / Đóng Prompt" toggle button.
+
+### 2.5. AI System Prompt Alignment (`prompts_registrar.py`)
+*   **Aligned with Copywriting-First Schema**: Updated the backend system prompt component `VIDEO_SCRIPTWRITER` to remove references to the deprecated `Image Prompt` (Gợi ý tạo ảnh).
+*   **Directorial Notes generation**: Instructed the Gemini model to write details for `scene_notes` (Ghi chú đạo diễn), defining camera motion instructions (e.g. Pan, Zoom, Tilt, Dolly) and acting cues instead of legacy image prompts.
+
 ## 2. Vấn đề LCP Request Discovery & "fetchpriority=high should be applied"
 Báo cáo Lighthouse chỉ trích `DExgKdPe.js` là nguyên nhân chậm trễ LCP, mặc dù ta đã thiết lập Preload. Lý do cốt lõi nằm ở **kiến trúc Elite Code Splitting** trong `+page.svelte`.
 

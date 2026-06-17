@@ -345,17 +345,16 @@ class SeoGraphService:
             nodes_res = await db.execute(nodes_query)
             node_rows = nodes_res.scalars().all()
         else:
-            # Chế độ tải toàn bộ đồ thị: thực hiện song song bằng asyncio.gather để giảm latency tối đa
-            node_task = db.execute(
+            # Chế độ tải toàn bộ đồ thị: thực hiện tuần tự để tránh lỗi concurrency trên AsyncSession
+            nodes_res = await db.execute(
                 select(SeoNode).where(
                     SeoNode.tenant_id == tenant,
                     SeoNode.deleted_at.is_(None),
                 )
             )
-            edge_task = db.execute(
+            edges_res = await db.execute(
                 select(SeoEdge).where(SeoEdge.tenant_id == tenant)
             )
-            nodes_res, edges_res = await asyncio.gather(node_task, edge_task)
             node_rows = nodes_res.scalars().all()
             edge_rows = edges_res.scalars().all()
 
