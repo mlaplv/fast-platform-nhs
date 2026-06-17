@@ -17,16 +17,11 @@ from backend.database.models.affiliate import (
 )
 from backend.services.ctv_service import ctv_service, _create_balance_seal, _create_withdrawal_seal
 from backend.utils.security import GeminiSecurity
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 
-def _require_admin(request: Request) -> dict:
-    user_state = request.scope.get("state", {}).get("user")
-    if not user_state:
-        raise NotAuthorizedException("Yêu cầu đăng nhập")
-    roles = user_state.get("roles", [])
-    if "ADMIN" not in roles and "SUPER_ADMIN" not in roles:
-        raise NotAuthorizedException("Yêu cầu quyền Admin")
-    return user_state
+
 
 
 class TierCreateSchema(BaseModel):
@@ -70,14 +65,13 @@ class ShippingConfigSchema(BaseModel):
 class AdminCtvController(Controller):
     """Admin: Full CTV management — tiers, members, withdrawals, stats."""
     path = "/api/v1/admin/ctv"
-    guards = []
+    guards = [PermissionGuard(PermissionEnum.USER_MANAGE)]
 
     # ── Shipping Config ──────────────────────────────────────────────────────
 
     @get("/config/shipping")
     async def get_shipping_config(self, request: Request, db_session: AsyncSession) -> dict:
         """Lấy cấu hình phí vận chuyển mặc định và tỷ lệ thuế của CTV."""
-        _require_admin(request)
         from backend.services.xohi_memory import xohi_memory
         from backend.database.models.system import SystemSetting
         
@@ -128,7 +122,6 @@ class AdminCtvController(Controller):
     @post("/config/shipping")
     async def update_shipping_config(self, request: Request, db_session: AsyncSession, data: ShippingConfigSchema) -> dict:
         """Cập nhật cấu hình phí vận chuyển mặc định và tỷ lệ thuế của CTV."""
-        _require_admin(request)
         from backend.services.xohi_memory import xohi_memory
         from backend.database.models.system import SystemSetting
         
@@ -163,7 +156,6 @@ class AdminCtvController(Controller):
         search: Optional[str] = None
     ) -> dict:
         """Danh sách đối soát chi tiết hoa hồng cho Admin xem hoặc export."""
-        _require_admin(request)
         from backend.database import current_tenant_id
         from backend.database.models.affiliate import CommissionLedger, AffiliateProfile
         tenant = current_tenant_id.get() or "default"
@@ -220,7 +212,6 @@ class AdminCtvController(Controller):
     @get("/tiers")
     async def list_tiers(self, request: Request, db_session: AsyncSession) -> list:
         """Danh sách commission tiers."""
-        _require_admin(request)
         from backend.database import current_tenant_id
         tenant = current_tenant_id.get() or "default"
         stmt = (
@@ -250,7 +241,6 @@ class AdminCtvController(Controller):
     @post("/tiers", status_code=HTTP_200_OK)
     async def create_tier(self, request: Request, db_session: AsyncSession, data: TierCreateSchema) -> dict:
         """Tạo commission tier mới."""
-        _require_admin(request)
         import uuid
         from backend.database import current_tenant_id
         tier = CommissionTier(
@@ -272,7 +262,6 @@ class AdminCtvController(Controller):
         self, request: Request, db_session: AsyncSession, tier_id: str, data: TierUpdateSchema
     ) -> dict:
         """Cập nhật commission tier (rate, threshold, v.v.)."""
-        _require_admin(request)
         from litestar.exceptions import NotFoundException
         stmt = select(CommissionTier).where(CommissionTier.id == tier_id)
         res = await db_session.execute(stmt)
@@ -309,7 +298,6 @@ class AdminCtvController(Controller):
         search: Optional[str] = None,
     ) -> dict:
         """Danh sách CTV toàn hệ thống — filter, search, phân trang."""
-        _require_admin(request)
         from backend.database import current_tenant_id
         from backend.database.models.auth import User
         tenant = current_tenant_id.get() or "default"
@@ -392,7 +380,6 @@ class AdminCtvController(Controller):
         self, request: Request, db_session: AsyncSession, affiliate_id: str, data: StatusUpdateSchema
     ) -> dict:
         """Approve / Suspend / Ban CTV. Ghi AuditLog."""
-        _require_admin(request)
         from litestar.exceptions import NotFoundException
         stmt = select(AffiliateProfile).where(AffiliateProfile.id == affiliate_id)
         res = await db_session.execute(stmt)
@@ -406,7 +393,7 @@ class AdminCtvController(Controller):
 
         import logging
         logging.getLogger("api-gateway.ctv").info(
-            f"[CTV-ADMIN] {request.scope.get('state', {}).get('user', {}).get('email')} changed status: "
+            f"[CTV-ADMIN] {request.state.user.get('email')} changed status: "
             f"{aff.ctv_code} {old_status} → {data.status}. Note: {data.note}"
         )
         return {"ok": True, "message": f"Đã cập nhật trạng thái CTV {aff.ctv_code} → {data.status}"}
@@ -416,7 +403,6 @@ class AdminCtvController(Controller):
         self, request: Request, db_session: AsyncSession, affiliate_id: str, data: TierAssignSchema
     ) -> dict:
         """Thay đổi tier thủ công cho CTV."""
-        _require_admin(request)
         from litestar.exceptions import NotFoundException
         aff_res = await db_session.execute(select(AffiliateProfile).where(AffiliateProfile.id == affiliate_id))
         aff = aff_res.scalar_one_or_none()
@@ -445,7 +431,6 @@ class AdminCtvController(Controller):
         status: Optional[str] = None,
     ) -> dict:
         """Danh sách yêu cầu rút tiền — filter theo status."""
-        _require_admin(request)
         from backend.database import current_tenant_id
         tenant = current_tenant_id.get() or "default"
 
@@ -501,7 +486,7 @@ class AdminCtvController(Controller):
         self, request: Request, db_session: AsyncSession, data: PayoutSchema
     ) -> dict:
         """Approve + ghi nhận đã thanh toán. Cập nhật paid_commission."""
-        user_state = _require_admin(request)
+        user_state = request.state.user
         from litestar.exceptions import NotFoundException, ValidationException
         wr_res = await db_session.execute(
             select(WithdrawalRequest).where(WithdrawalRequest.id == data.withdrawal_id)
@@ -571,7 +556,6 @@ class AdminCtvController(Controller):
     @get("/stats")
     async def global_stats(self, request: Request, db_session: AsyncSession) -> dict:
         """Dashboard tổng quan CTV toàn hệ thống."""
-        _require_admin(request)
         from backend.database import current_tenant_id
         tenant = current_tenant_id.get() or "default"
 

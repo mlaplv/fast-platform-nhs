@@ -20,6 +20,8 @@ ADMIN_ONLY_PREFIXES: list[str] = [
     "/api/v1/content",
     "/api/v1/media",
     "/api/v1/orders",    # Admin order management (Checkout is public via different controller)
+    "/api/v1/admin",     # Admin specific endpoints (e.g. CTV)
+    "/api/v1/video",     # AI Video script generation
     "/ws/stt",           # Voice WebSocket
 ]
 

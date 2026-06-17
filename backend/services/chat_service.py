@@ -52,6 +52,8 @@ class ChatService:
         modality: Optional[str] = "text"
     ) -> SuccessResponse:
         """Move logic from ChatController.save_message."""
+        if not user_id:
+            raise HTTPException(status_code=401, detail="[SECURITY] Unauthorized: Authentication required.")
         if role not in ("user", "assistant"):
             raise HTTPException(status_code=400, detail="Invalid role. Must be 'user' or 'assistant'.")
 
@@ -172,6 +174,8 @@ class ChatService:
         - Opaque Base64 cursor (không cần extra DB query)
         - Cache-hit không phụ thuộc limit (initial load = no cursor)
         """
+        if not user_id:
+            raise HTTPException(status_code=401, detail="[SECURITY] Unauthorized: Authentication required.")
         # [Bug #1 Hard-cap] Bảo vệ khỏi ?limit=99999
         limit = min(limit, CHAT_MAX_LIMIT)
 
@@ -300,6 +304,8 @@ class ChatService:
         [Bug #2 Fix] NUCLEAR PURGE — Dùng sqlalchemy.delete() thay vì delete_where() không tồn tại.
         Rule: "Sạch kin kít" - No audit trails left for this session.
         """
+        if not user_id:
+            raise HTTPException(status_code=401, detail="[SECURITY] Unauthorized: Authentication required.")
         is_super_admin: bool = "SUPER_ADMIN" in roles
         target_user_id: Optional[str] = user_id
 

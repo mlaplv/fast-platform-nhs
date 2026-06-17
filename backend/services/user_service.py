@@ -195,7 +195,12 @@ class UserService:
         if existing:
             raise ClientException(status_code=400, detail="Identity or Email already exists in this sector.")
 
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        import re
+        import hashlib
+        pwd_to_hash = password
+        if not (len(password) == 64 and re.match(r"^[0-9a-fA-F]{64}$", password)):
+            pwd_to_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+        hashed = bcrypt.hashpw(pwd_to_hash.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         new_user = User(
             id=new_id(),
@@ -282,7 +287,30 @@ class UserService:
             role_res = await db_session.execute(role_stmt)
             user.roles = list(role_res.scalars().all())
 
+        if "password" in data:
+            val = str(data["password"]).strip()
+            if val:
+                import bcrypt
+                import uuid
+                import re
+                import hashlib
+                pwd_to_hash = val
+                if not (len(val) == 64 and re.match(r"^[0-9a-fA-F]{64}$", val)):
+                    pwd_to_hash = hashlib.sha256(val.encode('utf-8')).hexdigest()
+                hashed = bcrypt.hashpw(pwd_to_hash.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user.password = hashed
+                # Rotate security stamp to force logout on password change
+                if hasattr(user, "security_stamp"):
+                    user.security_stamp = str(uuid.uuid4())
+                    try:
+                        from backend.services.ai_engine.core.key_rotator import key_rotator
+                        if key_rotator._use_redis and key_rotator.client:
+                            await key_rotator.client.delete(f"security:stamp:{user_id}")
+                    except Exception:
+                        pass
+
         return user
+
 
     @staticmethod
     async def delete_user(db_session: AsyncSession, user_id: str) -> SuccessResponse:

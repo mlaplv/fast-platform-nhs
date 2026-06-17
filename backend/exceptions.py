@@ -50,6 +50,29 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
         )
 
     logger.error(f"[TRACE:{trace_id}] Unhandled {type(exc).__name__}: {exc}", exc_info=True)
+    
+    # Gửi cảnh báo lỗi nghiêm trọng về Telegram
+    try:
+        from backend.services.telegram_service import telegram_service
+        import asyncio
+        
+        path = request.url.path if hasattr(request, "url") else "Unknown path"
+        method = request.method if hasattr(request, "method") else "Unknown method"
+        
+        telegram_msg = (
+            f"❌ <b>[SERVER ERROR - 500]</b>\n"
+            f"<b>Path:</b> {method} {path}\n"
+            f"<b>Trace ID:</b> <code>{trace_id}</code>\n"
+            f"<b>Error:</b> <code>{type(exc).__name__}: {exc}</code>"
+        )
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(telegram_service.send_alert(telegram_msg))
+        except RuntimeError:
+            asyncio.run(telegram_service.send_alert(telegram_msg))
+    except Exception as telegram_err:
+        logger.warning(f"Failed to send exception alert to Telegram: {telegram_err}")
+
     return Response(
         media_type=MediaType.JSON,
         status_code=500,

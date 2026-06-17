@@ -62,6 +62,8 @@ from sqlalchemy import select, delete as sa_delete
 
 from backend.services.xohi_memory import xohi_memory
 from backend.core.stream_handler import RedisStreamProducer
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
@@ -124,11 +126,12 @@ _hub = LiveStreamHub()
 class AdsProtectionController(Controller):
     path = "/api/v1/ads-protection"
     tags = ["Ads Protection"]
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     # ------------------------------------------------------------------
     # 1. Validate click (public — gọi từ GTM landing page)
     # ------------------------------------------------------------------
-    @post("/validate-click", status_code=200)
+    @post("/validate-click", status_code=200, guards=[])
     async def validate_click(
         self,
         db_session: AsyncSession,

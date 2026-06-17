@@ -1071,7 +1071,18 @@ function total_garbage_clean() {
     # 8. Flush Redis & Force Client Reset Cache
     echo -e "${YELLOW}-> [8/8] Đang xóa toàn bộ Redis Cache & Ép client reset cache...${NC}"
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_redis"; then
-        docker exec fast_platform_redis redis-cli flushall || true
+        local redis_pass=""
+        if [ -f .env ]; then
+            redis_pass=$(grep -E "^REDIS_PASSWORD=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+        fi
+        if [ -n "$redis_pass" ]; then
+            docker exec fast_platform_redis redis-cli -a "$redis_pass" FLUSHALL_SECURE_2026 2>/dev/null || \
+            docker exec fast_platform_redis redis-cli -a "$redis_pass" flushall 2>/dev/null || \
+            docker exec fast_platform_redis redis-cli flushall || true
+        else
+            docker exec fast_platform_redis redis-cli FLUSHALL_SECURE_2026 2>/dev/null || \
+            docker exec fast_platform_redis redis-cli flushall || true
+        fi
     fi
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
         docker exec fast_platform_api /opt/venv/bin/python3 -c "import asyncio; from backend.services.event_bus import event_bus; asyncio.run(event_bus.emit('SYSTEM_SIGNAL', {'action': 'FORCE_RELOAD'}))" 2>/dev/null || true

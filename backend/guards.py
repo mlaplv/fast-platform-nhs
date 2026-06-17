@@ -26,9 +26,10 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
         required_perms = [str(p.value) if isinstance(p, Enum) else str(p) for p in permissions]
 
     async def guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
-        # [EMERGENCY BYPASS] Allow public storefront anonymous visitors to load media thumbnails
+        # [EMERGENCY BYPASS] Allow public storefront anonymous visitors to load media thumbnails or validate clicks
         path = connection.url.path
-        if path.startswith("/api/v1/media/") and (path.endswith("/thumb") or "/thumb/" in path):
+        if (path.startswith("/api/v1/media/") and (path.endswith("/thumb") or "/thumb/" in path)) or \
+           path.startswith("/api/v1/ads-protection/validate-click"):
             return
 
         user = connection.scope.get("state", {}).get("user")

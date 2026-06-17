@@ -31,7 +31,7 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import Eye from "@lucide/svelte/icons/eye";
 
-  import type { BaseWidgetProps, VideoScript, VideoScriptStyle } from "$lib/types";
+  import type { BaseWidgetProps, VideoScript, VideoScriptStyle, VideoScene, Article, MediaAsset } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -77,9 +77,15 @@
   let isDrawerOpen = $state(false);
   let selectedProductId = $state("");
   let selectedStyleId = $state("");
+  let articles = $state<Article[]>([]);
+  let selectedArticleId = $state("");
+  let customDescription = $state("");
+  let sourceType = $state<"product" | "article" | "custom">("product");
+  let targetDuration = $state<number>(30);
+  let aspectRatio = $state<string>("9:16");
 
   // Media Library state
-  let mediaLibrary = $state<any[]>([]);
+  let mediaLibrary = $state<MediaAsset[]>([]);
   let showLibraryModalIdx = $state<number | null>(null);
 
   // Playback Timeline simulator state
@@ -92,6 +98,7 @@
 
   // Clypra & AI Prompt states
   let isClypraLoading = $state(false);
+  let isDownloadingZip = $state(false);
   let showPromptHub = $state(false);
   let activePromptTab = $state<"midjourney" | "runway" | "heygen" | "gemini">("midjourney");
 
@@ -102,12 +109,12 @@
       const res = await apiClient.post<{ data: { launched: boolean } }>(
         `/api/v1/video/script/${activeScript.id}/clypra/open?voice=${selectedVoice}`
       );
-      if (res.data && res.data.launched) {
+      if (res.data && res.data.data?.launched) {
         nanobot.showToast("Đã xuất timeline và khởi chạy Clypra Editor!", "success");
       } else {
         nanobot.showToast("Đã lưu project.json, hãy mở Clypra thủ công để chỉnh sửa.", "warning");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       nanobot.showToast(`Lỗi kết nối Clypra: ${msg}`, "error");
     } finally {
@@ -115,20 +122,56 @@
     }
   }
 
-  function getMidjourneyPrompt(scene: any, aspect: string) {
+  async function downloadClypraZip() {
+    if (!activeScript) return;
+    isDownloadingZip = true;
+    try {
+      const token = sessionStorage.getItem("admin_token") || 
+        document.cookie.split("; ").find(row => row.startsWith("admin_token="))?.split("=")[1] || 
+        null;
+        
+      const response = await fetch(`/api/v1/video/script/${activeScript.id}/clypra/download?voice=${selectedVoice}`, {
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Không thể tải xuống file dự án. Vui lòng kiểm tra lại kết nối.");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clypra_project_${activeScript.id}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      nanobot.showToast("Tải dự án Clypra ZIP thành công!", "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      nanobot.showToast(`Lỗi tải file: ${msg}`, "error");
+    } finally {
+      isDownloadingZip = false;
+    }
+  }
+
+  function getMidjourneyPrompt(scene: VideoScene, aspect: string) {
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
     const ar = aspect === "9:16" ? "9:16" : "16:9";
     return `A high-fidelity commercial cinematography storyboard slot. ${desc}. ${notes}. Clean look, photorealistic, 8k resolution, cinematic lighting, commercial grade --ar ${ar} --style raw --v 6.0`;
   }
 
-  function getRunwayPrompt(scene: any) {
+  function getRunwayPrompt(scene: VideoScene) {
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
     return `Cinematic, hyper-realistic video. ${desc}. Camera motion: ${notes}. Smooth transition, high dynamic range, photorealistic commercial styling, 8k.`;
   }
 
-  function getGeminiPrompt(scene: any) {
+  function getGeminiPrompt(scene: VideoScene) {
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
     const voice = scene.voiceover || "";
@@ -145,7 +188,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     if (!activeScript || !activeScript.structured_script?.scenes) return "";
     let text = `[LỆNH ĐIỀU HÀNH ĐẠO DIỄN - TẠO DỰ ÁN VIDEO TOÀN BỘ KỊCH BẢN]\n`;
     text += `Bạn là Đạo diễn Video AI kiêm Trợ lý sinh video của Google. Dưới đây là kịch bản marketing chi tiết cho sản phẩm "${activeScript.title || 'sản phẩm'}":\n\n`;
-    activeScript.structured_script.scenes.forEach((scene: any, idx: number) => {
+    activeScript.structured_script.scenes.forEach((scene: VideoScene, idx: number) => {
       const num = scene.scene_number || (idx + 1);
       text += `Phân cảnh #${num}:\n`;
       text += `- Mô tả hình ảnh: ${scene.visual_description || ""}\n`;
@@ -166,7 +209,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     if (type === "gemini") {
       text = getGeminiMasterPrompt();
     } else {
-      activeScript.structured_script.scenes.forEach((scene: any, idx: number) => {
+      activeScript.structured_script.scenes.forEach((scene: VideoScene, idx: number) => {
         const num = scene.scene_number || (idx + 1);
         if (type === "midjourney") {
           text += `Scene #${num} Midjourney Prompt:\n${getMidjourneyPrompt(scene, aspect)}\n\n`;
@@ -258,7 +301,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     }
   }
 
-  // Load Styles & Products
+  // Load Styles, Products & Articles
   async function loadMetadata() {
     try {
       const styleRes = await apiClient.get<{ data: VideoScriptStyle[] }>("/api/v1/video/styles");
@@ -267,8 +310,12 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       const prodRes = await apiClient.get<{ data: Product[] }>("/api/v1/products?limit=100");
       products = prodRes.data || [];
 
+      const articleRes = await apiClient.get<{ data: Article[] }>("/api/v1/articles?limit=100");
+      articles = articleRes.data || [];
+
       if (styles.length > 0) selectedStyleId = styles[0].id;
       if (products.length > 0) selectedProductId = products[0].id;
+      if (articles.length > 0) selectedArticleId = articles[0].id;
     } catch (e) {
       console.warn("Failed to load metadata options", e);
     }
@@ -277,7 +324,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
   // Load Media Library
   async function loadMediaLibrary() {
     try {
-      const res = await apiClient.get<{ data: any[] }>("/api/v1/media?limit=24");
+      const res = await apiClient.get<{ data: MediaAsset[] }>("/api/v1/media?limit=24");
       mediaLibrary = res.data || [];
     } catch (e) {
       console.warn("Failed to load media library", e);
@@ -342,8 +389,24 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
   // Generate Script
   async function handleGenerate(e: Event) {
     e.preventDefault();
-    if (!selectedProductId || !selectedStyleId) {
-      nanobot.showToast("Vui lòng chọn đầy đủ sản phẩm và phong cách!", "warning");
+    
+    if (!selectedStyleId) {
+      nanobot.showToast("Vui lòng chọn phong cách kịch bản!", "warning");
+      return;
+    }
+    
+    if (sourceType === "product" && !selectedProductId) {
+      nanobot.showToast("Vui lòng chọn sản phẩm tiêu điểm!", "warning");
+      return;
+    }
+    
+    if (sourceType === "article" && !selectedArticleId) {
+      nanobot.showToast("Vui lòng chọn bài viết nguồn!", "warning");
+      return;
+    }
+    
+    if (sourceType === "custom" && !customDescription.trim()) {
+      nanobot.showToast("Vui lòng nhập mô tả ý tưởng!", "warning");
       return;
     }
 
@@ -351,14 +414,20 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     genStep = 1;
 
     try {
+      // Giai đoạn 1: Gọi phân tích Google Search & Đối thủ
       await new Promise(r => setTimeout(r, 800));
       genStep = 2;
 
       const res = await apiClient.post<{ message: string; data: VideoScript }>(
         "/api/v1/video/script/generate",
         {
-          product_id: selectedProductId,
-          style_id: selectedStyleId
+          source_type: sourceType,
+          product_id: sourceType === "product" ? selectedProductId : null,
+          article_id: sourceType === "article" ? selectedArticleId : null,
+          description: sourceType === "custom" ? customDescription : null,
+          style_id: selectedStyleId,
+          aspect_ratio: aspectRatio,
+          target_duration: targetDuration
         }
       );
 
@@ -425,8 +494,9 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       triggerAutoSave();
       nanobot.showToast("Tải ảnh lên thành công!", "success");
       loadMediaLibrary();
-    } catch (err: any) {
-      nanobot.showToast(`Lỗi tải ảnh: ${err.message || String(err)}`, "error");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      nanobot.showToast(`Lỗi tải ảnh: ${msg}`, "error");
     }
   }
 
@@ -449,7 +519,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       scene.image_url = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop&sig=${sig}`;
       triggerAutoSave();
       nanobot.showToast("Đã tạo ảnh phác họa AI thành công!", "success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       nanobot.showToast("Lỗi sinh ảnh AI", "error");
     } finally {
       generatingImageMap[sceneIdx] = false;
@@ -692,7 +762,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     }
   }
 
-  function downloadSceneAudio(scene: any) {
+  function downloadSceneAudio(scene: VideoScene) {
     if (!scene.voiceover) {
       nanobot.showToast("Không có lời thoại để tải!", "warning");
       return;
@@ -959,6 +1029,56 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       <!-- Main Workspace Editor Panel -->
       <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6 bg-gradient-to-b from-[#020202] to-[#040404]">
         
+        {#if activeScript.structured_script?.competitor_analysis}
+          <!-- Competitive Intelligence Panel -->
+          <div class="bg-[#050608] border border-cyan-950 rounded-xl p-4 space-y-3 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl"></div>
+            <div class="flex items-center justify-between border-b border-cyan-900/20 pb-2">
+              <div class="flex items-center gap-2">
+                <Sparkles class="w-4 h-4 text-cyan-400" />
+                <span class="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">PHÂN TÍCH ĐỐI THỦ & CHIẾN LƯỢC PHẢN BIỆN (USP)</span>
+              </div>
+              {#if activeScript.structured_script?.aspect_ratio}
+                <span class="text-[9px] font-mono bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20 font-bold">
+                  Khung hình: {activeScript.structured_script.aspect_ratio === '9:16' ? 'Dọc (9:16)' : activeScript.structured_script.aspect_ratio === '16:9' ? 'Ngang (16:9)' : activeScript.structured_script.aspect_ratio}
+                </span>
+              {/if}
+            </div>
+
+            <!-- Core message banner -->
+            {#if activeScript.structured_script.competitor_analysis.core_message}
+              <div class="bg-cyan-950/20 border border-cyan-500/25 rounded-lg p-2.5">
+                <p class="text-[9px] font-mono text-cyan-400 uppercase tracking-wider font-bold mb-1">Thông điệp truyền thông cốt lõi:</p>
+                <p class="text-xs text-gray-200 leading-relaxed font-semibold italic">
+                  "{activeScript.structured_script.competitor_analysis.core_message}"
+                </p>
+              </div>
+            {/if}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <!-- Competitor Weaknesses -->
+              <div class="space-y-1.5">
+                <span class="text-[9px] font-mono text-red-400/80 uppercase tracking-wider font-bold block">▼ Điểm yếu lớn của đối thủ:</span>
+                <ul class="space-y-1 text-[11px] text-gray-400 leading-relaxed list-disc list-inside">
+                  {#each activeScript.structured_script.competitor_analysis.competitor_weaknesses || [] as weakness}
+                    <li>{weakness}</li>
+                  {/each}
+                </ul>
+              </div>
+
+              <!-- Our Strengths / USP -->
+              <div class="space-y-1.5">
+                <span class="text-[9px] font-mono text-emerald-400/80 uppercase tracking-wider font-bold block">▲ Điểm mạnh/USP của chúng ta:</span>
+                <ul class="space-y-1 text-[11px] text-gray-400 leading-relaxed list-disc list-inside">
+                  {#each activeScript.structured_script.competitor_analysis.our_strengths || [] as strength}
+                    <li>{strength}</li>
+                  {/each}
+                </ul>
+              </div>
+            </div>
+          </div>
+        {/if}
+
         <!-- Script-level Notes section -->
         <div class="bg-[#080808] border border-[#151515] rounded-xl p-4 space-y-2">
           <div class="flex items-center gap-2 border-b border-gray-900 pb-2">
@@ -993,19 +1113,35 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
                 Đóng gói toàn bộ phân cảnh thành Timeline Project chuẩn Clypra (tự động ghép ảnh storyboard, sinh giọng đọc TTS, chèn phụ đề) và mở trình chỉnh sửa Clypra chỉ với 1 click.
               </p>
               
-              <button 
-                onclick={openInClypra}
-                disabled={isClypraLoading}
-                class="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-gray-800 disabled:to-gray-800 text-white rounded-lg font-semibold text-xs border border-cyan-400/20 transition-all shadow-md shadow-cyan-500/10 hover:shadow-cyan-500/25 active:scale-[0.98]"
-              >
-                {#if isClypraLoading}
-                  <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>ĐANG ĐÓNG GÓI & KHỞI CHẠY...</span>
-                {:else}
-                  <ExternalLink class="w-3.5 h-3.5" />
-                  <span>MỞ TRỰC TIẾP TRONG CLYPRA EDITOR</span>
-                {/if}
-              </button>
+              <div class="grid grid-cols-2 gap-3">
+                <button 
+                  onclick={openInClypra}
+                  disabled={isClypraLoading || isDownloadingZip}
+                  class="flex items-center justify-center gap-1.5 py-2 px-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-gray-800 disabled:to-gray-800 text-white rounded-lg font-semibold text-[11px] border border-cyan-400/20 transition-all shadow-md shadow-cyan-500/10 hover:shadow-cyan-500/25 active:scale-[0.98]"
+                >
+                  {#if isClypraLoading}
+                    <span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>MỞ...</span>
+                  {:else}
+                    <ExternalLink class="w-3.5 h-3.5" />
+                    <span>MỞ TRỰC TIẾP</span>
+                  {/if}
+                </button>
+
+                <button 
+                  onclick={downloadClypraZip}
+                  disabled={isClypraLoading || isDownloadingZip}
+                  class="flex items-center justify-center gap-1.5 py-2 px-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 disabled:from-gray-800 disabled:to-gray-800 text-white rounded-lg font-semibold text-[11px] border border-teal-400/20 transition-all shadow-md shadow-teal-500/10 hover:shadow-teal-500/25 active:scale-[0.98]"
+                >
+                  {#if isDownloadingZip}
+                    <span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>TẢI...</span>
+                  {:else}
+                    <Download class="w-3.5 h-3.5" />
+                    <span>TẢI ZIP DỰ ÁN</span>
+                  {/if}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1336,7 +1472,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
                   1
                 </span>
                 <span class={genStep === 1 ? 'text-cyan-400 font-semibold' : genStep > 1 ? 'text-gray-400' : 'text-gray-600'}>
-                  Phân tích thông tin và công dụng sản phẩm...
+                  Google Search & Phân tích phản biện đối thủ...
                 </span>
               </div>
               <div class="flex items-center gap-3 text-xs">
@@ -1345,7 +1481,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
                   2
                 </span>
                 <span class={genStep === 2 ? 'text-cyan-400 font-semibold animate-pulse' : genStep > 2 ? 'text-gray-400' : 'text-gray-600'}>
-                  AI Core thiết lập phân cảnh & lời thoại...
+                  AI Core thiết lập kịch bản phân cảnh & USP...
                 </span>
               </div>
               <div class="flex items-center gap-3 text-xs">
@@ -1366,25 +1502,124 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
         {:else}
           <!-- Creation Form -->
           <form onsubmit={handleGenerate} class="space-y-5">
-            <!-- Product selection -->
+            <!-- Source Type selection -->
             <div class="space-y-2">
-              <label for="product-select" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">SẢN PHẨM TIÊU ĐIỂM</label>
-              <select
-                id="product-select"
-                bind:value={selectedProductId}
-                class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-              >
-                {#if products.length === 0}
-                  <option value="">Không tìm thấy sản phẩm nào</option>
-                {:else}
-                  {#each products as prod}
-                    <option value={prod.id}>{prod.name} (SKU/Slug: {prod.slug})</option>
-                  {/each}
-                {/if}
-              </select>
-              <p class="text-[9px] font-mono text-gray-500 leading-normal">
-                Kịch bản sẽ tự động trích xuất đặc tính nổi bật, cách dùng và tệp khách hàng từ sản phẩm được chọn.
-              </p>
+              <label class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">NGUỒN DỮ LIỆU ĐẦU VÀO</label>
+              <div class="grid grid-cols-3 gap-2 p-1 bg-[#111] rounded-lg border border-gray-800">
+                <button
+                  type="button"
+                  onclick={() => sourceType = "product"}
+                  class="py-1 text-[11px] rounded transition-all font-semibold
+                         {sourceType === 'product' ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/20' : 'text-gray-400 hover:text-white'}"
+                >
+                  Sản phẩm
+                </button>
+                <button
+                  type="button"
+                  onclick={() => sourceType = "article"}
+                  class="py-1 text-[11px] rounded transition-all font-semibold
+                         {sourceType === 'article' ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/20' : 'text-gray-400 hover:text-white'}"
+                >
+                  Bài viết
+                </button>
+                <button
+                  type="button"
+                  onclick={() => sourceType = "custom"}
+                  class="py-1 text-[11px] rounded transition-all font-semibold
+                         {sourceType === 'custom' ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/20' : 'text-gray-400 hover:text-white'}"
+                >
+                  Nhập tay
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Input Area based on source type -->
+            {#if sourceType === "product"}
+              <div class="space-y-2">
+                <label for="product-select" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">CHỌN SẢN PHẨM TIÊU ĐIỂM</label>
+                <select
+                  id="product-select"
+                  bind:value={selectedProductId}
+                  class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  {#if products.length === 0}
+                    <option value="">Không tìm thấy sản phẩm nào</option>
+                  {:else}
+                    {#each products as prod}
+                      <option value={prod.id}>{prod.name} (SKU/Slug: {prod.slug})</option>
+                    {/each}
+                  {/if}
+                </select>
+                <p class="text-[9px] font-mono text-gray-500 leading-normal">
+                  Hệ thống tự động phân tích ưu điểm sản phẩm để làm chất liệu viết kịch bản.
+                </p>
+              </div>
+            {:else if sourceType === "article"}
+              <div class="space-y-2">
+                <label for="article-select" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">CHỌN BÀI VIẾT LÀM NGUỒN</label>
+                <select
+                  id="article-select"
+                  bind:value={selectedArticleId}
+                  class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  {#if articles.length === 0}
+                    <option value="">Không tìm thấy bài viết nào</option>
+                  {:else}
+                    {#each articles as art}
+                      <option value={art.id}>{art.title}</option>
+                    {/each}
+                  {/if}
+                </select>
+                <p class="text-[9px] font-mono text-gray-500 leading-normal">
+                  Chuyển hóa nội dung bài viết tin tức/chia sẻ thành kịch bản phân cảnh video sinh động.
+                </p>
+              </div>
+            {:else}
+              <div class="space-y-2">
+                <label for="custom-desc" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">MÔ TẢ CHI TIẾT Ý TƯỞNG</label>
+                <textarea
+                  id="custom-desc"
+                  bind:value={customDescription}
+                  rows="3"
+                  placeholder="Nhập ý tưởng video, mô tả sản phẩm dịch vụ, hoặc điểm nổi bật bạn muốn quảng cáo..."
+                  class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none leading-relaxed"
+                ></textarea>
+                <p class="text-[9px] font-mono text-gray-500 leading-normal">
+                  Viết bất kỳ ý tưởng thô nào của bạn, AI sẽ xây dựng thành kịch bản chuyên nghiệp.
+                </p>
+              </div>
+            {/if}
+
+            <!-- Settings Grid: Aspect Ratio & Duration -->
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Aspect Ratio -->
+              <div class="space-y-2">
+                <label for="aspect-ratio-select" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">KHUNG HÌNH (THIẾT BỊ)</label>
+                <select
+                  id="aspect-ratio-select"
+                  bind:value={aspectRatio}
+                  class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="9:16">Dọc (9:16) - TikTok/Reels</option>
+                  <option value="16:9">Ngang (16:9) - YouTube/PC</option>
+                  <option value="1:1">Vuông (1:1) - Instagram</option>
+                </select>
+              </div>
+
+              <!-- Duration -->
+              <div class="space-y-2">
+                <label for="duration-select" class="text-[10px] font-mono tracking-wider text-gray-400 uppercase">THỜI LƯỢNG MỤC TIÊU</label>
+                <select
+                  id="duration-select"
+                  bind:value={targetDuration}
+                  class="w-full bg-[#111] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value={15}>15 giây (Cực ngắn)</option>
+                  <option value={30}>30 giây (Tiêu chuẩn)</option>
+                  <option value={60}>60 giây (Chi tiết)</option>
+                  <option value={90}>90 giây (Kể chuyện)</option>
+                </select>
+              </div>
             </div>
 
             <!-- Style selection -->
@@ -1403,20 +1638,16 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
                   {/each}
                 {/if}
               </select>
-              <p class="text-[9px] font-mono text-gray-500 leading-normal">
-                Style định dạng nhịp độ video, cách kể chuyện (storytelling) và cấu trúc Hook 3 giây đầu tiên.
-              </p>
             </div>
 
             <!-- Style instruction details panel -->
             {#if styles.find(s => s.id === selectedStyleId)}
               {@const currentStyle = styles.find(s => s.id === selectedStyleId)!}
-              <div class="bg-[#0c0c0c] border border-cyan-500/10 rounded-lg p-3 space-y-2 mt-4">
-                <span class="text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-widest block">CHI TIẾT PHONG CÁCH</span>
-                <div class="text-[10px] space-y-1 text-gray-400 leading-relaxed">
-                  <p><strong>Nền tảng:</strong> <span class="text-white">{currentStyle.platform}</span></p>
+              <div class="bg-[#0c0c0c] border border-cyan-500/10 rounded-lg p-3 space-y-2">
+                <span class="text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-widest block font-sans">CHI TIẾT PHONG CÁCH</span>
+                <div class="text-[10px] space-y-1 text-gray-400 leading-relaxed font-sans">
                   <p><strong>Cấu trúc Hook:</strong> <span class="text-gray-300 italic">{currentStyle.hook_template}</span></p>
-                  <p class="line-clamp-3"><strong>Chi tiết:</strong> {currentStyle.style_instruction}</p>
+                  <p class="line-clamp-2"><strong>Chỉ dẫn:</strong> {currentStyle.style_instruction}</p>
                 </div>
               </div>
             {/if}

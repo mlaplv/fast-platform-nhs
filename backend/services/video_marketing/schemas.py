@@ -3,8 +3,13 @@ from typing import Optional, List
 from backend.services.video_marketing.script_generator_service import VideoScriptModel
 
 class GenerateScriptRequest(BaseModel):
-    product_id: str = Field(..., description="ID sản phẩm, slug sản phẩm hoặc URL sản phẩm trong database")
+    source_type: str = Field("product", description="Loại nguồn đầu vào: product, article, hoặc custom")
+    product_id: Optional[str] = Field(None, description="ID sản phẩm nếu source_type là product")
+    article_id: Optional[str] = Field(None, description="ID bài viết nếu source_type là article")
+    description: Optional[str] = Field(None, description="Mô tả tự do nếu source_type là custom")
     style_id: str = Field(..., description="ID phong cách video (ví dụ: tiktok_drama)")
+    aspect_ratio: Optional[str] = Field("9:16", description="Tỷ lệ khung hình: 16:9 (ngang) hoặc 9:16 (dọc)")
+    target_duration: Optional[int] = Field(30, description="Thời lượng mục tiêu của video tính bằng giây")
 
 class CreateStyleRequest(BaseModel):
     id: str = Field(..., description="Mã phong cách viết (slug, ví dụ: tiktok_trend_2026)")

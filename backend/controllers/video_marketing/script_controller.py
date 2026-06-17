@@ -7,6 +7,7 @@ import shutil
 import re
 import urllib.parse
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -22,12 +23,15 @@ from sqlalchemy.orm import selectinload
 
 from backend.database.models.video_marketing import VideoScript, VideoScriptStyle
 from backend.database.models.commerce import ProductBase
+from backend.database.models.content import Article
 from backend.services.video_marketing.product_resolver_service import product_resolver_service
 from backend.services.video_marketing.script_generator_service import script_generator_service, VideoScriptModel
 from backend.services.video_marketing.schemas import (
     GenerateScriptRequest, CreateStyleRequest, VideoScriptResponse, VideoStyleResponse, VideoScriptListResponse, UpdateScriptRequest
 )
 from backend.schemas.common import SuccessResponse
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
@@ -35,58 +39,125 @@ class VideoScriptController(Controller):
     """API Controller quản lý kịch bản Video Marketing và Dynamic Styles."""
     path = "/api/v1/video"
     tags = ["Video Marketing"]
+    guards = [PermissionGuard(PermissionEnum.CONTENT_WRITE)]
 
     @post("/script/generate")
     async def generate_script(self, db_session: AsyncSession, data: GenerateScriptRequest) -> SuccessResponse[VideoScriptResponse]:
-        """Sinh kịch bản video từ sản phẩm và phong cách được chọn."""
-        # 1. Tìm sản phẩm trong DB thực tế
-        key = product_resolver_service._extract_slug_or_id(data.product_id)
-        prod_stmt = select(ProductBase).where(
-            (ProductBase.id == key) | 
-            (ProductBase.slug == key) | 
-            (ProductBase.sku == key)
-        ).where(ProductBase.deleted_at.is_(None))
-        prod_res = await db_session.execute(prod_stmt)
-        product = prod_res.scalar_one_or_none()
+        """Sinh kịch bản video từ sản phẩm, bài viết hoặc mô tả, có phân tích đối thủ và cấu hình khung hình/thời lượng."""
+        source_context = ""
+        source_name = ""
+        source_desc = ""
+        product_id = None
         
-        if not product:
-            raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm với khóa: {data.product_id}")
+        # 1. Giải quyết ngữ cảnh nguồn dựa trên source_type
+        if data.source_type == "product":
+            if not data.product_id:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+                
+            key = product_resolver_service._extract_slug_or_id(data.product_id)
+            prod_stmt = select(ProductBase).where(
+                (ProductBase.id == key) | 
+                (ProductBase.slug == key) | 
+                (ProductBase.sku == key)
+            ).where(ProductBase.deleted_at.is_(None))
+            prod_res = await db_session.execute(prod_stmt)
+            product = prod_res.scalar_one_or_none()
             
-        # 2. Giải quyết ngữ cảnh sản phẩm
-        product_context = await product_resolver_service.get_product_context(product.id, db_session)
-        if not product_context:
-            raise HTTPException(status_code=400, detail="Không thể phân giải ngữ cảnh sản phẩm để sinh kịch bản.")
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm với khóa: {data.product_id}")
+                
+            product_id = product.id
+            source_context = await product_resolver_service.get_product_context(product.id, db_session)
+            source_name = product.name
+            source_desc = product.description or ""
             
-        # 3. Sinh kịch bản qua AI Core (tích hợp TrinityBridge & NPO Vault)
+        elif data.source_type == "article":
+            if not data.article_id:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+                
+            art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
+            art_res = await db_session.execute(art_stmt)
+            article = art_res.scalar_one_or_none()
+            
+            if not article:
+                raise HTTPException(status_code=404, detail=f"Không tìm thấy bài viết với ID: {data.article_id}")
+                
+            source_context = f"TIÊU ĐỀ BÀI VIẾT: {article.title}\n\nTÓM TẮT: {article.excerpt or ''}\n\nNỘI DUNG CHÍNH:\n{article.content or ''}"
+            source_name = article.title
+            source_desc = article.content or article.excerpt or ""
+            
+        elif data.source_type == "custom":
+            if not data.description:
+                raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
+                
+            source_context = f"MÔ TẢ CHI TIẾT Ý TƯỞNG / SẢN PHẨM / DỊCH VỤ:\n{data.description}"
+            source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
+            source_desc = data.description
+            
+        else:
+            raise HTTPException(status_code=400, detail="source_type không hợp lệ (hỗ trợ: product, article, custom)")
+
+        if not source_context:
+            raise HTTPException(status_code=400, detail="Không thể phân giải ngữ cảnh nguồn để sinh kịch bản.")
+
+        # 1.1 Lấy phong cách kịch bản từ database trước khi giải phóng session
+        style = None
+        if data.style_id:
+            style_stmt = select(VideoScriptStyle).where(VideoScriptStyle.id == data.style_id).where(VideoScriptStyle.is_active == True)
+            style_res = await db_session.execute(style_stmt)
+            style = style_res.scalar_one_or_none()
+
+        # Giải phóng connection về pool ngay lập tức trước khi gọi AI/Search tốn thời gian
+        await db_session.close()
+
+        # 2. Phân tích đối thủ cạnh tranh bằng Google Search & AI phản biện
+        competitor_analysis = None
+        try:
+            competitor_analysis = await script_generator_service.analyze_competitors(source_name, source_desc)
+        except Exception as e:
+            logger.error(f"⚠️ [VideoController] Competitor analysis failed: {e}. Proceeding with default template.")
+
+        # 3. Sinh kịch bản qua AI Core
         try:
             generated_script = await script_generator_service.generate_script(
-                product_context=product_context,
-                style_id=data.style_id,
-                db=db_session
+                source_context=source_context,
+                style=style,
+                aspect_ratio=data.aspect_ratio or "9:16",
+                target_duration=data.target_duration or 30,
+                competitor_analysis=competitor_analysis
             )
         except Exception as e:
             logger.error(f"❌ [VideoController] Script generation failed: {e}")
             raise HTTPException(status_code=400, detail=f"Lỗi khi gọi AI sinh kịch bản: {str(e)}")
 
-        # 4. Lưu kịch bản vào cơ sở dữ liệu
-        script_db = VideoScript(
-            product_id=product.id,
-            style_id=data.style_id,
-            title=generated_script.title,
-            structured_script=generated_script.model_dump(),
-            tenant_id="smartshop"  # Tenant ID mặc định
-        )
-        db_session.add(script_db)
-        await db_session.commit()
+        # 4. Lưu kịch bản vào cơ sở dữ liệu (sử dụng session mới để không giữ connection quá lâu)
+        from backend.database.alchemy_config import alchemy_config
+        async with alchemy_config.create_session_maker()() as new_session:
+            script_db = VideoScript(
+                product_id=product_id,
+                style_id=data.style_id,
+                title=generated_script.title,
+                structured_script=generated_script.model_dump(),
+                tenant_id="smartshop"
+            )
+            new_session.add(script_db)
+            await new_session.commit()
+            
+            # Trích xuất thông tin cần thiết trước khi đóng session
+            script_id = script_db.id
+            product_id_db = script_db.product_id
+            style_id_db = script_db.style_id
+            title_db = script_db.title
+            created_at_iso = script_db.created_at.isoformat()
         
         # 5. Trả về kết quả chuẩn
         result = VideoScriptResponse(
-            id=script_db.id,
-            product_id=script_db.product_id,
-            style_id=script_db.style_id,
-            title=script_db.title,
+            id=script_id,
+            product_id=product_id_db,
+            style_id=style_id_db,
+            title=title_db,
             structured_script=generated_script,
-            created_at=script_db.created_at.isoformat()
+            created_at=created_at_iso
         )
         
         return SuccessResponse(
@@ -394,14 +465,14 @@ class VideoScriptController(Controller):
             data=result
         )
 
-    @post("/script/{script_id:str}/clypra/open")
-    async def open_in_clypra(
+    async def _generate_clypra_project_files(
         self,
         db_session: AsyncSession,
         script_id: str,
-        voice: str = "vi-VN-HoaiMyNeural"
-    ) -> SuccessResponse[dict]:
-        """Tải các tài nguyên âm thanh/hình ảnh, tạo file dự án JSON cho Clypra và kích hoạt khởi chạy editor."""
+        voice: str,
+        clypra_projects_dir: Path
+    ) -> Path:
+        """Sinh ra các tệp dự án Clypra và assets trong thư mục clypra_projects_dir. Trả về project_file_path."""
         # 1. Tìm kịch bản trong DB
         stmt = select(VideoScript).options(
             selectinload(VideoScript.style),
@@ -423,16 +494,24 @@ class VideoScriptController(Controller):
                 if img:
                     product_images.append(img)
         
-        # 2. Xác định tỷ lệ khung hình & kích thước canvas dựa trên style
-        style_platform = ""
-        if script.style and script.style.platform:
-            style_platform = script.style.platform.lower()
+        # 2. Xác định tỷ lệ khung hình & kích thước canvas dựa trên thiết lập lưu trong kịch bản (hoặc fallback từ style)
+        aspect_ratio = data.get("aspect_ratio")
+        if not aspect_ratio:
+            style_platform = ""
+            if script.style and script.style.platform:
+                style_platform = script.style.platform.lower()
+            is_vertical = any(keyword in style_platform for keyword in ["tiktok", "reels", "shorts", "vertical"])
+            aspect_ratio = "9:16" if is_vertical else "16:9"
             
-        is_vertical = any(keyword in style_platform for keyword in ["tiktok", "reels", "shorts", "vertical"])
-        
-        aspect_ratio = "9:16" if is_vertical else "16:9"
-        canvas_width = 1080 if is_vertical else 1920
-        canvas_height = 1920 if is_vertical else 1080
+        if aspect_ratio == "9:16":
+            canvas_width = 1080
+            canvas_height = 1920
+        elif aspect_ratio == "1:1":
+            canvas_width = 1080
+            canvas_height = 1080
+        else:  # default 16:9
+            canvas_width = 1920
+            canvas_height = 1080
         
         # 3. Tạo thư mục làm việc cục bộ của Clypra
         clypra_projects_dir = Path("/home/lv/.local/share/com.clypra.editor/projects")
@@ -470,7 +549,7 @@ class VideoScriptController(Controller):
             media_assets.append({
                 "id": "asset_brand_logo",
                 "name": "brand_logo.png",
-                "path": str(logo_path),
+                "path": f"assets_{script_id}/{logo_filename}",
                 "type": "image",
                 "duration": 3600.0,
                 "width": 200,
@@ -586,7 +665,7 @@ class VideoScriptController(Controller):
             media_assets.append({
                 "id": f"asset_image_{scene_number}",
                 "name": f"image_scene_{scene_number}.png",
-                "path": str(image_path),
+                "path": f"assets_{script_id}/image_scene_{scene_number}.png",
                 "type": "image",
                 "duration": 3600.0,
                 "width": canvas_width,
@@ -598,7 +677,7 @@ class VideoScriptController(Controller):
                 media_assets.append({
                     "id": f"asset_audio_{scene_number}",
                     "name": f"audio_scene_{scene_number}.mp3",
-                    "path": str(audio_path),
+                    "path": f"assets_{script_id}/{audio_filename}",
                     "type": "audio",
                     "duration": audio_duration,
                     "size": os.path.getsize(audio_path) if audio_path.exists() else 0
@@ -762,7 +841,29 @@ class VideoScriptController(Controller):
         with open(project_file_path, "w", encoding="utf-8") as f:
             json.dump(project_json, f, ensure_ascii=False, indent=2)
             
-        # 6. Khởi chạy Clypra trong môi trường nền có DISPLAY
+        return project_file_path
+
+    @post("/script/{script_id:str}/clypra/open")
+    async def open_in_clypra(
+        self,
+        db_session: AsyncSession,
+        script_id: str,
+        voice: str = "vi-VN-HoaiMyNeural"
+    ) -> SuccessResponse[dict]:
+        """Tải các tài nguyên âm thanh/hình ảnh, tạo file dự án JSON cho Clypra và kích hoạt khởi chạy editor."""
+        clypra_projects_dir = Path("/home/lv/Downloads")
+        
+        project_file_path = await self._generate_clypra_project_files(
+            db_session=db_session,
+            script_id=script_id,
+            voice=voice,
+            clypra_projects_dir=clypra_projects_dir
+        )
+        
+        assets_dir = clypra_projects_dir / f"assets_{script_id}"
+        project_id = f"project-{script_id}"
+        
+        # Khởi chạy Clypra trong môi trường nền có DISPLAY
         launched = False
         try:
             env = os.environ.copy()
@@ -778,6 +879,16 @@ class VideoScriptController(Controller):
             except Exception as ex:
                 logger.error(f"Failed to launch Clypra fallback: {ex}")
                 
+        # [QUY TẮC AN TOÀN VPS]: Nếu không thể khởi chạy (ví dụ trên VPS), xóa ngay các file rác vừa sinh
+        if not launched:
+            try:
+                if project_file_path.exists():
+                    os.remove(project_file_path)
+                if assets_dir.exists():
+                    shutil.rmtree(assets_dir)
+            except Exception as clean_ex:
+                logger.error(f"Failed to clean up unsaved Clypra files: {clean_ex}")
+                
         return SuccessResponse(
             message="Đã đóng gói dự án và khởi chạy Clypra thành công!",
             data={
@@ -786,5 +897,60 @@ class VideoScriptController(Controller):
                 "launched": launched
             }
         )
+
+    @get("/script/{script_id:str}/clypra/download")
+    async def download_clypra_project(
+        self,
+        db_session: AsyncSession,
+        script_id: str,
+        voice: str = "vi-VN-HoaiMyNeural"
+    ) -> Response:
+        """Đóng gói file project.json và toàn bộ assets của Clypra thành file ZIP để tải về máy cá nhân, xóa sạch dấu vết trên VPS."""
+        import tempfile
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            project_file_path = await self._generate_clypra_project_files(
+                db_session=db_session,
+                script_id=script_id,
+                voice=voice,
+                clypra_projects_dir=temp_path
+            )
+            
+            assets_dir = temp_path / f"assets_{script_id}"
+            zip_file_name = f"clypra_project_{script_id}.zip"
+            temp_zip_path = Path(tempfile.gettempdir()) / zip_file_name
+            
+            try:
+                with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                    zip_file.write(project_file_path, f"project-{script_id}.json")
+                    
+                    if assets_dir.exists():
+                        for root, _, files in os.walk(assets_dir):
+                            for file in files:
+                                file_path = Path(root) / file
+                                arcname = f"assets_{script_id}/{file}"
+                                zip_file.write(file_path, arcname)
+                                
+                with open(temp_zip_path, "rb") as f:
+                    zip_data = f.read()
+                    
+                return Response(
+                    content=zip_data,
+                    media_type="application/zip",
+                    headers={
+                        "Content-Disposition": f"attachment; filename={zip_file_name}"
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to generate project zip: {e}")
+                raise HTTPException(status_code=500, detail=f"Lỗi đóng gói file zip: {str(e)}")
+            finally:
+                try:
+                    if temp_zip_path.exists():
+                        os.remove(temp_zip_path)
+                except Exception:
+                    pass
 
 

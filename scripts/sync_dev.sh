@@ -15,7 +15,7 @@ VPS_DIR="/opt/fast-platform"
 echo -e "\033[0;36m🚀 Starting Dev Synchronization to VPS ($VPS_HOST)...\033[0m"
 
 # 1. Sync files via Rsync
-rsync -avz \
+rsync -avz --no-o --no-g \
   --exclude '.git/' \
   --exclude 'node_modules/' \
   --exclude '.venv/' \
@@ -23,6 +23,7 @@ rsync -avz \
   --exclude '.env' \
   --exclude 'logs/' \
   --exclude '.pytest_cache/' \
+  --exclude '__pycache__/' \
   --exclude 'vad.slice' \
   --exclude 'kehoach.txt' \
   -e "ssh -o StrictHostKeyChecking=no" \

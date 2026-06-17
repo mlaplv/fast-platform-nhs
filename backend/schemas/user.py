@@ -77,13 +77,14 @@ class UserUpdatePayload(BaseModel):
     avatar_url: Optional[str] = None
     phone: Optional[str] = None
     extra_metadata: Optional[dict] = None
+    password: Optional[str] = None
 
 
 class UserCreatePayload(BaseModel):
     model_config = ConfigDict(strict=True)
     email: str
     name: str
-    password: Optional[str] = "SmartShop@123"
+    password: Optional[str] = "Xohi@123"
     username: Optional[str] = None
     role_codes: List[str] = Field(default_factory=lambda: ["CUSTOMER"])
 

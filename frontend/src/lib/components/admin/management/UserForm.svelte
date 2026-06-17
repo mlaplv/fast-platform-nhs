@@ -12,6 +12,8 @@
   import Coins from "@lucide/svelte/icons/coins";
   import Plus from "@lucide/svelte/icons/plus";
   import History from "@lucide/svelte/icons/history";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
@@ -34,11 +36,13 @@
     gender: "OTHER",
     dob: "",
     status: "ACTIVE",
-    role_codes: [] as string[]
+    role_codes: [] as string[],
+    password: ""
   });
 
   let isLoading = $state(false);
   let error = $state<string | null>(null);
+  let showPassword = $state(false);
 
   // Loyalty State
   let loyaltyData = $state<any>(null);
@@ -57,6 +61,7 @@
       formData.dob = initialData.dob ? initialData.dob.split('T')[0] : "";
       formData.status = initialData.status || "ACTIVE";
       formData.role_codes = initialData.roles?.map(r => r.code) || [];
+      formData.password = "";
       if (editingId) fetchLoyalty();
     }
   });
@@ -106,9 +111,15 @@
         roles: formData.role_codes
       };
 
+      if (formData.password) {
+        payload.password = formData.password;
+      }
+
       if (!editingId) {
         payload.email = formData.email;
-        payload.password = "SmartShop@123";
+        if (!payload.password) {
+          payload.password = "SmartShop@123";
+        }
         payload.role_codes = formData.role_codes.length > 0 ? formData.role_codes : ["CUSTOMER"];
       }
 
@@ -214,6 +225,36 @@
               <input id="f-name" bind:value={formData.name} type="text" required placeholder="NEXUS_CORE"
                 class="w-full bg-black/60 border border-white/5 rounded-xl py-3.5 pl-11 pr-4 text-[11px] font-mono text-gray-200 focus:outline-none focus:border-[#00FFFF]/40 focus:ring-4 focus:ring-[#00FFFF]/5 transition-all"
               />
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="flex flex-col gap-2 relative group">
+            <label for="f-password" class="text-[9px] font-mono text-gray-500 tracking-widest">
+              {#if editingId}
+                Reset_Access_Password (Leave blank to keep current)
+              {:else}
+                Set_Access_Password (Default: SmartShop@123)
+              {/if}
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </div>
+              <input id="f-password" bind:value={formData.password} type={showPassword ? "text" : "password"} placeholder="••••••••••••"
+                class="w-full bg-black/60 border border-white/5 rounded-xl py-3.5 pl-11 pr-12 text-[11px] font-mono text-gray-200 focus:outline-none focus:border-[#00FFFF]/40 focus:ring-4 focus:ring-[#00FFFF]/5 transition-all"
+              />
+              <button
+                type="button"
+                onclick={() => showPassword = !showPassword}
+                class="absolute inset-y-0 right-4 flex items-center text-gray-500 hover:text-white transition-colors"
+              >
+                {#if showPassword}
+                  <EyeOff size={14} />
+                {:else}
+                  <Eye size={14} />
+                {/if}
+              </button>
             </div>
           </div>
         </div>

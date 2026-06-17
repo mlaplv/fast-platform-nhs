@@ -26,6 +26,7 @@ chat_clear_limit = RateLimitConfig(rate_limit=("minute", 50), store="memory_stor
 
 class ChatController(Controller):
     path = "/api/v1/chat"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @post(
         "/sessions/{session_id:str}/messages",

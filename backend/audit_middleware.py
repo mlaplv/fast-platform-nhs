@@ -30,6 +30,20 @@ async def auto_block_task(ip_address: str, log_entry: dict):
     Background Task: Phân tích và chặn IP nếu cần.
     """
     try:
+        from backend.services.telegram_service import telegram_service
+        import asyncio
+        
+        # 1. Báo cáo phát hiện tấn công đáng nghi lên Telegram
+        action = log_entry.get("action", "Unknown")
+        reason = log_entry.get("risk_reason", "Malicious request pattern detected")
+        alert_msg = (
+            f"⚠️ <b>[PHÁT HIỆN TẤN CÔNG]</b>\n"
+            f"<b>IP:</b> <code>{ip_address}</code>\n"
+            f"<b>Yêu cầu:</b> <code>{action}</code>\n"
+            f"<b>Lý do:</b> {reason}"
+        )
+        asyncio.create_task(telegram_service.send_alert(alert_msg))
+        
         analysis = await security_guard.analyze_log_entry(json.dumps(log_entry))
         if analysis.risk_level == "CRITICAL" and analysis.is_attack:
             logger.error(f"🚨 [AUTO_BAN] Blocking IP {ip_address}. Reason: {analysis.reason}")
@@ -46,6 +60,14 @@ async def auto_block_task(ip_address: str, log_entry: dict):
                     )
                     session.add(new_ban)
                     await session.commit()
+                    
+                    # 2. Báo cáo Block IP thành công lên Telegram
+                    ban_msg = (
+                        f"🚨 <b>[AUTO-BAN THÀNH CÔNG]</b>\n"
+                        f"<b>IP:</b> <code>{ip_address}</code>\n"
+                        f"<b>Lý do:</b> <i>{analysis.reason}</i>"
+                    )
+                    asyncio.create_task(telegram_service.send_alert(ban_msg))
     except Exception as e:
         logger.error(f"Failed to auto-block IP {ip_address}: {e}")
 
@@ -58,9 +80,10 @@ class AuditMiddleware:
             await self.app(scope, receive, send)
             return
 
+        from urllib.parse import unquote
         method = scope.get("method", "")
         path = str(scope.get("path", ""))
-        query = scope.get("query_string", b"").decode("utf-8")
+        query = unquote(scope.get("query_string", b"").decode("utf-8"))
         
         # Kiểm tra dấu hiệu tấn công ngay từ Header/Path/Query
         is_suspicious = False
@@ -137,7 +160,7 @@ class AuditMiddleware:
                 audit_event["sig"] = signature
 
                 if is_suspicious:
-                    logger.warning(f"🛡️ [SECURITY_ALERT] {json.dumps(audit_event)}")
+                    logger.warning(json.dumps(audit_event))
                     # Elite V2.2: Kích hoạt Auto-Ban Task (Chạy ngầm để không block request)
                     import asyncio
                     asyncio.create_task(auto_block_task(ip_address, audit_event))

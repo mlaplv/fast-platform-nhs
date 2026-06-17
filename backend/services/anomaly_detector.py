@@ -64,6 +64,8 @@ class AnomalyDetector:
         await run_check("revenue_anomaly", self._check_revenue_anomaly, session, tenant_id)
         await run_check("ai_latency", self._check_ai_latency, session, tenant_id)
         await run_check("db_pool", self._check_db_pool, session)
+        await run_check("redis_replication", self._check_redis_replication, session)
+        await run_check("docker_containers", self._check_docker_containers, session)
 
         if alerts:
             await self._persist_alerts(session, alerts, tenant_id)
@@ -113,6 +115,75 @@ class AnomalyDetector:
                     message=f"🔥 Database Connection Pool gần cạn: {checkedout}/{size} đang sử dụng.",
                     data={"checkedout": checkedout, "size": size}
                 )
+        return None
+
+    async def _check_redis_replication(self, session: AsyncSession) -> Optional[AnomalyAlert]:
+        """Check Redis replication state (role must be master, no rogue replica setup)."""
+        from backend.services.xohi_memory import xohi_memory
+        if not xohi_memory._use_redis or not xohi_memory.client:
+            return None
+        
+        try:
+            info = await xohi_memory.client.info("replication")
+            role = info.get("role", "master")
+            if role != "master":
+                master_host = info.get("master_host", "unknown")
+                return AnomalyAlert(
+                    type="redis_replica_hijack",
+                    severity="CRITICAL",
+                    message=f"🚨 CẢNH BÁO BẢO MẬT: Redis đã bị chuyển thành SLAVE của master lạ: {master_host}!",
+                    data={"role": role, "master_host": master_host}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Redis replication check failed: {e}")
+        return None
+
+    async def _check_docker_containers(self, session: AsyncSession) -> Optional[AnomalyAlert]:
+        """Check if any core container has crashed or is in a crash loop."""
+        import json
+        import asyncio
+        TARGET_CONTAINERS = [
+            "fast_platform_worker_high",
+            "fast_platform_api",
+            "fast_platform_db",
+            "fast_platform_redis",
+        ]
+        try:
+            proc_ps = await asyncio.create_subprocess_exec(
+                "docker", "ps", "-a", "--format", "{{json .}}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout_ps, _ = await proc_ps.communicate()
+            if proc_ps.returncode != 0:
+                return None
+            
+            crashed = []
+            for line in stdout_ps.decode("utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    name = data.get("Names")
+                    if name in TARGET_CONTAINERS:
+                        state = data.get("State", "").lower()
+                        status = data.get("Status", "").lower()
+                        if state != "running":
+                            crashed.append(f"{name} ({state})")
+                        elif "restarting" in status:
+                            crashed.append(f"{name} (restarting)")
+                except Exception:
+                    continue
+            
+            if crashed:
+                return AnomalyAlert(
+                    type="container_crash",
+                    severity="CRITICAL",
+                    message=f"🚨 CẢNH BÁO HẠ TẦNG: Phát hiện container offline hoặc crash loop: {', '.join(crashed)}!",
+                    data={"crashed_containers": crashed}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Docker container check failed: {e}")
         return None
 
     async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
@@ -224,10 +295,19 @@ class AnomalyDetector:
         return None
 
     async def _persist_alerts(self, session: AsyncSession, alerts: List[AnomalyAlert], tenant_id: str):
-        """Create Notification records for detected anomalies (with dedup).
+        """Create Notification records and dispatch to SignalCenter.
         SECURITY: All system anomaly alerts are stored with type prefix 'SYSTEM_'
         and user_id=NULL. They are ONLY visible to admin — NOT to end clients.
         """
+        from backend.services.signal_center import signal_center
+        from backend.schemas.signal import SignalSchema, SignalSeverity
+
+        severity_map = {
+            "CRITICAL": SignalSeverity.CRITICAL,
+            "WARNING": SignalSeverity.ACTION,
+            "INFO": SignalSeverity.INFO,
+        }
+
         for alert in alerts:
             since = datetime.now(timezone.utc) - timedelta(hours=1)
                 
@@ -247,17 +327,14 @@ class AnomalyDetector:
             # SECURITY: Prefix type with SYSTEM_ so client-side query can exclude it.
             system_type = f"SYSTEM_{alert['severity']}"
 
-            await session.execute(
-                text("""
-                    INSERT INTO notifications (id, type, message, is_read, user_id, tenant_id, created_at, updated_at)
-                    VALUES (:id, :type, :msg, false, NULL, :tid, :now, :now)
-                """),
-                {
-                    "id": str(uuid.uuid4()),
-                    "type": system_type,
-                    "msg": alert["message"],
-                    "tid": tenant_id,
-                    "now": datetime.now(timezone.utc)
-                }
+            await signal_center.dispatch(
+                user_id="user_admin",
+                signal=SignalSchema(
+                    message=alert["message"],
+                    severity=severity_map.get(alert["severity"], SignalSeverity.ACTION),
+                    signal_type=system_type,
+                    payload=alert["data"],
+                    persist=True
+                ),
+                tenant_id=tenant_id
             )
-        await session.commit()

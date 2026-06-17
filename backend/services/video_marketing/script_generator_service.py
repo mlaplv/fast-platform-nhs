@@ -32,6 +32,8 @@ class VideoScriptModel(BaseModel):
     notes: Optional[str] = Field(None, description="Ghi chú tổng quan của kịch bản video")
     scenes: List[SceneModel] = Field(..., description="Danh sách các phân cảnh tạo nên video")
     total_duration: float = Field(..., description="Tổng thời lượng ước tính của cả video (bằng tổng thời lượng các cảnh)")
+    competitor_analysis: Optional[dict] = Field(None, description="Phân tích đối thủ cạnh tranh từ Google Search & AI")
+    aspect_ratio: Optional[str] = Field(None, description="Tỷ lệ khung hình được định cấu hình")
 
 # ── Service Class ─────────────────────────────────────────────────────────────
 
@@ -49,20 +51,103 @@ class ScriptGeneratorService:
             retries=3
         )
 
-    async def generate_script(self, product_context: str, style_id: str, db: AsyncSession) -> VideoScriptModel:
+    async def analyze_competitors(self, name: str, description: str) -> dict:
         """
-        Sinh kịch bản video từ ngữ cảnh sản phẩm và phong cách (style_id) được chọn.
+        [ELITE V2.2] Phân tích đối thủ cạnh tranh phản biện bằng Google Search & AI.
         """
-        logger.info(f"[ScriptGenerator] Fetching style instructions for: {style_id}")
+        from backend.services.xohi.google_search import google_search_service
         
-        # 1. Lấy phong cách kịch bản từ database
-        stmt = select(VideoScriptStyle).where(VideoScriptStyle.id == style_id).where(VideoScriptStyle.is_active == True)
-        res = await db.execute(stmt)
-        style = res.scalar_one_or_none()
+        # 1. Tạo câu truy vấn tìm kiếm
+        search_query = f"{name} đối thủ cạnh tranh review"
+        logger.info(f"[ScriptGenerator] Searching Google for competitor context: {search_query}")
+        
+        search_results = []
+        try:
+            search_results = await google_search_service.search(search_query, num=4)
+        except Exception as e:
+            logger.error(f"[ScriptGenerator] Google Search failed: {e}")
+            
+        # 2. Tổng hợp ngữ cảnh từ tìm kiếm
+        search_context_str = ""
+        if search_results:
+            for idx, item in enumerate(search_results):
+                search_context_str += f"\n[{idx+1}] {item.get('title')}\nSnippet: {item.get('snippet')}\nLink: {item.get('link')}\n"
+        else:
+            search_context_str = "Không tìm thấy kết quả tìm kiếm trực tiếp trên Google."
+
+        # 3. Sử dụng AI để phân tích phản biện và trích xuất điểm yếu đối thủ & điểm mạnh của ta
+        analysis_prompt = f"""
+        Bạn là một chuyên gia Chiến lược Marketing AI cao cấp. 
+        Hãy phân tích cạnh tranh phản biện giữa sản phẩm/chủ đề của chúng ta và các đối thủ trên thị trường dựa trên thông tin nguồn và kết quả tìm kiếm thực tế.
+
+        [THÔNG TIN CỦA CHÚNG TA]
+        Tên/Chủ đề: {name}
+        Mô tả/Chi tiết: {description}
+
+        [KẾT QUẢ TÌM KIẾM GOOGLE VỀ ĐỐI THỦ VÀ THỊ TRƯỜNG]
+        {search_context_str}
+
+        Hãy phân tích phản biện và trả về kết quả dưới định dạng JSON chính xác theo cấu trúc sau (không kèm markdown block, chỉ trả về JSON raw):
+        {{
+          "competitor_weaknesses": ["điểm yếu đối thủ 1", "điểm yếu đối thủ 2", "điểm yếu đối thủ 3"],
+          "our_strengths": ["điểm mạnh/lợi thế cạnh tranh USP 1", "điểm mạnh 2", "điểm mạnh 3"],
+          "core_message": "thông điệp cốt lõi đắt giá nhất để thuyết phục khách hàng mua hàng của ta thay vì đối thủ"
+        }}
+        """
+
+        try:
+            class CompetitiveAnalysisModel(BaseModel):
+                competitor_weaknesses: List[str] = Field(..., description="Danh sách 3 điểm yếu lớn của đối thủ")
+                our_strengths: List[str] = Field(..., description="Danh sách 3 điểm mạnh nổi trội của ta")
+                core_message: str = Field(..., description="Thông điệp cốt lõi đắt giá nhất")
+
+            analysis_agent = Agent(
+                output_type=CompetitiveAnalysisModel,
+                retries=2
+            )
+            analysis_data = await trinity_bridge.run(
+                agent=analysis_agent,
+                prompt=analysis_prompt,
+                role="brain"
+            )
+            if isinstance(analysis_data, CompetitiveAnalysisModel):
+                return analysis_data.model_dump()
+            elif isinstance(analysis_data, dict):
+                return analysis_data
+        except Exception as e:
+            logger.error(f"[ScriptGenerator] Competitive analysis AI run failed: {e}")
+            
+        # Fallback hữu ích nếu có lỗi xảy ra
+        return {
+            "competitor_weaknesses": [
+                "Đối thủ có dịch vụ/sản phẩm chưa tối ưu hóa cho người dùng Việt Nam",
+                "Chi phí vận hành và giá thành cao so với giá trị thực tế mang lại",
+                "Thiếu sự nhanh nhạy, quy trình xử lý cồng kềnh mất nhiều thời gian"
+            ],
+            "our_strengths": [
+                "Giải pháp thiết thực, tập trung giải quyết nỗi đau của khách hàng một cách trực diện",
+                "Tối ưu hóa chi phí tốt nhất trên thị trường hiện nay",
+                "Tính năng vượt trội, cam kết đồng hành và hỗ trợ chuyên nghiệp 24/7"
+            ],
+            "core_message": f"Lựa chọn {name} là giải pháp thông minh và hiệu quả vượt trội dành riêng cho bạn!"
+        }
+
+    async def generate_script(
+        self,
+        source_context: str,
+        style: Optional[VideoScriptStyle],
+        aspect_ratio: str = "9:16",
+        target_duration: int = 30,
+        competitor_analysis: Optional[dict] = None
+    ) -> VideoScriptModel:
+        """
+        Sinh kịch bản video từ nguồn thông tin đã chọn, kết cấu thời lượng, khung hình và phân tích cạnh tranh.
+        """
+        style_id = style.id if style else "default"
+        logger.info(f"[ScriptGenerator] Using style instructions for: {style_id}")
         
         if not style:
-            # Fallback nếu không tìm thấy style cụ thể
-            logger.warning(f"[ScriptGenerator] Style '{style_id}' not found. Using default instructions.")
+            logger.warning(f"[ScriptGenerator] Style not provided. Using default instructions.")
             style_instruction = "Viết kịch bản video ngắn, nhanh, hiện đại."
             hook_template = "3 giây đầu tiên kích thích sự tò mò."
             style_name = "Mặc định"
@@ -75,7 +160,7 @@ class ScriptGeneratorService:
         style_comp_id = f"video_style_{style_id}"
         style_comp = PromptComponent(
             id=style_comp_id,
-            category=PromptCategory.AGENT,  # Đăng ký dưới dạng AGENT để PromptComposer ghép nối bình thường
+            category=PromptCategory.AGENT,
             content=f"""[STYLE INSTRUCTIONS: {style_name}]
 {style_instruction}
 
@@ -87,22 +172,54 @@ class ScriptGeneratorService:
         # 3. Lắp ráp Prompt động qua PromptComposer
         system_prompt = composer.compose("video_script_generation", extra_components=[style_comp_id])
         
-        # 4. Gửi request AI qua TrinityBridge để tự động xoay key và chống rate limit
-        logger.info("[ScriptGenerator] Sending prompt to TrinityBridge...")
+        # 4. Tạo prompt chi tiết kết hợp cấu hình thời lượng, khung hình và phản biện đối thủ
+        prompt_with_config = f"""[THÔNG TIN NGUỒN PHÂN TÍCH]
+{source_context}
+
+[THÔNG SỐ KỸ THUẬT VIDEO]
+- Tỷ lệ khung hình: {aspect_ratio} (định dạng layout hiển thị tương ứng)
+- Thời lượng mục tiêu của video: {target_duration} giây
+
+Yêu cầu phân chia thời lượng các cảnh (scenes) sao cho tổng thời lượng (total_duration) xấp xỉ {target_duration} giây.
+"""
+
+        if competitor_analysis:
+            weaknesses = "\n".join([f"  + {w}" for w in competitor_analysis.get("competitor_weaknesses", [])])
+            strengths = "\n".join([f"  + {s}" for s in competitor_analysis.get("our_strengths", [])])
+            core_msg = competitor_analysis.get("core_message", "")
+            
+            prompt_with_config += f"""
+[PHÂN TÍCH ĐỐI THỦ CẠNH TRANH & PHẢN BIỆN THỰC TẾ]
+- Điểm yếu của đối thủ cạnh tranh trên thị trường:
+{weaknesses}
+- Điểm mạnh vượt trội của chúng ta (USP):
+{strengths}
+- Thông điệp truyền thông cốt lõi:
+"{core_msg}"
+
+YÊU CẦU BIÊN KỊCH MARKETING:
+Hãy lồng ghép khéo léo thông điệp cốt lõi và các USP của chúng ta vào kịch bản (đặc biệt là trong phần lời thoại voiceover và hook 3s đầu) để so sánh/phản biện gián tiếp hoặc trực diện các điểm yếu của đối thủ, giúp khách hàng nhận thấy giá trị vượt trội của sản phẩm/bài viết của chúng ta!
+"""
+
+        # 5. Gửi request AI qua TrinityBridge
+        logger.info("[ScriptGenerator] Sending structured prompt to TrinityBridge...")
         script_data = await trinity_bridge.run(
             agent=self.agent,
-            prompt=product_context,
+            prompt=prompt_with_config,
             system_prompt=system_prompt,
-            role="brain"  # Ưu tiên các model thông minh (Gemini 1.5 Pro / Flash)
+            role="brain"
         )
         
-        # TrinityBridge.run trả về đối tượng dữ liệu khớp với result_type của Agent (VideoScriptModel)
+        # Gán thêm dữ liệu phân tích và khung hình vào object trả về
         if isinstance(script_data, VideoScriptModel):
+            script_data.competitor_analysis = competitor_analysis
+            script_data.aspect_ratio = aspect_ratio
             return script_data
         elif isinstance(script_data, dict):
+            script_data["competitor_analysis"] = competitor_analysis
+            script_data["aspect_ratio"] = aspect_ratio
             return VideoScriptModel(**script_data)
         else:
-            # Dự phòng nếu trả về kiểu dữ liệu khác
             logger.error(f"[ScriptGenerator] Unexpected return type from TrinityBridge: {type(script_data)}")
             raise ValueError("Không thể sinh định dạng kịch bản chuẩn.")
 

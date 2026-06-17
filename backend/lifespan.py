@@ -200,7 +200,7 @@ async def lifespan(app: Litestar):
 async def _heartbeat_loop():
     from backend.services.anomaly_detector import AnomalyDetector
     detector = AnomalyDetector()
-    interval = int(os.getenv("ANOMALY_SCAN_INTERVAL", "900"))
+    interval = int(os.getenv("ANOMALY_SCAN_INTERVAL", "120"))
     await _aio.sleep(60)
     while True:
         try:

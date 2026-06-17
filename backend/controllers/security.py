@@ -40,7 +40,12 @@ class SecurityController(Controller):
                 lines = f.readlines()
                 for line in reversed(lines):
                     try:
-                        entry = json.loads(line)
+                        line_str = line.strip()
+                        if not line_str:
+                            continue
+                        if "{" in line_str:
+                            line_str = line_str[line_str.index("{"):]
+                        entry = json.loads(line_str)
                         if not suspicious_only or entry.get("suspicious"):
                             logs.append(entry)
                             if len(logs) >= limit:
