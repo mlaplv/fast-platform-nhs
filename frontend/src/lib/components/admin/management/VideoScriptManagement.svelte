@@ -77,9 +77,43 @@
   let isEvaluating = $state(false);
   let isOptimizing = $state(false);
 
+  // Fingerprint of script contents to detect changes since last evaluation
+  let lastEvaluatedFingerprint = $state<string>("");
+
+  function getScriptContentFingerprint(script: VideoScript | null): string {
+    if (!script || !script.structured_script) return "";
+    const data = {
+      title: script.title,
+      style_name: script.style_name,
+      target_audience: script.structured_script.target_audience,
+      target_duration: script.structured_script.target_duration,
+      scenes: (script.structured_script.scenes || []).map((s: any) => ({
+        scene_number: s.scene_number,
+        duration: s.duration,
+        visual_description: s.visual_description,
+        voiceover: s.voiceover,
+        scene_notes: s.scene_notes
+      })),
+      notes: script.structured_script.notes
+    };
+    return JSON.stringify(data);
+  }
+
+  let isScriptModified = $derived(
+    activeScript ? getScriptContentFingerprint(activeScript) !== lastEvaluatedFingerprint : false
+  );
+
   async function handleEvaluate() {
     const script = activeScript;
     if (!script) return;
+    
+    // Safety check: Don't evaluate if nothing has changed
+    const currentFingerprint = getScriptContentFingerprint(script);
+    if (script.structured_script?.evaluation && currentFingerprint === lastEvaluatedFingerprint) {
+      nanobot.showToast("Kịch bản đã có kết quả đánh giá mới nhất và không có thay đổi nào. Không cần đánh giá lại!", "info");
+      return;
+    }
+
     isEvaluating = true;
     try {
       const res = await apiClient.post<{ data: any }>(
@@ -96,6 +130,8 @@
         }
         if (activeScript && activeScript.id === script.id) {
           activeScript = JSON.parse(JSON.stringify(script));
+          // Capture new fingerprint
+          lastEvaluatedFingerprint = getScriptContentFingerprint(activeScript);
         }
         nanobot.addLog("[SYS] Đánh giá kịch bản AI thành công!", "Nanobot-System");
         nanobot.showToast("Đánh giá kịch bản thành công!", "success");
@@ -123,6 +159,8 @@
         if (idx !== -1) {
           scripts[idx] = res.data;
         }
+        // Capture new fingerprint after auto-fix optimization
+        lastEvaluatedFingerprint = getScriptContentFingerprint(activeScript);
         nanobot.addLog("[SYS] Tối ưu hóa kịch bản AI thành công!", "Nanobot-System");
         nanobot.showToast("Tự động sửa lỗi kịch bản thành công!", "success");
       }
@@ -145,24 +183,27 @@
   function getRunwayPrompt(scene: VideoScene) {
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
-    return `Cinematic, hyper-realistic video. ${desc}. Camera motion: ${notes}. Smooth transition, high dynamic range, photorealistic commercial styling, 8k, strictly adhere to the attached product design and brand logo, no variations.`;
+    return `Cinematic, hyper-realistic video. ${desc}. Camera motion: ${notes}. Smooth transition, high dynamic range, photorealistic commercial styling, 8k, image-to-video mode using the uploaded reference image, strictly maintain visual consistency for the product packaging and character model without any variations.`;
   }
 
   function getGeminiPrompt(scene: VideoScene) {
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
     const voice = scene.voiceover || "";
-    return `[LỆNH TẠO VIDEO TRỰC TIẾP] Hãy sử dụng công cụ tạo video (Imagen Video / Vids / Google Video generator) tích hợp của bạn để sinh ra video trực tiếp cho phân cảnh sau:
+    return `[LỆNH TẠO VIDEO TRỰC TIẾP - NHẤT QUÁN THƯƠNG HIỆU]
+(Lưu ý: Sếp hãy đính kèm ảnh sản phẩm thực tế hoặc ảnh nhân vật mẫu của phân cảnh này vào cùng lượt gửi để làm tham chiếu)
+
+Hãy sử dụng công cụ tạo video (Imagen Video / Vids / Google Video generator) tích hợp để sinh ra video chuyển động trực tiếp từ ảnh đính kèm theo mô tả sau:
 - Mô tả hình ảnh (Visual Description): ${desc}
 - Lời thoại (Voiceover): ${voice}
 - Chuyển động camera & Ghi chú: ${notes}
 - Phong cách: Điện ảnh thương mại, độ phân giải 8K, ánh sáng chuyên nghiệp.
 
-LƯU Ý THƯƠNG HIỆU QUAN TRỌNG:
-* Bắt buộc phải tham chiếu và sử dụng chính xác thiết kế bao bì của sản phẩm và logo thương hiệu được đính kèm ở đầu tin nhắn này làm mẫu tham chiếu trực quan.
-* Tuyệt đối không tự ý thay đổi màu sắc, nhãn mác, kiểu dáng chai lọ/tuýp sản phẩm hoặc thiết kế logo thương hiệu để tránh sai lệch nhận diện.
+LƯU Ý THƯƠNG HIỆU & NHÂN VẬT BẮT BUỘC:
+* Sử dụng chính xác thiết kế bao bì của sản phẩm và logo thương hiệu trong ảnh đính kèm làm mẫu tham chiếu trực quan. Tuyệt đối không tự ý thay đổi màu sắc, nhãn mác, kiểu dáng sản phẩm.
+* Duy trì tính nhất quán về gương mặt, trang phục và mái tóc giống như ảnh tham chiếu của nhân vật (Character Reference) để các phân cảnh sau khi ghép lại được liền mạch, không bị lệch mặt hay đổi sản phẩm.
 
-YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên mô tả trên.`;
+YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động dựa trên ảnh đính kèm và mô tả trên.`;
   }
 
   function getGeminiMasterPrompt() {
@@ -176,9 +217,9 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       text += `- Lời thoại: ${scene.voiceover || ""}\n`;
       text += `- Ghi chú & Chuyển động: ${scene.scene_notes || ""}\n\n`;
     });
-    text += `LƯU Ý THƯƠNG HIỆU QUAN TRỌNG:\n`;
-    text += `* Bắt buộc phải tham chiếu và sử dụng chính xác thiết kế bao bì của sản phẩm và logo thương hiệu được đính kèm ở đầu tin nhắn này làm mẫu tham chiếu trực quan.\n`;
-    text += `* Tuyệt đối không tự ý thay đổi màu sắc, nhãn mác, kiểu dáng chai lọ/tuýp sản phẩm hoặc thiết kế logo thương hiệu để tránh sai lệch nhận diện.\n\n`;
+    text += `LƯU Ý THƯƠNG HIỆU & NHÂN VẬT QUAN TRỌNG NHẤT QUÁN:\n`;
+    text += `* Bắt buộc phải tham chiếu và sử dụng chính xác thiết kế bao bì của sản phẩm và logo thương hiệu từ ảnh đính kèm làm mẫu tham chiếu trực quan.\n`;
+    text += `* Tuyệt đối duy trì tính nhất quán về gương mặt nhân vật nữ, chất kem dưỡng và mẫu vỏ hộp qua các phân cảnh để khi ghép nối thành phim hoàn chỉnh không bị sai lệch nhận diện.\n\n`;
     text += `YÊU CẦU THỰC THI:\n`;
     text += `1. Hãy kích hoạt ngay chức năng sinh video tích hợp (Imagen/Google Vids) để tạo các đoạn video phân cảnh trực tiếp.\n`;
     text += `2. Cung cấp các mô tả video đầu ra, đồng thời đưa ra các chỉ dẫn cụ thể về nhịp độ để tối ưu hóa việc xuất bản dự án video.`;
@@ -215,9 +256,15 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
       untrack(() => {
         activeScript = JSON.parse(JSON.stringify(selectedScript));
         saveStatus = "Saved";
+        if (activeScript && activeScript.structured_script?.evaluation) {
+          lastEvaluatedFingerprint = getScriptContentFingerprint(activeScript);
+        } else {
+          lastEvaluatedFingerprint = "";
+        }
       });
     } else {
       activeScript = null;
+      lastEvaluatedFingerprint = "";
     }
   });
 
@@ -598,6 +645,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video cho phân cảnh này dựa trên 
     isOptimizing={isOptimizing}
     onEvaluate={handleEvaluate}
     onOptimize={handleOptimize}
+    isScriptModified={isScriptModified}
   />
 
 </div>

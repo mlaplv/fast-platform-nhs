@@ -55,6 +55,22 @@ INITIAL_STYLES = [
         "is_active": True
     },
     {
+        "id": "closeup_usage_guide",
+        "name": "Hướng Dẫn Sử Dụng Cận Cảnh (Closeup Product Guide)",
+        "platform": "TikTok/Reels/Shorts",
+        "hook_template": "Cận cảnh thao tác bôi/thoa sản phẩm lên vùng da thực tế: 'Dùng sản phẩm này bao lâu rồi nhưng bạn đã chắc bôi đúng cách chưa?', hoặc 'Hướng dẫn dùng sản phẩm chuẩn spa tại nhà để đạt hiệu quả gấp 3 lần!'",
+        "style_instruction": "Tập trung vào trải nghiệm hướng dẫn sử dụng sản phẩm cận cảnh và trực quan. Visual mô tả hành động bôi, thoa hoặc massage nhẹ nhàng chất kem, serum, dung dịch lên vùng da/tay. Lưu ý đặc biệt: để bảo vệ tính văn minh và thẩm mỹ của video quảng cáo, đối với các vùng da nhạy cảm (như vùng bikini, nách, bẹn), kịch bản tuyệt đối KHÔNG ĐƯỢC chỉ định quay vùng nhạy cảm thực tế, mà bắt buộc phải hướng dẫn thao tác tượng trưng trên vùng mu bàn tay (ví dụ: bôi thử và massage nhẹ nhàng trên mu bàn tay để mô tả kết cấu, độ thẩm thấu và cách thoa). Lời thoại (Voiceover) chi tiết, hướng dẫn từng bước rõ ràng, khoa học, chỉ ra tần suất và lưu ý khi sử dụng. Nhạc nền lofi nhẹ nhàng, tạo cảm giác thư giãn, uy tín và chuyên nghiệp.",
+        "is_active": True
+    },
+    {
+        "id": "scientific_ingredients",
+        "name": "Show Thành Phần Khoa Học & Tính Năng Chuyên Nghiệp (Brand Spotlight)",
+        "platform": "TikTok/Reels/YouTube",
+        "hook_template": "Cận cảnh kết cấu zoom cực cận (Extreme Close-up) hoặc hiệu ứng hoạt cảnh tách phân tử thành phần: 'Đây là lý do tại sao [Thành phần A] lại có thể cứu rỗi làn da của bạn chỉ sau 7 ngày!', hoặc hình ảnh trực quan mô tả tính năng nổi bật của sản phẩm.",
+        "style_instruction": "Tập trung giới thiệu các thành phần cốt lõi (key ingredients) và công nghệ/tính năng độc quyền của sản phẩm theo phong cách chuyên nghiệp của các thương hiệu lớn toàn cầu. Visual kết hợp mô tả góc quay cận cảnh sang trọng, ánh sáng studio chuẩn High-Key, cận cảnh chất kem/serum dưới dạng các phân tử hoặc giọt dưỡng chất cô đặc rơi chậm. Có thể mô tả các biểu đồ khoa học, mô hình phân tử 3D hoặc cơ chế tác động trực quan lên lớp biểu bì da để làm nổi bật tính chuyên sâu. Lời thoại (Voiceover) súc tích, chuyên nghiệp, sử dụng ngôn ngữ khoa học đáng tin cậy nhưng dễ hiểu, nhấn mạnh USP độc quyền của sản phẩm so với thị trường. Nhạc nền hiện đại, mang hơi hướng công nghệ (corporate tech hoặc futuristic electronic) nhưng vẫn tinh tế, sang trọng.",
+        "is_active": True
+    },
+    {
         "id": "youtube_widescreen_review",
         "name": "Đánh Giá Chi Tiết Chuyên Sâu (YouTube Widescreen)",
         "platform": "YouTube",

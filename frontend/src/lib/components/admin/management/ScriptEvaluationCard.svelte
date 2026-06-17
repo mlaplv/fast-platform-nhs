@@ -14,6 +14,7 @@
     isOptimizing: boolean;
     onEvaluate: () => Promise<void>;
     onOptimize: () => Promise<void>;
+    isScriptModified: boolean;
   }
 
   let {
@@ -21,7 +22,8 @@
     isEvaluating,
     isOptimizing,
     onEvaluate,
-    onOptimize
+    onOptimize,
+    isScriptModified
   }: Props = $props();
 
   const criteria = [
@@ -30,6 +32,7 @@
     { key: 'ai_generation_viability', label: 'Độ Khả Thi Prompt AI', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-950/10', text: 'purple' },
     { key: 'platform_optimization', label: 'Tối Ưu Hóa Nền Tảng', color: 'text-pink-400', border: 'border-pink-500/20', bg: 'bg-pink-950/10', text: 'pink' },
     { key: 'brand_integrity', label: 'Bảo Toàn Thương Hiệu', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-950/10', text: 'emerald' },
+    { key: 'duration_compliance', label: 'Tuân Thủ Thời Lượng', color: 'text-yellow-400', border: 'border-yellow-500/20', bg: 'bg-yellow-950/10', text: 'yellow' },
   ] as const;
 
   let evalReport = $derived(activeScript?.structured_script?.evaluation);
@@ -46,7 +49,7 @@
   {#if !evalReport && !isEvaluating}
     <!-- Empty State / Direct CTA to Evaluate -->
     <div class="border border-dashed border-gray-800 bg-black/40 rounded-xl p-8 text-center flex flex-col items-center justify-center gap-4 relative overflow-hidden group">
-      <div class="absolute inset-0 bg-radial-at-c from-cyan-500/5 via-transparent to-transparent opacity-30"></div>
+      <div class="absolute inset-0 bg-radial-at-c from-cyan-500/5 via-transparent to-transparent opacity-30 pointer-events-none"></div>
       
       <div class="w-12 h-12 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative group-hover:scale-105 transition-transform duration-300">
         <Sparkles class="w-5 h-5 text-cyan-400 animate-pulse" />
@@ -82,7 +85,7 @@
     </div>
   {:else if evalReport}
     <!-- Score Dashboard -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
       {#each criteria as item}
         {@const criterion = evalReport[item.key]}
         {#if criterion}
@@ -103,10 +106,10 @@
 
     <!-- AI Optimization Controller (Auto-Fix) Panel -->
     <div class="border border-purple-500/20 bg-purple-950/5 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden group">
-      <div class="absolute -right-20 -top-20 w-44 h-44 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
+      <div class="absolute -right-20 -top-20 w-44 h-44 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all pointer-events-none"></div>
       
       <div class="flex items-start gap-3">
-        <div class="w-10 h-10 rounded-xl bg-purple-950/20 border border-purple-500/25 flex items-center justify-center text-purple-400 shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-purple-950/20 border border-purple-500/25 flex items-center center text-purple-400 shrink-0">
           <Sparkles class="w-4 h-4 animate-pulse" />
         </div>
         <div>
@@ -135,7 +138,7 @@
         <button
           onclick={onEvaluate}
           disabled={isOptimizing || isEvaluating}
-          class="flex items-center justify-center p-2 bg-gray-950/40 hover:bg-gray-800/40 border border-gray-800 rounded text-gray-400 hover:text-gray-200 font-mono text-xs disabled:opacity-50 transition-colors"
+          class="flex items-center justify-center px-4 py-2 bg-gray-950/40 hover:bg-gray-800/40 border border-gray-800 rounded text-gray-400 hover:text-gray-200 font-mono text-xs disabled:opacity-50 transition-colors"
           title="Đánh giá lại kịch bản"
         >
           {#if isEvaluating}

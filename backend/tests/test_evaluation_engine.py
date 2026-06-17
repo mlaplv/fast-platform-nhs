@@ -49,6 +49,7 @@ async def create_test_script(style_id: str) -> str:
             "style_name": "TikTok Drama",
             "target_audience": "Người tiêu dùng trẻ",
             "notes": "Đây là kịch bản cố tình viết sai quy chuẩn",
+            "target_duration": 30,
             "total_duration": 5.0,
             "scenes": [
                 {
@@ -105,7 +106,7 @@ async def run_test():
             
             eval_data = response.json().get("data", {})
             print("AI Evaluation scores:")
-            for key in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity"]:
+            for key in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity", "duration_compliance"]:
                 crit = eval_data.get(key, {})
                 print(f" - {key}: {crit.get('score')}/10 (Pros: {len(crit.get('pros', []))}, Cons: {len(crit.get('cons', []))})")
                 if crit.get('cons'):
@@ -131,7 +132,7 @@ async def run_test():
             # Verify new evaluation exists after optimization
             new_eval = opt_script.get("evaluation", {})
             print("\nNew AI Evaluation scores after Auto-Fix:")
-            for key in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity"]:
+            for key in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity", "duration_compliance"]:
                 crit = new_eval.get(key, {})
                 print(f" - {key}: {crit.get('score')}/10")
                 

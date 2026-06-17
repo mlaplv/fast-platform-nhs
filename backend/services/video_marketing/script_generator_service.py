@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional
 import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from contextvars import ContextVar
 
 from pydantic_ai import Agent
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -12,6 +13,8 @@ from backend.services.video_marketing.prompts_registrar import register_video_pr
 from backend.database.models.video_marketing import VideoScriptStyle
 
 logger = logging.getLogger("api-gateway")
+
+strict_duration_var: ContextVar[bool] = ContextVar("strict_duration", default=False)
 
 # ── Pydantic V2 Models ────────────────────────────────────────────────────────
 
@@ -38,6 +41,25 @@ class VideoScriptModel(BaseModel):
     aspect_ratio: Optional[str] = Field(None, description="Tỷ lệ khung hình được định cấu hình")
     landing_page_headlines: Optional[List[LandingPageHeadlineMatch]] = Field(None, description="3 cặp H1 Headline & H2 Subheadline tương thích, tạo Message Match tối ưu CR trang đích")
     evaluation: Optional[dict] = Field(None, description="Báo cáo đánh giá chất lượng kịch bản từ Đạo diễn AI")
+    target_duration: Optional[int] = Field(None, description="Thời lượng mục tiêu của video tính bằng giây")
+
+    @model_validator(mode='after')
+    def check_duration_compliance(self) -> 'VideoScriptModel':
+        # Calculate actual total duration
+        if self.scenes:
+            actual_total = sum(scene.duration for scene in self.scenes)
+            self.total_duration = round(actual_total, 1)
+        
+        if strict_duration_var.get() and self.target_duration is not None:
+            # Ensure compliance within 10%
+            lower_bound = self.target_duration * 0.9
+            upper_bound = self.target_duration * 1.1
+            if not (lower_bound <= self.total_duration <= upper_bound):
+                raise ValueError(
+                    f"Tổng thời lượng kịch bản ({self.total_duration}s) không tuân thủ thời lượng mục tiêu ({self.target_duration}s) trong sai số 10%. "
+                    f"Vui lòng phân chia hoặc điều chỉnh thời lượng của các cảnh (scenes) hoặc thêm/bớt cảnh để tổng thời lượng thực tế của các cảnh nằm trong khoảng từ {lower_bound:.1f}s đến {upper_bound:.1f}s."
+                )
+        return self
 
 # ── Service Class ─────────────────────────────────────────────────────────────
 
@@ -177,14 +199,16 @@ class ScriptGeneratorService:
         system_prompt = composer.compose("video_script_generation", extra_components=[style_comp_id])
         
         # 4. Tạo prompt chi tiết kết hợp cấu hình thời lượng, khung hình và phản biện đối thủ
-        prompt_with_config = f"""[THÔNG TIN NGUỒN PHÂN TÍCH]
+        prompt_with_config = f"""[THÔNG IN NGUỒN PHÂN TÍCH]
 {source_context}
 
 [THÔNG SỐ KỸ THUẬT VIDEO]
 - Tỷ lệ khung hình: {aspect_ratio} (định dạng layout hiển thị tương ứng)
 - Thời lượng mục tiêu của video: {target_duration} giây
 
-Yêu cầu phân chia thời lượng các cảnh (scenes) sao cho tổng thời lượng (total_duration) xấp xỉ {target_duration} giây.
+Yêu cầu cực kỳ quan trọng về thời lượng:
+1. Bắt buộc phải điền giá trị của trường 'target_duration' trong kết quả JSON bằng đúng {target_duration}.
+2. Phân chia thời lượng các cảnh (scenes) sao cho tổng thời lượng (total_duration) xấp xỉ {target_duration} giây, tuân thủ sai số không quá 10% (tức là tổng thời lượng các cảnh phải nằm trong khoảng {target_duration * 0.9}s đến {target_duration * 1.1}s).
 """
 
         if competitor_analysis:
@@ -207,22 +231,30 @@ Hãy lồng ghép khéo léo thông điệp cốt lõi và các USP của chúng
 
         # 5. Gửi request AI qua TrinityBridge
         logger.info("[ScriptGenerator] Sending structured prompt to TrinityBridge...")
-        script_data = await trinity_bridge.run(
-            agent=self.agent,
-            prompt=prompt_with_config,
-            system_prompt=system_prompt,
-            role="brain",
-            per_model_timeout=35.0
-        )
+        token = strict_duration_var.set(True)
+        try:
+            script_data = await trinity_bridge.run(
+                agent=self.agent,
+                prompt=prompt_with_config,
+                system_prompt=system_prompt,
+                role="brain",
+                per_model_timeout=35.0
+            )
+        finally:
+            strict_duration_var.reset(token)
         
         # Gán thêm dữ liệu phân tích và khung hình vào object trả về
         if isinstance(script_data, VideoScriptModel):
             script_data.competitor_analysis = competitor_analysis
             script_data.aspect_ratio = aspect_ratio
+            if script_data.target_duration is None:
+                script_data.target_duration = target_duration
             return script_data
         elif isinstance(script_data, dict):
             script_data["competitor_analysis"] = competitor_analysis
             script_data["aspect_ratio"] = aspect_ratio
+            if "target_duration" not in script_data or script_data["target_duration"] is None:
+                script_data["target_duration"] = target_duration
             return VideoScriptModel(**script_data)
         else:
             logger.error(f"[ScriptGenerator] Unexpected return type from TrinityBridge: {type(script_data)}")

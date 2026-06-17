@@ -39,6 +39,7 @@
     isOptimizing: boolean;
     onEvaluate: () => Promise<void>;
     onOptimize: () => Promise<void>;
+    isScriptModified: boolean;
   }
 
   let {
@@ -62,7 +63,8 @@
     isEvaluating,
     isOptimizing,
     onEvaluate,
-    onOptimize
+    onOptimize,
+    isScriptModified
   }: Props = $props();
 
   let activeWorkspaceTab = $state<'intel' | 'match' | 'eval' | null>('intel');
@@ -226,13 +228,16 @@
                 </div>
               {:else if activeWorkspaceTab === 'eval'}
                 <div transition:fade={{ duration: 150 }}>
-                  <ScriptEvaluationCard
-                    activeScript={activeScript}
-                    isEvaluating={isEvaluating}
-                    isOptimizing={isOptimizing}
-                    onEvaluate={onEvaluate}
-                    onOptimize={onOptimize}
-                  />
+                  {#if activeScript}
+                    <ScriptEvaluationCard
+                      activeScript={activeScript}
+                      isEvaluating={isEvaluating}
+                      isOptimizing={isOptimizing}
+                      onEvaluate={onEvaluate}
+                      onOptimize={onOptimize}
+                      isScriptModified={isScriptModified}
+                    />
+                  {/if}
                 </div>
               {/if}
             </div>

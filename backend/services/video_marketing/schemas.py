@@ -19,6 +19,7 @@ class ScriptEvaluationReport(BaseModel):
     ai_generation_viability: EvaluationCriterion = Field(..., description="Độ khả thi khi sinh video bằng Runway/Midjourney (Tránh từ trừu tượng)")
     platform_optimization: EvaluationCriterion = Field(..., description="Độ tối ưu hóa theo định dạng và thuật toán nền tảng")
     brand_integrity: EvaluationCriterion = Field(..., description="Tính bảo toàn nhận diện bao bì & logo sản phẩm")
+    duration_compliance: EvaluationCriterion = Field(..., description="Độ tuân thủ thời lượng mục tiêu (sai số tối đa 10% so với target_duration)")
     overall_recommendation: str = Field(..., description="Định hướng chiến lược tổng quan của Đạo diễn AI")
 
 class GenerateScriptRequest(BaseModel):

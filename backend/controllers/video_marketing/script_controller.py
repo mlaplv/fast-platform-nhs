@@ -536,6 +536,11 @@ class VideoScriptController(Controller):
         script_text = f"TIÊU ĐỀ: {model_data.title}\n"
         script_text += f"PHONG CÁCH: {model_data.style_name}\n"
         script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        
+        target_dur = model_data.target_duration or 30
+        script_text += f"THỜI LƯỢNG MỤC TIÊU: {target_dur} giây\n"
+        script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {model_data.total_duration} giây\n"
+        
         script_text += "DANH SÁCH PHÂN CẢNH:\n"
         for scene in model_data.scenes:
             script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
@@ -587,15 +592,63 @@ class VideoScriptController(Controller):
             raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
             
         model_data = VideoScriptModel(**script.structured_script)
-        if not model_data.evaluation:
-            raise HTTPException(status_code=400, detail="Vui lòng thực hiện đánh giá kịch bản trước khi chạy tính năng tối ưu.")
+        
+        is_valid_report = False
+        if model_data.evaluation and isinstance(model_data.evaluation, dict):
+            required_keys = {
+                "hook_retention", "audio_visual_harmony", "ai_generation_viability", 
+                "platform_optimization", "brand_integrity", "duration_compliance"
+            }
+            if required_keys.issubset(model_data.evaluation.keys()):
+                is_valid_report = True
+
+        if not is_valid_report:
+            # Tự động thực hiện đánh giá kịch bản trước nếu báo cáo chưa có hoặc không hợp lệ
+            logger.info(f"🔄 [ScriptOptimization] Evaluation report missing or invalid for script {script_id}. Running auto-evaluation...")
+            eval_script_text = f"TIÊU ĐỀ: {model_data.title}\n"
+            eval_script_text += f"PHONG CÁCH: {model_data.style_name}\n"
+            eval_script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+            for scene in model_data.scenes:
+                eval_script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+                eval_script_text += f"Visual: {scene.visual_description}\n"
+                eval_script_text += f"Voiceover: {scene.voiceover}\n"
+                if scene.scene_notes:
+                    eval_script_text += f"Notes: {scene.scene_notes}\n"
             
-        # 1. Chuẩn bị đầu vào cho tối ưu hóa
-        evaluation_report = ScriptEvaluationReport(**model_data.evaluation)
+            try:
+                prompt_content = composer.compose("video_script_evaluation")
+                eval_agent = Agent(
+                    output_type=ScriptEvaluationReport,
+                    retries=2
+                )
+                evaluation_report = await trinity_bridge.run(
+                    agent=eval_agent,
+                    prompt=eval_script_text,
+                    system_prompt=prompt_content,
+                    role="brain",
+                    per_model_timeout=35.0
+                )
+                
+                # Lưu báo cáo đánh giá mới vào kịch bản
+                model_data.evaluation = evaluation_report.model_dump()
+                script.structured_script = model_data.model_dump()
+                await db_session.commit()
+            except Exception as e:
+                logger.error(f"❌ [ScriptOptimization] Auto-evaluation failed: {e}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Không thể tự động đánh giá kịch bản trước khi tối ưu: {str(e)}"
+                )
+        else:
+            evaluation_report = ScriptEvaluationReport(**model_data.evaluation)
         
         script_text = f"TIÊU ĐỀ: {model_data.title}\n"
         script_text += f"PHONG CÁCH: {model_data.style_name}\n"
         script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        if model_data.target_duration:
+            script_text += f"THỜI LƯỢNG MỤC TIÊU: {model_data.target_duration} giây\n"
+            script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {model_data.total_duration} giây\n"
+            
         script_text += "DANH SÁCH PHÂN CẢNH HIỆN TẠI:\n"
         for scene in model_data.scenes:
             script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
@@ -606,7 +659,7 @@ class VideoScriptController(Controller):
                 
         # Thêm phần báo cáo lỗi
         error_context = "BÁO CÁO LỖI KỸ THUẬT PHÁT HIỆN:\n"
-        for field in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity"]:
+        for field in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity", "duration_compliance"]:
             crit = getattr(evaluation_report, field)
             if crit.score < 8:
                 error_context += f"- Tiêu chí '{field}' (Điểm: {crit.score}/10):\n"
@@ -622,17 +675,24 @@ class VideoScriptController(Controller):
                 output_type=VideoScriptModel,
                 retries=2
             )
-            optimized_script = await trinity_bridge.run(
-                agent=opt_agent,
-                prompt=input_prompt,
-                system_prompt=prompt_content,
-                role="brain",
-                per_model_timeout=35.0
-            )
+            from backend.services.video_marketing.script_generator_service import strict_duration_var
+            token = strict_duration_var.set(True)
+            try:
+                optimized_script = await trinity_bridge.run(
+                    agent=opt_agent,
+                    prompt=input_prompt,
+                    system_prompt=prompt_content,
+                    role="brain",
+                    per_model_timeout=35.0
+                )
+            finally:
+                strict_duration_var.reset(token)
             
             # Tự động cập nhật thuộc tính bổ sung
             optimized_script.competitor_analysis = model_data.competitor_analysis
             optimized_script.aspect_ratio = model_data.aspect_ratio
+            if optimized_script.target_duration is None:
+                optimized_script.target_duration = model_data.target_duration
             
             # 3. Chạy lại đánh giá tự động trên kịch bản mới này để cập nhật điểm mới luôn!
             eval_prompt_content = composer.compose("video_script_evaluation")
@@ -644,6 +704,11 @@ class VideoScriptController(Controller):
             new_script_text = f"TIÊU ĐỀ: {optimized_script.title}\n"
             new_script_text += f"PHONG CÁCH: {optimized_script.style_name}\n"
             new_script_text += f"ĐỐI TƯỢNG: {optimized_script.target_audience}\n"
+            
+            target_dur = optimized_script.target_duration or 30
+            new_script_text += f"THỜI LƯỢNG MỤC TIÊU: {target_dur} giây\n"
+            new_script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {optimized_script.total_duration} giây\n"
+            
             new_script_text += "DANH SÁCH PHÂN CẢNH:\n"
             for scene in optimized_script.scenes:
                 new_script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
