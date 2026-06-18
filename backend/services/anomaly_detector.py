@@ -38,7 +38,7 @@ class AnomalyDetector:
     Compares recent metrics vs historical baseline to detect spikes.
     """
 
-    async def scan(self, session: AsyncSession, tenant_id: str = "default") -> List[AnomalyAlert]:
+    async def scan(self, tenant_id: str = "default") -> List[AnomalyAlert]:
         """
         Run all anomaly checks in parallel (V76). Returns list of alerts.
         Each alert: {type, severity, message, data}
@@ -59,34 +59,36 @@ class AnomalyDetector:
             except Exception as e:
                 logger.warning(f"[AnomalyDetector] Check '{name}' failed: {e}")
 
-        await run_check("cancelled_orders", self._check_cancelled_orders, session, tenant_id)
-        await run_check("order_volume", self._check_order_volume, session, tenant_id)
-        await run_check("revenue_anomaly", self._check_revenue_anomaly, session, tenant_id)
-        await run_check("ai_latency", self._check_ai_latency, session, tenant_id)
-        await run_check("db_pool", self._check_db_pool, session)
-        await run_check("redis_replication", self._check_redis_replication, session)
-        await run_check("docker_containers", self._check_docker_containers, session)
+        await run_check("cancelled_orders", self._check_cancelled_orders, tenant_id)
+        await run_check("order_volume", self._check_order_volume, tenant_id)
+        await run_check("revenue_anomaly", self._check_revenue_anomaly, tenant_id)
+        await run_check("ai_latency", self._check_ai_latency, tenant_id)
+        await run_check("db_pool", self._check_db_pool)
+        await run_check("redis_replication", self._check_redis_replication)
+        await run_check("docker_containers", self._check_docker_containers)
 
         if alerts:
-            await self._persist_alerts(session, alerts, tenant_id)
+            await self._persist_alerts(alerts, tenant_id)
             logger.info(f"[AnomalyDetector] {len(alerts)} anomalies detected and persisted.")
         else:
             logger.debug("[AnomalyDetector] Scan complete — no anomalies.")
 
         return alerts
 
-    async def _check_ai_latency(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
+    async def _check_ai_latency(self, tenant_id: str) -> Optional[AnomalyAlert]:
         """Check if recent AI response latencies are spiking using telemetry logs."""
-        # AgentTelemetryLog has duration_ms and tenant_id
-        avg_latency = await session.scalar(
-            text("""
-                SELECT AVG(duration_ms) 
-                FROM agent_telemetry_logs 
-                WHERE tenant_id = :tid 
-                AND created_at > NOW() - interval '30 minutes'
-            """),
-            {"tid": tenant_id}
-        ) or 0
+        from backend.database.alchemy_config import alchemy_config
+        maker = alchemy_config.create_session_maker()
+        async with maker() as session:
+            avg_latency = await session.scalar(
+                text("""
+                    SELECT AVG(duration_ms) 
+                    FROM agent_telemetry_logs 
+                    WHERE tenant_id = :tid 
+                    AND created_at > NOW() - interval '30 minutes'
+                """),
+                {"tid": tenant_id}
+            ) or 0
 
         if avg_latency > 5000: # Spike above 5s
             return AnomalyAlert(
@@ -97,10 +99,10 @@ class AnomalyDetector:
             )
         return None
 
-    async def _check_db_pool(self, session: AsyncSession) -> Optional[AnomalyAlert]:
+    async def _check_db_pool(self) -> Optional[AnomalyAlert]:
         """Check SQLAlchemy connection pool utilization."""
-        # SQLAlchemy engine pool stats
-        engine = session.bind
+        from backend.database.alchemy_config import alchemy_config
+        engine = alchemy_config.get_engine()
         if hasattr(engine, "pool"):
             pool = engine.pool
             checkedin = pool.checkedin()
@@ -117,7 +119,7 @@ class AnomalyDetector:
                 )
         return None
 
-    async def _check_redis_replication(self, session: AsyncSession) -> Optional[AnomalyAlert]:
+    async def _check_redis_replication(self) -> Optional[AnomalyAlert]:
         """Check Redis replication state (role must be master, no rogue replica setup)."""
         from backend.services.xohi_memory import xohi_memory
         if not xohi_memory._use_redis or not xohi_memory.client:
@@ -138,7 +140,7 @@ class AnomalyDetector:
             logger.warning(f"[AnomalyDetector] Redis replication check failed: {e}")
         return None
 
-    async def _check_docker_containers(self, session: AsyncSession) -> Optional[AnomalyAlert]:
+    async def _check_docker_containers(self) -> Optional[AnomalyAlert]:
         """Check if any core container has crashed or is in a crash loop."""
         import json
         import asyncio
@@ -186,31 +188,34 @@ class AnomalyDetector:
             logger.warning(f"[AnomalyDetector] Docker container check failed: {e}")
         return None
 
-    async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
+    async def _check_cancelled_orders(self, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare cancelled orders last 1h vs 7-day hourly average."""
         now = datetime.now(timezone.utc)
         one_hour_ago = now - timedelta(hours=1)
         seven_days_ago = now - timedelta(days=7)
 
-        # Count cancellations in last hour
-        recent = await session.scalar(
-            text("""
-                SELECT COUNT(*) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND status = 'CANCELLED' AND updated_at >= :since
-            """),
-            {"tid": tenant_id, "since": one_hour_ago}
-        ) or 0
+        from backend.database.alchemy_config import alchemy_config
+        maker = alchemy_config.create_session_maker()
+        async with maker() as session:
+            # Count cancellations in last hour
+            recent = await session.scalar(
+                text("""
+                    SELECT COUNT(*) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND status = 'CANCELLED' AND updated_at >= :since
+                """),
+                {"tid": tenant_id, "since": one_hour_ago}
+            ) or 0
 
-        # Average hourly cancellations over 7 days
-        total_7d = await session.scalar(
-            text("""
-                SELECT COUNT(*) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND status = 'CANCELLED' AND updated_at >= :since
-            """),
-            {"tid": tenant_id, "since": seven_days_ago}
-        ) or 0
+            # Average hourly cancellations over 7 days
+            total_7d = await session.scalar(
+                text("""
+                    SELECT COUNT(*) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND status = 'CANCELLED' AND updated_at >= :since
+                """),
+                {"tid": tenant_id, "since": seven_days_ago}
+            ) or 0
 
         baseline_hourly = total_7d / (7 * 24) if total_7d > 0 else 0
 
@@ -223,29 +228,32 @@ class AnomalyDetector:
             )
         return None
 
-    async def _check_order_volume(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
+    async def _check_order_volume(self, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare new order volume last 1h vs 7-day hourly average."""
         now = datetime.now(timezone.utc)
         one_hour_ago = now - timedelta(hours=1)
         seven_days_ago = now - timedelta(days=7)
 
-        recent = await session.scalar(
-            text("""
-                SELECT COUNT(*) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND created_at >= :since
-            """),
-            {"tid": tenant_id, "since": one_hour_ago}
-        ) or 0
+        from backend.database.alchemy_config import alchemy_config
+        maker = alchemy_config.create_session_maker()
+        async with maker() as session:
+            recent = await session.scalar(
+                text("""
+                    SELECT COUNT(*) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND created_at >= :since
+                """),
+                {"tid": tenant_id, "since": one_hour_ago}
+            ) or 0
 
-        total_7d = await session.scalar(
-            text("""
-                SELECT COUNT(*) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND created_at >= :since
-            """),
-            {"tid": tenant_id, "since": seven_days_ago}
-        ) or 0
+            total_7d = await session.scalar(
+                text("""
+                    SELECT COUNT(*) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND created_at >= :since
+                """),
+                {"tid": tenant_id, "since": seven_days_ago}
+            ) or 0
 
         baseline_hourly = total_7d / (7 * 24) if total_7d > 0 else 0
 
@@ -258,32 +266,35 @@ class AnomalyDetector:
             )
         return None
 
-    async def _check_revenue_anomaly(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
+    async def _check_revenue_anomaly(self, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare today's revenue vs yesterday same hour."""
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday_start = today_start - timedelta(days=1)
         yesterday_same_hour = yesterday_start + timedelta(hours=now.hour)
 
-        today_rev = await session.scalar(
-            text("""
-                SELECT COALESCE(SUM(total_amount), 0) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND status != 'CANCELLED'
-                AND created_at >= :since
-            """),
-            {"tid": tenant_id, "since": today_start}
-        ) or 0
+        from backend.database.alchemy_config import alchemy_config
+        maker = alchemy_config.create_session_maker()
+        async with maker() as session:
+            today_rev = await session.scalar(
+                text("""
+                    SELECT COALESCE(SUM(total_amount), 0) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND status != 'CANCELLED'
+                    AND created_at >= :since
+                """),
+                {"tid": tenant_id, "since": today_start}
+            ) or 0
 
-        yesterday_rev = await session.scalar(
-            text("""
-                SELECT COALESCE(SUM(total_amount), 0) FROM orders
-                WHERE tenant_id = :tid AND deleted_at IS NULL
-                AND status != 'CANCELLED'
-                AND created_at BETWEEN :start AND :end
-            """),
-            {"tid": tenant_id, "start": yesterday_start, "end": yesterday_same_hour}
-        ) or 0
+            yesterday_rev = await session.scalar(
+                text("""
+                    SELECT COALESCE(SUM(total_amount), 0) FROM orders
+                    WHERE tenant_id = :tid AND deleted_at IS NULL
+                    AND status != 'CANCELLED'
+                    AND created_at BETWEEN :start AND :end
+                """),
+                {"tid": tenant_id, "start": yesterday_start, "end": yesterday_same_hour}
+            ) or 0
 
         if yesterday_rev > 0 and today_rev < yesterday_rev * 0.3:
             return AnomalyAlert(
@@ -294,13 +305,14 @@ class AnomalyDetector:
             )
         return None
 
-    async def _persist_alerts(self, session: AsyncSession, alerts: List[AnomalyAlert], tenant_id: str):
+    async def _persist_alerts(self, alerts: List[AnomalyAlert], tenant_id: str):
         """Create Notification records and dispatch to SignalCenter.
         SECURITY: All system anomaly alerts are stored with type prefix 'SYSTEM_'
         and user_id=NULL. They are ONLY visible to admin — NOT to end clients.
         """
         from backend.services.signal_center import signal_center
         from backend.schemas.signal import SignalSchema, SignalSeverity
+        from backend.database.alchemy_config import alchemy_config
 
         severity_map = {
             "CRITICAL": SignalSeverity.CRITICAL,
@@ -308,33 +320,35 @@ class AnomalyDetector:
             "INFO": SignalSeverity.INFO,
         }
 
-        for alert in alerts:
-            since = datetime.now(timezone.utc) - timedelta(hours=1)
-                
-            existing = await session.scalar(
-                text("""
-                    SELECT COUNT(*) FROM notifications
-                    WHERE tenant_id = :tid AND message = :msg
-                    AND created_at > :since
-                """),
-                {"tid": tenant_id, "msg": alert["message"], "since": since}
-            ) or 0
+        maker = alchemy_config.create_session_maker()
+        async with maker() as session:
+            for alert in alerts:
+                since = datetime.now(timezone.utc) - timedelta(hours=1)
+                    
+                existing = await session.scalar(
+                    text("""
+                        SELECT COUNT(*) FROM notifications
+                        WHERE tenant_id = :tid AND message = :msg
+                        AND created_at > :since
+                    """),
+                    {"tid": tenant_id, "msg": alert["message"], "since": since}
+                ) or 0
 
-            if existing > 0:
-                logger.debug(f"[AnomalyDetector] Skipping duplicate alert: {alert['type']}")
-                continue
+                if existing > 0:
+                    logger.debug(f"[AnomalyDetector] Skipping duplicate alert: {alert['type']}")
+                    continue
 
-            # SECURITY: Prefix type with SYSTEM_ so client-side query can exclude it.
-            system_type = f"SYSTEM_{alert['severity']}"
+                # SECURITY: Prefix type with SYSTEM_ so client-side query can exclude it.
+                system_type = f"SYSTEM_{alert['severity']}"
 
-            await signal_center.dispatch(
-                user_id="user_admin",
-                signal=SignalSchema(
-                    message=alert["message"],
-                    severity=severity_map.get(alert["severity"], SignalSeverity.ACTION),
-                    signal_type=system_type,
-                    payload=alert["data"],
-                    persist=True
-                ),
-                tenant_id=tenant_id
-            )
+                await signal_center.dispatch(
+                    user_id="user_admin",
+                    signal=SignalSchema(
+                        message=alert["message"],
+                        severity=severity_map.get(alert["severity"], SignalSeverity.ACTION),
+                        signal_type=system_type,
+                        payload=alert["data"],
+                        persist=True
+                    ),
+                    tenant_id=tenant_id
+                )

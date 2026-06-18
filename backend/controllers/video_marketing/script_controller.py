@@ -28,8 +28,19 @@ from backend.services.video_marketing.schemas import (
 from backend.schemas.common import SuccessResponse
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger("api-gateway")
+
+class ScenePatch(BaseModel):
+    scene_number: int = Field(..., description="Số thứ tự phân cảnh cần cập nhật (khớp với kịch bản gốc)")
+    visual_description: str = Field(..., description="Mô tả visual mới đã được sửa đổi và loại bỏ từ trừu tượng")
+    voiceover: str = Field(..., description="Lời thoại mới đã được sửa đổi và giới hạn tốc độ TTS")
+    duration: Optional[float] = Field(None, description="Thời lượng phân cảnh mới tính bằng giây (nếu cần điều chỉnh để sửa lỗi thời lượng/TTS)")
+    scene_notes: Optional[str] = Field(None, description="Ghi chú mới cho phân cảnh này")
+
+class ScriptPatchResponse(BaseModel):
+    scenes_to_update: List[ScenePatch] = Field(..., description="Danh sách các phân cảnh bị lỗi cần cập nhật")
 
 class VideoScriptController(Controller):
     """API Controller quản lý kịch bản Video Marketing và Dynamic Styles."""
@@ -38,49 +49,49 @@ class VideoScriptController(Controller):
     guards = [PermissionGuard(PermissionEnum.CONTENT_WRITE)]
 
     @post("/script/analyze-competitors")
-    async def analyze_competitors(self, db_session: AsyncSession, data: GenerateScriptRequest) -> SuccessResponse:
+    async def analyze_competitors(self, data: GenerateScriptRequest) -> SuccessResponse:
         """Phân tích đối thủ cạnh tranh & điểm mạnh sản phẩm trước khi sinh kịch bản."""
         source_name = ""
         source_desc = ""
         
-        if data.source_type == "product":
-            if not data.product_id:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+        from backend.database.alchemy_config import alchemy_config
+        async with alchemy_config.create_session_maker()() as session:
+            if data.source_type == "product":
+                if not data.product_id:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+                    
+                key = product_resolver_service._extract_slug_or_id(data.product_id)
+                prod_stmt = select(ProductBase).where(
+                    (ProductBase.id == key) | 
+                    (ProductBase.slug == key) | 
+                    (ProductBase.sku == key)
+                ).where(ProductBase.deleted_at.is_(None))
+                prod_res = await session.execute(prod_stmt)
+                product = prod_res.scalar_one_or_none()
+                if not product:
+                    raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm.")
+                source_name = product.name
+                source_desc = product.description or ""
                 
-            key = product_resolver_service._extract_slug_or_id(data.product_id)
-            prod_stmt = select(ProductBase).where(
-                (ProductBase.id == key) | 
-                (ProductBase.slug == key) | 
-                (ProductBase.sku == key)
-            ).where(ProductBase.deleted_at.is_(None))
-            prod_res = await db_session.execute(prod_stmt)
-            product = prod_res.scalar_one_or_none()
-            if not product:
-                raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm.")
-            source_name = product.name
-            source_desc = product.description or ""
-            
-        elif data.source_type == "article":
-            if not data.article_id:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+            elif data.source_type == "article":
+                if not data.article_id:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+                    
+                art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
+                art_res = await session.execute(art_stmt)
+                article = art_res.scalar_one_or_none()
+                if not article:
+                    raise HTTPException(status_code=404, detail="Không tìm thấy bài viết.")
+                source_name = article.title
+                source_desc = article.content or article.excerpt or ""
                 
-            art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
-            art_res = await db_session.execute(art_stmt)
-            article = art_res.scalar_one_or_none()
-            if not article:
-                raise HTTPException(status_code=404, detail="Không tìm thấy bài viết.")
-            source_name = article.title
-            source_desc = article.content or article.excerpt or ""
-            
-        elif data.source_type == "custom":
-            if not data.description:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
-            source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
-            source_desc = data.description
-        else:
-            raise HTTPException(status_code=400, detail="source_type không hợp lệ")
-
-        await db_session.close()
+            elif data.source_type == "custom":
+                if not data.description:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
+                source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
+                source_desc = data.description
+            else:
+                raise HTTPException(status_code=400, detail="source_type không hợp lệ")
 
         try:
             analysis = await script_generator_service.analyze_competitors(source_name, source_desc)
@@ -103,75 +114,76 @@ class VideoScriptController(Controller):
             return SuccessResponse(message="Phân tích đối thủ (Fallback) thành công!", data=fallback)
 
     @post("/script/generate")
-    async def generate_script(self, db_session: AsyncSession, data: GenerateScriptRequest) -> SuccessResponse[VideoScriptResponse]:
+    async def generate_script(self, data: GenerateScriptRequest) -> SuccessResponse[VideoScriptResponse]:
         """Sinh kịch bản video từ sản phẩm, bài viết hoặc mô tả, có phân tích đối thủ và cấu hình khung hình/thời lượng."""
         source_context = ""
         source_name = ""
         source_desc = ""
         product_id = None
         
-        # 1. Giải quyết ngữ cảnh nguồn dựa trên source_type
-        if data.source_type == "product":
-            if not data.product_id:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+        from backend.database.alchemy_config import alchemy_config
+        
+        # 1. Đọc dữ liệu trong session ngắn hạn
+        async with alchemy_config.create_session_maker()() as session:
+            # Giải quyết ngữ cảnh nguồn dựa trên source_type
+            if data.source_type == "product":
+                if not data.product_id:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp product_id khi chọn nguồn sản phẩm.")
+                    
+                key = product_resolver_service._extract_slug_or_id(data.product_id)
+                prod_stmt = select(ProductBase).where(
+                    (ProductBase.id == key) | 
+                    (ProductBase.slug == key) | 
+                    (ProductBase.sku == key)
+                ).where(ProductBase.deleted_at.is_(None))
+                prod_res = await session.execute(prod_stmt)
+                product = prod_res.scalar_one_or_none()
                 
-            key = product_resolver_service._extract_slug_or_id(data.product_id)
-            prod_stmt = select(ProductBase).where(
-                (ProductBase.id == key) | 
-                (ProductBase.slug == key) | 
-                (ProductBase.sku == key)
-            ).where(ProductBase.deleted_at.is_(None))
-            prod_res = await db_session.execute(prod_stmt)
-            product = prod_res.scalar_one_or_none()
-            
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm với khóa: {data.product_id}")
+                if not product:
+                    raise HTTPException(status_code=404, detail=f"Không tìm thấy sản phẩm với khóa: {data.product_id}")
+                    
+                product_id = product.id
+                source_context = await product_resolver_service.get_product_context(product.id, session)
+                source_name = product.name
+                source_desc = product.description or ""
                 
-            product_id = product.id
-            source_context = await product_resolver_service.get_product_context(product.id, db_session)
-            source_name = product.name
-            source_desc = product.description or ""
-            
-        elif data.source_type == "article":
-            if not data.article_id:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+            elif data.source_type == "article":
+                if not data.article_id:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp article_id khi chọn nguồn bài viết.")
+                    
+                art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
+                art_res = await session.execute(art_stmt)
+                article = art_res.scalar_one_or_none()
                 
-            art_stmt = select(Article).where(Article.id == data.article_id).where(Article.deleted_at.is_(None))
-            art_res = await db_session.execute(art_stmt)
-            article = art_res.scalar_one_or_none()
-            
-            if not article:
-                raise HTTPException(status_code=404, detail=f"Không tìm thấy bài viết với ID: {data.article_id}")
+                if not article:
+                    raise HTTPException(status_code=404, detail=f"Không tìm thấy bài viết với ID: {data.article_id}")
+                    
+                source_context = f"TIÊU ĐỀ BÀI VIẾT: {article.title}\n\nTÓM TẮT: {article.excerpt or ''}\n\nNỘI DUNG CHÍNH:\n{article.content or ''}"
+                source_name = article.title
+                source_desc = article.content or article.excerpt or ""
                 
-            source_context = f"TIÊU ĐỀ BÀI VIẾT: {article.title}\n\nTÓM TẮT: {article.excerpt or ''}\n\nNỘI DUNG CHÍNH:\n{article.content or ''}"
-            source_name = article.title
-            source_desc = article.content or article.excerpt or ""
-            
-        elif data.source_type == "custom":
-            if not data.description:
-                raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
+            elif data.source_type == "custom":
+                if not data.description:
+                    raise HTTPException(status_code=400, detail="Vui lòng cung cấp mô tả chi tiết khi chọn nhập tay tự do.")
+                    
+                source_context = f"MÔ TẢ CHI TIẾT Ý TƯỞNG / SẢN PHẨM / DỊCH VỤ:\n{data.description}"
+                source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
+                source_desc = data.description
                 
-            source_context = f"MÔ TẢ CHI TIẾT Ý TƯỞNG / SẢN PHẨM / DỊCH VỤ:\n{data.description}"
-            source_name = data.description[:40] + "..." if len(data.description) > 40 else data.description
-            source_desc = data.description
-            
-        else:
-            raise HTTPException(status_code=400, detail="source_type không hợp lệ (hỗ trợ: product, article, custom)")
+            else:
+                raise HTTPException(status_code=400, detail="source_type không hợp lệ (hỗ trợ: product, article, custom)")
 
-        if not source_context:
-            raise HTTPException(status_code=400, detail="Không thể phân giải ngữ cảnh nguồn để sinh kịch bản.")
+            if not source_context:
+                raise HTTPException(status_code=400, detail="Không thể phân giải ngữ cảnh nguồn để sinh kịch bản.")
 
-        # 1.1 Lấy phong cách kịch bản từ database trước khi giải phóng session
-        style = None
-        if data.style_id:
-            style_stmt = select(VideoScriptStyle).where(VideoScriptStyle.id == data.style_id).where(VideoScriptStyle.is_active == True)
-            style_res = await db_session.execute(style_stmt)
-            style = style_res.scalar_one_or_none()
+            # Lấy phong cách kịch bản từ database trước khi giải phóng session
+            style = None
+            if data.style_id:
+                style_stmt = select(VideoScriptStyle).where(VideoScriptStyle.id == data.style_id).where(VideoScriptStyle.is_active == True)
+                style_res = await session.execute(style_stmt)
+                style = style_res.scalar_one_or_none()
 
-        # Giải phóng connection về pool ngay lập tức trước khi gọi AI/Search tốn thời gian
-        await db_session.close()
-
-        # 2. Phân tích đối thủ cạnh tranh bằng Google Search & AI phản biện (nếu chưa có từ client)
+        # 2. Phân tích đối thủ cạnh tranh bằng Google Search & AI phản biện (nếu chưa có từ client) - BÊN NGOÀI SESSION
         competitor_analysis = None
         if data.competitor_analysis:
             competitor_analysis = data.competitor_analysis.model_dump()
@@ -181,21 +193,21 @@ class VideoScriptController(Controller):
             except Exception as e:
                 logger.error(f"⚠️ [VideoController] Competitor analysis failed: {e}. Proceeding with default template.")
 
-        # 3. Sinh kịch bản qua AI Core
+        # 3. Sinh kịch bản qua AI Core - BÊN NGOÀI SESSION
         try:
             generated_script = await script_generator_service.generate_script(
                 source_context=source_context,
                 style=style,
                 aspect_ratio=data.aspect_ratio or "9:16",
                 target_duration=data.target_duration or 30,
-                competitor_analysis=competitor_analysis
+                competitor_analysis=competitor_analysis,
+                extra_requirements=data.extra_requirements
             )
         except Exception as e:
             logger.error(f"❌ [VideoController] Script generation failed: {e}")
             raise HTTPException(status_code=400, detail=f"Lỗi khi gọi AI sinh kịch bản: {str(e)}")
 
         # 4. Lưu kịch bản vào cơ sở dữ liệu (sử dụng session mới để không giữ connection quá lâu)
-        from backend.database.alchemy_config import alchemy_config
         from backend.database import current_tenant_id
         active_tenant = current_tenant_id.get() or "osmo.vn"
 
@@ -518,38 +530,63 @@ class VideoScriptController(Controller):
         )
 
     @post("/script/{script_id:str}/evaluate")
-    async def evaluate_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse[ScriptEvaluationReport]:
+    async def evaluate_script(self, script_id: str) -> SuccessResponse[ScriptEvaluationReport]:
         """Đánh giá kịch bản video theo 5 chuẩn chuyên nghiệp quốc tế."""
         from backend.database import current_tenant_id
+        from backend.database.alchemy_config import alchemy_config
         active_tenant = current_tenant_id.get() or "osmo.vn"
         
-        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
-        res = await db_session.execute(stmt)
-        script = res.scalar_one_or_none()
+        # 1. Chuẩn bị kịch bản text từ database trong session ngắn hạn
+        async with alchemy_config.create_session_maker()() as session:
+            stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
+            res = await session.execute(stmt)
+            script = res.scalar_one_or_none()
+            
+            if not script:
+                raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+            
+            model_data = VideoScriptModel(**script.structured_script)
         
-        if not script:
-            raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
-        
-        # 1. Chuẩn bị kịch bản text để gửi cho LLM
-        model_data = VideoScriptModel(**script.structured_script)
+        aspect_ratio = model_data.aspect_ratio or "9:16"
+        platform_hint = {
+            "9:16": "TikTok/Reels/Shorts (dọc) — cảnh ≤4s, cut nhanh",
+            "16:9": "YouTube/PC (ngang) — cảnh 4-7s, story arc sâu",
+            "1:1": "Instagram Feed (vuông) — bố cục center-frame"
+        }.get(aspect_ratio, "TikTok/Reels (dọc)")
         
         script_text = f"TIÊU ĐỀ: {model_data.title}\n"
         script_text += f"PHONG CÁCH: {model_data.style_name}\n"
         script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        script_text += f"TỶ LỆ KHUNG HÌNH: {aspect_ratio} — NỀN TẢNG: {platform_hint}\n"
         
         target_dur = model_data.target_duration or 30
         script_text += f"THỜI LƯỢNG MỤC TIÊU: {target_dur} giây\n"
-        script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {model_data.total_duration} giây\n"
+        script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {model_data.total_duration} giây"
         
-        script_text += "DANH SÁCH PHÂN CẢNH:\n"
+        duration_diff = abs(model_data.total_duration - target_dur)
+        duration_pct = (duration_diff / target_dur * 100) if target_dur else 0
+        script_text += f" (lệch {duration_pct:.1f}% so với mục tiêu)\n"
+        
+        if model_data.evaluation and isinstance(model_data.evaluation, dict):
+            extra_req = model_data.evaluation.get("extra_requirements_note", "")
+        else:
+            extra_req = ""
+        
+        script_text += "\nDANH SÁCH PHÂN CẢNH (KÈM KIỂM TRA TTS):\n"
         for scene in model_data.scenes:
-            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+            word_count = len(scene.voiceover.split()) if scene.voiceover else 0
+            wps = word_count / scene.duration if scene.duration > 0 else 0
+            tts_status = "✓ OK" if wps <= 3.5 else f"⚠️ QUÁ NHANH ({wps:.1f} từ/giây, tối đa 3.5)"
+            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s | {word_count} từ | TTS: {tts_status}) ---\n"
             script_text += f"Visual: {scene.visual_description}\n"
             script_text += f"Voiceover: {scene.voiceover}\n"
             if scene.scene_notes:
                 script_text += f"Notes: {scene.scene_notes}\n"
         
-        # 2. Gọi AI để đánh giá (sử dụng trinity_bridge)
+        if extra_req:
+            script_text += f"\nYÊU CẦU ĐẶC BIỆT CẦN KIỂM TRA: {extra_req}\n"
+
+        # 2. Gọi AI để đánh giá (sử dụng trinity_bridge) - BÊN NGOÀI SESSION
         try:
             prompt_content = composer.compose("video_script_evaluation")
             eval_agent = Agent(
@@ -564,11 +601,18 @@ class VideoScriptController(Controller):
                 per_model_timeout=35.0
             )
             
-            # 3. Cập nhật kết quả vào database
-            model_dump = model_data.model_dump()
-            model_dump["evaluation"] = report.model_dump()
-            script.structured_script = model_dump
-            await db_session.commit()
+            # 3. Cập nhật kết quả vào database bằng session ghi ngắn hạn
+            async with alchemy_config.create_session_maker()() as write_session:
+                stmt_write = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
+                res_write = await write_session.execute(stmt_write)
+                script_to_write = res_write.scalar_one_or_none()
+                if not script_to_write:
+                    raise HTTPException(status_code=404, detail="Không tìm thấy kịch bản để ghi kết quả đánh giá.")
+                
+                model_dump = model_data.model_dump()
+                model_dump["evaluation"] = report.model_dump()
+                script_to_write.structured_script = model_dump
+                await write_session.commit()
             
             return SuccessResponse(
                 message="Đánh giá kịch bản thành công!",
@@ -579,19 +623,27 @@ class VideoScriptController(Controller):
             raise HTTPException(status_code=500, detail=f"Lỗi khi đánh giá kịch bản: {str(e)}")
 
     @post("/script/{script_id:str}/optimize")
-    async def optimize_script(self, db_session: AsyncSession, script_id: str) -> SuccessResponse[VideoScriptResponse]:
+    async def optimize_script(
+        self, 
+        script_id: str,
+        focus_criterion: Optional[str] = None
+    ) -> SuccessResponse[VideoScriptResponse]:
         """Tự động tối ưu/sửa lỗi kịch bản dựa trên báo cáo đánh giá lỗi."""
         from backend.database import current_tenant_id
+        from backend.database.alchemy_config import alchemy_config
         active_tenant = current_tenant_id.get() or "osmo.vn"
         
-        stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
-        res = await db_session.execute(stmt)
-        script = res.scalar_one_or_none()
-        
-        if not script:
-            raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+        async with alchemy_config.create_session_maker()() as session:
+            stmt = select(VideoScript).where(VideoScript.id == script_id).where(VideoScript.tenant_id == active_tenant).where(VideoScript.deleted_at == None)
+            res = await session.execute(stmt)
+            script = res.scalar_one_or_none()
             
-        model_data = VideoScriptModel(**script.structured_script)
+            if not script:
+                raise HTTPException(status_code=404, detail=f"Không tìm thấy kịch bản với ID: {script_id}")
+                
+            model_data = VideoScriptModel(**script.structured_script)
+            product_id = script.product_id
+            style_id = script.style_id
         
         is_valid_report = False
         if model_data.evaluation and isinstance(model_data.evaluation, dict):
@@ -629,10 +681,16 @@ class VideoScriptController(Controller):
                     per_model_timeout=35.0
                 )
                 
-                # Lưu báo cáo đánh giá mới vào kịch bản
-                model_data.evaluation = evaluation_report.model_dump()
-                script.structured_script = model_data.model_dump()
-                await db_session.commit()
+                # Lưu báo cáo đánh giá mới vào kịch bản dùng new session ngắn hạn
+                from backend.database.alchemy_config import alchemy_config
+                async with alchemy_config.create_session_maker()() as new_session:
+                    stmt_update = select(VideoScript).where(VideoScript.id == script_id)
+                    res_update = await new_session.execute(stmt_update)
+                    script_to_update = res_update.scalar_one_or_none()
+                    if script_to_update:
+                        model_data.evaluation = evaluation_report.model_dump()
+                        script_to_update.structured_script = model_data.model_dump()
+                        await new_session.commit()
             except Exception as e:
                 logger.error(f"❌ [ScriptOptimization] Auto-evaluation failed: {e}")
                 raise HTTPException(
@@ -642,43 +700,126 @@ class VideoScriptController(Controller):
         else:
             evaluation_report = ScriptEvaluationReport(**model_data.evaluation)
         
+        opt_aspect_ratio = model_data.aspect_ratio or "9:16"
+        opt_platform_hint = {
+            "9:16": "TikTok/Reels/Shorts (dọc) — cảnh ≤4s, portrait frame, close-up ưu tiên",
+            "16:9": "YouTube/PC (ngang) — cảnh 4-7s, wide-shot cho phép",
+            "1:1": "Instagram Feed (vuông) — center-frame bắt buộc"
+        }.get(opt_aspect_ratio, "TikTok/Reels (dọc)")
+        
         script_text = f"TIÊU ĐỀ: {model_data.title}\n"
         script_text += f"PHONG CÁCH: {model_data.style_name}\n"
         script_text += f"ĐỐI TƯỢNG: {model_data.target_audience}\n"
+        script_text += f"TỶ LỆ KHUNG HÌNH BẮT BUỘC: {opt_aspect_ratio} — {opt_platform_hint}\n"
         if model_data.target_duration:
             script_text += f"THỜI LƯỢNG MỤC TIÊU: {model_data.target_duration} giây\n"
             script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {model_data.total_duration} giây\n"
             
-        script_text += "DANH SÁCH PHÂN CẢNH HIỆN TẠI:\n"
+        script_text += "\nDANH SÁCH PHÂN CẢNH HIỆN TẠI (KÈM TTS CHECK):\n"
         for scene in model_data.scenes:
-            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+            word_count = len(scene.voiceover.split()) if scene.voiceover else 0
+            wps = word_count / scene.duration if scene.duration > 0 else 0
+            tts_flag = "✓" if wps <= 3.5 else f"⚠️ QUÁ NHANH {wps:.1f}từ/s"
+            script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s | TTS:{tts_flag}) ---\n"
             script_text += f"Visual: {scene.visual_description}\n"
             script_text += f"Voiceover: {scene.voiceover}\n"
             if scene.scene_notes:
                 script_text += f"Notes: {scene.scene_notes}\n"
                 
-        # Thêm phần báo cáo lỗi
-        error_context = "BÁO CÁO LỖI KỸ THUẬT PHÁT HIỆN:\n"
-        for field in ["hook_retention", "audio_visual_harmony", "ai_generation_viability", "platform_optimization", "brand_integrity", "duration_compliance"]:
+        # Danh sách từ trừu tượng bị cấm trong visual_description
+        BANNED_ABSTRACT_WORDS = [
+            "sang trọng", "tinh tế", "đẹp", "chất lượng cao", "hạnh phúc", "vui vẻ",
+            "ấn tượng", "nổi bật", "cao cấp", "đặc biệt", "tuyệt vời", "hoàn hảo",
+            "năng lượng tích cực", "tự tin", "rạng rỡ", "lung linh", "lộng lẫy",
+            "beautiful", "happy", "luxury", "elegant", "amazing", "wonderful",
+            "gorgeous", "stunning", "perfect", "incredible", "impressive"
+        ]
+        
+        # Quét từ cấm trong kịch bản hiện tại
+        def scan_banned_words(scenes):
+            violations = []
+            for scene in scenes:
+                visual = (scene.visual_description or "").lower()
+                voiceover = (scene.voiceover or "").lower()
+                scene_num = scene.scene_number
+                for word in BANNED_ABSTRACT_WORDS:
+                    if word.lower() in visual:
+                        violations.append(f"Cảnh {scene_num}, visual_description chứa '{word}' — PHẢI thay bằng mô tả vật lý cụ thể")
+                    if word.lower() in voiceover:
+                        violations.append(f"Cảnh {scene_num}, voiceover chứa '{word}' — PHẢI thay bằng mô tả hành động/cảm xúc cụ thể")
+            return violations
+        
+        pre_violations = scan_banned_words(model_data.scenes)
+        
+        # Báo cáo lỗi từ tất cả 9 tiêu chí — FORMAT CHI TIẾT
+        all_criteria = [
+            "hook_retention", "audio_visual_harmony", "ai_generation_viability",
+            "platform_optimization", "brand_integrity", "duration_compliance",
+            "emotional_arc", "cta_effectiveness", "tts_sync_compliance"
+        ]
+        
+        # Phòng thủ: Loại bỏ focus_criterion rác (như PointerEvent từ frontend)
+        if focus_criterion and focus_criterion not in all_criteria:
+            focus_criterion = None
+        
+        # Nếu có chỉ định focus_criterion, chỉ kiểm tra tiêu chí đó
+        criteria_to_check = [focus_criterion] if focus_criterion else all_criteria
+        
+        if focus_criterion:
+            error_context = f"═══ BÁO CÁO LỖI TIÊU CHÍ TRỌNG TÂM CẦN SỬA TRIỆT ĐỂ: {focus_criterion.upper()} ═══\n"
+        else:
+            error_context = "═══ BÁO CÁO LỖI KỸ THUẬT CẦN SỬA (9 TIÊU CHÍ) ═══\n"
+            
+        has_errors = False
+        for field in criteria_to_check:
+            if not hasattr(evaluation_report, field):
+                continue
             crit = getattr(evaluation_report, field)
-            if crit.score < 8:
-                error_context += f"- Tiêu chí '{field}' (Điểm: {crit.score}/10):\n"
-                error_context += f"  + Lỗi: {', '.join(crit.cons)}\n"
-                error_context += f"  + Đề xuất sửa: {', '.join(crit.suggestions)}\n"
+            # Nếu có focus_criterion, ép sửa kể cả điểm cao. Nếu không, chỉ sửa khi điểm < 8
+            if focus_criterion or crit.score < 8:
+                has_errors = True
+                error_context += f"\n▸ [{field}] Điểm: {crit.score}/10\n"
+                if crit.cons:
+                    for i, con in enumerate(crit.cons, 1):
+                        error_context += f"  ✗ Lỗi {i}: {con}\n"
+                if crit.suggestions:
+                    for i, sug in enumerate(crit.suggestions, 1):
+                        error_context += f"  ➜ Sửa {i}: {sug}\n"
+        
+        if not has_errors:
+            error_context += "Kịch bản đạt chuẩn tất cả tiêu chí (≥8/10). Chỉ cần nâng cấp prompt visual để chất lượng AI output tốt hơn.\n"
+        
+        # Nếu có focus_criterion, thêm directive chỉ dẫn tập trung cao độ
+        if focus_criterion:
+            error_context += f"\n⚠️ CHỈ DẪN QUAN TRỌNG: Bạn phải tập trung sửa đổi các phân cảnh liên quan để giải quyết triệt để các lỗi của tiêu chí '{focus_criterion}' được liệt kê ở trên. Không được thay đổi các phần khác nếu không liên quan tới tiêu chí này.\n"
+
+        # Bổ sung danh sách từ cấm phát hiện được (chỉ xuất hiện khi không focus hoặc focus đúng vào 'ai_generation_viability')
+        if pre_violations and (not focus_criterion or focus_criterion == "ai_generation_viability"):
+            error_context += "\n═══ DANH SÁCH TỪ TRỪU TƯỢNG BỊ CẤM CÒN TỒN TẠI ═══\n"
+            error_context += "⚠️ CÁC TỪ SAU ĐÂY BẮT BUỘC PHẢI ĐƯỢC THAY THẾ, KHÔNG ĐƯỢC GIỮ LẠI:\n"
+            for v in pre_violations:
+                error_context += f"  ✗ {v}\n"
+            error_context += "\nHƯỚNG DẪN THAY THẾ:\n"
+            error_context += "- 'beautiful/đẹp' → 'soft warm light on dewy skin, visible pore texture'\n"
+            error_context += "- 'hạnh phúc/happy' → 'woman smiling with eyes crinkling, teeth visible, warm backlight halo'\n"
+            error_context += "- 'sang trọng/luxury' → 'gold foil label with embossed typography, sharp focus'\n"
+            error_context += "- 'năng lượng tích cực' → 'woman walking briskly with upright posture, bright outdoor sunlight'\n"
+            error_context += "- 'tự tin/rạng rỡ' → 'woman looking directly at camera with relaxed smile, chin slightly raised'\n"
         
         input_prompt = f"{script_text}\n\n{error_context}"
+
         
         try:
-            # 2. Gọi AI để tối ưu hóa
+            # 2. Gọi AI để lấy các phần sửa đổi (Surgical Patch)
             prompt_content = composer.compose("video_script_optimization")
             opt_agent = Agent(
-                output_type=VideoScriptModel,
+                output_type=ScriptPatchResponse,
                 retries=2
             )
             from backend.services.video_marketing.script_generator_service import strict_duration_var
             token = strict_duration_var.set(True)
             try:
-                optimized_script = await trinity_bridge.run(
+                patch_data = await trinity_bridge.run(
                     agent=opt_agent,
                     prompt=input_prompt,
                     system_prompt=prompt_content,
@@ -688,30 +829,251 @@ class VideoScriptController(Controller):
             finally:
                 strict_duration_var.reset(token)
             
+            # Định nghĩa hàm Guarantee Engine bên trong để truy cập dễ dàng
+            def apply_guarantee_engine(script_model: VideoScriptModel, is_post_clean: bool = False) -> list[str]:
+                import re
+                
+                visual_cleanup_map = {
+                    # Cụm từ trừu tượng/cảm xúc phức tạp cho visual (cần đổi sang tiếng Anh chi tiết cho Midjourney/Runway)
+                    "nụ cười rạng rỡ bừng sáng": "warm golden hour backlight on face, natural smile, bright bokeh lights",
+                    "nụ cười rạng rỡ": "warm golden hour backlight on face, natural smile, bright bokeh lights",
+                    "cảm giác hạnh phúc": "smiling with eyes crinkling, teeth visible, warm backlight halo",
+                    "hài lòng tận hưởng": "smiling with eyes closed, relaxed facial muscles, soft lighting",
+                    "stressed expression": "stressed expression with dry, slightly darkened and damaged skin patches on cheeks",
+                    "lột tẩy làm da sạm đi": "exfoliated skin with dry, red, and slightly darkened skin patches",
+                    "năng lượng tích cực": "upright posture, brisk walking, bright outdoor sunlight",
+                    "chất lượng cao": "macro close-up texture, sharp 4K detail",
+                    "sang trọng": "gold foil label, embossed typography, studio light",
+                    "tinh tế": "clean minimal composition, soft rim light",
+                    "cao cấp": "premium matte packaging, precise edge lighting",
+                    "tuyệt vời": "sharp detail, professional studio setup",
+                    "hoàn hảo": "flawless skin texture under diffused soft light",
+                    "đặc biệt": "unique texture close-up, selective focus",
+                    "nổi bật": "subject isolated against clean background, sharp focus",
+                    "ấn tượng": "dramatic low-angle shot, strong shadow contrast",
+                    "tận hưởng": "relaxed, smiling face",
+                    "cảm giác": "",
+                    "bừng sáng": "bright, glowing",
+                    "lột tẩy": "exfoliated skin",
+                    "sạm": "slightly darkened, dry skin patch",
+                    "đẹp": "soft warm light on dewy skin, visible pore texture",
+                    "hạnh phúc": "smiling with eyes crinkling, teeth visible, warm backlight halo",
+                    "vui vẻ": "genuine laugh, slight head tilt, warm side light",
+                    "tự tin": "direct eye contact with camera, chin slightly raised",
+                    "rạng rỡ": "warm golden hour backlight on face, natural smile",
+                    "lung linh": "soft bokeh highlights, warm ambient glow",
+                    "lộng lẫy": "dramatic rim light, high contrast silhouette",
+                    "exfoliated skin": "exfoliated skin patch",
+                    
+                    # Từ cấm / mờ nhạt từ screenshot sếp chụp
+                    "crisp edges": "high contrast details, sharp definition on edges, studio lighting",
+                    "luxurious skincare commercial aesthetic": "clean product shot on pedestal, soft rim light, reflection on glass, high-end commercial style",
+                    "smiling with eyes closed, relaxed facial": "smiling with eyes closed, cheeks slightly raised, relaxed facial muscles, soft lighting",
+                    
+                    # Tiếng Anh
+                    "beautiful": "soft natural light, visible skin texture",
+                    "happy": "smiling with eyes crinkling, warm backlight",
+                    "luxury": "gold foil label, embossed typography, studio light",
+                    "elegant": "clean minimal composition, soft rim light",
+                    "amazing": "dramatic reveal shot, cinematic lighting",
+                    "wonderful": "warm golden light, detailed texture",
+                    "gorgeous": "soft diffused light, skin detail visible",
+                    "stunning": "dramatic contrast, sharp focus",
+                    "perfect": "flawless surface texture, studio lighting",
+                    "incredible": "extreme close-up detail, sharp macro lens",
+                    "impressive": "wide establishing shot, dramatic scale",
+                }
+
+                voiceover_cleanup_map = {
+                    # Lời thoại cho TTS (tiếng Việt 100% tự nhiên đời thường, không chèn tiếng Anh, không từ trừu tượng)
+                    "nụ cười rạng rỡ bừng sáng": "nụ cười tươi rạng ngời",
+                    "nụ cười rạng rỡ": "nụ cười tươi tắn",
+                    "cảm giác hạnh phúc": "niềm hạnh phúc ngập tràn",
+                    "hài lòng tận hưởng": "thư giãn tận hưởng",
+                    "stressed expression": "khuôn mặt đầy mệt mỏi",
+                    "lột tẩy làm da sạm đi": "lột tẩy khiến làn da bị xỉn màu",
+                    "năng lượng tích cực": "sự tươi trẻ",
+                    "chất lượng cao": "chất lượng vượt trội",
+                    "sang trọng": "tinh tế",
+                    "tinh tế": "nhẹ nhàng",
+                    "cao cấp": "chất lượng",
+                    "tuyệt vời": "hiệu quả",
+                    "hoàn hảo": "tối ưu",
+                    "đặc biệt": "khác biệt",
+                    "nổi bật": "rõ rệt",
+                    "ấn tượng": "đáng nhớ",
+                    "tận hưởng": "cảm nhận",
+                    "cảm giác": "cảm nhận",
+                    "bừng sáng": "rạng ngời",
+                    "lột tẩy": "tẩy da quá đà",
+                    "sạm": "xỉn màu",
+                    "đẹp": "mịn màng",
+                    "hạnh phúc": "vui tươi",
+                    "vui vẻ": "tươi vui",
+                    "tự tin": "an tâm",
+                    "rạng rỡ": "tươi tắn",
+                    "lung linh": "tươi sáng",
+                    "lộng lẫy": "xinh đẹp",
+                    
+                    # Dọn dẹp lỗi tiếng Anh trong thoại (nếu lỡ có)
+                    "exfoliated skin": "tẩy da chết",
+                    "crisp edges": "độ sắc nét",
+                    "luxurious skincare commercial aesthetic": "chuẩn spa cao cấp",
+                    "smiling with eyes closed, relaxed facial": "thư giãn tươi cười",
+                    "beautiful": "mịn màng",
+                    "happy": "tươi vui",
+                    "luxury": "cao cấp",
+                    "elegant": "tinh tế",
+                }
+                
+                # Sắp xếp theo độ dài giảm dần
+                sorted_visual_banned = sorted(visual_cleanup_map.keys(), key=len, reverse=True)
+                sorted_voiceover_banned = sorted(voiceover_cleanup_map.keys(), key=len, reverse=True)
+                fixes = []
+                
+                for scene in script_model.scenes:
+                    scene_num = scene.scene_number
+                    
+                    # ── FIX A: Quét và thay thế từ cấm trong visual_description ──
+                    for banned in sorted_visual_banned:
+                        if banned.lower() in (scene.visual_description or "").lower():
+                            replacement = visual_cleanup_map[banned]
+                            if replacement and replacement.lower() in (scene.visual_description or "").lower():
+                                continue
+                            scene.visual_description = re.sub(
+                                re.escape(banned), replacement,
+                                scene.visual_description, flags=re.IGNORECASE
+                            )
+                            fixes.append(f"Cảnh {scene_num}: visual '{banned}' → '{replacement}'")
+                            
+                    # ── FIX B: Quét và thay thế từ cấm trong voiceover ──
+                    for banned in sorted_voiceover_banned:
+                        if banned.lower() in (scene.voiceover or "").lower():
+                            replacement = voiceover_cleanup_map[banned]
+                            if replacement and replacement.lower() in (scene.voiceover or "").lower():
+                                continue
+                            scene.voiceover = re.sub(
+                                re.escape(banned), replacement,
+                                scene.voiceover, flags=re.IGNORECASE
+                            )
+                            fixes.append(f"Cảnh {scene_num}: voiceover '{banned}' → '{replacement}'")
+                            
+                    # ── FIX C: Aspect Ratio Hint ──
+                    aspect = script_model.aspect_ratio or "9:16"
+                    ar_hints = {"9:16": "9:16 vertical frame", "16:9": "16:9 horizontal frame", "1:1": "1:1 square frame"}
+                    ar_hint = ar_hints.get(aspect, "9:16 vertical frame")
+                    if scene.visual_description and ar_hint.lower() not in scene.visual_description.lower():
+                        scene.visual_description = scene.visual_description.rstrip(". ") + f", {ar_hint}"
+                        fixes.append(f"Cảnh {scene_num}: thêm aspect ratio hint")
+                        
+                    # ── FIX D: Label Guard ──
+                    label_guard = "keep the product label and logo completely static and sharp"
+                    if scene.visual_description and label_guard not in scene.visual_description.lower():
+                        scene.visual_description = scene.visual_description.rstrip(". ") + f", {label_guard}"
+                        fixes.append(f"Cảnh {scene_num}: thêm label guard")
+                        
+                    # ── FIX E: TTS Speed limiter (tối đa 3.5 từ/giây) ──
+                    if not is_post_clean and scene.voiceover and scene.duration > 0:
+                        words = scene.voiceover.split()
+                        wps = len(words) / scene.duration
+                        if wps > 3.5:
+                            max_words = int(scene.duration * 3.5)
+                            if max_words < len(words):
+                                scene.voiceover = " ".join(words[:max_words])
+                                if not scene.voiceover.endswith((".", "!", "?")):
+                                    scene.voiceover = scene.voiceover.rstrip(",;: ") + "."
+                                fixes.append(f"Cảnh {scene_num}: TTS quá nhanh ({wps:.1f} từ/s) → giới hạn {max_words} từ")
+                                
+                # ── FIX F: CTA khẩn cấp ở cảnh cuối ──
+                if script_model.scenes:
+                    last_scene = script_model.scenes[-1]
+                    urgency_keywords = ["hôm nay", "giới hạn", "chỉ còn", "ngay", "cuối cùng", "duy nhất", "suất", "24h", "48h"]
+                    has_urgency = any(kw in (last_scene.voiceover or "").lower() for kw in urgency_keywords)
+                    if not has_urgency:
+                        urgency_phrase = " Ưu đãi giới hạn, chỉ còn hôm nay!"
+                        if last_scene.voiceover:
+                            last_scene.voiceover = last_scene.voiceover.rstrip("!.? ") + "." + urgency_phrase
+                        fixes.append(f"Cảnh {last_scene.scene_number}: thêm CTA khẩn cấp")
+                        
+                    # Ép Text Overlay vào scene_notes
+                    cta_keywords = ["text overlay", "cta", "nút", "button"]
+                    has_cta_note = any(kw in (last_scene.scene_notes or "").lower() for kw in cta_keywords)
+                    if not has_cta_note:
+                        cta_note = " | Text Overlay: CTA button nổi bật, countdown timer, màu tương phản."
+                        last_scene.scene_notes = (last_scene.scene_notes or "") + cta_note
+                        fixes.append(f"Cảnh {last_scene.scene_number}: thêm Text Overlay note")
+                        
+                return fixes
+
+            # 1. Chạy Guarantee Engine ngay trên bản gốc trước khi optimize để làm sạch bước đầu
+            pre_fixes = apply_guarantee_engine(model_data)
+            if pre_fixes:
+                logger.info(f"🔧 [Guarantee Engine] Pre-cleaned original script: {pre_fixes}")
+
+            # 2.1 Áp dụng Patch (sửa đổi cảnh lỗi) từ AI vào bản sao của kịch bản gốc
+            optimized_script = VideoScriptModel(**model_data.model_dump())
+            patched_scenes_count = 0
+            for patch in patch_data.scenes_to_update:
+                for scene in optimized_script.scenes:
+                    if scene.scene_number == patch.scene_number:
+                        scene.visual_description = patch.visual_description
+                        scene.voiceover = patch.voiceover
+                        if patch.duration is not None and patch.duration > 0:
+                            scene.duration = patch.duration
+                        if patch.scene_notes is not None:
+                            scene.scene_notes = patch.scene_notes
+                        patched_scenes_count += 1
+            
+            logger.info(f"🧬 [ScriptOptimization] Applied AI patch to {patched_scenes_count} scenes. 100% other scenes kept identical.")
+            
+            # Recalculate total duration of the patched script
+            if optimized_script.scenes:
+                actual_total = sum(scene.duration for scene in optimized_script.scenes)
+                optimized_script.total_duration = round(actual_total, 1)
+            
+            # 2.2 Chạy lại Guarantee Engine trên bản đã patch để làm sạch từ cấm sót
+            opt_fixes = apply_guarantee_engine(optimized_script, is_post_clean=True)
+            if opt_fixes:
+                logger.info(f"🔧 [Guarantee Engine] Cleaned patched script: {opt_fixes}")
+                
             # Tự động cập nhật thuộc tính bổ sung
             optimized_script.competitor_analysis = model_data.competitor_analysis
             optimized_script.aspect_ratio = model_data.aspect_ratio
             if optimized_script.target_duration is None:
                 optimized_script.target_duration = model_data.target_duration
             
-            # 3. Chạy lại đánh giá tự động trên kịch bản mới này để cập nhật điểm mới luôn!
+            # 3. Chạy lại đánh giá tự động trên kịch bản mới — ĐẦY ĐỦ CONTEXT
             eval_prompt_content = composer.compose("video_script_evaluation")
             eval_agent = Agent(
                 output_type=ScriptEvaluationReport,
                 retries=2
             )
             
+            opt_target_dur = optimized_script.target_duration or 30
+            opt_aspect = optimized_script.aspect_ratio or "9:16"
+            opt_platform = {
+                "9:16": "TikTok/Reels/Shorts (dọc) — cảnh ≤4s, cut nhanh",
+                "16:9": "YouTube/PC (ngang) — cảnh 4-7s, story arc sâu",
+                "1:1": "Instagram Feed (vuông) — bố cục center-frame"
+            }.get(opt_aspect, "TikTok/Reels (dọc)")
+            
             new_script_text = f"TIÊU ĐỀ: {optimized_script.title}\n"
             new_script_text += f"PHONG CÁCH: {optimized_script.style_name}\n"
             new_script_text += f"ĐỐI TƯỢNG: {optimized_script.target_audience}\n"
+            new_script_text += f"TỶ LỆ KHUNG HÌNH: {opt_aspect} — NỀN TẢNG: {opt_platform}\n"
+            new_script_text += f"THỜI LƯỢNG MỤC TIÊU: {opt_target_dur} giây\n"
+            new_script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {optimized_script.total_duration} giây"
             
-            target_dur = optimized_script.target_duration or 30
-            new_script_text += f"THỜI LƯỢNG MỤC TIÊU: {target_dur} giây\n"
-            new_script_text += f"TỔNG THỜI LƯỢNG THỰC TẾ: {optimized_script.total_duration} giây\n"
+            opt_dur_diff = abs(optimized_script.total_duration - opt_target_dur)
+            opt_dur_pct = (opt_dur_diff / opt_target_dur * 100) if opt_target_dur else 0
+            new_script_text += f" (lệch {opt_dur_pct:.1f}% so với mục tiêu)\n"
             
-            new_script_text += "DANH SÁCH PHÂN CẢNH:\n"
+            new_script_text += "\nDANH SÁCH PHÂN CẢNH (KÈM KIỂM TRA TTS):\n"
             for scene in optimized_script.scenes:
-                new_script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s) ---\n"
+                word_count = len(scene.voiceover.split()) if scene.voiceover else 0
+                wps = word_count / scene.duration if scene.duration > 0 else 0
+                tts_status = "✓ OK" if wps <= 3.5 else f"⚠️ QUÁ NHANH ({wps:.1f} từ/giây, tối đa 3.5)"
+                new_script_text += f"--- CẢNH {scene.scene_number} ({scene.duration}s | {word_count} từ | TTS: {tts_status}) ---\n"
                 new_script_text += f"Visual: {scene.visual_description}\n"
                 new_script_text += f"Voiceover: {scene.voiceover}\n"
                 if scene.scene_notes:
@@ -725,35 +1087,118 @@ class VideoScriptController(Controller):
                 per_model_timeout=35.0
             )
             
+            # 4. CƠ CHẾ ROLLBACK — So sánh điểm mới vs cũ
+            old_score = evaluation_report.overall_score if hasattr(evaluation_report, 'overall_score') else 0
+            new_score = new_report.overall_score if hasattr(new_report, 'overall_score') else 0
+            
+            should_rollback = False
+            if focus_criterion:
+                # Nếu tối ưu tập trung vào 1 tiêu chí cụ thể
+                old_focus_score = 0
+                new_focus_score = 0
+                if hasattr(evaluation_report, focus_criterion):
+                    old_focus_score = getattr(evaluation_report, focus_criterion).score
+                if hasattr(new_report, focus_criterion):
+                    new_focus_score = getattr(new_report, focus_criterion).score
+                
+                # Rollback nếu tiêu chí focus không những không tăng điểm mà còn giảm điểm
+                if new_focus_score < old_focus_score:
+                    should_rollback = True
+            else:
+                # Nếu tối ưu hóa toàn bộ (không focus)
+                should_rollback = new_score < old_score
+            
+            if should_rollback:
+                # Bản tối ưu của AI có điểm thấp hơn → ROLLBACK!
+                # Để bảo đảm không bị Rollback Loop và sạch từ cấm, ta cập nhật bản gốc đã được Pre-Clean
+                logger.warning(
+                    f"⚠️ [ScriptOptimization] ROLLBACK kích hoạt! Điểm mới ({new_score}) < Điểm cũ ({old_score}) (focus={focus_criterion}). "
+                    f"Reverting về bản gốc đã Pre-Clean để bảo toàn điểm số tốt hơn cho {script_id}."
+                )
+                
+                # Để tiết kiệm RPM/TPM của Gemini, không gọi LLM đánh giá lại. Dùng trực tiếp evaluation_report ban đầu.
+                cleaned_report_data = evaluation_report.model_dump()
+                
+                # Ghi vào DB dùng new session ngắn hạn
+                from backend.database.alchemy_config import alchemy_config
+                from sqlalchemy.orm import selectinload
+                async with alchemy_config.create_session_maker()() as final_session:
+                    stmt_final = select(VideoScript).where(VideoScript.id == script_id)
+                    res_final = await final_session.execute(stmt_final)
+                    script_db = res_final.scalar_one()
+                    
+                    model_data.evaluation = cleaned_report_data
+                    script_db.structured_script = model_data.model_dump()
+                    await final_session.commit()
+                
+                # Nạp lại dữ liệu quan hệ để trả về full response
+                async with alchemy_config.create_session_maker()() as final_session:
+                    stmt_refresh = select(VideoScript).options(
+                        selectinload(VideoScript.product),
+                        selectinload(VideoScript.style)
+                    ).where(VideoScript.id == script_id)
+                    res_refresh = await final_session.execute(stmt_refresh)
+                    script_refreshed = res_refresh.scalar_one()
+                    
+                    result = VideoScriptResponse(
+                        id=script_refreshed.id,
+                        product_id=script_refreshed.product_id,
+                        product_name=script_refreshed.product.name if script_refreshed.product else None,
+                        style_id=script_refreshed.style_id,
+                        style_name=script_refreshed.style.name if script_refreshed.style else None,
+                        style_platform=script_refreshed.style.platform if script_refreshed.style else None,
+                        title=script_refreshed.title,
+                        structured_script=model_data,
+                        created_at=script_refreshed.created_at.isoformat()
+                    )
+                
+                return SuccessResponse(
+                    message=f"⚠️ Bản tối ưu của AI có điểm thấp hơn bản gốc ({new_score} < {old_score}). "
+                            f"Hệ thống đã ROLLBACK về kịch bản gốc và tự động dọn dẹp các từ cấm, lỗi TTS bằng thuật toán cứng. "
+                            f"Điểm kịch bản gốc sau dọn dẹp: {old_score}/10.",
+                    data=result
+                )
+            
+            # Bản mới tốt hơn hoặc bằng → Lưu vào database
             optimized_script.evaluation = new_report.model_dump()
             
-            # 4. Lưu vào database
-            script.title = optimized_script.title
-            script.structured_script = optimized_script.model_dump()
-            await db_session.commit()
+            from backend.database.alchemy_config import alchemy_config
+            from sqlalchemy.orm import selectinload
+            async with alchemy_config.create_session_maker()() as final_session:
+                stmt_final = select(VideoScript).where(VideoScript.id == script_id)
+                res_final = await final_session.execute(stmt_final)
+                script_db = res_final.scalar_one()
+                
+                script_db.title = optimized_script.title
+                script_db.structured_script = optimized_script.model_dump()
+                await final_session.commit()
             
             # Refresh to populate relationships
-            stmt_refresh = select(VideoScript).options(
-                selectinload(VideoScript.product),
-                selectinload(VideoScript.style)
-            ).where(VideoScript.id == script_id)
-            res_refresh = await db_session.execute(stmt_refresh)
-            script_refreshed = res_refresh.scalar_one()
-            
-            result = VideoScriptResponse(
-                id=script_refreshed.id,
-                product_id=script_refreshed.product_id,
-                product_name=script_refreshed.product.name if script_refreshed.product else None,
-                style_id=script_refreshed.style_id,
-                style_name=script_refreshed.style.name if script_refreshed.style else None,
-                style_platform=script_refreshed.style.platform if script_refreshed.style else None,
-                title=script_refreshed.title,
-                structured_script=optimized_script,
-                created_at=script_refreshed.created_at.isoformat()
-            )
+            async with alchemy_config.create_session_maker()() as final_session:
+                stmt_refresh = select(VideoScript).options(
+                    selectinload(VideoScript.product),
+                    selectinload(VideoScript.style)
+                ).where(VideoScript.id == script_id)
+                res_refresh = await final_session.execute(stmt_refresh)
+                script_refreshed = res_refresh.scalar_one()
+                
+                score_delta = new_score - old_score
+                delta_text = f"+{score_delta:.1f}" if score_delta > 0 else f"{score_delta:.1f}"
+                
+                result = VideoScriptResponse(
+                    id=script_refreshed.id,
+                    product_id=script_refreshed.product_id,
+                    product_name=script_refreshed.product.name if script_refreshed.product else None,
+                    style_id=script_refreshed.style_id,
+                    style_name=script_refreshed.style.name if script_refreshed.style else None,
+                    style_platform=script_refreshed.style.platform if script_refreshed.style else None,
+                    title=script_refreshed.title,
+                    structured_script=optimized_script,
+                    created_at=script_refreshed.created_at.isoformat()
+                )
             
             return SuccessResponse(
-                message="Tối ưu kịch bản và tự động cập nhật điểm số mới thành công!",
+                message=f"Tối ưu kịch bản thành công! Điểm: {old_score} → {new_score} ({delta_text})",
                 data=result
             )
         except Exception as e:

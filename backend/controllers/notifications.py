@@ -22,8 +22,9 @@ class NotificationController(Controller):
     async def get_notifications(self, db_session: "AsyncSession", request: Request) -> NotificationListResponse:
         """Lấy danh sách thông báo của user hiện tại"""
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
-        return await notification_service.get_notifications(db_session, user_email)
+        user_id = user_state.get("id")
+        user_roles = user_state.get("roles", [])
+        return await notification_service.get_notifications(db_session, user_id, user_roles)
 
     @get("/paginated")
     async def get_notifications_paginated(
@@ -35,8 +36,9 @@ class NotificationController(Controller):
     ) -> NotificationCursorPaginatedResponse:
         """Lấy danh sách thông báo sử dụng phân trang cursor pagination"""
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
-        return await notification_service.get_notifications_paginated(db_session, user_email, cursor, limit)
+        user_id = user_state.get("id")
+        user_roles = user_state.get("roles", [])
+        return await notification_service.get_notifications_paginated(db_session, user_id, user_roles, cursor, limit)
 
     @patch("/{notification_id:str}/read")
     async def mark_as_read(self, db_session: "AsyncSession", notification_id: str) -> SuccessResponse:
@@ -73,8 +75,9 @@ class NotificationController(Controller):
     ) -> NotificationCursorPaginatedResponse:
         """Lấy danh sách thông báo đã bị xoá mềm (Thùng rác)"""
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
-        return await notification_service.get_trash_notifications_paginated(db_session, user_email, cursor, limit)
+        user_id = user_state.get("id")
+        user_roles = user_state.get("roles", [])
+        return await notification_service.get_trash_notifications_paginated(db_session, user_id, user_roles, cursor, limit)
 
     @post("/trash/restore")
     async def restore_notifications(self, db_session: "AsyncSession", data: dict) -> SuccessResponse:

@@ -23,6 +23,7 @@
     articles: Article[];
     selectedArticleId: string;
     customDescription: string;
+    extraRequirements: string;
     aspectRatio: string;
     targetDuration: number;
     styles: VideoScriptStyle[];
@@ -49,6 +50,7 @@
     articles,
     selectedArticleId = $bindable(),
     customDescription = $bindable(),
+    extraRequirements = $bindable(),
     aspectRatio = $bindable(),
     targetDuration = $bindable(),
     styles,
@@ -489,6 +491,24 @@
                   </div>
                 </div>
               {/if}
+
+              <!-- Extra Requirements: Yêu cầu thêm quan trọng -->
+              <div class="space-y-2">
+                <label for="extra-req-input" class="flex items-center gap-1.5 text-[10px] font-mono tracking-wider text-amber-400 uppercase">
+                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  YÊU CẦU THÊM QUAN TRỌNG <span class="text-gray-500 normal-case font-sans">(tùy chọn)</span>
+                </label>
+                <textarea
+                  id="extra-req-input"
+                  bind:value={extraRequirements}
+                  rows="3"
+                  placeholder="VD: Video phải có cảnh close-up sản phẩm ít nhất 2 phân cảnh. Nhân vật mặc áo trắng. Nền pastel be/kem nhẹ. Không có cảnh ngoài trời. Mở đầu bằng câu hỏi..."
+                  class="w-full bg-[#0c0c10] border border-amber-500/20 hover:border-amber-500/40 focus:border-amber-500/60 rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none resize-none min-h-[70px] leading-relaxed placeholder:text-gray-600 transition-colors"
+                ></textarea>
+                <p class="text-[9px] font-mono text-gray-500 leading-normal">
+                  AI sẽ bắt buộc tuân theo các yêu cầu này khi soạn thảo và tối ưu hóa kịch bản.
+                </p>
+              </div>
             </div>
           {:else if generatorStep === 2 && competitorAnalysis}
             <!-- Step 2: Review and Edit USP & Competitor Analysis -->

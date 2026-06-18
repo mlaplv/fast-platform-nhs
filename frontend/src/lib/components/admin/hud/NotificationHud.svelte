@@ -40,36 +40,8 @@
     }
   }
 
-  $effect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    
-    function startPolling() {
-      if (interval) clearInterval(interval);
-      interval = setInterval(() => {
-        // R1.10: Smart Lifecycle - Only poll if tab is active and visible
-        if (document.visibilityState === 'visible') {
-            nanobot.fetchNotifications();
-        }
-      }, 30000); // 30s polling
-    }
-
-    function handleVisibility() {
-        if (document.visibilityState === 'visible') {
-            nanobot.fetchNotifications(); // Fetch immediately on return
-            startPolling();
-        } else {
-            if (interval) clearInterval(interval); // Stop polling when hidden
-        }
-    }
-
-    startPolling();
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-        if (interval) clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  });
+  // Đã có SSE Pulse Stream cập nhật thông báo thời gian thực qua event bus (addPendingSignal)
+  // và tự động fetch lại khi người dùng click mở bell. Loại bỏ polling định kỳ 30s để tránh rác log backend.
 </script>
 
 <div class="relative">

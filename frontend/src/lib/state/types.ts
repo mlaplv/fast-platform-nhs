@@ -519,6 +519,27 @@ export interface VideoScene {
   scene_notes?: string;
 }
 
+export interface EvaluationCriterion {
+  score: number;
+  pros: string[];
+  cons: string[];
+  suggestions: string[];
+}
+
+export interface VideoScriptEvaluation {
+  overall_score: number;
+  overall_recommendation: string;
+  hook_retention: EvaluationCriterion;
+  audio_visual_harmony: EvaluationCriterion;
+  ai_generation_viability: EvaluationCriterion;
+  emotional_arc: EvaluationCriterion;
+  tts_sync_compliance: EvaluationCriterion;
+  cta_effectiveness: EvaluationCriterion;
+  duration_compliance: EvaluationCriterion;
+  platform_optimization: EvaluationCriterion;
+  brand_integrity: EvaluationCriterion;
+}
+
 export interface VideoScriptStructured {
   title: string;
   target_audience: string;
@@ -526,10 +547,10 @@ export interface VideoScriptStructured {
   total_duration: number;
   notes?: string;
   scenes: VideoScene[];
-  competitor_analysis?: any;
+  competitor_analysis?: Record<string, unknown>;
   aspect_ratio?: string;
-  landing_page_headlines?: any[];
-  evaluation?: any;
+  landing_page_headlines?: string[];
+  evaluation?: VideoScriptEvaluation;
 }
 
 export interface VideoScript {

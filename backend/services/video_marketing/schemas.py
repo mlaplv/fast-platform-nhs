@@ -20,6 +20,10 @@ class ScriptEvaluationReport(BaseModel):
     platform_optimization: EvaluationCriterion = Field(..., description="Độ tối ưu hóa theo định dạng và thuật toán nền tảng")
     brand_integrity: EvaluationCriterion = Field(..., description="Tính bảo toàn nhận diện bao bì & logo sản phẩm")
     duration_compliance: EvaluationCriterion = Field(..., description="Độ tuân thủ thời lượng mục tiêu (sai số tối đa 10% so với target_duration)")
+    emotional_arc: EvaluationCriterion = Field(..., description="Kiến trúc cảm xúc: Hành trình HOOK → Pain → Solution → Proof → CTA có mạch lạc, tăng tiến không?")
+    cta_effectiveness: EvaluationCriterion = Field(..., description="Hiệu quả CTA: Lời kêu gọi hành động có rõ ràng, cấp bách, dễ thực hiện ngay không?")
+    tts_sync_compliance: EvaluationCriterion = Field(..., description="Kiểm tra word-per-second từng phân cảnh: Voiceover có khả thi để đọc trong thời gian quy định (2.5-3.5 từ/giây)?")
+    overall_score: float = Field(..., description="Điểm trung bình tổng hợp của toàn bộ kịch bản (scale 1-10, 1 chữ số thập phân)")
     overall_recommendation: str = Field(..., description="Định hướng chiến lược tổng quan của Đạo diễn AI")
 
 class GenerateScriptRequest(BaseModel):
@@ -31,6 +35,7 @@ class GenerateScriptRequest(BaseModel):
     aspect_ratio: Optional[str] = Field("9:16", description="Tỷ lệ khung hình: 16:9 (ngang) hoặc 9:16 (dọc)")
     target_duration: Optional[int] = Field(30, description="Thời lượng mục tiêu của video tính bằng giây")
     competitor_analysis: Optional[CompetitorAnalysisInput] = Field(None, description="Thông tin đối thủ cạnh tranh và USP đã phân tích trước đó")
+    extra_requirements: Optional[str] = Field(None, description="Yêu cầu thêm quan trọng: bối cảnh, nhân vật, phong cách hình ảnh, quy tắc đặc biệt mà AI phải tuân theo bắt buộc")
 
 class CreateStyleRequest(BaseModel):
     id: str = Field(..., description="Mã phong cách viết (slug, ví dụ: tiktok_trend_2026)")

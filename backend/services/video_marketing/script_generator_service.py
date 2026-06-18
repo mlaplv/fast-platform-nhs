@@ -164,7 +164,8 @@ class ScriptGeneratorService:
         style: Optional[VideoScriptStyle],
         aspect_ratio: str = "9:16",
         target_duration: int = 30,
-        competitor_analysis: Optional[dict] = None
+        competitor_analysis: Optional[dict] = None,
+        extra_requirements: Optional[str] = None
     ) -> VideoScriptModel:
         """
         Sinh kịch bản video từ nguồn thông tin đã chọn, kết cấu thời lượng, khung hình và phân tích cạnh tranh.
@@ -227,6 +228,15 @@ Yêu cầu cực kỳ quan trọng về thời lượng:
 
 YÊU CẦU BIÊN KỊCH MARKETING:
 Hãy lồng ghép khéo léo thông điệp cốt lõi và các USP của chúng ta vào kịch bản (đặc biệt là trong phần lời thoại voiceover và hook 3s đầu) để so sánh/phản biện gián tiếp hoặc trực diện các điểm yếu của đối thủ, giúp khách hàng nhận thấy giá trị vượt trội của sản phẩm/bài viết của chúng ta!
+"""
+
+        if extra_requirements and extra_requirements.strip():
+            prompt_with_config += f"""
+[⚠️ YÊU CẦU ĐẶC BIỆT BẮT BUỘC PHẢI TUÂN THEO (MANDATORY REQUIREMENTS)]
+Các yêu cầu dưới đây là TUYỆT ĐỐI BẮT BUỘC. AI KHÔNG ĐƯỢC BỎ QUA hoặc thay thế bằng bất kỳ lý do nào:
+{extra_requirements.strip()}
+
+Hãy đảm bảo mỗi phân cảnh trong kịch bản đều tuân thủ triệt để các yêu cầu trên.
 """
 
         # 5. Gửi request AI qua TrinityBridge

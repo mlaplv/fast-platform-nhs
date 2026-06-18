@@ -9,6 +9,8 @@
   import Eye from "@lucide/svelte/icons/eye";
   import Download from "@lucide/svelte/icons/download";
   import Trash2 from "@lucide/svelte/icons/trash-2";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import type { VideoScript, VideoScene } from "$lib/types";
 
   import CompetitiveIntel from "./CompetitiveIntel.svelte";
@@ -23,6 +25,7 @@
     copiedTextMap: Record<number, boolean>;
     showPromptHub: boolean;
     activePromptTab: "midjourney" | "runway" | "heygen" | "gemini";
+    activeWorkspaceTab: 'intel' | 'match' | 'eval' | null;
     triggerAutoSave: () => void;
     downloadMarkdown: (script: VideoScript) => void;
     handleDelete: (id: string, title: string) => void;
@@ -38,8 +41,11 @@
     isEvaluating: boolean;
     isOptimizing: boolean;
     onEvaluate: () => Promise<void>;
-    onOptimize: () => Promise<void>;
+    onForceEvaluate: () => Promise<void>;
+    onOptimize: (focusCriterion?: string) => Promise<void>;
     isScriptModified: boolean;
+    isSidebarOpen: boolean;
+    toggleSidebar: () => void;
   }
 
   let {
@@ -48,6 +54,7 @@
     copiedTextMap,
     showPromptHub = $bindable(),
     activePromptTab = $bindable(),
+    activeWorkspaceTab = $bindable<'intel' | 'match' | 'eval' | null>('intel'),
     triggerAutoSave,
     downloadMarkdown,
     handleDelete,
@@ -63,11 +70,14 @@
     isEvaluating,
     isOptimizing,
     onEvaluate,
+    onForceEvaluate,
     onOptimize,
-    isScriptModified
+    isScriptModified,
+    isSidebarOpen,
+    toggleSidebar
   }: Props = $props();
 
-  let activeWorkspaceTab = $state<'intel' | 'match' | 'eval' | null>('intel');
+  // activeWorkspaceTab giờ được bind từ parent nên xóa local state
 </script>
 
 <!-- RIGHT COLUMN: Detail Pro Editor Workspace -->
@@ -92,6 +102,20 @@
       <div class="p-4 border-b border-[#151515] bg-[#050505] flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-3">
+            <!-- Toggle Sidebar Button -->
+            <button
+              type="button"
+              onclick={toggleSidebar}
+              class="flex items-center justify-center w-7 h-7 rounded bg-[#111] hover:bg-[#161616] border border-gray-800 text-gray-400 hover:text-white transition-all shrink-0"
+              title={isSidebarOpen ? "Đóng danh sách kịch bản" : "Mở danh sách kịch bản"}
+            >
+              {#if isSidebarOpen}
+                <ChevronLeft class="w-4 h-4" />
+              {:else}
+                <ChevronRight class="w-4 h-4" />
+              {/if}
+            </button>
+
             <input
               type="text"
               bind:value={activeScript.title}
@@ -234,6 +258,7 @@
                       isEvaluating={isEvaluating}
                       isOptimizing={isOptimizing}
                       onEvaluate={onEvaluate}
+                      onForceEvaluate={onForceEvaluate}
                       onOptimize={onOptimize}
                       isScriptModified={isScriptModified}
                     />

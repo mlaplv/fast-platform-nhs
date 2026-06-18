@@ -77,8 +77,127 @@ INITIAL_STYLES = [
         "hook_template": "Đặt vấn đề thời sự hoặc nhu cầu cấp thiết của thị trường và tóm tắt nhanh 3 bài học đắt giá người xem sẽ nhận được ở video trong 10s đầu.",
         "style_instruction": "Kịch bản chuyên sâu chuẩn định dạng ngang 16:9. Nhịp điệu phân tích vừa phải, chắc chắn (4 - 6 giây mỗi cảnh). Lời thoại cung cấp thông tin giá trị cao, giải thích nguyên lý khoa học đằng sau sản phẩm. Phân tích đối thủ cạnh tranh một cách khách quan để làm nổi bật USP của sản phẩm ta. CTA đăng ký kênh và nhấp link mua hàng.",
         "is_active": True
+    },
+    {
+        "id": "tiktok_viral_trend",
+        "name": "⚡ TikTok Viral Trend (POV / Trend Format / Sound Sync)",
+        "platform": "TikTok",
+        "hook_template": "3 giây đầu PHẢI là một trong các format viral đang trending: 'POV: Bạn vừa phát hiện ra...', 'Dừng scroll! Nếu bạn đang [vấn đề], đây là thứ bạn cần ngay', hoặc bắt đầu bằng khoảnh khắc cao trào/kết quả gây shock rồi mới kể lại câu chuyện (Hook bằng kết quả). Visual cảnh 1 PHẢI có chuyển động đột ngột hoặc zoom punch vào mặt sản phẩm.",
+        "style_instruction": """[PHONG CÁCH TIKTOK VIRAL TREND — CHUẨN PRODUCTION 2025]
+
+MỤC TIÊU: Kịch bản tạo ra video có khả năng viral tự nhiên trên TikTok bằng cách tận dụng tâm lý người xem, format trend và kỹ thuật giữ chân tối ưu thuật toán.
+
+━━━ NHỊP ĐỘ & CẤU TRÚC CẢNH ━━━
+• Mỗi cảnh: 1.5 - 2.5 giây (không được quá 3s, thuật toán TikTok phạt video nhịp chậm).
+• Luật 3-Cut: Cứ mỗi 3 cảnh liên tiếp PHẢI đổi góc máy hoàn toàn (Close-up → Medium → Overhead hoặc ngược lại).
+• scene_notes BẮT BUỘC ghi: loại transition (Jump Cut / Whip Pan / Smash Cut / Zoom Punch) và timing (on-beat / off-beat).
+
+━━━ GIỌNG NÓI (VOICEOVER / TTS) ━━━
+• Tốc độ đọc: 3.0 - 3.5 từ/giây, giọng trẻ trung, nhiều năng lượng.
+• Câu cực ngắn: 4-8 từ/câu. Dùng câu hỏi tu từ, dừng ngắt đột ngột ("Và bạn biết điều gì không?", "Đúng vậy.", "Không phải thế đâu.").
+• KHÔNG dùng câu dài dòng, mệnh đề phụ lồng nhau.
+• Kỹ thuật Pattern Interrupt: Mỗi 5-7 giây PHẢI có 1 thay đổi về giọng nói hoặc câu gây bất ngờ để chặn swipe.
+
+━━━ ÂM THANH & NHẠC NỀN ━━━
+scene_notes PHẢI ghi rõ loại âm thanh cho từng cảnh:
+• Cảnh HOOK: Trending sound on TikTok (ghi: "Sử dụng trending audio hiện tại trên FYP / viral sound week") + hiệu ứng "whoosh" hoặc "record scratch" đồng bộ với visual cut.
+• Cảnh PAIN: Nhạc lo-fi căng thẳng nhẹ + tiếng heartbeat SFX ở điểm nhấn.
+• Cảnh SOLUTION: Upbeat transition music, âm thanh "ding!" khi reveal sản phẩm.
+• Cảnh PROOF: Nhạc nền hype nhẹ, không lấn át voiceover.
+• Cảnh CTA: Hard cut âm thanh + text pop SFX.
+• Toàn bộ: Beat sync — các cut chuyển cảnh PHẢI rơi vào nhịp phách (on-beat cut).
+
+━━━ TEXT OVERLAY & CAPTION ━━━
+scene_notes PHẢI ghi rõ text overlay cho mỗi cảnh:
+• Cảnh 1 (Hook): Text lớn, màu trắng bold viền đen, xuất hiện cùng lúc với visual: "[Câu hook dạng keyword ngắn]". Font: TikTok default heavy hoặc Impact.
+• Cảnh Pain/Solution: Text nhỏ hơn, highlight từ khóa chính (màu vàng hoặc cyan), xuất hiện 0.3s sau visual.
+• Cảnh CTA: Text CTA nhấp nháy hoặc bounce animation, màu đỏ/vàng nổi bật: "NHẤN VÀO LINK 👆" hoặc "MUA NGAY ⬇️".
+• Auto Caption: Ghi "Full caption auto-sync with voiceover" trong scene_notes cảnh cuối.
+
+━━━ HIỆU ỨNG VIDEO (EFFECTS) ━━━
+scene_notes nên đề xuất effect cụ thể:
+• Zoom Punch: Zoom nhanh vào sản phẩm/kết quả ở cảnh reveal. Ghi: "Zoom punch 150% tốc độ 0.2s, on-beat".
+• Green Screen: Nếu cần background thay đổi. Ghi: "Green screen background: [mô tả background cụ thể]".
+• Slow Motion: Dùng cho cảnh highlight sản phẩm. Ghi: "Slow motion 0.3x — [hành động cụ thể]".
+• Text-to-screen animation: Pop-in text, typewriter effect cho các từ khóa.
+• Transition hiệu ứng: Whip Pan (quay nhanh camera), Smash Cut, POV Shake.
+
+━━━ VISUAL DESCRIPTION — CHUẨN AI PROMPT ━━━
+Mỗi visual_description PHẢI là prompt AI đầy đủ theo công thức:
+[Góc máy 9:16] + [Chủ thể + hành động vật lý cụ thể] + [Ánh sáng] + [Màu/Texture] + [Phong cách render] + [Effect gợi ý]
+
+Ví dụ chuẩn:
+"Vertical 9:16 close-up POV shot, female hand holding skincare bottle at eye level, soft ring light from front creating catchlight, white minimal studio background, slight motion blur on entry, TikTok-native vertical composition, cinematic commercial grade, photorealistic 4K"
+
+━━━ FORMAT TREND ĐỀ XUẤT ━━━
+Tùy theo nội dung, chọn 1 format trend:
+• POV Format: "POV: Bạn vừa thử [sản phẩm] lần đầu..." — toàn bộ video quay từ góc nhìn người dùng.
+• Before/After Reveal: Cảnh 1-3: Vấn đề → Cảnh 4-6: Dùng sản phẩm → Cảnh 7-10: Kết quả wow.
+• "Wait for it" Format: Build-up dần với voiceover "Và đây là điều bạn không ngờ tới..." trước cảnh reveal.
+• Stitch/Duet Bait: Thiết kế cảnh đầu có yếu tố câu hỏi bỏ lửng để khuyến khích người dùng stitch.
+• Day-in-life Integration: Lồng ghép sản phẩm vào routine hàng ngày tự nhiên.
+
+━━━ THUẬT TOÁN TIKTOK — ĐIỂM GIỮ CHÂN ━━━
+• Loop Trigger: Cảnh cuối PHẢI loop được về cảnh đầu (cùng âm thanh hoặc visual) để tạo re-watch.
+• Completion Rate: Chia kịch bản thành 3 "cliffhanger nhỏ" để người xem xem hết: giây 0-5 (Hook), giây 5-15 (Reveal bất ngờ), giây 15-hết (Kết quả + CTA).
+• Comment Bait: scene_notes cảnh cuối ghi thêm: "Text overlay: '[Câu hỏi mở để comment]' — ví dụ: 'Bạn đã thử chưa? Comment 👇'".""",
+        "is_active": True
+    },
+    {
+        "id": "tiktok_storytelling_viral",
+        "name": "📖 TikTok Story-Time Viral (Dẫn Chuyện Kéo Dài 60s)",
+        "platform": "TikTok",
+        "hook_template": "Mở đầu bằng câu chuyện gây sốc/bất ngờ ở ngôi thứ nhất, đặt người xem vào tình huống khó xử hoặc tò mò cực cao: 'Tôi đã mất tự tin trong 2 năm vì điều này cho đến khi...', 'Đây là sai lầm đắt giá nhất của tôi với [vấn đề]...', 'Không ai nói cho tôi biết điều này trước đây và tôi ước...'",
+        "style_instruction": """[PHONG CÁCH TIKTOK STORY-TIME VIRAL — DẠNG KỂ CHUYỆN LÔI CUỐN]
+
+MỤC TIÊU: Kịch bản kể chuyện ở ngôi thứ nhất, tạo cảm giác authentic và personal, khiến người xem đồng cảm sâu sắc và cảm thấy câu chuyện là của chính mình. Video dài 45-60 giây, tỷ lệ xem hết (completion rate) cao nhờ narrative arc mạnh.
+
+━━━ CẤU TRÚC NARRATIVE (STORY ARC) ━━━
+Kịch bản PHẢI đi theo đúng 5 Act cảm xúc:
+• Act 1 — HOOK (0-5s): Câu mở đầu gây shock/tò mò ở ngôi thứ nhất. Không giới thiệu sản phẩm.
+• Act 2 — SETUP/CONFLICT (5-20s): Kể câu chuyện nỗi đau cụ thể, chi tiết cảm xúc (không nói chung chung). Người xem phải thấy mình trong đó.
+• Act 3 — TURNING POINT (20-35s): Moment khám phá sản phẩm/giải pháp. Kể tự nhiên như kể chuyện bạn bè.
+• Act 4 — TRANSFORMATION (35-50s): Kết quả cụ thể, số liệu thực, cảm xúc thay đổi. Before vs After.
+• Act 5 — CTA + LOOP (50-60s): Lời khuyên chân thành + CTA + câu kết có thể loop về đầu.
+
+━━━ GIỌNG KỂ CHUYỆN ━━━
+• Ngôi thứ nhất hoàn toàn: "Tôi", "Mình", "Bạn và tôi", không nói "sản phẩm này".
+• Dùng chi tiết cụ thể tạo hình ảnh: Không "Tôi mất tự tin", mà "Hôm đó tôi mặc áo trắng đi họp, 10 phút sau đã vết ố vàng nách, tôi phải cả buổi che tay vào người".
+• Tạo Pattern Interrupt mỗi 8-10s: "Nhưng điều kỳ lạ là...", "Và bạn biết không...", "Đây mới là phần hay..."
+• Tốc độ đọc: 2.8 - 3.2 từ/giây, giọng tâm tình, chân thật, không theatrical.
+
+━━━ NHỊP ĐỘ CẢNH ━━━
+• Act 1-2: Cảnh 3-4s, hơi chậm để build cảm xúc. Visual POV hoặc medium shot.
+• Act 3: Cut nhanh 2s khi reveal sản phẩm — zoom punch vào sản phẩm.
+• Act 4-5: Cảnh 2-3s, nhịp tăng dần, kết thúc bằng shot energetic.
+• Transition: Dùng Cross Dissolve cho Act 1-2, Jump Cut cho Act 3-4.
+
+━━━ ÂM THANH ━━━
+• Act 1-2: Nhạc nền tâm tình, lo-fi hoặc acoustic guitar nhẹ nhàng. Volume thấp để không lấn tiếng kể.
+• Act 3 (reveal): Beat drop nhẹ hoặc uplifting transition sound + ding SFX.
+• Act 4-5: Upbeat pop/electronic nhẹ, tạo cảm giác chiến thắng.
+• Toàn video: Voiceover > music (music chỉ 20-30% volume).
+
+━━━ TEXT OVERLAY ━━━
+• Act 1: Text lớn highlight câu hook — chữ trắng nền đen hoặc không nền, font bold.
+• Act 2: Text phụ nhỏ bổ sung chi tiết. Ví dụ: "[Tên vấn đề] — [Thời gian khổ sở]".
+• Act 3: Text reveal: "Cho đến khi tôi tìm ra [tên sản phẩm]" — xuất hiện đồng thời với zoom punch.
+• Act 4: Text kết quả số liệu: "Sau 7 ngày: [Kết quả cụ thể]" — font bold, màu nổi bật.
+• Act 5: Text CTA bounce: "Mình để link ở bio / Nhấn giỏ hàng bên dưới 🛒".
+
+━━━ VISUAL DESCRIPTION — CHUẨN AI PROMPT ━━━
+Act 1-2: "Vertical 9:16 medium shot, young Vietnamese woman sitting at desk, slightly anxious expression, natural daylight from window left, realistic skin texture, no makeup look, contemporary home setting, shallow depth of field, cinema vérité style"
+Act 3: "Vertical 9:16 extreme close-up product shot, [product name] bottle/tube in hand, soft studio key light from top-right, clean white or minimal background, sharp label in focus, slight motion coming into frame (product reveal), photorealistic commercial grade"
+Act 4-5: "Vertical 9:16 medium shot, same woman now confident and bright, warm golden hour light, clear skin visible, product in background shelf, relaxed natural smile, lifestyle commercial aesthetic"
+
+━━━ COMMENT BAIT & VIRALITY ━━━
+• Cuối video (scene_notes Act 5): "Text overlay: '[Câu hỏi mở liên quan nỗi đau của họ]' — VD: 'Ai đang gặp vấn đề tương tự? Comment ⬇️' hoặc 'Tag bạn cần biết điều này 👇'".
+• Loop setup: Câu cuối cùng của voiceover phải connect về câu đầu (vòng tròn cảm xúc).
+• Stitch bait: Scene đầu đặt câu hỏi bỏ lửng có thể dùng làm stitch.""",
+        "is_active": True
     }
 ]
+
 
 async def seed_video_styles():
     print("🌟 Starting Video Script Styles Seeding...")

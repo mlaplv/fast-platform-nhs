@@ -107,11 +107,26 @@
     nanobot.showToast(`Đã sao chép prompt phân cảnh ${sceneNum}!`, "success");
   }
 
+  function getCombinedVoiceover(): string {
+    if (!activeScript || !activeScript.structured_script?.scenes) return "";
+    return activeScript.structured_script.scenes
+      .map(s => (s.voiceover || "").trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+
   function copyAllModifiedPrompts() {
     if (!activeScript || !activeScript.structured_script?.scenes) return;
     const scenes = activeScript.structured_script.scenes;
     const aspect = activeScript.structured_script.aspect_ratio || "16:9";
     
+    if (activePromptTab === 'heygen') {
+      const allVoiceover = getCombinedVoiceover();
+      navigator.clipboard.writeText(allVoiceover);
+      nanobot.showToast("Đã sao chép toàn bộ Voiceover liền mạch!", "success");
+      return;
+    }
+
     let allText = "";
     scenes.forEach((scene, idx) => {
       const promptText = activePromptTab === 'midjourney' 
@@ -189,7 +204,7 @@
                      ? 'bg-pink-950/40 border-pink-500/30 text-pink-400 shadow-sm shadow-pink-500/10' 
                      : 'border-transparent text-gray-400 hover:text-white'}"
           >
-            HeyGen Voiceover
+            Thoại & Voiceover (TTS)
           </button>
           <button 
             onclick={() => { activePromptTab = 'gemini'; }}
@@ -207,7 +222,7 @@
           class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-950 hover:bg-gray-900 text-xs text-gray-300 rounded-lg border border-gray-800 transition-all shrink-0"
         >
           <Copy class="w-3.5 h-3.5" />
-          <span>Sao chép tất cả</span>
+          <span>{activePromptTab === 'heygen' ? 'Copy toàn bộ thoại' : 'Sao chép tất cả'}</span>
         </button>
       </div>
 
@@ -463,6 +478,25 @@
         {@const noneVal = undefined}
       {/if}
 
+      <!-- TIP Alert Box -->
+      <div class="mx-5 mt-4 p-3 bg-amber-500/5 border border-amber-500/10 border-l-2 border-l-amber-500/50 rounded-r-lg space-y-1 relative" transition:slide>
+        <div class="flex items-center gap-1.5 text-amber-400 font-semibold text-[10px] uppercase tracking-wider">
+          <Sparkles class="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+          <span>Mẹo sản xuất tối ưu (PRO TIP)</span>
+        </div>
+        <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
+          {#if activePromptTab === 'midjourney'}
+            Dùng prompt này để tạo ảnh sản phẩm có chất lượng điện ảnh cao trên Midjourney v6/Flux trước. Hãy tải ảnh sản phẩm thật của sếp lên làm ảnh tham chiếu (Character/Style Reference) để AI không tự ý đổi bao bì vỏ hộp.
+          {:else if activePromptTab === 'runway'}
+            Hãy chọn chế độ <strong>Image-to-Video (Ảnh thành video)</strong>. Đính kèm ảnh sản phẩm tĩnh nét nhất đã tạo từ bước trước và dán prompt này vào để sinh chuyển động camera 4s mà không làm méo hay sai lệch nhãn mác.
+          {:else if activePromptTab === 'heygen'}
+            Nhấp nút <strong>"Copy toàn bộ thoại"</strong> ở trên để sao chép văn bản thoại gộp sạch sẽ. Sếp dán thẳng vào CapCut để AI tự động thuyết minh bằng các giọng đọc tiếng Việt thịnh hành (như Thanh Vy, Chàng trai hoạt ngôn) chỉ trong 3 giây.
+          {:else if activePromptTab === 'gemini'}
+            <strong>QUY TRÌNH LUYỆN & KHỚP CẢNH:</strong> B1: Gửi <strong>Master Prompt</strong> kèm ảnh sản phẩm thật lên trước để dạy Gemini nhớ website osmo.vn và thương hiệu sản phẩm. B2: Copy từng <strong>Phân cảnh lẻ</strong> bên dưới kèm ảnh sản phẩm thật gửi tiếp vào chính ô chat đó để AI sinh video chuyển động có tính liền mạch và chính xác.
+          {/if}
+        </p>
+      </div>
+
       <!-- Prompts List -->
       <div class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
         {#if activeScript && activeScript.structured_script?.scenes}
@@ -487,6 +521,29 @@
                 Dán câu lệnh tổng quát này vào Gemini Pro để nhận phân tích, tối ưu hoá nhịp độ và đạo diễn hình ảnh nâng cao cho toàn bộ kịch bản của sếp:
               </p>
               <pre class="text-xs text-blue-200 leading-relaxed font-mono whitespace-pre-wrap select-all bg-black/40 border border-blue-500/10 p-3 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">{getGeminiMasterPrompt()}</pre>
+            </div>
+          {/if}
+
+          {#if activePromptTab === 'heygen'}
+            <!-- Combined Voiceover for TTS Tools -->
+            <div class="bg-pink-950/10 border border-pink-500/20 rounded-xl p-4 space-y-3 relative group">
+              <div class="flex items-center justify-between border-b border-pink-500/20 pb-2">
+                <span class="text-[10px] font-mono font-bold text-pink-400 uppercase">Toàn bộ lời thoại liền mạch (Dùng cho CapCut / TTS)</span>
+                <button 
+                  onclick={() => {
+                    navigator.clipboard.writeText(getCombinedVoiceover());
+                    nanobot.showToast("Đã sao chép toàn bộ Voiceover liền mạch!", "success");
+                  }}
+                  class="p-1 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded transition-all"
+                  title="Sao chép toàn bộ lời thoại"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
+                Đoạn văn gộp thoại của toàn bộ phân cảnh, có thể dán trực tiếp vào CapCut hoặc phần mềm đọc AI mà không bị lẫn tiêu đề phân cảnh:
+              </p>
+              <pre class="text-xs text-pink-200 leading-relaxed font-mono whitespace-pre-wrap select-all bg-black/40 border border-pink-500/10 p-3 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">{getCombinedVoiceover()}</pre>
             </div>
           {/if}
 

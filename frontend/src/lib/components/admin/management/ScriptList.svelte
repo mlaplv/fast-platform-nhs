@@ -38,7 +38,7 @@
 </script>
 
 <!-- LEFT COLUMN: Scripts List & Filters -->
-<div class="w-full md:w-[360px] shrink-0 border-r border-[#151515] flex flex-col h-full bg-[#050505]">
+<div class="w-full flex flex-col h-full bg-[#050505]">
   
   <!-- Header Toolbar -->
   <div class="p-4 border-b border-[#151515] flex items-center justify-between gap-3 bg-[#080808]">
@@ -96,7 +96,7 @@
                      : 'bg-[#0b0b0b] border-[#151515] hover:border-gray-800'}"
           >
             {#if selectedScriptId === script.id}
-              <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-cyan-500 rounded-l-md"></div>
+              <div class="absolute left-[2px] top-2 bottom-2 w-[3px] bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.8)] z-10"></div>
             {/if}
 
             <div class="flex items-start justify-between gap-2">

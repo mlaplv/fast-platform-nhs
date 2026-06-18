@@ -13,33 +13,21 @@ logger = logging.getLogger("api-gateway")
 
 class NotificationService:
     @staticmethod
-    async def get_notifications(db_session: AsyncSession, user_email: Optional[str]) -> NotificationListResponse:
+    async def get_notifications(db_session: AsyncSession, user_id: Optional[str], user_roles: List[str]) -> NotificationListResponse:
         """Fetch notifications (R76: Scalar Projection). R1.5: Zero-Hydration.
         SECURITY: SYSTEM_ type notifications are strictly admin-only and never
         returned to end clients regardless of user_id linkage.
         """
-        from sqlalchemy.orm import selectinload
-        
-        is_staff = False
-        user = None
-
-        if user_email:
-            stmt = select(User).options(selectinload(User.roles)).where(User.email == user_email)
-            user = (await db_session.execute(stmt)).scalar_one_or_none()
-            if not user:
-                raise NotAuthorizedException("User context not found")
-            
-            user_roles = [r.code for r in getattr(user, "roles", [])]
-            is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
+        is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
 
         # Build query conditions
-        if not user_email:
+        if not user_id:
             conditions = [Notification.user_id == None]
         else:
             # Sếp's administrative portal always includes admin notifications
             conditions = [
                 or_(
-                    Notification.user_id == str(user.id),
+                    Notification.user_id == user_id,
                     Notification.user_id == "user_admin",
                     Notification.user_id == None
                 )
@@ -75,33 +63,24 @@ class NotificationService:
     @staticmethod
     async def get_notifications_paginated(
         db_session: AsyncSession,
-        user_email: Optional[str],
+        user_id: Optional[str],
+        user_roles: List[str],
         cursor: Optional[str] = None,
         limit: int = 20
     ) -> NotificationCursorPaginatedResponse:
         """Fetch notifications using cursor pagination (O(1) lookups on large datasets)."""
-        from sqlalchemy.orm import selectinload
         import base64
+        from datetime import datetime
         
-        is_staff = False
-        user = None
-
-        if user_email:
-            stmt = select(User).options(selectinload(User.roles)).where(User.email == user_email)
-            user = (await db_session.execute(stmt)).scalar_one_or_none()
-            if not user:
-                raise NotAuthorizedException("User context not found")
-            
-            user_roles = [r.code for r in getattr(user, "roles", [])]
-            is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
+        is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
 
         # Build query conditions
-        if not user_email:
+        if not user_id:
             conditions = [Notification.user_id == None]
         else:
             conditions = [
                 or_(
-                    Notification.user_id == str(user.id),
+                    Notification.user_id == user_id,
                     Notification.user_id == "user_admin",
                     Notification.user_id == None
                 )
@@ -221,38 +200,31 @@ class NotificationService:
     @staticmethod
     async def get_trash_notifications_paginated(
         db_session: AsyncSession,
-        user_email: Optional[str],
+        user_id: Optional[str],
+        user_roles: List[str],
         cursor: Optional[str] = None,
         limit: int = 20
     ) -> NotificationCursorPaginatedResponse:
         """Fetch soft-deleted notifications using cursor pagination (Trash Bin)."""
-        from sqlalchemy.orm import selectinload
         import base64
         from datetime import datetime
         
-        is_staff = False
-        user = None
-
-        if user_email:
-            stmt = select(User).options(selectinload(User.roles)).where(User.email == user_email)
-            user = (await db_session.execute(stmt)).scalar_one_or_none()
-            if not user:
-                raise NotAuthorizedException("User context not found")
-            
-            user_roles = [r.code for r in getattr(user, "roles", [])]
-            is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
+        is_staff = any(role in ["SUPER_ADMIN", "MANAGER", "EDITOR", "AI_TRAINER"] for role in user_roles)
 
         if not is_staff:
             raise NotAuthorizedException("Clearance level insufficient to access Trash Bin")
 
         # Build query conditions for soft-deleted notifications
-        conditions = [
-            or_(
-                Notification.user_id == str(user.id),
-                Notification.user_id == "user_admin",
-                Notification.user_id == None
-            )
-        ]
+        if not user_id:
+            conditions = [Notification.user_id == None]
+        else:
+            conditions = [
+                or_(
+                    Notification.user_id == user_id,
+                    Notification.user_id == "user_admin",
+                    Notification.user_id == None
+                )
+            ]
 
         filters = [*conditions, Notification.deleted_at != None]
 

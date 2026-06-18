@@ -204,8 +204,7 @@ async def _heartbeat_loop():
     await _aio.sleep(60)
     while True:
         try:
-            async with alchemy_config.create_session_maker()() as session:
-                await detector.scan(session)
+            await detector.scan()
         except Exception as e: 
             logger.exception(f"[Heartbeat] Scan failed: {e}")
         await _aio.sleep(interval)

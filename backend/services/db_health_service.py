@@ -208,8 +208,8 @@ class DbHealthService:
         # Query user tables fragmentation ranking (greater than 1000 live rows)
         bloat_stmt = text("""
             SELECT
-                tablename,
-                pg_size_pretty(pg_total_relation_size(quote_ident(tablename))) AS total_size,
+                relname AS tablename,
+                pg_size_pretty(pg_total_relation_size(quote_ident(relname))) AS total_size,
                 n_dead_tup AS dead_rows,
                 n_live_tup AS live_rows,
                 ROUND(100.0 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 1)::float AS dead_ratio_pct,
