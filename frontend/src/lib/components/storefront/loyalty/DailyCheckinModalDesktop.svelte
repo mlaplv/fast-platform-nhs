@@ -363,7 +363,7 @@
     <!-- HEADER -->
     <div class="px-4 pt-5 pb-2.5 flex-shrink-0 flex items-start justify-between">
       <div class="flex flex-col">
-        <h2 class="text-white font-black text-[22px] tracking-wide leading-tight">Trung tâm thưởng</h2>
+        <div class="text-white font-black text-[22px] tracking-wide leading-tight">Trung tâm thưởng</div>
         
         <div class="flex items-center gap-3 mt-2">
           <button 
@@ -430,9 +430,9 @@
       <!-- SECTION 1: NHIỆM VỤ THƯỞNG -->
       <div>
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h3 class="font-black text-[17px] tracking-wide text-black leading-none">Nhiệm vụ thưởng</h3>
+          <div class="font-black text-[17px] tracking-wide text-black leading-none">Nhiệm vụ thưởng</div>
           {#if checkinStore.status?.start_date || checkinStore.status?.end_date}
-            <span class="text-[10px] font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full leading-none">
+            <span class="text-[10px] font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full leading-none">
               {formatSetupPeriod(checkinStore.status.start_date, checkinStore.status.end_date)}
             </span>
           {/if}
@@ -512,7 +512,7 @@
                 </div>
 
                 <!-- Label text -->
-                <span class="font-extrabold text-[11px] leading-tight transition-colors duration-300" style="color: {active ? '#000000' : '#9CA3AF'};">
+                <span class="font-extrabold text-[11px] leading-tight transition-colors duration-300" style="color: {active ? '#000000' : '#595959'};">
                   {active ? 'Hôm nay' : `Ngày ${d.day}`}
                 </span>
               </div>
@@ -536,7 +536,7 @@
               <svg class="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
               </svg>
-              <span class="text-gray-400 text-[14px] font-bold">Đã nhận phần thưởng hôm nay</span>
+              <span class="text-gray-600 text-[14px] font-bold">Đã nhận phần thưởng hôm nay</span>
             </div>
           {:else}
             <button
@@ -575,20 +575,20 @@
         {/if}
         <!-- Opt-out option checkbox (Always visible to ensure UI consistency and prevent layout confusion) -->
         <div class="flex items-center justify-center gap-1.5 mt-4 select-none">
-          <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors text-[12px] font-semibold">
+          <label class="flex items-center gap-2 cursor-pointer text-gray-600 hover:text-gray-800 transition-colors text-[12px] font-semibold">
             <input
               type="checkbox"
               bind:checked={dontShowToday}
               class="rounded border-gray-300 bg-gray-50 text-[#ff9900] focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5 cursor-pointer"
             />
-            <span>Không hiển thị lại hôm nay</span>
+            <span class="text-gray-600">Không hiển thị lại hôm nay</span>
           </label>
         </div>
       </div>
 
       <!-- RECOMMENDATIONS -->
       <div class="mt-8 flex-1 flex flex-col">
-        <h3 class="font-black text-[17px] tracking-wide text-black mb-4">Tiết kiệm thêm với tiền thưởng</h3>
+        <div class="font-black text-[17px] tracking-wide text-black mb-4">Tiết kiệm thêm với tiền thưởng</div>
 
         {#if isLoadingProducts}
           <div class="grid grid-cols-2 gap-3.5 pb-6">
@@ -612,9 +612,9 @@
                 </div>
 
                 <div class="p-3 flex flex-col flex-1">
-                  <h4 class="font-bold text-[12.5px] leading-tight text-gray-800 line-clamp-2 min-h-[34px] mb-2.5">
+                  <div class="font-bold text-[12.5px] leading-tight text-gray-800 line-clamp-2 min-h-[34px] mb-2.5">
                     {p.name}
-                  </h4>
+                  </div>
 
                   <div class="flex flex-wrap gap-1 mb-3">
                     <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-[4px] bg-[#e0f7f4] text-[#00a896]">
@@ -628,7 +628,7 @@
                   <div class="mt-auto flex items-center justify-between">
                     <div class="flex flex-col">
                       <span class="text-[#ff9900] font-extrabold text-[13px] leading-none mb-0.5">{fmtPrice(p.discountPrice)}</span>
-                      <span class="text-gray-400 text-[10px] line-through leading-none">{fmtPrice(p.price)}</span>
+                      <span class="text-gray-600 text-[10px] line-through leading-none">{fmtPrice(p.price)}</span>
                     </div>
                     <button 
                       onclick={() => window.open('/' + p.slug, '_blank')}
@@ -642,7 +642,7 @@
             {/each}
           </div>
         {:else}
-          <div class="py-6 text-center text-gray-400 text-sm">
+          <div class="py-6 text-center text-gray-600 text-sm">
             Không có sản phẩm khuyến mãi nào khả dụng.
           </div>
         {/if}
@@ -673,14 +673,14 @@
           <button 
             onclick={() => activeTab = 'history'} 
             class="flex-1 py-2 text-[11px] font-black tracking-wider rounded-full transition-all duration-200
-              {activeTab === 'history' ? 'bg-[#231b15] text-[#f5d7af] shadow-md' : 'text-gray-500 hover:text-gray-800'}"
+              {activeTab === 'history' ? 'bg-[#231b15] text-[#f5d7af] shadow-md' : 'text-gray-600 hover:text-gray-900'}"
           >
             Lịch sử nhận
           </button>
           <button 
             onclick={() => activeTab = 'rules'} 
             class="flex-1 py-2 text-[11px] font-black tracking-wider rounded-full transition-all duration-200
-              {activeTab === 'rules' ? 'bg-[#231b15] text-[#f5d7af] shadow-md' : 'text-gray-500 hover:text-gray-800'}"
+              {activeTab === 'rules' ? 'bg-[#231b15] text-[#f5d7af] shadow-md' : 'text-gray-600 hover:text-gray-900'}"
           >
             Quy định chung
           </button>
@@ -693,7 +693,7 @@
               <div class="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
                 <span class="text-4xl mb-3">🔑</span>
                 <h5 class="text-gray-900 font-black text-[14px]">Yêu cầu đăng nhập</h5>
-                <p class="text-gray-400 text-[11px] mt-1 max-w-[200px] leading-normal font-medium mb-4">
+                <p class="text-gray-600 text-[11px] mt-1 max-w-[200px] leading-normal font-medium mb-4">
                   Lịch sử tích lũy chỉ hiển thị khi tài khoản đã được xác thực.
                 </p>
                 <button
@@ -715,7 +715,7 @@
               <div class="flex flex-col items-center justify-center py-16 text-center">
                 <span class="text-4xl mb-3">⏱️</span>
                 <h5 class="text-gray-800 font-black text-[14px]">Chưa có biến động điểm</h5>
-                <p class="text-gray-400 text-[11px] mt-1 max-w-[200px] leading-normal font-medium">Hãy nhận phần thưởng hôm nay để bắt đầu tích luỹ ví điểm nhé!</p>
+                <p class="text-gray-600 text-[11px] mt-1 max-w-[200px] leading-normal font-medium">Hãy nhận phần thưởng hôm nay để bắt đầu tích luỹ ví điểm nhé!</p>
               </div>
             {:else}
               <div class="space-y-3">
@@ -731,14 +731,14 @@
                       </div>
                       <div class="flex flex-col">
                         <span class="text-gray-800 font-bold text-[13px] tracking-tight">{tx.notes || 'Điểm danh hàng ngày'}</span>
-                        <span class="text-gray-400 text-[10px] font-medium mt-0.5">{formatDate(tx.created_at)}</span>
+                        <span class="text-gray-600 text-[10px] font-medium mt-0.5">{formatDate(tx.created_at)}</span>
                       </div>
                     </div>
                     <div class="flex flex-col items-end">
                       <span class="text-[14.5px] font-black text-green-600 tracking-tight">
                         +{(tx.amount * LOYALTY_CONFIG.DAILY_CHECKIN_FOMO_VAL).toLocaleString('vi-VN')}đ
                       </span>
-                      <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Tiền thưởng</span>
+                      <span class="text-[8px] font-bold text-gray-600 uppercase tracking-widest mt-0.5">Tiền thưởng</span>
                     </div>
                   </div>
                 {/each}
@@ -750,7 +750,7 @@
               <div class="flex items-start gap-4.5 p-4 bg-amber-50/20 rounded-[18px] border border-amber-100/30">
                 <span class="text-2xl mt-0.5">🎁</span>
                 <div class="flex-1">
-                  <h4 class="font-black text-[13.5px] text-[#8c6200] tracking-wide mb-1">ĐIỂM DANH MỖI NGÀY</h4>
+                  <div class="font-black text-[13.5px] text-[#8c6200] tracking-wide mb-1">ĐIỂM DANH MỖI NGÀY</div>
                   <p class="text-[11.5px] text-gray-600 leading-relaxed font-medium">
                     Mỗi ngày điểm danh, bạn nhận ngay <strong class="text-amber-700">10.000đ</strong> vào ví tích lũy của cửa hàng để mua sắm.
                   </p>
@@ -760,7 +760,7 @@
               <div class="flex items-start gap-4.5 p-4 bg-orange-50/20 rounded-[18px] border border-orange-100/30">
                 <span class="text-2xl mt-0.5">🔥</span>
                 <div class="flex-1">
-                  <h4 class="font-black text-[13.5px] text-[#a04000] tracking-wide mb-1">DUY TRÌ CHUỖI LIÊN TỤC</h4>
+                  <div class="font-black text-[13.5px] text-[#a04000] tracking-wide mb-1">DUY TRÌ CHUỖI LIÊN TỤC</div>
                   <p class="text-[11.5px] text-gray-600 leading-relaxed font-medium">
                     Không bỏ lỡ ngày nào! Đạt chuỗi liên tục đến <strong class="text-orange-700">Ngày 7</strong> để nhận phần quà cực lớn nhân đôi giá trị!
                   </p>
@@ -770,7 +770,7 @@
               <div class="flex items-start gap-4.5 p-4 bg-teal-50/20 rounded-[18px] border border-teal-100/30">
                 <span class="text-2xl mt-0.5">🛒</span>
                 <div class="flex-1">
-                  <h4 class="font-black text-[13.5px] text-[#006050] tracking-wide mb-1">TIẾT KIỆM KHI MUA SẮM</h4>
+                  <div class="font-black text-[13.5px] text-[#006050] tracking-wide mb-1">TIẾT KIỆM KHI MUA SẮM</div>
                   <p class="text-[11.5px] text-gray-600 leading-relaxed font-medium">
                     Điểm thưởng được áp dụng trừ trực tiếp vào hóa đơn của bạn. Mua sắm thông minh và tiết kiệm tối đa cùng Elite.
                   </p>
@@ -780,8 +780,8 @@
               <div class="flex items-start gap-4.5 p-4 bg-slate-50/70 rounded-[18px] border border-slate-100">
                 <span class="text-2xl mt-0.5">⏳</span>
                 <div class="flex-1">
-                  <h4 class="font-black text-[13.5px] text-[#475569] tracking-wide mb-1">CHÍNH SÁCH BẢO VỆ</h4>
-                  <p class="text-[11.5px] text-gray-500 leading-relaxed font-medium">
+                  <div class="font-black text-[13.5px] text-[#475569] tracking-wide mb-1">CHÍNH SÁCH BẢO VỆ</div>
+                  <p class="text-[11.5px] text-gray-600 leading-relaxed font-medium">
                     Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng. Điểm thưởng tự động hết hạn sau 30 ngày kể từ ngày tích lũy.
                   </p>
                 </div>

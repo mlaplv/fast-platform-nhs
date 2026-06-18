@@ -152,14 +152,14 @@
       "
     >
       <!-- Premium vector gift box SVG -->
-      <div class="flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#E5A93C] rounded-full shadow-[0_2px_8px_rgba(229,169,60,0.3)] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      <div class="flex items-center justify-center bg-gradient-to-br {hasCheckedIn ? 'from-slate-100 to-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.05)]' : 'from-[#FFD700] to-[#E5A93C] shadow-[0_2px_8px_rgba(229,169,60,0.3)]'} rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
         style="
           width: {isMobile ? '38px' : (isScrolled ? '30px' : '38px')};
           height: {isMobile ? '38px' : (isScrolled ? '30px' : '38px')};
         "
       >
         <svg 
-          class="text-white transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+          class="{hasCheckedIn ? 'text-slate-700' : 'text-[#231b15]'} transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
           viewBox="0 0 24 24" 
           fill="none" 
           stroke="currentColor" 
