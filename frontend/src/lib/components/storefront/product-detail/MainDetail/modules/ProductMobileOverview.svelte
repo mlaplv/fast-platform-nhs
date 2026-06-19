@@ -116,6 +116,7 @@
   // Carousel State
   let activeImageIndex = $state(0);
   let carouselRef: HTMLElement | null = $state(null);
+  let carouselWidth = $state(0);
 
   // ─── Shopee-style Video State (Mobile) ───────────────────────────
   let videoEl = $state<HTMLVideoElement | null>(null);
@@ -157,9 +158,6 @@
     }
   });
 
-  let carouselWidth = $state(0);
-  let vouchersWidth = $state(0);
-
   /** Auto-scroll mobile carousel to selected variant image */
   $effect(() => {
     if (selectedVariant) {
@@ -167,11 +165,10 @@
       if (typeof idx === 'number' && idx >= 0 && idx < displayImages.length) {
         activeImageIndex = idx;
         if (carouselRef) {
-          // Defer the scrolling to requestAnimationFrame to ensure the DOM layout is stable,
-          // and use the reactive carouselWidth variable to avoid clientWidth read reflows.
+          // Defer the scrolling to requestAnimationFrame to ensure the DOM layout is stable
           requestAnimationFrame(() => {
             if (!carouselRef) return;
-            const width = carouselWidth || 375;
+            const width = carouselWidth || window.innerWidth || 375;
             if (width > 0) {
               carouselRef.scrollTo({
                 left: idx * width,
@@ -306,17 +303,32 @@
     }
   }
 
+  let cachedScrollWidth = 0;
+
+  $effect(() => {
+    // Reactively trigger measurement via ResizeObserver to avoid layout thrashing
+    const _ = vouchers;
+    if (vouchersListRef) {
+      const observer = new ResizeObserver(() => {
+        if (vouchersListRef) {
+          cachedScrollWidth = vouchersListRef.scrollWidth;
+        }
+      });
+      observer.observe(vouchersListRef);
+      return () => observer.disconnect();
+    }
+  });
+
   let voucherScrollTicking = false;
   function handleVoucherScroll() {
     if (!vouchersListRef || voucherScrollTicking) return;
     voucherScrollTicking = true;
     requestAnimationFrame(() => {
       if (vouchersListRef) {
-        const { scrollLeft, scrollWidth } = vouchersListRef;
+        const scrollLeft = vouchersListRef.scrollLeft;
         isAtStart = scrollLeft <= 5;
-        // Avoid bound reactive variable to prevent ResizeObserver
         const viewWidth = window.innerWidth || 375;
-        isAtEnd = scrollLeft + viewWidth >= scrollWidth - 5;
+        isAtEnd = scrollLeft + viewWidth >= (cachedScrollWidth || 0) - 5;
       }
       voucherScrollTicking = false;
     });
@@ -358,6 +370,7 @@
       });
     }}
     bind:carouselRef
+    bind:carouselWidth
     {isVideoUrl}
   />
 

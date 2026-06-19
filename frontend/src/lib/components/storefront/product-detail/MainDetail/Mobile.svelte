@@ -74,13 +74,19 @@
   }
 
   function scrollToSection(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      window.scrollTo({
-        top: el.offsetTop - 80,
-        behavior: "smooth",
-      });
-    }
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        requestAnimationFrame(() => {
+          const rect = el.getBoundingClientRect();
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          window.scrollTo({
+            top: rect.top + scrollTop - 80,
+            behavior: "smooth",
+          });
+        });
+      }
+    }, 0);
   }
 
   // --- VARIANT & CART STATE ---

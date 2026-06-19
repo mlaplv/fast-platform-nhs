@@ -146,6 +146,10 @@
     {:else}
       <img 
         src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : ((currentImage === displayImages[0] && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800))} 
+        srcset="{resolveOptimizedImageUrl(currentImage, 450)} 450w, {resolveOptimizedImageUrl(currentImage, 600)} 600w, {resolveOptimizedImageUrl(currentImage, 800)} 800w, {resolveOptimizedImageUrl(currentImage, 900)} 900w, {resolveOptimizedImageUrl(currentImage, 1200)} 1200w"
+        sizes="(max-width: 1023px) 100vw, 450px"
+        width="450"
+        height="450"
         alt={product.name} 
         class="w-full h-full object-contain bg-white" 
         fetchpriority="high"

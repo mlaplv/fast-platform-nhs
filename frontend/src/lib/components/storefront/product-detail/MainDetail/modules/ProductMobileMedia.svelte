@@ -18,6 +18,7 @@
     triggerViralFly: () => void;
     onThumbClick: (index: number) => void;
     carouselRef: HTMLElement | null;
+    carouselWidth?: number;
     isVideoUrl: (url: string | undefined | null) => boolean;
     resolvedLcpUrl?: string;
   }
@@ -26,13 +27,14 @@
     product, displayImages, activeImageIndex, videoEl = $bindable(), 
     videoMuted, videoEndTime, handleTimeUpdate, toggleMute, 
     handleCarouselScroll, triggerViralFly, onThumbClick, carouselRef = $bindable(),
+    carouselWidth = $bindable(0),
     isVideoUrl,
     resolvedLcpUrl
   }: Props = $props();
 </script>
 
 <section class="media-section">
-  <div class="carousel-container" bind:this={carouselRef} onscroll={handleCarouselScroll}>
+  <div class="carousel-container" bind:this={carouselRef} bind:clientWidth={carouselWidth} onscroll={handleCarouselScroll}>
     {#each displayImages as img, i}
       <div class="carousel-slide">
         {#if isVideoUrl(img)}
@@ -73,6 +75,8 @@
           {#if i === 0}
             <img 
               src={resolvedLcpUrl || resolveOptimizedImageUrl(img, 600)} 
+              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 700)} 700w, {resolveOptimizedImageUrl(img, 800)} 800w"
+              sizes="(max-width: 767px) 100vw, 600px"
               width="412"
               height="412"
               alt={product.name} 
@@ -83,7 +87,7 @@
           {:else}
             <img 
               src={resolveOptimizedImageUrl(img, 600)} 
-              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 800)} 800w"
+              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 700)} 700w, {resolveOptimizedImageUrl(img, 800)} 800w"
               sizes="(max-width: 767px) 100vw, 600px"
               width="412"
               height="412"

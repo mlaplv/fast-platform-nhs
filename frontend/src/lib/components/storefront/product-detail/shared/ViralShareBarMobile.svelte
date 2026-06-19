@@ -187,8 +187,14 @@
   const isCollapsed = $derived(scrolled || scrollRatio > 0.5 || (scrollY >= 100 && scrollY < 400));
   const isHidden = $derived(forceHidden || hideRatio >= 1 || scrollY >= 400);
 
+  let scrollTicking = false;
   function handleScroll() {
-    if (typeof window !== 'undefined') scrollY = window.scrollY;
+    if (typeof window === 'undefined' || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      scrollY = window.scrollY;
+      scrollTicking = false;
+    });
   }
 
   function handleLike(e: MouseEvent) {

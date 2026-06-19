@@ -46,8 +46,8 @@
     if (!browser || !id) return;
     const el = navElements[id];
     if (!el) return;
-    // Batch layout reads inside rAF to avoid forced reflow during style invalidation
     requestAnimationFrame(() => {
+      if (!el) return;
       highlighterPos.set({
         left: el.offsetLeft,
         width: el.offsetWidth
@@ -57,10 +57,6 @@
 
   const registerNavElement = (node: HTMLElement, id: string) => {
     navElements[id] = node;
-    // Elite V2.2: Initial highlighter sync if this is the active one
-    if (id === activeId) {
-      requestAnimationFrame(() => updateHighlighter(id));
-    }
     return {
       destroy() {
         delete navElements[id];
@@ -78,23 +74,31 @@
   let isMounted = $state(false);
   onMount(() => {
     isMounted = true;
-    lastScrollY = window.scrollY;
     
+    let scrollTicking = false;
     const handleScroll = () => {
-      const y = window.scrollY;
-      scrolled = y > 50;
-      
-      // Smart Hide/Show on Scroll direction
-      if (y > lastScrollY && y > 150) {
-        showHeader = false;
-      } else {
-        showHeader = true;
-      }
-      
-      lastScrollY = y;
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        scrolled = y > 50;
+        
+        // Smart Hide/Show on Scroll direction
+        if (y > lastScrollY && y > 150) {
+          showHeader = false;
+        } else {
+          showHeader = true;
+        }
+        
+        lastScrollY = y;
+        scrollTicking = false;
+      });
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
+    requestAnimationFrame(() => {
+      lastScrollY = window.scrollY;
+      handleScroll();
+    });
     // Initial pos
     setTimeout(() => updateHighlighter(activeId), 100);
     return () => window.removeEventListener('scroll', handleScroll);

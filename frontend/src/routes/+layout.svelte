@@ -232,9 +232,15 @@
           }
         };
 
+        let scrollTicking = false;
         const onScroll = () => {
-          const scrolled = window.scrollY;
-          if (scrolled > maxScrollY) maxScrollY = scrolled;
+          if (scrollTicking) return;
+          scrollTicking = true;
+          requestAnimationFrame(() => {
+            const scrolled = window.scrollY;
+            if (scrolled > maxScrollY) maxScrollY = scrolled;
+            scrollTicking = false;
+          });
         };
 
         const onKeyPress = () => {

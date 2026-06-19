@@ -38,16 +38,15 @@
 
   $effect(() => {
     if (containerRef && typeof window !== "undefined") {
-      const observer = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const newHasMore = entry.target.scrollHeight > truncatedHeight;
+      const _id = product.id;
+      setTimeout(() => {
+        if (containerRef) {
+          const newHasMore = containerRef.scrollHeight > truncatedHeight;
           if (hasMore !== newHasMore) {
             hasMore = newHasMore;
           }
         }
-      });
-      observer.observe(containerRef);
-      return () => observer.disconnect();
+      }, 0);
     }
   });
 

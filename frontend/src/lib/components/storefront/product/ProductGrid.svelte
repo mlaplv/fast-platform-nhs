@@ -48,11 +48,15 @@
         {/if}
 
         <img
-          src={resolveOptimizedImageUrl(product.images?.[0] || '', 400)}
+          src={resolveOptimizedImageUrl(product.images?.[0] || '', 300)}
+          srcset="{resolveOptimizedImageUrl(product.images?.[0] || '', 200)} 200w, {resolveOptimizedImageUrl(product.images?.[0] || '', 330)} 330w, {resolveOptimizedImageUrl(product.images?.[0] || '', 400)} 400w, {resolveOptimizedImageUrl(product.images?.[0] || '', 600)} 600w"
+          sizes="(max-width: 767px) 50vw, 300px"
           alt={product.name}
           class="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
           loading="lazy"
           decoding="async"
+          width="300"
+          height="300"
         />
 
         <!-- Freeship Xtra Badge (Floating Bottom) -->

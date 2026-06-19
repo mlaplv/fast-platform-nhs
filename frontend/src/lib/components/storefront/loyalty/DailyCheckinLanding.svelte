@@ -19,22 +19,34 @@
   let userDismissed = $state(false);
   let isScrolled = $state(false);
 
+  let resizeTicking = false;
   function updateIsMobile() {
-    isMobile = window.innerWidth < 768;
+    if (!browser || resizeTicking) return;
+    resizeTicking = true;
+    requestAnimationFrame(() => {
+      isMobile = window.innerWidth < 768;
+      resizeTicking = false;
+    });
   }
 
+  let scrollTicking = false;
   function handleScroll() {
-    if (browser) {
+    if (!browser || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
       isScrolled = window.scrollY > 100;
-    }
+      scrollTicking = false;
+    });
   }
 
   onMount(() => {
-    updateIsMobile();
     window.addEventListener('resize', updateIsMobile);
     if (browser) {
       window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll();
+      requestAnimationFrame(() => {
+        updateIsMobile();
+        handleScroll();
+      });
       // Fetch status globally to determine campaign visibility
       if (!checkinStore.status && !checkinStore.loading) {
         checkinStore.fetchStatus();

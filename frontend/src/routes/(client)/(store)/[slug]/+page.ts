@@ -279,6 +279,8 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       reviews,
       shopInfo,
       unlockedVoucherIds,
+      mobileHeroImage,
+      desktopHeroImage,
       resolvedMobileLcpUrl,
       resolvedDesktopLcpUrl
     };

@@ -244,16 +244,21 @@
       return;
     }
 
+    let scrollTicking = false;
     function onScroll(): void {
-      if (autoLoaded) return;
-      // Chỉ tự tải khi Sếp thực sự cuộn trang dọc > 50px
-      if (window.scrollY > 50) {
-        visibleLimit = 8;
-        autoLoaded = true;
-        window.removeEventListener("scroll", onScroll, {
-          passive: true,
-        } as EventListenerOptions);
-      }
+      if (autoLoaded || scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        // Chỉ tự tải khi Sếp thực sự cuộn trang dọc > 50px
+        if (window.scrollY > 50) {
+          visibleLimit = 8;
+          autoLoaded = true;
+          window.removeEventListener("scroll", onScroll, {
+            passive: true,
+          } as EventListenerOptions);
+        }
+        scrollTicking = false;
+      });
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });

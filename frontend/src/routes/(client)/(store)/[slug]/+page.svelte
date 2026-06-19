@@ -128,7 +128,15 @@
       {#if data.resolvedMobileLcpUrl}
         {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(data.resolvedMobileLcpUrl.split('?')[0].toLowerCase())}
         {#if !isVideo}
-          <link rel="preload" as="image" href={data.resolvedMobileLcpUrl} fetchpriority="high" type="image/webp" />
+          <link 
+            rel="preload" 
+            as="image" 
+            href={data.resolvedMobileLcpUrl} 
+            imagesrcset="{resolveOptimizedImageUrl(data.mobileHeroImage || '', 412)} 412w, {resolveOptimizedImageUrl(data.mobileHeroImage || '', 600)} 600w, {resolveOptimizedImageUrl(data.mobileHeroImage || '', 700)} 700w, {resolveOptimizedImageUrl(data.mobileHeroImage || '', 800)} 800w"
+            imagesizes="(max-width: 767px) 100vw, 600px"
+            fetchpriority="high" 
+            type="image/webp" 
+          />
         {:else}
           <link rel="preload" as="video" type="video/mp4" href={data.resolvedMobileLcpUrl} fetchpriority="high" />
         {/if}
@@ -137,7 +145,15 @@
       {#if data.resolvedDesktopLcpUrl}
         {@const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(data.resolvedDesktopLcpUrl.split('?')[0].toLowerCase())}
         {#if !isVideo}
-          <link rel="preload" as="image" href={data.resolvedDesktopLcpUrl} fetchpriority="high" type="image/webp" />
+          <link 
+            rel="preload" 
+            as="image" 
+            href={data.resolvedDesktopLcpUrl} 
+            imagesrcset="{resolveOptimizedImageUrl(data.desktopHeroImage || '', 450)} 450w, {resolveOptimizedImageUrl(data.desktopHeroImage || '', 600)} 600w, {resolveOptimizedImageUrl(data.desktopHeroImage || '', 800)} 800w, {resolveOptimizedImageUrl(data.desktopHeroImage || '', 900)} 900w, {resolveOptimizedImageUrl(data.desktopHeroImage || '', 1200)} 1200w"
+            imagesizes="(max-width: 1023px) 100vw, 450px"
+            fetchpriority="high" 
+            type="image/webp" 
+          />
         {:else}
           <link rel="preload" as="video" type="video/mp4" href={data.resolvedDesktopLcpUrl} fetchpriority="high" />
         {/if}

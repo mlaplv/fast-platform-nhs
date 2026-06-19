@@ -103,35 +103,41 @@
 
   onMount(() => {
     const scroller = document.querySelector('.page-container') || window;
+    let scrollTicking = false;
     const handleScroll = () => {
-      const currentScrollY = scroller === window ? window.scrollY : (scroller as Element).scrollTop;
-      const threshold = 15;
-      if (currentScrollY > lastScrollY + threshold && currentScrollY > 80) {
-        if (currentScrollY > 280) {
-          isHidden = true;
-          isMini = true;
-          isShrunk = true;
-        } else if (currentScrollY > 160) {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        const currentScrollY = scroller === window ? window.scrollY : (scroller as Element).scrollTop;
+        const threshold = 15;
+        if (currentScrollY > lastScrollY + threshold && currentScrollY > 80) {
+          if (currentScrollY > 280) {
+            isHidden = true;
+            isMini = true;
+            isShrunk = true;
+          } else if (currentScrollY > 160) {
+            isHidden = false;
+            isMini = true;
+            isShrunk = true;
+          } else {
+            isShrunk = true;
+            isMini = false;
+            isHidden = false;
+          }
+          if (isMenuOpen) isMenuOpen = false;
+          lastScrollY = currentScrollY;
+        } else if (currentScrollY < lastScrollY - threshold || currentScrollY <= 80) {
           isHidden = false;
-          isMini = true;
-          isShrunk = true;
-        } else {
-          isShrunk = true;
           isMini = false;
-          isHidden = false;
+          if (currentScrollY <= 80) {
+            isShrunk = false;
+          } else {
+            isShrunk = true;
+          }
+          lastScrollY = currentScrollY;
         }
-        if (isMenuOpen) isMenuOpen = false;
-        lastScrollY = currentScrollY;
-      } else if (currentScrollY < lastScrollY - threshold || currentScrollY <= 80) {
-        isHidden = false;
-        isMini = false;
-        if (currentScrollY <= 80) {
-          isShrunk = false;
-        } else {
-          isShrunk = true;
-        }
-        lastScrollY = currentScrollY;
-      }
+        scrollTicking = false;
+      });
     };
     scroller.addEventListener('scroll', handleScroll, { passive: true });
     return () => {

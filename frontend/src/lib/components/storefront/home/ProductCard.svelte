@@ -36,14 +36,16 @@
   <div class="product-img-wrap">
     <!-- Image -->
     <img
-      src={resolveOptimizedImageUrl(product.images?.[0] || '', 400)}
+      src={resolveOptimizedImageUrl(product.images?.[0] || '', 300)}
+      srcset="{resolveOptimizedImageUrl(product.images?.[0] || '', 200)} 200w, {resolveOptimizedImageUrl(product.images?.[0] || '', 330)} 330w, {resolveOptimizedImageUrl(product.images?.[0] || '', 400)} 400w, {resolveOptimizedImageUrl(product.images?.[0] || '', 600)} 600w"
+      sizes="(max-width: 767px) 50vw, 300px"
       alt={product.name}
       class="product-img"
       loading={index < 4 ? "eager" : "lazy"}
       fetchpriority={index === 0 ? "high" : "auto"}
       decoding="async"
-      width="400"
-      height="400"
+      width="300"
+      height="300"
     />
 
     <!-- Stickers/Badges -->

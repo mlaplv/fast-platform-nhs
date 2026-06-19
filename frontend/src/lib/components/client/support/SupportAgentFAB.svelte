@@ -38,11 +38,15 @@
   }
 
 
+  let scrollTicking = false;
   // Scroll detection for shrinking
   function handleScroll() {
-    if (browser) {
+    if (!browser || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
       isScrolled = window.scrollY > SUPPORT_AGENT_UI.SCROLL_SHRINK_THRESHOLD;
-    }
+      scrollTicking = false;
+    });
   }
 
   // Elite V2.2: Sync path with state
@@ -55,7 +59,9 @@
   onMount(() => {
     if (browser) {
       window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll();
+      requestAnimationFrame(() => {
+        handleScroll();
+      });
     }
   });
 

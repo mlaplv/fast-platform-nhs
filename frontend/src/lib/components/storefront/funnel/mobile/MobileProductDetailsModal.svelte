@@ -46,7 +46,7 @@
     imageScrollTicking = true;
     requestAnimationFrame(() => {
       if (scrollContainer) {
-        const cw = window.innerWidth || scrollContainer.clientWidth;
+        const cw = carouselWidth || window.innerWidth || 375;
         if (cw > 0) {
           const newIndex = Math.round(scrollContainer.scrollLeft / cw);
           if (newIndex !== currentImageIndex && newIndex >= 0) {
@@ -89,19 +89,37 @@
   const shopStore = getShopStore();
   const cartStore = getCartStore();
 
+  let cachedScrollHeight = 0;
+  let cachedClientHeight = 0;
+  let cachedProseOffsetTop = 0;
+
+  $effect(() => {
+    if (active && contentRef) {
+      const observer = new ResizeObserver(() => {
+        if (contentRef) {
+          cachedScrollHeight = contentRef.scrollHeight;
+          cachedClientHeight = contentRef.clientHeight;
+          const proseEl = contentRef.querySelector(".elite-prose") as HTMLElement;
+          cachedProseOffsetTop = proseEl ? proseEl.offsetTop : 0;
+        }
+      });
+      observer.observe(contentRef);
+      return () => observer.disconnect();
+    }
+  });
+
   let scrollTicking = false;
   function handleScroll(e: Event) {
     if (!contentRef || scrollTicking) return;
     scrollTicking = true;
     const target = e.target as HTMLElement;
     requestAnimationFrame(() => {
-      // Check if within 100px of bottom — reads are safe inside rAF (layout stable)
+      // Use cached dimensions to prevent forced reflow
       isAtBottom =
-        target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+        cachedScrollHeight - target.scrollTop <= cachedClientHeight + 100;
 
-      const proseEl = target.querySelector(".elite-prose") as HTMLElement;
-      if (proseEl) {
-        showSpeechButton = target.scrollTop >= proseEl.offsetTop - 150;
+      if (cachedProseOffsetTop > 0) {
+        showSpeechButton = target.scrollTop >= cachedProseOffsetTop - 150;
       } else {
         showSpeechButton = false;
       }
@@ -485,6 +503,7 @@
           >
             <div
               bind:this={scrollContainer}
+              bind:clientWidth={carouselWidth}
               onscroll={handleImageScroll}
               class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar"
               style="scrollbar-width: none; -ms-overflow-style: none;"

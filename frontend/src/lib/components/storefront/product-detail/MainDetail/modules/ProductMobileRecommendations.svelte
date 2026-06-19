@@ -14,7 +14,16 @@
     {#each relatedProducts as p}
       <a data-sveltekit-reload href="/{p.slug}" class="related-card">
         <div class="img-wrap">
-          <img src={resolveOptimizedImageUrl(p.images?.[0] || 'https://via.placeholder.com/150', 400)} alt={p.name} loading="lazy" decoding="async" />
+          <img 
+            src={resolveOptimizedImageUrl(p.images?.[0] || '', 300)} 
+            srcset="{resolveOptimizedImageUrl(p.images?.[0] || '', 200)} 200w, {resolveOptimizedImageUrl(p.images?.[0] || '', 330)} 330w, {resolveOptimizedImageUrl(p.images?.[0] || '', 400)} 400w, {resolveOptimizedImageUrl(p.images?.[0] || '', 600)} 600w"
+            sizes="(max-width: 767px) 50vw, 300px"
+            alt={p.name} 
+            loading="lazy" 
+            decoding="async" 
+            width="300"
+            height="300"
+          />
         </div>
         <div class="info-wrap">
           <h3 class="related-name">{trimProductName(p.name)}</h3>

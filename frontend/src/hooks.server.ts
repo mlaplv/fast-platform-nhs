@@ -205,18 +205,37 @@ export const handle: Handle = async ({ event, resolve }) => {
         // Find LCP preload URL in the fully rendered HTML (case-insensitive and quote-tolerant)
         const linkMatches = html.match(/<link\s+[^>]*rel=["']?preload["']?[^>]*>/gi);
         if (linkMatches) {
+          const unescapeHtml = (str: string) => str
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+
           for (const link of linkMatches) {
             const lowerLink = link.toLowerCase();
             if (lowerLink.includes('fetchpriority="high"') || lowerLink.includes("fetchpriority='high'") || lowerLink.includes('fetchpriority=high')) {
               const hrefMatch = link.match(/href=["']?([^"'\s>]+)["']?/i);
               const asMatch = link.match(/as=["']?([^"'\s>]+)["']?/i);
               const mediaMatch = link.match(/media=["']?([^"'>]+)["']?/i);
+              const srcsetMatch = link.match(/imagesrcset=["']?([^"'>]+)["']?/i);
+              const sizesMatch = link.match(/imagesizes=["']?([^"'>]+)["']?/i);
+              const typeMatch = link.match(/type=["']?([^"'\s>]+)["']?/i);
               if (hrefMatch) {
-                const href = hrefMatch[1];
-                const asType = asMatch ? asMatch[1] : "image";
+                const href = unescapeHtml(hrefMatch[1]);
+                const asType = asMatch ? unescapeHtml(asMatch[1]) : "image";
                 let headerPart = `<${href}>; rel="preload"; as="${asType}"; fetchpriority="high"`;
+                if (srcsetMatch) {
+                  headerPart += `; imagesrcset="${unescapeHtml(srcsetMatch[1])}"`;
+                }
+                if (sizesMatch) {
+                  headerPart += `; imagesizes="${unescapeHtml(sizesMatch[1])}"`;
+                }
+                if (typeMatch) {
+                  headerPart += `; type="${unescapeHtml(typeMatch[1])}"`;
+                }
                 if (mediaMatch) {
-                  headerPart += `; media="${mediaMatch[1]}"`;
+                  headerPart += `; media="${unescapeHtml(mediaMatch[1])}"`;
                 }
                 lcpPreloads.push(headerPart);
               }
