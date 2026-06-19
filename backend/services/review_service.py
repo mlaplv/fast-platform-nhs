@@ -155,8 +155,13 @@ class ReviewService:
                     from arq import create_pool
                     
                     redis_pool = await create_pool(get_redis_settings())
-                    await redis_pool.enqueue_job("generate_review_kg_job", str(review.id), _queue_name="high")
-                    logging.getLogger("api-gateway").info(f"🧬 [ReviewService] Enqueued background KG generation for review {review.id}")
+                    try:
+                        await redis_pool.enqueue_job("generate_review_kg_job", str(review.id), _queue_name="high")
+                        logging.getLogger("api-gateway").info(f"🧬 [ReviewService] Enqueued background KG generation for review {review.id}")
+                    finally:
+                        # [P0-FIX] Đóng pool ngay sau khi enqueue để giải phóng kết nối Redis
+                        # Tránh HTTP request của DB session bị treo khi pool chưa đóng
+                        await redis_pool.aclose()
                 except Exception as e:
                     # Non-blocking failure for KG generation enqueue
                     import logging

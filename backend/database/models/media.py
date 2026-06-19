@@ -2,7 +2,8 @@ import uuid
 from typing import Optional, List
 from backend.utils.uid import new_id_default
 import sqlalchemy as sa
-from sqlalchemy import String, ForeignKey, Integer, JSON, Index, Boolean
+from sqlalchemy import String, ForeignKey, Integer, Index, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 
@@ -25,15 +26,17 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     alt_text: Mapped[Optional[str]] = mapped_column(String)
 
     # Relationships & Ownership
-    campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('content_campaigns.id', ondelete='SET NULL'), index=True)
+    # [v611] Bỏ index=True: ix_media_campaign_provider(campaign_id, provider) đã bao phủ
+    campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('content_campaigns.id', ondelete='SET NULL'))
+    # [v611] Bỏ index=True: ix_media_registry_owner_id vẫn giữ, đây là index riêng hợp lệ
     owner_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id', ondelete='SET NULL'), index=True)
 
     # Elite V2.2: Many-to-Many Tracking Optimization
-    # Flag này giúp File Manager liệt kê ảnh "Mồ côi" cực nhanh mà không cần JOIN.
-    is_linked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.text('false'), index=True)
+    # [v611] Bỏ index=True: ix_media_is_linked(tenant_id, is_linked) đã bao phủ
+    is_linked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.text('false'))
 
-    # AI & Professional Metadata (Extensible)
-    media_metadata: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    # AI & Professional Metadata — [v611] json → jsonb: binary storage, nén ~30%, indexable
+    media_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
 
     provider: Mapped[str] = mapped_column(String(20), default="local") # local, s3, r2
     is_public: Mapped[bool] = mapped_column(sa.Boolean, default=True, server_default=sa.text('true')) # V10.0 RBAC

@@ -1270,7 +1270,7 @@
                       <td class="p-3 text-right text-gray-300 font-bold">{b.dead_rows.toLocaleString()} / {b.live_rows.toLocaleString()}</td>
                       <td class="p-3 text-right font-black {b.dead_ratio_pct > 20 ? 'text-orange-400' : 'text-emerald-400'}">{b.dead_ratio_pct.toFixed(1)}%</td>
                       <td class="p-3 text-right">
-                        {#if ["support_chat_history", "seo_contextual_links", "product_combo", "order_draft", "session_log"].includes(b.tablename)}
+                        {#if ["support_chat_history", "seo_contextual_links", "system_reviews", "media_registry", "media_usage", "unified_agent_tasks", "notifications"].includes(b.tablename)}
                           <button
                             onclick={() => handleVacuum(b.tablename)}
                             disabled={dbVacuumLoading !== null}

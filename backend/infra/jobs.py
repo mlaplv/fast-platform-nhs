@@ -393,15 +393,17 @@ async def seo_contextual_link_job(
 
             # Tiêu chuẩn 2: Loại bỏ bài viết đã có tối đa 3 link APPROVED hoặc APPLIED (đã đạt giới hạn SEO)
             from backend.database.models.seo import SeoContextualLink
-            total_links_count = (await db.execute(
-                select(SeoContextualLink).where(
+            # [P1-FIX] Dùng COUNT(*) scalar thay vì load toàn bộ ORM objects chỉ để đếm số dòng
+            # Tránh slow query do ORM hydration không cần thiết
+            total_links_count = await db.scalar(
+                select(func.count()).select_from(SeoContextualLink).where(
                     SeoContextualLink.source_article_id == article_id,
                     SeoContextualLink.status.in_(["approved", "applied"]),
                     SeoContextualLink.tenant_id == tenant_id
                 )
-            )).scalars().all()
-            if len(total_links_count) >= 3:
-                logger.info(f"[SEO Contextual Link Job] Skipping article {article_id} because it has reached the max contextual links limit ({len(total_links_count)} links)")
+            ) or 0
+            if total_links_count >= 3:
+                logger.info(f"[SEO Contextual Link Job] Skipping article {article_id} because it has reached the max contextual links limit ({total_links_count} links)")
                 return
 
             count = await seo_contextual_linker.analyze_article(
@@ -517,15 +519,16 @@ async def seo_pillar_auto_link_job(
                         continue
 
                     # Tiêu chuẩn 3: Loại bỏ bài viết đã đạt giới hạn tối đa số link ngữ cảnh cho phép (tối đa 3 link/bài)
-                    total_links_count = (await db.execute(
-                        select(SeoContextualLink).where(
+                    # [P1-FIX] Dùng COUNT(*) scalar thay vì load toàn bộ ORM objects chỉ để đếm số dòng
+                    total_links_count = await db.scalar(
+                        select(func.count()).select_from(SeoContextualLink).where(
                             SeoContextualLink.source_article_id == article_id,
                             SeoContextualLink.status.in_(["approved", "applied"]),
                             SeoContextualLink.tenant_id == tenant_id
                         )
-                    )).scalars().all()
-                    if len(total_links_count) >= 3:
-                        logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it has reached the max contextual links limit ({len(total_links_count)} links)")
+                    ) or 0
+                    if total_links_count >= 3:
+                        logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it has reached the max contextual links limit ({total_links_count} links)")
                         continue
 
                     # Quét tìm đề xuất mới cho bài viết

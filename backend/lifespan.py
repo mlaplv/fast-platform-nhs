@@ -310,9 +310,11 @@ async def _autopilot_scheduler_loop():
             now = datetime.now(timezone.utc)
             async with alchemy_config.create_session_maker()() as session:
                 # 1. Fetch due appointments (UPCOMING and start_time <= now)
+                # [P1-FIX] Thêm deleted_at filter để tránh scan soft-deleted rows
                 stmt = select(Appointment).where(
                     Appointment.status == "UPCOMING",
-                    Appointment.start_time <= now
+                    Appointment.start_time <= now,
+                    Appointment.deleted_at == None,
                 )
                 result = await session.execute(stmt)
                 due_apps = result.scalars().all()

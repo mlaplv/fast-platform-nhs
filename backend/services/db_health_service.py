@@ -34,6 +34,9 @@ VACUUM_WHITELIST: set[str] = {
     "notifications",
     "seo_contextual_links",
     "system_reviews",
+    # [P2-FIX] Thêm media tables để admin có thể vacuum khi cần từ SOC Dashboard
+    "media_registry",
+    "media_usage",
 }
 
 

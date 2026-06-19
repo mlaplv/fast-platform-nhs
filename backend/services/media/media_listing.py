@@ -74,7 +74,10 @@ class MediaListingMixin:
             orm_assets = (await repo.session.execute(stmt)).scalars().all()
             assets = [MediaAssetResponse.model_validate(a) for a in orm_assets]
         else:
-            all_assets = list((await repo.session.execute(stmt)).scalars().all())
+            # [P0-FIX] Giới hạn tối đa 2000 assets để tránh full table scan + OOM khi encode
+            # Nếu vượt 2000 ảnh, hệ thống sẽ search trên subset mới nhất thay vì load toàn bảng
+            stmt_limited = stmt.order_by(MediaRegistry.updated_at.desc()).limit(2000)
+            all_assets = list((await repo.session.execute(stmt_limited)).scalars().all())
             total = len(all_assets)
             encoder = get_shared_encoder()
             if not encoder or not all_assets:
@@ -84,6 +87,7 @@ class MediaListingMixin:
             else:
                 query_vec = cast(np.ndarray, list(encoder.embed([search_query]))[0])
                 scored_assets = []
+                assets_needing_embed = []
                 for asset in all_assets:
                     try: meta = MediaMetadata.model_validate(asset.media_metadata or {})
                     except Exception: meta = MediaMetadata()
@@ -91,7 +95,9 @@ class MediaListingMixin:
                     if not meta.embedding:
                         text = f"{asset.filename} {asset.alt_text or ''} {' '.join(meta.ai_tags)} {meta.ai_description or ''}"
                         meta.embedding = cast(np.ndarray, list(encoder.embed([text]))[0]).tolist()
-                        asset.media_metadata = meta.model_dump(); repo.session.add(asset)
+                        asset.media_metadata = meta.model_dump()
+                        repo.session.add(asset)
+                        assets_needing_embed.append(asset)
                     
                     asset_vec = np.array(meta.embedding)
                     score = np.dot(query_vec, asset_vec) / (np.linalg.norm(query_vec) * np.linalg.norm(asset_vec))
@@ -99,7 +105,11 @@ class MediaListingMixin:
                 
                 scored_assets.sort(key=lambda x: x[0], reverse=True)
                 assets = [MediaAssetResponse.model_validate(a) for score, a in scored_assets if score > 0.3][offset : offset + limit]
-                await repo.session.commit()
+                
+                # [P0-FIX] Commit một lần DUY NHẤT sau khi tính xong toàn bộ embeddings
+                # Tránh giữ DB session mở trong suốt vòng encode tuần tự
+                if assets_needing_embed:
+                    await repo.session.commit()
 
         return MediaListResult(items=assets, total=total, limit=limit, offset=offset)
 
