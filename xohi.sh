@@ -1034,10 +1034,14 @@ function total_garbage_clean() {
 
     # 1. Truncate Docker logs
     echo -e "${YELLOW}-> [1/6] Đang giải phóng bộ nhớ logs Docker...${NC}"
-    if sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
-        echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker!${NC}"
+    if docker run --rm -v /var/lib/docker/containers:/var/lib/docker/containers alpine sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
+        echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker (qua container helper)!${NC}"
     else
-        echo -e "${YELLOW}[INFO] Không tìm thấy tệp logs để dọn dẹp hoặc thiếu quyền sudo.${NC}"
+        if sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
+            echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker!${NC}"
+        else
+            echo -e "${YELLOW}[INFO] Không tìm thấy tệp logs hoặc thiếu quyền thực thi.${NC}"
+        fi
     fi
 
     # 2. Clean UV cache inside container
@@ -1063,8 +1067,8 @@ function total_garbage_clean() {
 
     # 5. Clean local system temp logs, pycache & dev caches
     echo -e "${YELLOW}-> [5/7] Đang làm sạch logs, pycache & dev caches trên Host...${NC}"
-    sudo rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
-    sudo find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
+    rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
+    find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
     find backend -type f -name "*.pyc" -delete 2>/dev/null || true
     find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     rm -rf frontend/node_modules frontend/build frontend/.svelte-kit frontend/.vite frontend/dist 2>/dev/null || true

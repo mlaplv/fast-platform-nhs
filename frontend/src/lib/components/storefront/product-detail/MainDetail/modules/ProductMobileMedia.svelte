@@ -75,8 +75,6 @@
           {#if i === 0}
             <img 
               src={resolvedLcpUrl || resolveOptimizedImageUrl(img, 600)} 
-              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 700)} 700w, {resolveOptimizedImageUrl(img, 800)} 800w"
-              sizes="(max-width: 767px) 100vw, 600px"
               width="412"
               height="412"
               alt={product.name} 
