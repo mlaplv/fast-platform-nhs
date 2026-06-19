@@ -10,8 +10,10 @@ export function createClientUiState(): ClientUiState {
     const globalState = $state({
         isHeaderHidden: false,
         isFooterHidden: false,
-        screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
-        screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
+        // [PERF FIX] Không đọc window.innerWidth ở đây — gây forced reflow khi JS parse
+        // initObservers() sẽ dùng RAF để đọc sau paint
+        screenWidth: 1024,
+        screenHeight: 768,
         isHydrated: false,
         isDetermined: false,
         settings: null as ShopInfo | null,
@@ -43,13 +45,20 @@ export function createClientUiState(): ClientUiState {
     const isPortrait = $derived(globalState.screenWidth < globalState.screenHeight);
 
     let resizeTimer: ReturnType<typeof setTimeout>;
+    let rafId: number;
 
+    // [PERF FIX] Dùng requestAnimationFrame để đọc geometry SAU khi browser đã paint xong
+    // Tránh forced reflow: không đọc innerWidth/Height trong cùng frame với DOM mutation
     function handleResize() {
         if (typeof window === 'undefined') return;
         if (resizeTimer) clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            globalState.screenWidth = window.innerWidth;
-            globalState.screenHeight = window.innerHeight;
+            // RAF đảm bảo đọc sau paint, không trigger reflow
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                globalState.screenWidth = window.innerWidth;
+                globalState.screenHeight = window.innerHeight;
+            });
         }, 250);
     }
 
@@ -147,19 +156,27 @@ export function createClientUiState(): ClientUiState {
             if (typeof window === 'undefined') return () => {};
             if (globalState.isDetermined && globalState.isHydrated) return () => {};
 
-            globalState.screenWidth = window.innerWidth;
-            globalState.screenHeight = window.innerHeight;
-            globalState.isDetermined = true;
-            globalState.isHydrated = true;
+            // [PERF FIX] Defer geometry reads vào RAF — không block main thread khi hydrate
+            // Tránh forced reflow ngay lúc page load (LCP critical path)
+            requestAnimationFrame(() => {
+                globalState.screenWidth = window.innerWidth;
+                globalState.screenHeight = window.innerHeight;
+                globalState.isDetermined = true;
+                globalState.isHydrated = true;
+            });
 
+            // [PERF FIX] Observe documentElement thay vì document.body
+            // document.body resize thường xuyên hơn → ít trigger layout hơn khi observe root
             const observer = new ResizeObserver(() => {
                 handleResize();
             });
             
-            observer.observe(document.body);
+            observer.observe(document.documentElement);
 
             return () => {
                 observer.disconnect();
+                if (rafId) cancelAnimationFrame(rafId);
+                if (resizeTimer) clearTimeout(resizeTimer);
             };
         },
 
