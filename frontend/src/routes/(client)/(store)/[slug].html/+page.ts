@@ -13,42 +13,13 @@ async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string,
   if (isVideo) return originalUrl;
 
   const optUrl = resolveOptimizedImageUrl(originalUrl, width);
-  const cacheKey = `${optUrl}`;
-  if (resolvedCache.has(cacheKey)) {
-    return resolvedCache.get(cacheKey)!;
+  const id = extractIdFromUrl(originalUrl);
+  if (id) {
+    const fname = originalUrl.split('?')[0].split('/').pop() || '';
+    const suffix = fname.endsWith('.webp') ? fname : fname + '.webp';
+    return `/v65_assets/cache/t_${width}_75_${suffix}`;
   }
-
-  // 1. Client-side hydration/mount fallback: query matching preloaded link tag from DOM
-  if (browser) {
-    const id = extractIdFromUrl(originalUrl);
-    if (id) {
-      const preloadLink = document.querySelector(`link[rel="preload"][href*="${id}"]`);
-      if (preloadLink) {
-        const href = preloadLink.getAttribute('href');
-        if (href) {
-          resolvedCache.set(cacheKey, href);
-          return href;
-        }
-      }
-    }
-  }
-
-  // 2. Server-side redirect resolution using GET (as HEAD is not allowed by Litestar controller)
-  try {
-    const res = await fetchFn(optUrl, { method: 'GET', redirect: 'manual' });
-    if (res.status === 302 || res.status === 301) {
-      const loc = res.headers.get('location');
-      if (loc) {
-        resolvedCache.set(cacheKey, loc);
-        return loc;
-      }
-    }
-    resolvedCache.set(cacheKey, optUrl);
-    return optUrl;
-  } catch (e) {
-    console.error(`[LCP REDIRECT RESOLVER FAILED] ${optUrl}`, e);
-    return optUrl;
-  }
+  return optUrl;
 }
 
 interface ArticleFaq {

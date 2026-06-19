@@ -36,6 +36,20 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	import security_headers
 
 
+	# Serve dynamic thumbnail cache with fallback handler (Elite V3.1)
+	@cached_thumbnail path_regexp thumb ^/v65_assets/cache/t_(\d+)_75_([a-fA-F0-9\-]{36})
+	route @cached_thumbnail {
+		root * /app/frontend/static
+		@no_thumbnail not file {path}
+		rewrite @no_thumbnail /api/v1/media/{re.thumb.2}/thumb?w={re.thumb.1}
+		reverse_proxy @no_thumbnail api:8000 {
+			flush_interval -1
+			header_up X-Real-IP {remote_host}
+		}
+		header Cache-Control "public, max-age=31536000"
+		file_server
+	}
+
 	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
 	@dynamic_assets path /uploads/* /v65_assets/* /avatars/* /client_uploads/*
 	handle @dynamic_assets {

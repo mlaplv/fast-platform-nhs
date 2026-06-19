@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
-import { resolveOptimizedImageUrl } from '$lib/state/utils';
+import { resolveOptimizedImageUrl, extractIdFromUrl } from '$lib/state/utils';
+import { browser } from '$app/environment';
 
 export const trailingSlash = 'always';
 
@@ -11,26 +12,13 @@ async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string,
   if (isVideo) return originalUrl;
 
   const optUrl = resolveOptimizedImageUrl(originalUrl, width);
-  const cacheKey = `${optUrl}`;
-  if (resolvedCache.has(cacheKey)) {
-    return resolvedCache.get(cacheKey)!;
+  const id = extractIdFromUrl(originalUrl);
+  if (id) {
+    const fname = originalUrl.split('?')[0].split('/').pop() || '';
+    const suffix = fname.endsWith('.webp') ? fname : fname + '.webp';
+    return `/v65_assets/cache/t_${width}_75_${suffix}`;
   }
-
-  try {
-    const res = await fetchFn(optUrl, { method: 'GET', redirect: 'manual' });
-    if (res.status === 302 || res.status === 301) {
-      const loc = res.headers.get('location');
-      if (loc) {
-        resolvedCache.set(cacheKey, loc);
-        return loc;
-      }
-    }
-    resolvedCache.set(cacheKey, optUrl);
-    return optUrl;
-  } catch (e) {
-    console.error(`[LCP REDIRECT RESOLVER FAILED] ${optUrl}`, e);
-    return optUrl;
-  }
+  return optUrl;
 }
 
 export const load: PageLoad = async ({ fetch, parent }) => {
