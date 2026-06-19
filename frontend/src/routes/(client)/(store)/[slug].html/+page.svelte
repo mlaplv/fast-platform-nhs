@@ -37,9 +37,12 @@
 
 <svelte:head>
   {#if data.article && (data.article.featuredImage || data.article.featured_image)}
-    {@const imgUrl = data.article.featuredImage || data.article.featured_image || ''}
-    <link rel="preload" as="image" href={resolveOptimizedImageUrl(imgUrl, 600)} media="(max-width: 767px)" fetchpriority="high" />
-    <link rel="preload" as="image" href={resolveOptimizedImageUrl(imgUrl, 1000)} media="(min-width: 768px)" fetchpriority="high" />
+    {#if data.resolvedMobileLcpUrl}
+      <link rel="preload" as="image" href={data.resolvedMobileLcpUrl} media="(max-width: 767px)" fetchpriority="high" />
+    {/if}
+    {#if data.resolvedDesktopLcpUrl}
+      <link rel="preload" as="image" href={data.resolvedDesktopLcpUrl} media="(min-width: 768px)" fetchpriority="high" />
+    {/if}
   {/if}
 </svelte:head>
 
@@ -65,8 +68,8 @@
 
 <div class="news-detail-wrapper bg-[#F5F5F5] pb-8">
   {#if ui.isMobile}
-    <NewsDetailMobile article={data.article} />
+    <NewsDetailMobile article={data.article} resolvedLcpUrl={data.resolvedMobileLcpUrl} />
   {:else}
-    <NewsDetailDesktop article={data.article} relatedNews={data.relatedNews} />
+    <NewsDetailDesktop article={data.article} relatedNews={data.relatedNews} resolvedLcpUrl={data.resolvedDesktopLcpUrl} />
   {/if}
 </div>

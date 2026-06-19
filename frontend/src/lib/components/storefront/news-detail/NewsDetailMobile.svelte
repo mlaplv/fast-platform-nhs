@@ -57,8 +57,9 @@
         faqs?: { question: string; answer: string }[];
       };
     };
+    resolvedLcpUrl?: string;
   }
-  let { article: rawArticle }: Props = $props();
+  let { article: rawArticle, resolvedLcpUrl }: Props = $props();
 
   interface RawArticleExt {
     featured_image?: string;
@@ -422,7 +423,7 @@
   {#if article.featuredImage && article.featuredImage.trim() !== ""}
     <div class="w-full mb-4 bg-gray-50 flex items-center justify-center">
       <img
-        src={resolveOptimizedImageUrl(article.featuredImage, 600)}
+        src={resolvedLcpUrl || resolveOptimizedImageUrl(article.featuredImage, 600)}
         alt={article.title}
         width="600"
         height="338"

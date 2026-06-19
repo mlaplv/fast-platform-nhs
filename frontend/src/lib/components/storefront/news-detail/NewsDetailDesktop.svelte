@@ -66,9 +66,10 @@
       };
     };
     relatedNews?: NewsItem[];
+    resolvedLcpUrl?: string;
   }
 
-  let { article: rawArticle, relatedNews = [] }: Props = $props();
+  let { article: rawArticle, relatedNews = [], resolvedLcpUrl }: Props = $props();
 
   interface RawArticleExt {
     featured_image?: string;
@@ -244,7 +245,7 @@
           {#if article.featuredImage && article.featuredImage.trim() !== ""}
             <div class="w-full px-0 mb-0 overflow-hidden bg-gray-50 flex items-center justify-center">
               <img
-                src={resolveOptimizedImageUrl(article.featuredImage, 1000)}
+                src={resolvedLcpUrl || resolveOptimizedImageUrl(article.featuredImage, 1000)}
                 alt={article.title}
                 class="w-full h-auto object-contain block transition-transform duration-700"
                 loading="eager"
