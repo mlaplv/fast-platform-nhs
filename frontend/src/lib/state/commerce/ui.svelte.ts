@@ -19,7 +19,7 @@ export function createClientUiState(): ClientUiState {
         settings: null as ShopInfo | null,
         authModal: {
             isOpen: false,
-            mode: 'login' as 'login' | 'register' | 'profile',
+            mode: 'login' as 'login' | 'register' | 'profile' | 'address' | 'password' | 'purchase',
             onSuccess: undefined as (() => void) | undefined,
             redirectUrl: undefined as string | undefined
         },
@@ -76,6 +76,9 @@ export function createClientUiState(): ClientUiState {
             if (JSON.stringify(globalState.settings) === JSON.stringify(val)) return;
             globalState.settings = val; 
         },
+
+        get screenWidth() { return globalState.screenWidth; },
+        get screenHeight() { return globalState.screenHeight; },
 
         get authModal() { return globalState.authModal; },
         get confirmModal() { return globalState.confirmModal; },

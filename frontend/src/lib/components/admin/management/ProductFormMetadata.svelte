@@ -454,10 +454,10 @@
       </div>
     {/if}
 
-    <!-- Video URL -->
-    <div class="flex flex-col gap-1.5 md:col-span-2">
+    <!-- Video URL (Desktop) -->
+    <div class="flex flex-col gap-1.5">
       <label class="text-[9px] font-bold text-white/40 tracking-wider"
-        >Video URL (TikTok/YouTube hoặc nội bộ)</label
+        >Video URL Desktop (TikTok/YouTube/Nội bộ)</label
       >
       <input
         type="text"
@@ -468,7 +468,26 @@
             autoDetectEndTime(url);
           }
         }}
-        placeholder="/static/video/example.mp4"
+        placeholder="/uploads/video/desktop.mp4"
+        class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
+      />
+    </div>
+
+    <!-- Video URL (Mobile) -->
+    <div class="flex flex-col gap-1.5">
+      <label class="text-[9px] font-bold text-white/40 tracking-wider"
+        >Video URL Mobile (TikTok/YouTube/Nội bộ)</label
+      >
+      <input
+        type="text"
+        bind:value={formState.metadata.mobile_video_url}
+        onchange={() => {
+          const url = formState.metadata.mobile_video_url;
+          if (url && isVideoFile(url)) {
+            autoDetectEndTime(url);
+          }
+        }}
+        placeholder="/uploads/video/mobile.mp4"
         class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
       />
     </div>

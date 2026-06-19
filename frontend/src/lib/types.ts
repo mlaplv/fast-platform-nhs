@@ -318,7 +318,7 @@ export interface ProductMetadata {
   nav_label_reviews?: string;
   nav_label_offers?: string;
   quiz_loading_label?: string;
-  
+
   // Elite V2.2: Common Product Metadata
   video_start_time?: number;
   video_end_time?: number;
@@ -336,8 +336,8 @@ export interface ProductMetadata {
   featured_ingredients?: { name: string; benefit: string; icon?: string }[];
   ingredients_groups?: { group: string; priority: number; items: string[] }[];
 
-  analysis_cache?: AnalysisCache;
-  analysis_metrics?: CampaignMetrics;
+  analysis_cache?: import('./state/types').AnalysisCache;
+  analysis_metrics?: import('./state/types').CampaignMetrics;
 
   // Elite V2.2: Flash Sale & FOMO
   flash_sale_end?: string;
@@ -847,6 +847,7 @@ export interface ClientUiState extends ScreenState {
     isOpen: boolean;
     mode: 'login' | 'register' | 'profile' | 'address' | 'password' | 'purchase';
     onSuccess?: () => void;
+    redirectUrl?: string;
   };
   confirmModal: {
     title: string;
@@ -856,16 +857,22 @@ export interface ClientUiState extends ScreenState {
     onConfirm: () => void;
     onCancel: () => void;
   } | null;
-  toasts: Toast[];
-  openLogin(onSuccess?: () => void): void;
-  openRegister(onSuccess?: () => void): void;
+  reportModal: {
+    reviewId: string;
+    onSuccess?: () => void;
+  } | null;
+  toasts: import('./state/types').Toast[];
+  openLogin(onSuccess?: () => void, redirectUrl?: string): void;
+  openRegister(onSuccess?: () => void, redirectUrl?: string): void;
   openProfile(): void;
   openAddress(): void;
   openPassword(): void;
   openPurchase(): void;
   openConfirm(options: { title: string; message: string; confirmLabel?: string; cancelLabel?: string }): Promise<boolean>;
+  openReportReview(reviewId: string, onSuccess?: () => void): void;
+  closeReportModal(): void;
   closeModal(): void;
-  showToast(message: string, type?: ToastType, duration?: number): void;
+  showToast(message: string, type?: import('./state/types').ToastType, duration?: number): void;
   initObservers(): (() => void) | undefined;
   forceMobile(mobile: boolean): void;
 }
@@ -993,4 +1000,3 @@ export interface VideoScriptStyle {
   style_instruction: string;
   is_active: boolean;
 }
-

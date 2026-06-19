@@ -6,7 +6,7 @@
 
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
 
-  let { product: propProduct } = $props<{ product: Product | null }>();
+  let { product: propProduct, posterUrl } = $props<{ product: Product | null; posterUrl?: string }>();
   const shopStore = getShopStore();
   const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
@@ -17,10 +17,11 @@
   const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || 'thâm sạm');
 
   const rawUrl = $derived.by((): string => {
+    const mv = (metadata.mobile_video_url as string | undefined)?.trim() ?? '';
     const v = (metadata.video_url as string | undefined)?.trim() ?? '';
     const hv = (metadata.hero_video_url as string | undefined)?.trim() ?? '';
     const hvr = (metadata.hero_video as string | undefined)?.trim() ?? '';
-    let url = v || hv || hvr;
+    let url = mv || v || hv || hvr;
     if (!url) return '';
     if (url.startsWith('http') || url.startsWith('//') || url.startsWith('blob:')) return url;
     const sanitized = url.replace(/^(\.\/)?(\/)?(frontend\/)?static\//, '/');
@@ -82,11 +83,29 @@
     });
 
     if (videoEl && videoMode === 'local') {
+      const playVideo = () => {
+        if (videoEl) {
+          videoEl.play().catch(() => {});
+        }
+      };
+
       const onSeek = () => {
         if (videoEl && !untrack(() => hasSeekedInitial)) {
-          videoEl.currentTime = videoStartTime;
           hasSeekedInitial = true;
-          videoEl.play().catch(() => {});
+          
+          if (videoStartTime > 0) {
+            let playTimeout = setTimeout(playVideo, 250); // Fallback play if seeked event is delayed
+            
+            const onSeeked = () => {
+              clearTimeout(playTimeout);
+              playVideo();
+            };
+            
+            videoEl.addEventListener('seeked', onSeeked, { once: true });
+            videoEl.currentTime = videoStartTime;
+          } else {
+            playVideo();
+          }
         }
       };
       
@@ -162,11 +181,12 @@
             ontimeupdate={handleTimeUpdate}
             class="video-element video-local absolute inset-0"
             src={videoUrl}
+            poster={posterUrl}
             autoplay
             muted
             loop
             playsinline
-            preload="metadata"
+            preload="auto"
             disablepictureinpicture
           >
             <track kind="captions" />

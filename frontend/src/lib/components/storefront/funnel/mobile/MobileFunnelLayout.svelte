@@ -114,13 +114,13 @@
   }
   // NOTE: $props() moved above — must precede $derived(propProduct)
 
-  // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
+  // Check mobile_video_url, video_url (admin field), and hero_video_url (desktop fallback) for compatibility
   const hasVideo = $derived(
-    !!(product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
+    !!(product?.metadata?.mobile_video_url || product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
   );
 
   const isTikTokVideo = $derived.by((): boolean => {
-    const url = product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video || '';
+    const url = product?.metadata?.mobile_video_url || product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video || '';
     return typeof url === 'string' && url.includes('tiktok.com');
   });
 
@@ -216,7 +216,7 @@
   />
   {#if hasVideo}
     <section id="video-banner" class="mobile-snap-section video-section" data-section-idx="0">
-      <MobileVideoBanner {product} />
+      <MobileVideoBanner {product} posterUrl={resolvedLcpUrl} />
     </section>
   {/if}
 
