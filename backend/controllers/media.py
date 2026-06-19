@@ -83,9 +83,14 @@ class MediaController(Controller):
     @get("/{asset_id:str}/thumb", guards=[])
     async def get_media_thumbnail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, w: int = 300, q: int = 75) -> Redirect:
         asset = await media_repo.get(str(asset_id))
-        if not asset: return Redirect(path="/v65_assets/placeholder.webp")
+        if not asset:
+            resp = Redirect(path="/v65_assets/placeholder.webp")
+            resp.headers["Cache-Control"] = "public, max-age=3600"
+            return resp
         path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
-        return Redirect(path=path or "/v65_assets/placeholder.webp")
+        resp = Redirect(path=path or "/v65_assets/placeholder.webp")
+        resp.headers["Cache-Control"] = "public, max-age=86400"
+        return resp
 
 
     @post("/{asset_id:str}/edit", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])

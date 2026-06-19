@@ -13,8 +13,6 @@ logger = logging.getLogger("media-formatters")
 class MediaFormattersMixin:
     async def get_thumbnail(self, asset_path: str, width: int = 300, quality: int = 75) -> Optional[str]:
         """Tạo và trả về đường dẫn Thumbnail (Dynamic Resizing)."""
-        logger.info(f"[MediaFormatters] Getting thumbnail for: {asset_path}")
-
         # Nếu là video, trả về placeholder hoặc xử lý riêng
         if asset_path.lower().endswith(('.mp4', '.mov', '.webm')):
             return "/placeholder_video.webp"
@@ -25,6 +23,8 @@ class MediaFormattersMixin:
         c_fname = f"t_{width}_{quality}_{fname if fname.endswith('.webp') else fname + '.webp'}"
         c_path = os.path.join(cache_dir, c_fname)
         if os.path.exists(c_path): return f"/v65_assets/cache/{c_fname}"
+
+        logger.info(f"[MediaFormatters] Getting thumbnail for: {asset_path} (Cache Miss)")
 
         try:
             async def process(source):

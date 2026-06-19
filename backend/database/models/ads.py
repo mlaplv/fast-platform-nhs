@@ -81,6 +81,9 @@ class ClickFraudEvent(Base, AuditMixin):
         Index("ix_cfe_verdict_created", "verdict", "created_at"),
         Index("ix_cfe_ip_created", "ip_address", "created_at"),
         Index("ix_cfe_gclid", "gclid"),
+        # v616: Analytics dashboard composite indexes
+        Index("ix_cfe_created_verdict", "created_at", "verdict"),
+        Index("ix_cfe_verdict_created_ip", "verdict", "created_at", "ip_address"),
     )
 
 

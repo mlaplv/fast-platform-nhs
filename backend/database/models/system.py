@@ -33,6 +33,11 @@ class AgentTelemetryLog(Base, AuditMixin, TenantMixin):
     cost_token: Mapped[float] = mapped_column(Float, default=0)
     duration_ms: Mapped[int] = mapped_column(Integer, default=0)
 
+    # v616: Composite index for anomaly detector AVG(duration_ms) WHERE tenant+time
+    __table_args__ = (
+        Index("ix_atl_tenant_created_duration", "tenant_id", "created_at", "duration_ms"),
+    )
+
 class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'chat_messages'
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 export PYTHONPATH="${PWD}"
+export PATH="$HOME/.local/bin:$PATH"
 
 # XOHI OS - PROJECT MANAGEMENT COMMANDER v3.2 (LOCKDOWN)
 # Optimized for UV (Backend) & Vite/NPM (Frontend)
@@ -941,11 +942,16 @@ function deploy_security_index() {
 }
 
 function upgrade_python_packages() {
+    local NO_WAIT=false
+    if [[ "$1" == "--no-wait" ]]; then
+        NO_WAIT=true
+    fi
+
     echo -e "${CYAN}[UPGRADE] Đang khởi động quy trình nâng cấp gói thư viện Python (Elite V2.2)...${NC}"
     
-    # 1. Update local lockfile if on Local machine
-    if [ ! -f /.dockerenv ] && [ ! -d "/opt/fast-platform" ]; then
-        echo -e "${YELLOW}-> Phát hiện môi trường Local. Đang chạy uv lock --upgrade...${NC}"
+    # 1. Update lockfile
+    if [ ! -f /.dockerenv ]; then
+        echo -e "${YELLOW}-> Đang chạy uv lock --upgrade...${NC}"
         uv lock --upgrade
     fi
 
@@ -956,7 +962,9 @@ function upgrade_python_packages() {
             echo -e "${GREEN}   ✔ Đã cập nhật thành công các gói trong container!${NC}"
         else
             echo -e "${RED}[ERROR] Cập nhật gói trong container thất bại.${NC}"
-            read -p "Nhấn Enter để quay lại..."
+            if [ "$NO_WAIT" = false ]; then
+                read -p "Nhấn Enter để quay lại..."
+            fi
             return 1
         fi
     fi
@@ -974,7 +982,9 @@ function upgrade_python_packages() {
     fi
 
     echo -e "${GREEN}[SUCCESS] Đã nâng cấp và áp dụng toàn bộ các gói thư viện mới thành công!${NC}"
-    read -p "Nhấn Enter để quay lại menu..."
+    if [ "$NO_WAIT" = false ]; then
+        read -p "Nhấn Enter để quay lại menu..."
+    fi
 }
 
 function update_storefront_ssr() {
@@ -1184,6 +1194,10 @@ if [[ -n "$1" ]]; then
             ;;
         optimize-db|db-optimize|24)
             optimize_database
+            exit 0
+            ;;
+        upgrade|upgrade-python|20)
+            upgrade_python_packages --no-wait
             exit 0
             ;;
     esac
