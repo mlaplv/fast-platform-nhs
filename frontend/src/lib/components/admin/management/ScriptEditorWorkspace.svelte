@@ -24,7 +24,7 @@
     saveStatus: string;
     copiedTextMap: Record<number, boolean>;
     showPromptHub: boolean;
-    activePromptTab: "midjourney" | "runway" | "heygen" | "gemini";
+    activePromptTab: "midjourney" | "runway" | "heygen" | "gemini" | "animation";
     activeWorkspaceTab: 'intel' | 'match' | 'eval' | null;
     triggerAutoSave: () => void;
     downloadMarkdown: (script: VideoScript) => void;
@@ -308,6 +308,7 @@
       getGeminiPrompt={getGeminiPrompt}
       getGeminiMasterPrompt={getGeminiMasterPrompt}
       copyAllPrompts={copyAllPrompts}
+      triggerAutoSave={triggerAutoSave}
     />
   {/if}
 </div>

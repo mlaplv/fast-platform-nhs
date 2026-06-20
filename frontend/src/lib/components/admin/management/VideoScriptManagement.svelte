@@ -4,7 +4,15 @@
   import Image from "@lucide/svelte/icons/image";
   import X from "@lucide/svelte/icons/x";
 
-  import type { BaseWidgetProps, VideoScript, VideoScriptStyle, VideoScene, Article, MediaAsset, VideoScriptEvaluation } from "$lib/types";
+  import type {
+    BaseWidgetProps,
+    VideoScript,
+    VideoScriptStyle,
+    VideoScene,
+    Article,
+    MediaAsset,
+    VideoScriptEvaluation,
+  } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -25,9 +33,7 @@
   // State definitions
   let scripts = $state<VideoScript[]>([]);
   let styles = $state<VideoScriptStyle[]>([]);
-  let products = $state<Product[]>([]);
-  let articles = $state<Article[]>([]);
-  
+
   let totalScripts = $state(0);
   let isLoading = $state(true);
   let isGenerating = $state(false);
@@ -41,7 +47,9 @@
 
   // Selection & Active workspace state
   let selectedScriptId = $state<string | null>(null);
-  let selectedScript = $derived(scripts.find(s => s.id === selectedScriptId) || null);
+  let selectedScript = $derived(
+    scripts.find((s) => s.id === selectedScriptId) || null,
+  );
   let activeScript = $state<VideoScript | null>(null);
   let copiedTextMap = $state<Record<number, boolean>>({});
 
@@ -57,7 +65,10 @@
 
   function toggleSidebar() {
     isSidebarOpen = !isSidebarOpen;
-    localStorage.setItem("script_management_sidebar_open", isSidebarOpen.toString());
+    localStorage.setItem(
+      "script_management_sidebar_open",
+      isSidebarOpen.toString(),
+    );
   }
 
   // Auto-save State
@@ -84,11 +95,12 @@
     core_message: string;
   } | null>(null);
 
-
   // AI Prompt Hub states
   let showPromptHub = $state(false);
-  let activePromptTab = $state<"midjourney" | "runway" | "heygen" | "gemini">("midjourney");
-  let activeWorkspaceTab = $state<'intel' | 'match' | 'eval' | null>('intel');
+  let activePromptTab = $state<
+    "midjourney" | "runway" | "heygen" | "gemini" | "animation"
+  >("midjourney");
+  let activeWorkspaceTab = $state<"intel" | "match" | "eval" | null>("intel");
 
   // Evaluation States
   let isEvaluating = $state(false);
@@ -109,27 +121,35 @@
         duration: s.duration,
         visual_description: s.visual_description,
         voiceover: s.voiceover,
-        scene_notes: s.scene_notes
+        scene_notes: s.scene_notes,
       })),
-      notes: script.structured_script.notes
+      notes: script.structured_script.notes,
     };
     return JSON.stringify(data);
   }
 
   let isScriptModified = $derived(
-    activeScript ? getScriptContentFingerprint(activeScript) !== lastEvaluatedFingerprint : false
+    activeScript
+      ? getScriptContentFingerprint(activeScript) !== lastEvaluatedFingerprint
+      : false,
   );
 
   // forceEvaluate=true: bypass guard khi user chủ động nhấn "Đánh giá lại"
   async function handleEvaluate(forceEvaluate = false) {
     const script = activeScript;
     if (!script) return;
-    
+
     // Safety check: Chỉ chặn khi KHÔNG phải force và đã có kết quả mới nhất
     if (!forceEvaluate) {
       const currentFingerprint = getScriptContentFingerprint(script);
-      if (script.structured_script?.evaluation && currentFingerprint === lastEvaluatedFingerprint) {
-        nanobot.showToast("Kịch bản chưa có thay đổi nào so với lần đánh giá trước. Nhấn 'Đánh giá lại' để bắt buộc chạy lại!", "info");
+      if (
+        script.structured_script?.evaluation &&
+        currentFingerprint === lastEvaluatedFingerprint
+      ) {
+        nanobot.showToast(
+          "Kịch bản chưa có thay đổi nào so với lần đánh giá trước. Nhấn 'Đánh giá lại' để bắt buộc chạy lại!",
+          "info",
+        );
         return;
       }
     }
@@ -137,14 +157,14 @@
     isEvaluating = true;
     try {
       const res = await apiClient.post<{ data: VideoScriptEvaluation }>(
-        `/api/v1/video/script/${script.id}/evaluate`
+        `/api/v1/video/script/${script.id}/evaluate`,
       );
       if (res.data) {
         if (!script.structured_script) {
-          script.structured_script = {} as VideoScript['structured_script'];
+          script.structured_script = {} as VideoScript["structured_script"];
         }
         script.structured_script.evaluation = res.data;
-        const idx = scripts.findIndex(s => s.id === script.id);
+        const idx = scripts.findIndex((s) => s.id === script.id);
         if (idx !== -1) {
           scripts[idx] = JSON.parse(JSON.stringify(script));
         }
@@ -153,12 +173,18 @@
           // Cập nhật fingerprint sau đánh giá
           lastEvaluatedFingerprint = getScriptContentFingerprint(activeScript);
         }
-        nanobot.addLog("[SYS] Đánh giá kịch bản AI thành công!", "Nanobot-System");
+        nanobot.addLog(
+          "[SYS] Đánh giá kịch bản AI thành công!",
+          "Nanobot-System",
+        );
         nanobot.showToast("Đánh giá kịch bản thành công!", "success");
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      nanobot.addLog(`[SYS] Lỗi khi đánh giá kịch bản: ${msg}`, "Nanobot-System");
+      nanobot.addLog(
+        `[SYS] Lỗi khi đánh giá kịch bản: ${msg}`,
+        "Nanobot-System",
+      );
       nanobot.showToast(`Lỗi khi đánh giá: ${msg}`, "error");
     } finally {
       isEvaluating = false;
@@ -173,31 +199,43 @@
       let url = `/api/v1/video/script/${script.id}/optimize`;
       // Chỉ gán focus_criterion nếu nó là chuỗi thực sự (không phải PointerEvent từ Svelte event handler)
       let focus: string | null = null;
-      if (typeof focusCriterion === 'string' && focusCriterion.trim() !== '') {
+      if (typeof focusCriterion === "string" && focusCriterion.trim() !== "") {
         focus = focusCriterion;
         url += `?focus_criterion=${encodeURIComponent(focus)}`;
       }
       const res = await apiClient.post<{ data: VideoScript }>(url);
       if (res.data) {
         activeScript = res.data;
-        const idx = scripts.findIndex(s => s.id === script.id);
+        const idx = scripts.findIndex((s) => s.id === script.id);
         if (idx !== -1) {
           scripts[idx] = res.data;
         }
         // Cập nhật fingerprint sau optimize (backend đã tự đánh giá lại)
         lastEvaluatedFingerprint = getScriptContentFingerprint(activeScript);
-        nanobot.addLog("[SYS] Tối ưu hóa kịch bản AI thành công!", "Nanobot-System");
+        nanobot.addLog(
+          "[SYS] Tối ưu hóa kịch bản AI thành công!",
+          "Nanobot-System",
+        );
         if (focus) {
-          nanobot.showToast(`Đã tối ưu tập trung riêng tiêu chí "${focus}" thành công!`, "success");
+          nanobot.showToast(
+            `Đã tối ưu tập trung riêng tiêu chí "${focus}" thành công!`,
+            "success",
+          );
         } else {
-          nanobot.showToast("Tự động sửa lỗi & đánh giá lại thành công! Xem kết quả tab Đánh giá.", "success");
+          nanobot.showToast(
+            "Tự động sửa lỗi & đánh giá lại thành công! Xem kết quả tab Đánh giá.",
+            "success",
+          );
         }
         // Tự động switch sang tab eval để user thấy điểm mới
-        activeWorkspaceTab = 'eval';
+        activeWorkspaceTab = "eval";
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      nanobot.addLog(`[SYS] Lỗi khi tối ưu hóa kịch bản: ${msg}`, "Nanobot-System");
+      nanobot.addLog(
+        `[SYS] Lỗi khi tối ưu hóa kịch bản: ${msg}`,
+        "Nanobot-System",
+      );
       nanobot.showToast(`Lỗi khi tối ưu hóa: ${msg}`, "error");
     } finally {
       isOptimizing = false;
@@ -221,7 +259,8 @@
     const desc = scene.visual_description || "";
     const notes = scene.scene_notes || "";
     const voice = scene.voiceover || "";
-    const prodName = activeScript?.product_name || activeScript?.title || "sản phẩm";
+    const prodName =
+      activeScript?.product_name || activeScript?.title || "sản phẩm";
     const num = scene.scene_number || 1;
     return `[LỆNH TẠO VIDEO PHÂN CẢNH #${num} - NHẤT QUÁN THƯƠNG HIỆU & LIỀN MẠCH]
 (Lưu ý: Sếp hãy đính kèm ảnh sản phẩm thực tế hoặc ảnh nhân vật mẫu của phân cảnh này vào cùng lượt gửi để làm tham chiếu)
@@ -246,31 +285,36 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
 
   function getGeminiMasterPrompt() {
     if (!activeScript || !activeScript.structured_script?.scenes) return "";
-    
+
     const analysis = activeScript.structured_script.competitor_analysis;
-    const strengths = analysis?.our_strengths ? analysis.our_strengths.join(", ") : "";
+    const strengths = analysis?.our_strengths
+      ? analysis.our_strengths.join(", ")
+      : "";
     const coreMsg = analysis?.core_message ? analysis.core_message : "";
-    const prodName = activeScript.product_name || activeScript.title || "sản phẩm";
+    const prodName =
+      activeScript.product_name || activeScript.title || "sản phẩm";
 
     let text = `[LỆNH ĐIỀU HÀNH ĐẠO DIỄN - THIẾT LẬP DỰ ÁN TOÀN BỘ KỊCH BẢN]\n`;
     text += `Bạn là Đạo diễn Video AI kiêm Trợ lý sinh video của Google. Dưới đây là thông tin nền tảng thương hiệu và sản phẩm của dự án:\n`;
     text += `- Thương hiệu / Sản phẩm: ${prodName}\n`;
-    text += `- Tên kịch bản: ${activeScript.title || 'marketing'}\n`;
+    text += `- Tên kịch bản: ${activeScript.title || "marketing"}\n`;
     text += `- Website chính thức: osmo.vn (Thương hiệu Miccosmo Việt Nam)\n`;
-    text += `- Khách hàng mục tiêu: ${activeScript.structured_script.target_audience || 'Khách hàng có nhu cầu chăm sóc da/sức khoẻ'}\n`;
+    text += `- Khách hàng mục tiêu: ${activeScript.structured_script.target_audience || "Khách hàng có nhu cầu chăm sóc da/sức khoẻ"}\n`;
     if (strengths) text += `- Ưu thế vượt trội của ta (USP): ${strengths}\n`;
     if (coreMsg) text += `- Thông điệp cốt lõi: ${coreMsg}\n`;
     text += `\n`;
     text += `DƯỚI ĐÂY LÀ CHI TIẾT TỪNG PHÂN CẢNH KỊCH BẢN:\n\n`;
 
-    activeScript.structured_script.scenes.forEach((scene: VideoScene, idx: number) => {
-      const num = scene.scene_number || (idx + 1);
-      text += `Phân cảnh #${num} (Video Độc Lập):\n`;
-      text += `- Mô tả hình ảnh: ${scene.visual_description || ""}\n`;
-      text += `- Lời thoại: ${scene.voiceover || ""}\n`;
-      text += `- Ghi chú & Chuyển động: ${scene.scene_notes || ""}\n\n`;
-    });
-    
+    activeScript.structured_script.scenes.forEach(
+      (scene: VideoScene, idx: number) => {
+        const num = scene.scene_number || idx + 1;
+        text += `Phân cảnh #${num} (Video Độc Lập):\n`;
+        text += `- Mô tả hình ảnh: ${scene.visual_description || ""}\n`;
+        text += `- Lời thoại: ${scene.voiceover || ""}\n`;
+        text += `- Ghi chú & Chuyển động: ${scene.scene_notes || ""}\n\n`;
+      },
+    );
+
     text += `HƯỚNG DẪN ĐẠO DIỄN QUAN TRỌNG ĐỂ TRÁNH LỖI NHIỄM CHÉO (CROSS-CONTAMINATION):\n`;
     text += `* Mỗi phân cảnh là một video 4s - 6s HOÀN TOÀN ĐỘC LẬP. Tuyệt đối KHÔNG lấy các chi tiết đồ họa, chữ viết, mã QR, hoặc nút CTA của phân cảnh sau vẽ đè lên phân cảnh trước.\n`;
     text += `* TUYỆT ĐỐI KHÔNG vẽ trực tiếp mã QR, nút bấm mua hàng, hay chữ quảng cáo lên video. Các phần này chỉ là ghi chú sản xuất để chèn ở khâu hậu kỳ.\n`;
@@ -286,22 +330,24 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     if (!activeScript || !activeScript.structured_script?.scenes) return;
     const aspect = activeScript.structured_script.aspect_ratio || "16:9";
     let text = "";
-    
+
     if (type === "gemini") {
       text = getGeminiMasterPrompt();
     } else {
-      activeScript.structured_script.scenes.forEach((scene: VideoScene, idx: number) => {
-        const num = scene.scene_number || (idx + 1);
-        if (type === "midjourney") {
-          text += `Scene #${num} Midjourney Prompt:\n${getMidjourneyPrompt(scene, aspect)}\n\n`;
-        } else if (type === "runway") {
-          text += `Scene #${num} Runway Prompt:\n${getRunwayPrompt(scene)}\n\n`;
-        } else if (type === "heygen") {
-          text += `Scene #${num} Voiceover:\n${scene.voiceover || ""}\n\n`;
-        }
-      });
+      activeScript.structured_script.scenes.forEach(
+        (scene: VideoScene, idx: number) => {
+          const num = scene.scene_number || idx + 1;
+          if (type === "midjourney") {
+            text += `Scene #${num} Midjourney Prompt:\n${getMidjourneyPrompt(scene, aspect)}\n\n`;
+          } else if (type === "runway") {
+            text += `Scene #${num} Runway Prompt:\n${getRunwayPrompt(scene)}\n\n`;
+          } else if (type === "heygen") {
+            text += `Scene #${num} Voiceover:\n${scene.voiceover || ""}\n\n`;
+          }
+        },
+      );
     }
-    
+
     navigator.clipboard.writeText(text.trim());
     nanobot.showToast("Đã sao chép tất cả prompt vào clipboard!", "success");
   }
@@ -332,17 +378,20 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try {
-        const total = script.structured_script.scenes.reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
+        const total = script.structured_script.scenes.reduce(
+          (sum, s) => sum + (Number(s.duration) || 0),
+          0,
+        );
         script.structured_script.total_duration = Math.round(total * 10) / 10;
 
         const res = await apiClient.patch<{ data: VideoScript }>(
           `/api/v1/video/script/${script.id}`,
           {
             title: script.title,
-            structured_script: script.structured_script
-          }
+            structured_script: script.structured_script,
+          },
         );
-        const idx = scripts.findIndex(s => s.id === script.id);
+        const idx = scripts.findIndex((s) => s.id === script.id);
         if (idx !== -1) {
           scripts[idx] = res.data;
         }
@@ -353,7 +402,10 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
       } catch (error: unknown) {
         saveStatus = "Error saving";
         const msg = error instanceof Error ? error.message : String(error);
-        nanobot.addLog(`[SYS] Script auto-save failed: ${msg}`, "Nanobot-System");
+        nanobot.addLog(
+          `[SYS] Script auto-save failed: ${msg}`,
+          "Nanobot-System",
+        );
       }
     }, 1000);
   }
@@ -370,7 +422,7 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
       if (searchTerm) params.append("search", searchTerm);
 
       const res = await apiClient.get<{ data: VideoScript[]; total: number }>(
-        `/api/v1/video/scripts?${params.toString()}`
+        `/api/v1/video/scripts?${params.toString()}`,
       );
       scripts = res.data;
       totalScripts = res.total;
@@ -380,7 +432,10 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      nanobot.addLog(`[SYS] Video scripts load failed: ${msg}`, "Nanobot-System");
+      nanobot.addLog(
+        `[SYS] Video scripts load failed: ${msg}`,
+        "Nanobot-System",
+      );
       scripts = [];
       totalScripts = 0;
     } finally {
@@ -388,27 +443,19 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     }
   }
 
-  // Load Styles, Products & Articles
+  // Load Styles
   async function loadMetadata() {
     try {
-      const styleRes = await apiClient.get<{ data: VideoScriptStyle[] }>("/api/v1/video/styles");
+      const styleRes = await apiClient.get<{ data: VideoScriptStyle[] }>(
+        "/api/v1/video/styles",
+      );
       styles = styleRes.data || [];
 
-      const prodRes = await apiClient.get<{ data: Product[] }>("/api/v1/products?limit=100");
-      products = prodRes.data || [];
-
-      const articleRes = await apiClient.get<{ data: Article[] }>("/api/v1/articles?limit=100");
-      articles = articleRes.data || [];
-
       if (styles.length > 0) selectedStyleId = styles[0].id;
-      if (products.length > 0) selectedProductId = products[0].id;
-      if (articles.length > 0) selectedArticleId = articles[0].id;
     } catch (e) {
       console.warn("Failed to load metadata options", e);
     }
   }
-
-
 
   // Command-driven activation
   $effect(() => {
@@ -451,7 +498,9 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     });
     if (confirm) {
       try {
-        await apiClient.delete(`/api/v1/video/script/${encodeURIComponent(id)}`);
+        await apiClient.delete(
+          `/api/v1/video/script/${encodeURIComponent(id)}`,
+        );
         nanobot.showToast("Đã xóa kịch bản thành công!", "success");
         if (selectedScriptId === id) {
           selectedScriptId = null;
@@ -470,17 +519,17 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
       nanobot.showToast("Vui lòng chọn phong cách kịch bản!", "warning");
       return;
     }
-    
+
     if (sourceType === "product" && !selectedProductId) {
       nanobot.showToast("Vui lòng chọn sản phẩm tiêu điểm!", "warning");
       return;
     }
-    
+
     if (sourceType === "article" && !selectedArticleId) {
       nanobot.showToast("Vui lòng chọn bài viết nguồn!", "warning");
       return;
     }
-    
+
     if (sourceType === "custom" && !customDescription.trim()) {
       nanobot.showToast("Vui lòng nhập mô tả ý tưởng!", "warning");
       return;
@@ -488,19 +537,22 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
 
     isAnalyzing = true;
     try {
-      const res = await apiClient.post<{ data: { competitor_weaknesses: string[], our_strengths: string[], core_message: string } }>(
-        "/api/v1/video/script/analyze-competitors",
-        {
-          source_type: sourceType,
-          product_id: sourceType === "product" ? selectedProductId : null,
-          article_id: sourceType === "article" ? selectedArticleId : null,
-          description: sourceType === "custom" ? customDescription : null,
-          style_id: selectedStyleId,
-          aspect_ratio: aspectRatio,
-          target_duration: targetDuration,
-          extra_requirements: extraRequirements.trim() || null
-        }
-      );
+      const res = await apiClient.post<{
+        data: {
+          competitor_weaknesses: string[];
+          our_strengths: string[];
+          core_message: string;
+        };
+      }>("/api/v1/video/script/analyze-competitors", {
+        source_type: sourceType,
+        product_id: sourceType === "product" ? selectedProductId : null,
+        article_id: sourceType === "article" ? selectedArticleId : null,
+        description: sourceType === "custom" ? customDescription : null,
+        style_id: selectedStyleId,
+        aspect_ratio: aspectRatio,
+        target_duration: targetDuration,
+        extra_requirements: extraRequirements.trim() || null,
+      });
       competitorAnalysis = res.data;
       generatorStep = 2;
       nanobot.showToast("Phân tích đối thủ & USP hoàn tất!", "success");
@@ -515,22 +567,22 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
   // Step 2: Generate Script
   async function handleGenerate(e: Event) {
     e.preventDefault();
-    
+
     if (!selectedStyleId) {
       nanobot.showToast("Vui lòng chọn phong cách kịch bản!", "warning");
       return;
     }
-    
+
     if (sourceType === "product" && !selectedProductId) {
       nanobot.showToast("Vui lòng chọn sản phẩm tiêu điểm!", "warning");
       return;
     }
-    
+
     if (sourceType === "article" && !selectedArticleId) {
       nanobot.showToast("Vui lòng chọn bài viết nguồn!", "warning");
       return;
     }
-    
+
     if (sourceType === "custom" && !customDescription.trim()) {
       nanobot.showToast("Vui lòng nhập mô tả ý tưởng!", "warning");
       return;
@@ -551,12 +603,12 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
           aspect_ratio: aspectRatio,
           target_duration: targetDuration,
           competitor_analysis: competitorAnalysis,
-          extra_requirements: extraRequirements.trim() || null
-        }
+          extra_requirements: extraRequirements.trim() || null,
+        },
       );
 
       genStep = 3;
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 600));
 
       nanobot.showToast("Đã sinh kịch bản video thành công!", "success");
       isDrawerOpen = false;
@@ -587,9 +639,14 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
 
   // Download Markdown file
   function downloadMarkdown(script: VideoScript) {
-    const token = typeof window !== 'undefined' ? (localStorage.getItem("admin_token") || sessionStorage.getItem("admin_token") || "") : "";
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_token") ||
+          sessionStorage.getItem("admin_token") ||
+          ""
+        : "";
     const url = `/api/v1/video/script/${script.id}/export?Authorization=Bearer ${token}`;
-    
+
     const link = document.createElement("a");
     link.href = url;
     link.download = `script_${script.id}.md`;
@@ -599,23 +656,21 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     nanobot.showToast("Đang tải xuống kịch bản...", "info");
   }
 
-
-
   // Scene Operations: Move Up / Down
-  function moveScene(idx: number, direction: 'up' | 'down') {
+  function moveScene(idx: number, direction: "up" | "down") {
     if (!activeScript) return;
     const scenes = activeScript.structured_script.scenes;
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= scenes.length) return;
-    
+
     const temp = scenes[idx];
     scenes[idx] = scenes[targetIdx];
     scenes[targetIdx] = temp;
-    
+
     scenes.forEach((s, i) => {
       s.scene_number = i + 1;
     });
-    
+
     triggerAutoSave();
   }
 
@@ -626,16 +681,17 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     const newScene = {
       scene_number: idx + 2,
       duration: 3.0,
-      visual_description: "Máy quay lia cận cảnh sản phẩm đặt trên bệ đỡ xoay tròn, ánh sáng dịu nhẹ tập trung vào bao bì thương hiệu.",
+      visual_description:
+        "Máy quay lia cận cảnh sản phẩm đặt trên bệ đỡ xoay tròn, ánh sáng dịu nhẹ tập trung vào bao bì thương hiệu.",
       voiceover: "Chất lượng vượt trội đi kèm thiết kế tinh tế từng đường nét.",
-      scene_notes: "Chú ý quay slow-motion 60fps để tạo cảm giác cao cấp."
+      scene_notes: "Chú ý quay slow-motion 60fps để tạo cảm giác cao cấp.",
     };
-    
+
     scenes.splice(idx + 1, 0, newScene);
     scenes.forEach((s, i) => {
       s.scene_number = i + 1;
     });
-    
+
     triggerAutoSave();
     nanobot.showToast("Đã chèn thêm phân cảnh mới!", "success");
   }
@@ -645,7 +701,10 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     if (!activeScript) return;
     const scenes = activeScript.structured_script.scenes;
     if (scenes.length <= 1) {
-      nanobot.showToast("Kịch bản video phải duy trì ít nhất 1 phân cảnh!", "warning");
+      nanobot.showToast(
+        "Kịch bản video phải duy trì ít nhất 1 phân cảnh!",
+        "warning",
+      );
       return;
     }
     scenes.splice(idx, 1);
@@ -656,24 +715,26 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
     nanobot.showToast("Đã xóa phân cảnh!", "info");
   }
 
-
-
   let totalPages = $derived(Math.max(1, Math.ceil(totalScripts / pageSize)));
 </script>
 
-<div class="w-full h-full flex flex-col md:flex-row bg-[#020202] text-gray-200 overflow-hidden font-sans">
-  
+<div
+  class="w-full h-full flex flex-col md:flex-row bg-[#020202] text-gray-200 overflow-hidden font-sans"
+>
   {#if isSidebarOpen}
-    <div transition:fade={{ duration: 150 }} class="w-full md:w-[360px] shrink-0 border-r border-[#121212] flex flex-col h-full">
+    <div
+      transition:fade={{ duration: 150 }}
+      class="w-full md:w-[360px] shrink-0 border-r border-[#121212] flex flex-col h-full"
+    >
       <ScriptList
-        scripts={scripts}
-        isLoading={isLoading}
-        bind:selectedScriptId={selectedScriptId}
-        bind:searchInput={searchInput}
-        bind:currentPage={currentPage}
-        pageSize={pageSize}
-        totalScripts={totalScripts}
-        totalPages={totalPages}
+        {scripts}
+        {isLoading}
+        bind:selectedScriptId
+        bind:searchInput
+        bind:currentPage
+        {pageSize}
+        {totalScripts}
+        {totalPages}
         onSearchInput={handleSearchInput}
         onRefresh={loadScripts}
         onOpenDrawer={() => {
@@ -686,54 +747,51 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
   {/if}
 
   <ScriptEditorWorkspace
-    activeScript={activeScript}
-    saveStatus={saveStatus}
-    copiedTextMap={copiedTextMap}
-    bind:showPromptHub={showPromptHub}
-    bind:activePromptTab={activePromptTab}
-    triggerAutoSave={triggerAutoSave}
-    downloadMarkdown={downloadMarkdown}
-    handleDelete={handleDelete}
-    moveScene={moveScene}
-    insertScene={insertScene}
-    deleteScene={deleteScene}
-    copyPrompt={copyPrompt}
-    getMidjourneyPrompt={getMidjourneyPrompt}
-    getRunwayPrompt={getRunwayPrompt}
-    getGeminiPrompt={getGeminiPrompt}
-    getGeminiMasterPrompt={getGeminiMasterPrompt}
-    copyAllPrompts={copyAllPrompts}
-    isEvaluating={isEvaluating}
-    isOptimizing={isOptimizing}
+    {activeScript}
+    {saveStatus}
+    {copiedTextMap}
+    bind:showPromptHub
+    bind:activePromptTab
+    {triggerAutoSave}
+    {downloadMarkdown}
+    {handleDelete}
+    {moveScene}
+    {insertScene}
+    {deleteScene}
+    {copyPrompt}
+    {getMidjourneyPrompt}
+    {getRunwayPrompt}
+    {getGeminiPrompt}
+    {getGeminiMasterPrompt}
+    {copyAllPrompts}
+    {isEvaluating}
+    {isOptimizing}
     onEvaluate={handleEvaluate}
     onForceEvaluate={() => handleEvaluate(true)}
     onOptimize={handleOptimize}
-    isScriptModified={isScriptModified}
-    bind:activeWorkspaceTab={activeWorkspaceTab}
-    isSidebarOpen={isSidebarOpen}
-    toggleSidebar={toggleSidebar}
+    {isScriptModified}
+    bind:activeWorkspaceTab
+    {isSidebarOpen}
+    {toggleSidebar}
   />
-
 </div>
 
 <VideoScriptGenerator
-  bind:isDrawerOpen={isDrawerOpen}
-  isGenerating={isGenerating}
-  genStep={genStep}
-  bind:sourceType={sourceType}
-  products={products}
-  bind:selectedProductId={selectedProductId}
-  articles={articles}
-  bind:selectedArticleId={selectedArticleId}
-  bind:customDescription={customDescription}
-  bind:extraRequirements={extraRequirements}
-  bind:aspectRatio={aspectRatio}
-  bind:targetDuration={targetDuration}
-  styles={styles}
-  bind:selectedStyleId={selectedStyleId}
-  handleGenerate={handleGenerate}
-  bind:generatorStep={generatorStep}
-  isAnalyzing={isAnalyzing}
-  bind:competitorAnalysis={competitorAnalysis}
-  handleAnalyze={handleAnalyze}
+  bind:isDrawerOpen
+  {isGenerating}
+  {genStep}
+  bind:sourceType
+  bind:selectedProductId
+  bind:selectedArticleId
+  bind:customDescription
+  bind:extraRequirements
+  bind:aspectRatio
+  bind:targetDuration
+  {styles}
+  bind:selectedStyleId
+  {handleGenerate}
+  bind:generatorStep
+  {isAnalyzing}
+  bind:competitorAnalysis
+  {handleAnalyze}
 />

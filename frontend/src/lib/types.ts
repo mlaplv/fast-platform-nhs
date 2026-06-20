@@ -978,6 +978,7 @@ export interface VideoScriptStructured {
   aspect_ratio?: string;
   landing_page_headlines?: string[];
   evaluation?: VideoScriptEvaluation;
+  animation_settings?: Record<string, unknown>;
 }
 
 export interface VideoScript {

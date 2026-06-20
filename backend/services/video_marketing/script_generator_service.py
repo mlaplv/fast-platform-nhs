@@ -42,6 +42,7 @@ class VideoScriptModel(BaseModel):
     landing_page_headlines: Optional[List[LandingPageHeadlineMatch]] = Field(None, description="3 cặp H1 Headline & H2 Subheadline tương thích, tạo Message Match tối ưu CR trang đích")
     evaluation: Optional[dict] = Field(None, description="Báo cáo đánh giá chất lượng kịch bản từ Đạo diễn AI")
     target_duration: Optional[int] = Field(None, description="Thời lượng mục tiêu của video tính bằng giây")
+    animation_settings: Optional[dict] = Field(None, description="Cấu hình sinh prompt video animation nâng cao")
 
     @model_validator(mode='after')
     def check_duration_compliance(self) -> 'VideoScriptModel':
