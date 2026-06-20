@@ -8,7 +8,7 @@ WORKDIR /app/frontend
 RUN corepack enable
 
 # Copy lockfiles first — maximizes cache hit when only src files change
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copy source and build
@@ -23,7 +23,7 @@ WORKDIR /app/frontend
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy only the built output from builder stage

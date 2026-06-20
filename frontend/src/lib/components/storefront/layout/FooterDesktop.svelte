@@ -4,9 +4,9 @@
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
 
   const ui = getClientUi();
-  import Facebook from "@lucide/svelte/icons/facebook";
-  import Linkedin from "@lucide/svelte/icons/linkedin";
-  import Youtube from "@lucide/svelte/icons/youtube";
+  import Facebook from "$lib/components/ui/icons/Facebook.svelte";
+  import Linkedin from "$lib/components/ui/icons/Linkedin.svelte";
+  import Youtube from "$lib/components/ui/icons/Youtube.svelte";
   import MapPin from "@lucide/svelte/icons/map-pin";
   import Mail from "@lucide/svelte/icons/mail";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";

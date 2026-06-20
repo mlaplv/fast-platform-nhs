@@ -6,7 +6,7 @@
   import Loader from "@lucide/svelte/icons/loader";
   import Zap from "@lucide/svelte/icons/zap";
   import Heart from "@lucide/svelte/icons/heart";
-  import Facebook from "@lucide/svelte/icons/facebook";
+  import Facebook from "$lib/components/ui/icons/Facebook.svelte";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Share2 from "@lucide/svelte/icons/share-2";
   import { untrack, onMount, onDestroy } from 'svelte';

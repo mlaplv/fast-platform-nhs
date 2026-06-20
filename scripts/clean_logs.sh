@@ -4,7 +4,8 @@
 # ==============================================================================
 
 # Thư mục chính
-BASE_DIR="/opt/fast-platform"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "${SCRIPT_DIR}")"
 BACKUPS_DIR="${BASE_DIR}/backups"
 
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] BẮT ĐẦU DỌN DẸP HỆ THỐNG ==="
@@ -26,11 +27,11 @@ echo "   ✔ Đã dọn dẹp các tệp *.log trên thư mục dự án."
 echo "-> [3/4] Đang kiểm tra và giới hạn số lượng bản sao lưu..."
 if [ -d "${BACKUPS_DIR}" ]; then
     cd "${BACKUPS_DIR}" || exit
-    # Liệt kê các tệp tin/thư mục bắt đầu bằng XOHI_BKP_, sắp xếp theo ngày sửa đổi từ mới đến cũ
-    # Giữ lại 5 bản mới nhất (5 dòng đầu), xóa các bản cũ hơn từ dòng thứ 6 trở đi
-    ls -dt XOHI_BKP_* 2>/dev/null | tail -n +6 | while read -r old_backup; do
+    # Liệt kê các tệp tin bắt đầu bằng XOHI_BKP_ và kết thúc bằng .tar.gz.enc, sắp xếp theo ngày sửa đổi từ mới đến cũ
+    # Giữ lại 5 bản mới nhất, xóa các bản cũ hơn từ dòng thứ 6 trở đi
+    ls -t XOHI_BKP_*.tar.gz.enc 2>/dev/null | tail -n +6 | while read -r old_backup; do
         echo "   - Xóa bản sao lưu cũ: ${old_backup}"
-        rm -rf "${old_backup}" "${old_backup}.sha256" 2>/dev/null
+        rm -f "${old_backup}" "${old_backup}.sha256" 2>/dev/null
     done
     echo "   ✔ Hoàn thành kiểm tra và tối ưu thư mục backups."
 fi
@@ -38,6 +39,8 @@ fi
 # 4. Prune các tài nguyên Docker không dùng đến (dangling)
 echo "-> [4/4] Đang dọn dẹp các tài nguyên Docker không sử dụng (dangling)..."
 docker system prune -f 2>/dev/null
+docker volume prune -f 2>/dev/null
+docker builder prune -a -f 2>/dev/null
 echo "   ✔ Hoàn thành dọn dẹp Docker cache!"
 
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] DỌN DẸP HOÀN TẤT ==="

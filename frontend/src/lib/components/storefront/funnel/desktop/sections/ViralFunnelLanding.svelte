@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fetchViralCampaign } from '$lib/utils/viralCampaignCache';
-    import Facebook from "@lucide/svelte/icons/facebook";
+  import Facebook from "$lib/components/ui/icons/Facebook.svelte";
   import Copy from "@lucide/svelte/icons/copy";
   import Heart from "@lucide/svelte/icons/heart";
   import Zap from "@lucide/svelte/icons/zap";

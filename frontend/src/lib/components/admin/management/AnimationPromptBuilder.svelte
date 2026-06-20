@@ -44,7 +44,7 @@
       // Extraction helper for tagline
       const getFallbackTagline = (): string => {
         const compAnalysis =
-          activeScript.structured_script?.competitor_analysis;
+          activeScript.structured_script?.competitor_analysis as any;
         if (compAnalysis && compAnalysis.core_message) {
           return compAnalysis.core_message;
         }
@@ -61,7 +61,7 @@
       // Extraction helper for features
       const getFallbackFeatures = (): string[] => {
         const compAnalysis =
-          activeScript.structured_script?.competitor_analysis;
+          activeScript.structured_script?.competitor_analysis as any;
         let feats: string[] = [];
         if (compAnalysis && Array.isArray(compAnalysis.our_strengths)) {
           feats = compAnalysis.our_strengths.filter(Boolean);

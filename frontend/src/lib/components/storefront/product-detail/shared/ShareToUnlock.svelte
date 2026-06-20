@@ -5,7 +5,7 @@
   import Copy from "@lucide/svelte/icons/copy";
   import Loader from "@lucide/svelte/icons/loader";
   import Zap from "@lucide/svelte/icons/zap";
-  import Facebook from "@lucide/svelte/icons/facebook";
+  import Facebook from "$lib/components/ui/icons/Facebook.svelte";
   import { fade, scale } from 'svelte/transition';
   
   // Types

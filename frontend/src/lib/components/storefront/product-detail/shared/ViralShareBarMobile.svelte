@@ -1,10 +1,10 @@
 <script lang="ts">
   import { fetchViralCampaign } from '$lib/utils/viralCampaignCache';
   import Heart from "@lucide/svelte/icons/heart";
-  import Instagram from "@lucide/svelte/icons/instagram";
+  import Instagram from "$lib/components/ui/icons/Instagram.svelte";
   import Send from "@lucide/svelte/icons/send";
-  import Twitter from "@lucide/svelte/icons/twitter";
-  import Facebook from "@lucide/svelte/icons/facebook";
+  import Twitter from "$lib/components/ui/icons/Twitter.svelte";
+  import Facebook from "$lib/components/ui/icons/Facebook.svelte";
   import Copy from "@lucide/svelte/icons/copy";
   import Zap from "@lucide/svelte/icons/zap";
   import type { Product } from '$lib/types';

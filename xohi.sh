@@ -9,6 +9,7 @@ export PATH="$HOME/.local/bin:$PATH"
 set -e
 set -o pipefail
 
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors
 RED='\033[0;31m'
@@ -1077,8 +1078,8 @@ function total_garbage_clean() {
 
     # 5. Clean local system temp logs, pycache & dev caches
     echo -e "${YELLOW}-> [5/7] Đang làm sạch logs, pycache & dev caches trên Host...${NC}"
-    rm -f /opt/fast-platform/backend/cache/*.log 2>/dev/null || true
-    find /opt/fast-platform -type f -name "*.log" -delete 2>/dev/null || true
+    rm -f "$PROJECT_DIR"/backend/cache/*.log 2>/dev/null || true
+    find "$PROJECT_DIR" -type f -name "*.log" -delete 2>/dev/null || true
     find backend -type f -name "*.pyc" -delete 2>/dev/null || true
     find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     rm -rf frontend/node_modules frontend/build frontend/.svelte-kit frontend/.vite frontend/dist 2>/dev/null || true
