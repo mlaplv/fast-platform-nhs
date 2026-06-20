@@ -317,6 +317,7 @@
       }>("/api/v1/products/semantic-suggest", {
         name: formState.name,
         description: formState.description || "",
+        seo_description: formState.seoDescription || "",
       });
       if (res && res.data) {
         formState.metadata.desc_semantic = res.data;

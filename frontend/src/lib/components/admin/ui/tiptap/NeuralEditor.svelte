@@ -209,7 +209,6 @@
       id: 'enrich',
       label: analysis.isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER',
       loading: analysis.isBoosting,
-      disabled: analysis.seoScore !== null && analysis.seoScore >= 95,
       onclick: () => {
         analysis.activeTab = 'enrich';
         if (analysis.boosterAnnotations.length === 0 && !analysis.isBoosting) {

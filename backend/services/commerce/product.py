@@ -460,9 +460,9 @@ class ProductService:
         """Elite V2.2: XOHI Auto Specifications Extractor (Delegated)."""
         return await suggest_specs_logic(raw_text)
 
-    async def suggest_semantic(self, name: str, description: str) -> str:
+    async def suggest_semantic(self, name: str, description: str, seo_description: Optional[str] = None) -> str:
         """GEO 2026: XOHI Auto Semantic SGE Highlights Generator (Delegated)."""
-        return await suggest_semantic_logic(name, description)
+        return await suggest_semantic_logic(name, description, seo_description)
 
     async def suggest_ingredients_grouped(self, ingredients_text: str) -> list:
         """GEO 2026: XOHI Ingredients Grouper — nhóm hóa bảng thành phần theo chức năng (Delegated)."""

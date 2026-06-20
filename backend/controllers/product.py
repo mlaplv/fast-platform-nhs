@@ -186,7 +186,8 @@ class ProductController(Controller):
         """GEO 2026: XOHI Auto Semantic SGE Highlights Generator for Products."""
         name = data.get("name", "")
         description = data.get("description", "")
-        result = await product_service.suggest_semantic(name, description)
+        seo_description = data.get("seo_description", "")
+        result = await product_service.suggest_semantic(name, description, seo_description)
         return {"data": result}
 
     @post("/ingredients-grouped", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)

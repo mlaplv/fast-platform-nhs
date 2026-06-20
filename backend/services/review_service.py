@@ -87,6 +87,15 @@ class ReviewService:
         """Write-through: Recompute avg rating từ APPROVED reviews và ghi vào product_metadata.
         Đảm bảo product listing API luôn trả đúng reviews_trust_score mà không cần N+1 join.
         """
+        # Invalidate review stats cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            cache_key = f"system:reviews:stats:entity_type:{entity_type}:entity_id:{entity_id}"
+            await xohi_memory.client.delete(cache_key)
+        except Exception as e:
+            import logging
+            logging.getLogger("api-gateway").warning(f"[ReviewService] Stats cache invalidation failed: {e}")
+
         if entity_type != "PRODUCT":
             return
         try:
@@ -281,64 +290,64 @@ class ReviewService:
             raise ValueError(f"Review {review_id} not found")
 
     async def get_review_stats(self, entity_type: str, entity_id: str) -> dict:
-        """Thống kê chi tiết đánh giá cho UI Product Detail (Elite V2.2)."""
-        from sqlalchemy import select, func, and_
+        """Thống kê chi tiết đánh giá cho UI Product Detail (Elite V2.2) - Combined & Cached."""
+        import json
+        from backend.services.xohi_memory import xohi_memory
         
-        # 1. Cơ bản: Total & Average
+        cache_key = f"system:reviews:stats:entity_type:{entity_type}:entity_id:{entity_id}"
+        try:
+            cached = await xohi_memory.client.get(cache_key)
+            if cached:
+                data = json.loads(cached)
+                if "rating_breakdown" in data:
+                    data["rating_breakdown"] = {int(k): v for k, v in data["rating_breakdown"].items()}
+                return data
+        except Exception as e:
+            logger.debug(f"[ReviewService] Cache read failed: {e}")
+
+        from sqlalchemy import select, func, and_, case
+        import hashlib
+        
+        # Consolidate 4 reviews-related queries into 1
         stmt = select(
             func.count(SystemReview.id).label("total"),
-            func.avg(SystemReview.rating).label("avg")
-        ).where(and_(
-            SystemReview.entity_type == entity_type,
-            SystemReview.entity_id == entity_id,
-            SystemReview.status == "APPROVED"
-        ))
-        result = await self.review_repo.session.execute(stmt)
-        row = result.fetchone()
-        total_count = row.total if row else 0
-        avg_rating = float(row.avg) if row and row.avg else 0.0
-
-        # 2. Rating Breakdown
-        stmt_breakdown = select(
-            SystemReview.rating,
-            func.count(SystemReview.id)
-        ).where(and_(
-            SystemReview.entity_type == entity_type,
-            SystemReview.entity_id == entity_id,
-            SystemReview.status == "APPROVED"
-        )).group_by(SystemReview.rating)
-        
-        breakdown_res = await self.review_repo.session.execute(stmt_breakdown)
-        rating_breakdown = {i: 0 for i in range(1, 6)}
-        for r, c in breakdown_res:
-            rating_breakdown[r] = c
-
-        # 3. Has Media (Elite V2.2: Defensive JSONB check using CASE to avoid scalar errors)
-        from sqlalchemy import case
-        stmt_media = select(func.count(SystemReview.id)).where(and_(
-            SystemReview.entity_type == entity_type,
-            SystemReview.entity_id == entity_id,
-            SystemReview.status == "APPROVED",
-            case(
+            func.avg(SystemReview.rating).label("avg"),
+            func.sum(case((SystemReview.content != "", 1), else_=0)).label("content_count"),
+            func.sum(case((case(
                 (func.jsonb_typeof(SystemReview.attachments) == 'array', func.jsonb_array_length(SystemReview.attachments)),
                 else_=0
-            ) > 0
-        ))
-        media_count = await self.review_repo.session.scalar(stmt_media) or 0
-
-        stmt_content = select(func.count(SystemReview.id)).where(and_(
+            ) > 0, 1), else_=0)).label("media_count"),
+            func.sum(case((SystemReview.rating == 1, 1), else_=0)).label("r1"),
+            func.sum(case((SystemReview.rating == 2, 1), else_=0)).label("r2"),
+            func.sum(case((SystemReview.rating == 3, 1), else_=0)).label("r3"),
+            func.sum(case((SystemReview.rating == 4, 1), else_=0)).label("r4"),
+            func.sum(case((SystemReview.rating == 5, 1), else_=0)).label("r5"),
+        ).where(and_(
             SystemReview.entity_type == entity_type,
             SystemReview.entity_id == entity_id,
-            SystemReview.status == "APPROVED",
-            SystemReview.content != ""
+            SystemReview.status == "APPROVED"
         ))
-        content_count = await self.review_repo.session.scalar(stmt_content) or 0
+        
+        result = await self.review_repo.session.execute(stmt)
+        row = result.fetchone()
+        
+        total_count = row.total if row and row.total is not None else 0
+        avg_rating = float(row.avg) if row and row.avg is not None else 0.0
+        content_count = int(row.content_count) if row and row.content_count is not None else 0
+        media_count = int(row.media_count) if row and row.media_count is not None else 0
+        
+        rating_breakdown = {
+            1: int(row.r1) if row and row.r1 is not None else 0,
+            2: int(row.r2) if row and row.r2 is not None else 0,
+            3: int(row.r3) if row and row.r3 is not None else 0,
+            4: int(row.r4) if row and row.r4 is not None else 0,
+            5: int(row.r5) if row and row.r5 is not None else 0,
+        }
 
         # 4. Product Sales (Elite V2.2: Marketing Boost Integration)
         order_count = 0
         if entity_type == "PRODUCT":
             from backend.database.models import ProductBase
-            from sqlalchemy import select
             stmt_sales = select(ProductBase.order_count, ProductBase.product_metadata).where(ProductBase.id == entity_id)
             p_row = (await self.review_repo.session.execute(stmt_sales)).fetchone()
             if p_row:
@@ -354,12 +363,18 @@ class ReviewService:
                     g_by_count = 0
                 
                 # 🎯 Elite FOMO Logic: Hourly Growth + Unique Product Offset (Consistent with ProductService)
-                now = datetime.now()
+                from datetime import timezone
+                now = datetime.now(timezone.utc)
                 hour_factor = now.hour * 2
                 min_factor = now.minute // 15
                 
                 # Unique deterministic offset per product (Same seed as ProductService)
-                unique_offset = (abs(hash(str(entity_id))) % 150) * 50
+                try:
+                    unique_offset = (int(str(entity_id).replace("-", ""), 16) % 150) * 50
+                except ValueError:
+                    h = hashlib.md5(str(entity_id).encode("utf-8")).hexdigest()
+                    unique_offset = (int(h, 16) % 150) * 50
+                    
                 fomo_boost = hour_factor + min_factor + unique_offset
                 
                 # Base from metadata + real orders + marketing boost + fomo
@@ -373,7 +388,7 @@ class ReviewService:
                 
                 order_count = base_num + raw_count + g_by_count + fomo_boost
 
-        return {
+        stats = {
             "total_count": total_count,
             "average_rating": round(avg_rating, 1),
             "rating_breakdown": rating_breakdown,
@@ -381,6 +396,14 @@ class ReviewService:
             "has_media_count": media_count,
             "order_count": order_count
         }
+        
+        try:
+            # Cache in Redis for 5 minutes
+            await xohi_memory.client.set(cache_key, json.dumps(stats), ex=300)
+        except Exception as e:
+            logger.debug(f"[ReviewService] Cache write failed: {e}")
+            
+        return stats
 
     async def increment_like(self, review_id: str) -> int:
         from sqlalchemy import update, func, select

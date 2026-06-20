@@ -237,15 +237,26 @@ class SupportAgentOperative(BaseAgentOperative):
         cart_text = _render_cart_report(request, p_map, v_map, pb, ctx_text, cur_settings)
         
         from backend.database import current_tenant_id
-        from sqlalchemy import or_
-        all_vouchers = (await db.execute(
-            select(Voucher).where(
-                Voucher.is_active == True,
-                Voucher.deleted_at.is_(None),
-                or_(Voucher.is_viral == False, Voucher.is_viral.is_(None)),
-                Voucher.tenant_id == (current_tenant_id.get() or "default")
-            )
-        )).scalars().all()
+        from backend.services.promotion_admin_service import promotion_admin_service
+        v_res = await promotion_admin_service.list_vouchers(
+            db_session=db,
+            is_active=True,
+            exclude_viral=True,
+            limit=100
+        )
+        all_vouchers = [
+            Voucher(
+                id=v.id,
+                title=v.title,
+                type=v.type,
+                value=v.value,
+                min_spend=v.min_spend,
+                max_discount=v.max_discount,
+                is_active=v.is_active,
+                is_viral=v.is_viral,
+                tenant_id=current_tenant_id.get() or "default"
+            ) for v in v_res.data
+        ]
         fomo_text = _generate_fomo_instructions(pb, all_vouchers, cur_settings)
         if fomo_text:
             cart_text += fomo_text

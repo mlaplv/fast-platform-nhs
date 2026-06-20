@@ -960,6 +960,9 @@ export function createAnalysisController(config: {
             if (_hydrated) return;
             if (isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing) return;
 
+            const hasData = (cache && Object.keys(cache).length > 0) || (dbReport && Object.keys(dbReport).length > 0);
+            if (!hasData) return;
+
             // Helper để lấy data: ưu tiên DB report nếu có, fallback về cache
             const getD = (key: string) => {
                 if (dbReport?.[key]?.data) return dbReport[key].data;

@@ -11,8 +11,11 @@
   import Lock from "@lucide/svelte/icons/lock";
   import Newspaper from "@lucide/svelte/icons/newspaper";
   import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
+  import Package from "@lucide/svelte/icons/package";
+  import X from "@lucide/svelte/icons/x";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
+  import ProductPickerModal from "./ProductPickerModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
@@ -21,13 +24,12 @@
   import { portal } from "$lib/core/actions/portal";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Plus from "@lucide/svelte/icons/plus";
-  import type { MediaAsset } from "$lib/types";
-  import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
+  import type { AnalysisCache, CampaignMetrics, MediaAsset } from "$lib/state/types";
 
   const nanobot = useNanobot();
   
   let {
-    isOpen = false,
+    isOpen = $bindable(false),
     editingId,
     formTitle = $bindable(),
     formCategory = $bindable(),
@@ -44,6 +46,9 @@
     formAnalysisCache = $bindable(),
     formAnalysisMetrics = $bindable(),
     formAnalysisReport = $bindable(),
+    formRelatedProductId = $bindable(),
+    formRelatedProductName = $bindable(),
+    formRelatedProductImage = $bindable(),
     dbCategories,
     onSave,
     onClose,
@@ -64,6 +69,9 @@
     formSeoOgImage: string | null;
     formFeaturedImage: string | null;
     formFaqs: { question: string; answer: string }[];
+    formRelatedProductId: string | null;
+    formRelatedProductName: string;
+    formRelatedProductImage: string | null;
     dbCategories: readonly string[];
     onSave: () => void;
     onClose: () => void;
@@ -169,6 +177,46 @@
   let isSuggestingContent = $state(false);
   let isEditorFullScreen = $state(false);
 
+  // V2026: Product Picker + XOHI Title Generator
+  let showProductPicker = $state(false);
+  let isSuggestingTitles = $state(false);
+  let suggestedTitles = $state<string[]>([]);
+  let showTitleSuggestions = $state(false);
+
+  async function handleAiSuggestTitles() {
+    isSuggestingTitles = true;
+    suggestedTitles = [];
+    showTitleSuggestions = true;
+    try {
+      const res = await apiClient.post<{ data: string[] }>('/api/v1/articles/title-suggest', {
+        category: formCategory || '',
+        keywords: formSeoKeywords || '',
+        product_id: formRelatedProductId || ''
+      });
+      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        suggestedTitles = res.data;
+        nanobot.showToast(`XOHI đã gợi ý ${res.data.length} tiêu đề.`, "success");
+      } else {
+        nanobot.showToast("XOHI chưa sinh được tiêu đề. Thử lại nhé.", "error");
+        showTitleSuggestions = false;
+      }
+    } catch (e) {
+      console.error('XOHI Title suggest failed:', e);
+      nanobot.showToast("Lỗi kết nối AI.", "error");
+      showTitleSuggestions = false;
+    } finally {
+      isSuggestingTitles = false;
+    }
+  }
+
+  function selectSuggestedTitle(title: string) {
+    formTitle = title;
+    if (!editingId) formSlug = generateSlug(title);
+    showTitleSuggestions = false;
+    suggestedTitles = [];
+    nanobot.showToast("Đã chọn tiêu đề.", "success");
+  }
+
   async function handleAiSuggestSeo() {
     if (!formTitle) {
       nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước.", "warning");
@@ -224,7 +272,7 @@
   }
 
   function removeFaq(index: number) {
-    formFaqs = formFaqs.filter((_, i) => i !== index);
+    formFaqs = formFaqs.filter((_: unknown, i: number) => i !== index);
   }
 
   async function handleAiSuggestExcerpt() {
@@ -301,10 +349,25 @@
       <div class="xl:col-span-8 flex flex-col gap-4">
         <!-- Tiêu đề -->
         <div class="field-group">
-          <label class="field-label flex items-center gap-2">
-            Tiêu đề bài viết
-            <span class="text-red-500">*</span>
-          </label>
+          <div class="flex items-center justify-between">
+            <label class="field-label flex items-center gap-2">
+              Tiêu đề bài viết
+              <span class="text-red-500">*</span>
+            </label>
+            <button
+              onclick={handleAiSuggestTitles}
+              disabled={isSuggestingTitles}
+              class="flex items-center gap-1 px-3 py-1 bg-[#0a192f] border border-cyan-900/40 rounded-lg text-[8px] font-black tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              {#if isSuggestingTitles}
+                <div class="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                Đang phân tích...
+              {:else}
+                <Sparkles size={9} />
+                XOHI sinh tiêu đề
+              {/if}
+            </button>
+          </div>
           <div class="relative">
             <input
               type="text"
@@ -320,6 +383,32 @@
           </div>
           {#if errors?.title}
             <p class="text-red-500 text-[10px] mt-1 font-bold">{errors.title}</p>
+          {/if}
+
+          <!-- XOHI Title Suggestions Dropdown -->
+          {#if showTitleSuggestions}
+            <div class="mt-2 bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+              <div class="px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                <span class="text-[8px] font-black tracking-[0.3em] text-white/20">GỢI Ý TIÊU ĐỀ</span>
+                <button onclick={() => { showTitleSuggestions = false; suggestedTitles = []; }} class="p-1 text-white/20 hover:text-white transition-colors cursor-pointer"><X size={10} /></button>
+              </div>
+              {#if isSuggestingTitles}
+                <div class="flex items-center justify-center py-6 gap-2">
+                  <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                  <span class="text-[9px] text-white/20 tracking-widest">Đang phân tích Top 10 Google...</span>
+                </div>
+              {:else}
+                {#each suggestedTitles as title, i}
+                  <button
+                    onclick={() => selectSuggestedTitle(title)}
+                    class="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-cyan-400 hover:bg-cyan-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-3"
+                  >
+                    <span class="shrink-0 w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-white/30">{i + 1}</span>
+                    <span class="leading-snug">{title}</span>
+                  </button>
+                {/each}
+              {/if}
+            </div>
           {/if}
         </div>
 
@@ -452,6 +541,52 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ── SECTION 1.5: Sản phẩm liên quan ──────────────────── -->
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
+    <div class="section-label mb-3">
+      <Package size={11} />
+      Sản phẩm liên quan
+    </div>
+
+    {#if formRelatedProductId && formRelatedProductName}
+      <!-- Selected Product Card -->
+      <div class="flex items-center gap-3 p-3 bg-white/[0.02] border border-cyan-500/20 rounded-xl">
+        <div class="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/5">
+          {#if formRelatedProductImage}
+            <img src={resolveMediaUrl(formRelatedProductImage)} alt={formRelatedProductName} class="w-full h-full object-cover" />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center"><Package size={14} class="text-white/10" /></div>
+          {/if}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-white/80 truncate font-medium">{formRelatedProductName}</div>
+          <div class="text-[8px] text-cyan-400/60 font-black tracking-widest mt-0.5">ĐÃ CHỌN</div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button
+            onclick={() => showProductPicker = true}
+            class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
+          >Đổi</button>
+          <button
+            onclick={() => { formRelatedProductId = null; formRelatedProductName = ''; formRelatedProductImage = null; }}
+            class="p-1.5 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+          ><X size={12} /></button>
+        </div>
+      </div>
+    {:else}
+      <!-- Empty State -->
+      <button
+        onclick={() => showProductPicker = true}
+        class="w-full py-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-cyan-500/30 flex items-center justify-center gap-2 group transition-all cursor-pointer"
+      >
+        <div class="w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400/50 group-hover:text-cyan-400">
+          <Package size={12} />
+        </div>
+        <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-cyan-400">Chọn sản phẩm liên quan</span>
+      </button>
+    {/if}
   </section>
 
   <!-- ── SECTION 2: Nội Dung Chính ──────────────────── -->
@@ -783,6 +918,18 @@
     }
     showMediaModal = false; 
     selectingOgImage = false;
+  }}
+/>
+
+<ProductPickerModal
+  isOpen={showProductPicker}
+  bind:selectedProductId={formRelatedProductId}
+  onClose={() => showProductPicker = false}
+  onSelect={(product) => {
+    formRelatedProductId = product.id;
+    formRelatedProductName = product.name;
+    formRelatedProductImage = product.image;
+    showProductPicker = false;
   }}
 />
 

@@ -837,6 +837,103 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI Content Generation Failed: {e}")
             return ""
 
+    async def suggest_titles(
+        self,
+        db_session: AsyncSession,
+        category: str,
+        keywords: str,
+        product_id: str,
+    ) -> List[str]:
+        """V2026: XOHI Title Generator — sinh tiêu đề dựa trên phân tích Top 10 + context sản phẩm."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.services.xohi.google_search import google_search_service
+        from backend.database.models import ProductBase
+
+        # 1. Fetch product context nếu có
+        product_context = ""
+        if product_id and product_id.strip():
+            prod_stmt = select(
+                ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
+            ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
+            prod_row = (await db_session.execute(prod_stmt)).first()
+            if prod_row:
+                product_context = (
+                    f"Sản phẩm liên quan: {prod_row.name}\n"
+                    f"Từ khóa SP: {prod_row.seo_keywords or ''}\n"
+                    f"Mô tả SP: {(prod_row.short_description or '')[:200]}"
+                )
+
+        # 2. Google Search top 10 — tìm trend và tiêu đề đang rank
+        search_query = f"{category} {keywords}".strip() or category or "bài viết"
+        top10_context = ""
+        try:
+            search_results = await google_search_service.search(search_query, num=10)
+            if search_results:
+                titles_snippets = [
+                    f"- {r.get('title', '')} | {r.get('snippet', '')[:100]}"
+                    for r in search_results[:10]
+                ]
+                top10_context = "TOP 10 TIÊU ĐỀ ĐANG RANK TRÊN GOOGLE:\n" + "\n".join(titles_snippets)
+        except Exception as e:
+            logger.warning(f"[ArticleService] Google Search for title-suggest failed: {e}")
+
+        # 3. Build prompt
+        base_prompt = (
+            "Bạn là chuyên gia viết tiêu đề bài viết SEO hàng đầu Việt Nam, chuyên tối ưu cho Google SGE 2026.\n\n"
+            "PHÂN TÍCH ĐẦU VÀO:\n"
+            "- Top 10 tiêu đề đang rank trên Google cho chủ đề này (đã cung cấp bên dưới)\n"
+            "- Thông tin sản phẩm liên quan (nếu có)\n"
+            "- Từ khóa SEO mục tiêu\n\n"
+            "YÊU CẦU:\n"
+            "1. Sinh 5 tiêu đề, mỗi tiêu đề theo 1 phong cách khác nhau:\n"
+            "   - Listicle (Top X, X cách...)\n"
+            "   - How-to (Cách, Hướng dẫn...)\n"
+            "   - Question (Tại sao, Có nên...)\n"
+            "   - Comparison (So sánh, X vs Y, Đánh giá)\n"
+            "   - Expert Review (Review chuyên sâu, Trải nghiệm)\n"
+            "2. Mỗi tiêu đề 50-65 ký tự, chứa từ khóa chính\n"
+            "3. Tránh trùng lặp hoàn toàn với top 10 nhưng CẠNH TRANH cùng intent\n"
+            "4. Phải tự nhiên, không clickbait rẻ tiền\n"
+            "5. Nếu có sản phẩm liên quan, ưu tiên đưa tên sản phẩm vào tiêu đề\n\n"
+            "QUY TẮC TỐI CAO: Dù dữ liệu đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%.\n"
+            'Chỉ trả về JSON hợp lệ: {"titles": ["...", "...", "...", "...", "..."]}'
+        )
+
+        sge_cfg = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_prompt,
+            tone_override=str(sge_cfg["tone_override"]) if sge_cfg.get("tone_override") else None,
+            structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
+        ) if sge_cfg.get("enabled", True) else base_prompt
+
+        agent = Agent(system_prompt=system_prompt)
+        prompt_parts = [f"Chuyên mục: {category or 'Chung'}"]
+        if keywords:
+            prompt_parts.append(f"Từ khóa SEO: {keywords}")
+        if product_context:
+            prompt_parts.append(product_context)
+        if top10_context:
+            prompt_parts.append(top10_context)
+
+        prompt = "\n\n".join(prompt_parts)
+
+        try:
+            result = await trinity_bridge.run(
+                agent=agent, prompt=prompt, role="fast", timeout=90.0
+            )
+            if result:
+                raw = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r'\{.*\}', raw, re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group(0))
+                    if isinstance(parsed, dict) and isinstance(parsed.get("titles"), list):
+                        return [t for t in parsed["titles"] if isinstance(t, str) and t.strip()][:5]
+            return []
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI Title Suggestion Failed: {e}")
+            return []
+
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
 # ==========================================
@@ -844,3 +941,4 @@ class ArticleService:
 async def provide_article_service(vector_service: ArticleVectorService) -> ArticleService:
     """Standard Litestar Provider for ArticleService."""
     return ArticleService(vector_service=vector_service)
+

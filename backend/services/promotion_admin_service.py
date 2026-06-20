@@ -22,6 +22,25 @@ class PromotionAdminService:
         offset: int = 0
     ) -> VoucherListResponse:
         tenant_id = current_tenant_id.get() or "default"
+        
+        # Cache public storefront queries (without filters)
+        use_cache = not search and not category
+        cache_key = f"system:vouchers:v1:tenant:{tenant_id}:active:{is_active}:exclude_viral:{exclude_viral}:lim:{limit}:off:{offset}"
+        
+        if use_cache:
+            import json
+            from backend.services.xohi_memory import xohi_memory
+            try:
+                cached = await xohi_memory.client.get(cache_key)
+                if cached:
+                    data = json.loads(cached)
+                    return VoucherListResponse(
+                        data=[VoucherResponse(**v) for v in data["data"]],
+                        total=data["total"]
+                    )
+            except Exception as e:
+                logger.debug(f"[PromotionService] Cache read failed: {e}")
+
         stmt = select(Voucher).where(Voucher.tenant_id == tenant_id)
         
         if search:
@@ -45,10 +64,34 @@ class PromotionAdminService:
         result = await db_session.execute(stmt)
         vouchers = result.scalars().all()
         
-        return VoucherListResponse(
-            data=[VoucherResponse.model_validate(v) for v in vouchers],
+        resp_data = [VoucherResponse.model_validate(v) for v in vouchers]
+        res = VoucherListResponse(
+            data=resp_data,
             total=total
         )
+
+        if use_cache:
+            from backend.services.xohi_memory import xohi_memory
+            import json
+            try:
+                payload = {
+                    "data": [v.model_dump(mode="json") for v in resp_data],
+                    "total": total
+                }
+                await xohi_memory.client.set(cache_key, json.dumps(payload), ex=600)
+            except Exception as e:
+                logger.debug(f"[PromotionService] Cache write failed: {e}")
+
+        return res
+
+    async def _invalidate_cache(self, tenant_id: str) -> None:
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            keys = await xohi_memory.client.keys(f"system:vouchers:v1:tenant:{tenant_id}:*")
+            if keys:
+                await xohi_memory.client.delete(*keys)
+        except Exception as e:
+            logger.debug(f"[PromotionService] Cache invalidation failed: {e}")
 
     async def create_voucher(self, db_session: AsyncSession, data: CreateVoucherRequest) -> SuccessResponse:
         tenant_id = current_tenant_id.get() or "default"
@@ -70,7 +113,11 @@ class PromotionAdminService:
         )
         db_session.add(new_voucher)
         await db_session.commit()
-        return     SuccessResponse(message=f"Đã tạo voucher {data.id} thành công.")
+        
+        # Invalidate cache
+        await self._invalidate_cache(tenant_id)
+        
+        return SuccessResponse(message=f"Đã tạo voucher {data.id} thành công.")
 
     async def update_voucher(self, db_session: AsyncSession, voucher_id: str, data: UpdateVoucherRequest) -> SuccessResponse:
         voucher = await db_session.get(Voucher, voucher_id)
@@ -124,6 +171,7 @@ class PromotionAdminService:
             setattr(voucher, key, value)
             
         await db_session.commit()
+        await self._invalidate_cache(voucher.tenant_id)
         
         msg = f"Đã cập nhật voucher {new_id or voucher_id} thành công."
         if update_data.get("is_viral"):
@@ -136,8 +184,10 @@ class PromotionAdminService:
         if not voucher:
             raise NotFoundException(f"Voucher {voucher_id} không tồn tại.")
             
+        tenant_id = voucher.tenant_id
         await db_session.delete(voucher)
         await db_session.commit()
+        await self._invalidate_cache(tenant_id)
         return SuccessResponse(message=f"Đã xoá voucher {voucher_id} thành công.")
 
     async def bulk_delete_vouchers(self, db_session: AsyncSession, ids: List[str]) -> SuccessResponse:
@@ -148,6 +198,7 @@ class PromotionAdminService:
         stmt = delete(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
         await db_session.execute(stmt)
         await db_session.commit()
+        await self._invalidate_cache(tenant_id)
         return SuccessResponse(message=f"Đã xoá {len(ids)} voucher thành công.")
 
     async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: Optional[bool] = None, is_default: Optional[bool] = None, is_viral: Optional[bool] = None) -> SuccessResponse:
@@ -191,6 +242,7 @@ class PromotionAdminService:
             )
         
         await db_session.commit()
+        await self._invalidate_cache(tenant_id)
         return SuccessResponse(message=f"Đã cập nhật hàng loạt {len(ids)} voucher thành công.")
 
 promotion_admin_service = PromotionAdminService()

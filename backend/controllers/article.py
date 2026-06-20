@@ -190,3 +190,17 @@ class ArticleController(Controller):
         excerpt = data.get("excerpt", "")
         content = await article_service.suggest_content(title, category, excerpt)
         return {"data": content}
+
+    @post("/title-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_titles(
+        self,
+        db_session: AsyncSession,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """V2026: XOHI Title Generator — sinh tiêu đề dựa trên phân tích Top 10 + context sản phẩm."""
+        category = data.get("category", "")
+        keywords = data.get("keywords", "")
+        product_id = data.get("product_id", "")
+        titles = await article_service.suggest_titles(db_session, category, keywords, product_id)
+        return {"data": titles}

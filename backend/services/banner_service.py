@@ -19,7 +19,22 @@ logger = logging.getLogger("api-gateway")
 class BannerService:
     @staticmethod
     async def list_banners(db_session: AsyncSession, position: Optional[str] = None, active_only: bool = False, limit: int = 100, offset: int = 0) -> BannerListResponse:
-        """List banners with filtering and pagination."""
+        """List banners with filtering and pagination (Cached)."""
+        import json
+        from backend.services.xohi_memory import xohi_memory
+        
+        cache_key = f"system:banners:v1:active:{active_only}:pos:{position or 'all'}:lim:{limit}:off:{offset}"
+        try:
+            cached = await xohi_memory.client.get(cache_key)
+            if cached:
+                data = json.loads(cached)
+                return BannerListResponse(
+                    data=[BannerResponse(**b) for b in data["data"]],
+                    total=data["total"]
+                )
+        except Exception as e:
+            logger.debug(f"[BannerService] Cache read failed: {e}")
+
         # 1. Count
         count_stmt = select(func.count(Banner.id)).where(Banner.deleted_at == None)
         if position:
@@ -41,10 +56,32 @@ class BannerService:
         res = await db_session.execute(stmt)
         banners = res.scalars().all()
 
-        return BannerListResponse(
-            data=[BannerResponse.model_validate(b) for b in banners],
+        resp_data = [BannerResponse.model_validate(b) for b in banners]
+        result = BannerListResponse(
+            data=resp_data,
             total=total
         )
+
+        try:
+            payload = {
+                "data": [b.model_dump(mode="json") for b in resp_data],
+                "total": total
+            }
+            await xohi_memory.client.set(cache_key, json.dumps(payload), ex=600)
+        except Exception as e:
+            logger.debug(f"[BannerService] Cache write failed: {e}")
+
+        return result
+
+    @staticmethod
+    async def _invalidate_cache() -> None:
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            keys = await xohi_memory.client.keys("system:banners:*")
+            if keys:
+                await xohi_memory.client.delete(*keys)
+        except Exception as e:
+            logger.debug(f"[BannerService] Cache invalidation failed: {e}")
 
     @staticmethod
     async def create_banner(db_session: AsyncSession, data: CreateBannerRequest) -> SuccessResponse:
@@ -64,6 +101,9 @@ class BannerService:
         )
         db_session.add(banner)
         await db_session.commit()
+        
+        # Invalidate cache
+        await BannerService._invalidate_cache()
         
         # Elite V2.2: Sync Media
         await BannerService._sync_media_links(new_id_val, data.image_url, data.mobile_image_url)
@@ -93,6 +133,9 @@ class BannerService:
         banner.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
 
+        # Invalidate cache
+        await BannerService._invalidate_cache()
+
         # Elite V2.2: Sync Media
         await BannerService._sync_media_links(banner_id, banner.image_url, banner.mobile_image_url)
 
@@ -110,6 +153,10 @@ class BannerService:
 
         banner.deleted_at = datetime.now(timezone.utc)
         await db_session.commit()
+        
+        # Invalidate cache
+        await BannerService._invalidate_cache()
+        
         return SuccessResponse(ok=True, id=banner_id)
 
     @staticmethod

@@ -40,14 +40,15 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	@cached_thumbnail path_regexp thumb ^/v65_assets/cache/t_(\d+)_75_([a-fA-F0-9\-]{36})
 	route @cached_thumbnail {
 		root * /app/frontend/static
-		@no_thumbnail not file {path}
-		rewrite @no_thumbnail /api/v1/media/{re.thumb.2}/thumb?w={re.thumb.1}
-		reverse_proxy @no_thumbnail api:8000 {
+		@thumbnail_exists file {path}
+		header @thumbnail_exists Cache-Control "public, max-age=31536000"
+		file_server @thumbnail_exists
+
+		rewrite * /api/v1/media/{re.thumb.2}/thumb?w={re.thumb.1}
+		reverse_proxy api:8000 {
 			flush_interval -1
 			header_up X-Real-IP {remote_host}
 		}
-		header Cache-Control "public, max-age=31536000"
-		file_server
 	}
 
 	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)

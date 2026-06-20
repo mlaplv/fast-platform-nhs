@@ -156,7 +156,7 @@ async def suggest_specs_logic(raw_text: str) -> Dict[str, str]:
         logger.exception(f"[ProductAI] AI Specs Extraction Failed: {e}")
         return {}
 
-async def suggest_semantic_logic(name: str, description: str) -> str:
+async def suggest_semantic_logic(name: str, description: str, seo_description: Optional[str] = None) -> str:
     """GEO 2026: XOHI Auto Semantic SGE Highlights Generator Logic (Isolated)."""
     agent = Agent(
         system_prompt=(
@@ -164,16 +164,24 @@ async def suggest_semantic_logic(name: str, description: str) -> str:
             "Nhiệm vụ của bạn là tạo ra một đoạn HTML hoàn chỉnh, tối ưu chuẩn SEO Semantic theo cấu trúc chính xác sau:\n"
             "<h2>{Tên sản phẩm}:</h2>\n"
             "<ul class=\"product-highlights\">\n"
-            "    <li>[Mô tả công nghệ/thành phần then chốt đột phá, tối đa 20 từ]</li>\n"
-            "    <li>[Kết cấu, độ lành tính, cảm giác trên da hoặc tính năng vượt trội tiện dụng, tối đa 20 từ]</li>\n"
+            "    <li>[Mô tả công nghệ/thành phần then chốt đột phá]</li>\n"
+            "    <li>[Kết cấu, độ lành tính, cảm giác trên da hoặc tính năng vượt trội tiện dụng]</li>\n"
             "</ul>\n\n"
-            "QUY TẮC:\n"
+            "QUY TẮC BẮT BUỘC (VI PHẠM SẼ BỊ PHẠT NẶNG):\n"
             "1. Nội dung phải hoàn toàn bằng tiếng Việt thuần 100%.\n"
-            "2. Viết ngắn gọn, súc tích, cực kỳ thuyết phục và bám sát thông tin sản phẩm.\n"
-            "3. Không trả về markdown hay ký tự bao bọc, chỉ trả về chuỗi HTML thô bắt đầu bằng <h2> và kết thúc bằng </ul>."
+            "2. BẮT BUỘC DỰA TRÊN MÔ TẢ SEO (SEO Description) ĐỂ TÓM TẮT. Chỉ khi Mô tả SEO trống hoặc thiếu thông tin mới được dùng Mô tả sản phẩm làm dự phòng.\n"
+            "3. TUYỆT ĐỐI KHÔNG sử dụng ký tự đánh số dạng '1. ...', '2. ...', hoặc ký tự gạch đầu dòng, dấu chấm tròn bên trong các thẻ <li>.\n"
+            "4. CÁC CÂU BẮT BUỘC PHẢI LÀ MỘT CÂU HOÀN CHỈNH VỀ MẶT NGỮ NGHĨA (Có đầy đủ chủ ngữ + vị ngữ).\n"
+            "5. TUYỆT ĐỐI KHÔNG ĐƯỢC NGẮT DÒNG khi chưa viết hết câu (không sử dụng phím Enter xuống dòng, không dùng ký tự xuống dòng như \\n hoặc <br> trong từng thẻ <li>).\n"
+            "6. HÃY CHỦ ĐỘNG VIẾT NGẮN GỌN NGAY TỪ ĐẦU (Mỗi thẻ <li> tối đa 20 từ và là một câu đơn/câu ghép ngắn hoàn chỉnh, không rườm rà).\n"
+            "7. Không trả về bất kỳ giải thích nào khác ngoài chuỗi HTML thô bắt đầu bằng <h2> và kết thúc bằng </ul>."
         )
     )
-    prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
+    prompt = (
+        f"Tên sản phẩm: {name}\n"
+        f"Mô tả SEO: {seo_description or ''}\n"
+        f"Mô tả sản phẩm: {description}"
+    )
 
     try:
         result = await trinity_bridge.run(
@@ -188,6 +196,20 @@ async def suggest_semantic_logic(name: str, description: str) -> str:
             # Clean possible ```html blocks if generated
             html_res = re.sub(r"^```html\s*", "", html_res, flags=re.IGNORECASE)
             html_res = re.sub(r"\s*```$", "", html_res)
+            
+            # Clean numbered lists, bullet points from <li> tags
+            html_res = re.sub(r"<li>\s*(?:\d+[\.\)\-:]\s*|-|•)\s*", "<li>", html_res)
+            
+            # Clean internal line breaks and extra spaces within each <li> content
+            def clean_li_content(match):
+                li_inner = match.group(1)
+                # Remove newlines, tabs, carriage returns and reduce multiple spaces to one
+                li_inner = re.sub(r"\s+", " ", li_inner).strip()
+                # Clean leading numbers/bullets again just in case of spaces
+                li_inner = re.sub(r"^(?:\d+[\.\)\-:]\s*|-|•)\s*", "", li_inner)
+                return f"<li>{li_inner}</li>"
+            
+            html_res = re.sub(r"<li>(.*?)</li>", clean_li_content, html_res, flags=re.DOTALL)
             return html_res.strip()
 
         return ""

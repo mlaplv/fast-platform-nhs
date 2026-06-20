@@ -142,18 +142,6 @@ async def list_products_logic(
     if has_more:
         rows = rows[:limit]
 
-    # Elite V2.2: Fast bulk fetch for review counts
-    review_counts = {}
-    if rows:
-        from backend.database.models import SystemReview
-        rc_stmt = select(SystemReview.entity_id, func.count(SystemReview.id)).where(
-            SystemReview.entity_id.in_([r["id"] for r in rows]),
-            SystemReview.entity_type == "PRODUCT",
-            SystemReview.status == "APPROVED"
-        ).group_by(SystemReview.entity_id)
-        rc_res = await db_session.execute(rc_stmt)
-        review_counts = {r[0]: r[1] for r in rc_res.all()}
-
     # Elite V2.2: Fast bulk fetch for variants to eliminate N+1 query overhead
     variants_by_product = {}
     if rows:
@@ -169,7 +157,8 @@ async def list_products_logic(
     data = []
     for row in rows:
         row_dict = dict(row)
-        row_dict["review_count"] = review_counts.get(row_dict["id"], 0)
+        row_metadata = row_dict.get("metadata") or {}
+        row_dict["review_count"] = row_metadata.get("review_count") or 0
         row_dict["variants"] = list(variants_by_product.get(row_dict["id"], []))
         data.append(ProductResponse.model_validate(row_dict))
 
@@ -193,6 +182,9 @@ async def get_product_logic(db_session: AsyncSession, product_id: str) -> Produc
         raise NotFoundException(f"Product {product_id} not found")
     
     row_dict = dict(row)
+    row_metadata = row_dict.get("metadata") or {}
+    row_dict["review_count"] = row_metadata.get("review_count") or 0
+    
     v_stmt = select(ProductVariant).where(
         ProductVariant.product_base_id == product_id,
         ProductVariant.deleted_at == None
@@ -220,6 +212,9 @@ async def get_product_by_slug_logic(db_session: AsyncSession, slug: str) -> Prod
         raise NotFoundException(f"Product with slug '{slug}' not found")
         
     row_dict = dict(row)
+    row_metadata = row_dict.get("metadata") or {}
+    row_dict["review_count"] = row_metadata.get("review_count") or 0
+    
     v_stmt = select(ProductVariant).where(
         ProductVariant.product_base_id == row_dict["id"],
         ProductVariant.deleted_at == None

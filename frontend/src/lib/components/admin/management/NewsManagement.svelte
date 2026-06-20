@@ -48,6 +48,10 @@
   let formAnalysisCache = $state<AnalysisCache>({});
   let formAnalysisMetrics = $state<CampaignMetrics>({});
   let formAnalysisReport = $state<Record<string, any>>({});
+  // V2026: Product linking for XOHI Title Generator
+  let formRelatedProductId = $state<string | null>(null);
+  let formRelatedProductName = $state("");
+  let formRelatedProductImage = $state<string | null>(null);
   let showDraftForm = $state(false);
   let isHeaderCollapsed = $state(false);
 
@@ -164,7 +168,7 @@
 
   // V22: Voice Mutation Injection - News Management
   $effect(() => {
-    const data = nanobot.currentData;
+    const data = nanobot.currentData as any;
     const action = nanobot.commandAction;
 
     if (
@@ -231,6 +235,9 @@
     formAnalysisCache = {};
     formAnalysisMetrics = {};
     formAnalysisReport = {};
+    formRelatedProductId = null;
+    formRelatedProductName = "";
+    formRelatedProductImage = null;
     showDraftForm = true;
   }
 
@@ -254,6 +261,10 @@
       formAnalysisCache = meta.analysis_cache || {};
       formAnalysisMetrics = meta.analysis_metrics || {};
       formAnalysisReport = fullArticle.analysis_report || {};
+      // V2026: Hydrate linked product
+      formRelatedProductId = (meta as Record<string, unknown>).related_product_id as string || null;
+      formRelatedProductName = (meta as Record<string, unknown>).related_product_name as string || "";
+      formRelatedProductImage = (meta as Record<string, unknown>).related_product_image as string || null;
       formStatus = fullArticle.status;
       showDraftForm = true;
     } catch {
@@ -284,6 +295,9 @@
         // CNS V86.5: Persist analysis cache để highlights không bị mất sau F5
         metadata: { 
           faqs: formFaqs,
+          related_product_id: formRelatedProductId || undefined,
+          related_product_name: formRelatedProductName || undefined,
+          related_product_image: formRelatedProductImage || undefined,
           analysis_cache: formAnalysisCache,
           analysis_metrics: formAnalysisMetrics
         },
@@ -362,7 +376,13 @@
     } finally { isSaving = false; }
   }
 
-  function confirmDelete(id: string) { purgeTargetId = id; isBulkPurge = false; showPurgeConfirm = true; }
+  function confirmDelete(id: string | string[]) {
+    if (typeof id === 'string') {
+      purgeTargetId = id;
+      isBulkPurge = false;
+      showPurgeConfirm = true;
+    }
+  }
   function confirmBulkDelete() { isBulkPurge = true; showPurgeConfirm = true; }
 
   async function executePurge() {
@@ -404,6 +424,9 @@
   bind:formAnalysisCache
   bind:formAnalysisMetrics
   bind:formAnalysisReport
+  bind:formRelatedProductId
+  bind:formRelatedProductName
+  bind:formRelatedProductImage
   onSave={saveArticle}
   onClose={() => { showDraftForm = false; nanobot.toggleExpand(false); }}
   {generateSlug}
