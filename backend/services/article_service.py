@@ -843,8 +843,8 @@ class ArticleService:
         category: str,
         keywords: str,
         product_id: str,
-    ) -> List[str]:
-        """V2026: XOHI Title Generator — sinh tiêu đề dựa trên phân tích Top 10 + context sản phẩm."""
+    ) -> Dict[str, List[str]]:
+        """V2026: XOHI Title Generator — sinh tiêu đề chia theo 3 nhóm dựa trên Top 10 + context sản phẩm."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         from backend.services.xohi.google_search import google_search_service
@@ -852,20 +852,34 @@ class ArticleService:
 
         # 1. Fetch product context nếu có
         product_context = ""
-        if product_id and product_id.strip():
-            prod_stmt = select(
-                ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
-            ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
-            prod_row = (await db_session.execute(prod_stmt)).first()
-            if prod_row:
-                product_context = (
-                    f"Sản phẩm liên quan: {prod_row.name}\n"
-                    f"Từ khóa SP: {prod_row.seo_keywords or ''}\n"
-                    f"Mô tả SP: {(prod_row.short_description or '')[:200]}"
-                )
+        product_name = ""
+        
+        # Chuẩn hóa và làm sạch product_id đầu vào
+        if product_id:
+            product_id = product_id.strip()
+            if product_id.lower() in ("null", "undefined", ""):
+                product_id = ""
+
+        if product_id:
+            try:
+                prod_stmt = select(
+                    ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
+                ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
+                prod_row = (await db_session.execute(prod_stmt)).first()
+                if prod_row:
+                    product_name = prod_row.name
+                    product_context = (
+                        f"Sản phẩm liên quan: {prod_row.name}\n"
+                        f"Từ khóa SP: {prod_row.seo_keywords or ''}\n"
+                        f"Mô tả SP: {(prod_row.short_description or '')[:200]}"
+                    )
+            except Exception as e:
+                logger.exception(f"[ArticleService] Lỗi khi truy vấn thông tin sản phẩm {product_id}: {e}")
 
         # 2. Google Search top 10 — tìm trend và tiêu đề đang rank
         search_query = f"{category} {keywords}".strip() or category or "bài viết"
+        if product_name:
+            search_query = f"{product_name} {search_query}"
         top10_context = ""
         try:
             search_results = await google_search_service.search(search_query, num=10)
@@ -874,30 +888,45 @@ class ArticleService:
                     f"- {r.get('title', '')} | {r.get('snippet', '')[:100]}"
                     for r in search_results[:10]
                 ]
-                top10_context = "TOP 10 TIÊU ĐỀ ĐANG RANK TRÊN GOOGLE:\n" + "\n".join(titles_snippets)
+                top10_context = "TOP 10 TIÊU ĐỀ ĐANG RANK TRÊN GOOGLE (TRÁNH TRÙNG LẶP HOÀN TOÀN):\n" + "\n".join(titles_snippets)
         except Exception as e:
             logger.warning(f"[ArticleService] Google Search for title-suggest failed: {e}")
+
+        # 2.5. Fetch existing articles in database to prevent internal duplicates
+        db_context = ""
+        try:
+            db_stmt = select(Article.title).where(
+                Article.deleted_at == None
+            ).order_by(Article.created_at.desc()).limit(30)
+            db_rows = (await db_session.execute(db_stmt)).scalars().all()
+            if db_rows:
+                db_context = "DANH SÁCH TIÊU ĐỀ ĐÃ TỒN TẠI TRONG CƠ SỞ DỮ LIỆU HỆ THỐNG (BẮT BUỘC TRÁNH TRÙNG LẶP):\n" + "\n".join(f"- {title}" for title in db_rows)
+        except Exception as e:
+            logger.warning(f"[ArticleService] Fetching DB titles for suggestion failed: {e}")
 
         # 3. Build prompt
         base_prompt = (
             "Bạn là chuyên gia viết tiêu đề bài viết SEO hàng đầu Việt Nam, chuyên tối ưu cho Google SGE 2026.\n\n"
             "PHÂN TÍCH ĐẦU VÀO:\n"
-            "- Top 10 tiêu đề đang rank trên Google cho chủ đề này (đã cung cấp bên dưới)\n"
+            "- Top 10 tiêu đề đang rank trên mạng xã hội/Google cho chủ đề này (được cung cấp dưới đây)\n"
+            "- Các tiêu đề đã tồn tại trong cơ sở dữ liệu nội bộ của hệ thống (được cung cấp dưới đây)\n"
             "- Thông tin sản phẩm liên quan (nếu có)\n"
             "- Từ khóa SEO mục tiêu\n\n"
-            "YÊU CẦU:\n"
-            "1. Sinh 5 tiêu đề, mỗi tiêu đề theo 1 phong cách khác nhau:\n"
-            "   - Listicle (Top X, X cách...)\n"
-            "   - How-to (Cách, Hướng dẫn...)\n"
-            "   - Question (Tại sao, Có nên...)\n"
-            "   - Comparison (So sánh, X vs Y, Đánh giá)\n"
-            "   - Expert Review (Review chuyên sâu, Trải nghiệm)\n"
-            "2. Mỗi tiêu đề 50-65 ký tự, chứa từ khóa chính\n"
-            "3. Tránh trùng lặp hoàn toàn với top 10 nhưng CẠNH TRANH cùng intent\n"
-            "4. Phải tự nhiên, không clickbait rẻ tiền\n"
-            "5. Nếu có sản phẩm liên quan, ưu tiên đưa tên sản phẩm vào tiêu đề\n\n"
+            "YÊU CẦU QUAN TRỌNG VỀ TÍNH DUY NHẤT & CHẤT LƯỢNG:\n"
+            "1. Các tiêu đề được sinh ra PHẢI là duy nhất, tuyệt đối KHÔNG trùng lặp hoàn toàn hoặc quá giống với bất kỳ tiêu đề nào trong danh sách Top 10 Google hoặc danh sách tiêu đề hệ thống đã có.\n"
+            "2. Tiêu đề phải chuẩn SGE (trả lời trực tiếp ý định tìm kiếm của người dùng, giàu thông tin thực tế) và chuẩn SEO (chứa từ khóa chính ở vị trí dễ nhìn để thu hút CTR).\n\n"
+            "Hãy sinh tổng cộng 9 tiêu đề hấp dẫn, chia thành 3 nhóm rõ rệt (mỗi nhóm đúng 3 tiêu đề):\n"
+            "1. Nhóm 'seo_sge': Tập trung vào tối ưu hóa SEO và Google SGE, bắt buộc phải chứa tên sản phẩm liên quan (nếu có). Nếu không có tên sản phẩm cụ thể, dùng từ khóa SEO chính.\n"
+            "2. Nhóm 'guide_advanced': Các tiêu đề dạng hướng dẫn sử dụng, mẹo hay, kinh nghiệm thực tế, cách làm nâng cao nhằm giải quyết bài toán của người dùng.\n"
+            "3. Nhóm 'related_keywords': Tận dụng các từ khóa phụ liên quan, chủ đề mở rộng xung quanh để tăng tối đa độ bao phủ chủ đề (coverage).\n\n"
+            "Mỗi tiêu đề dài từ 50-65 ký tự, tự nhiên, không clickbait rẻ tiền.\n"
             "QUY TẮC TỐI CAO: Dù dữ liệu đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%.\n"
-            'Chỉ trả về JSON hợp lệ: {"titles": ["...", "...", "...", "...", "..."]}'
+            "Chỉ trả về định dạng JSON hợp lệ duy nhất sau:\n"
+            "{\n"
+            "  \"seo_sge\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"],\n"
+            "  \"guide_advanced\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"],\n"
+            "  \"related_keywords\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"]\n"
+            "}"
         )
 
         sge_cfg = await _get_sge_config_async()
@@ -915,8 +944,16 @@ class ArticleService:
             prompt_parts.append(product_context)
         if top10_context:
             prompt_parts.append(top10_context)
+        if db_context:
+            prompt_parts.append(db_context)
 
         prompt = "\n\n".join(prompt_parts)
+
+        fallback: Dict[str, List[str]] = {
+            "seo_sge": [],
+            "guide_advanced": [],
+            "related_keywords": []
+        }
 
         try:
             result = await trinity_bridge.run(
@@ -927,12 +964,16 @@ class ArticleService:
                 match = re.search(r'\{.*\}', raw, re.DOTALL)
                 if match:
                     parsed = json.loads(match.group(0))
-                    if isinstance(parsed, dict) and isinstance(parsed.get("titles"), list):
-                        return [t for t in parsed["titles"] if isinstance(t, str) and t.strip()][:5]
-            return []
+                    if isinstance(parsed, dict):
+                        return {
+                            "seo_sge": [t for t in parsed.get("seo_sge", []) if isinstance(t, str) and t.strip()][:3],
+                            "guide_advanced": [t for t in parsed.get("guide_advanced", []) if isinstance(t, str) and t.strip()][:3],
+                            "related_keywords": [t for t in parsed.get("related_keywords", []) if isinstance(t, str) and t.strip()][:3]
+                        }
+            return fallback
         except Exception as e:
             logger.exception(f"[ArticleService] AI Title Suggestion Failed: {e}")
-            return []
+            return fallback
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)

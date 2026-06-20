@@ -496,13 +496,13 @@
 			errorMessage = null;
 			successMessage = null;
 			try {
-				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${activePillarId}/analyze`, {
+				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${activePillarId}/auto-link`, {
 					method: 'POST',
 					credentials: 'include'
 				});
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const result = await res.json();
-				successMessage = result.message || 'Đã kích hoạt quét phân tích các bài viết Cluster dưới nền. Đề xuất mới sẽ xuất hiện sau vài phút.';
+				successMessage = result.message || 'Đã kích hoạt quét & tự động phân tích link ngữ cảnh cho các Cluster. Bạn sẽ nhận được thông báo chuông khi hoàn tất.';
 				nanobot.showToast(successMessage, 'success');
 			} catch (e) {
 				errorMessage = e instanceof Error ? e.message : 'Không thể kích hoạt quét phân tích Pillar.';

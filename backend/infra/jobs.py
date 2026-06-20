@@ -372,7 +372,7 @@ async def seo_contextual_link_job(
         async with session_maker() as db:
             from backend.database.models.content import Article
             from backend.services.seo_contextual_linker import seo_contextual_linker
-            from sqlalchemy import select
+            from sqlalchemy import select, func
 
             article = await db.scalar(
                 select(Article).where(
@@ -445,7 +445,7 @@ async def seo_pillar_auto_link_job(
             from backend.database.models.seo import SeoNode, SeoEdge, SeoContextualLink, SeoContextualLinkStatus
             from backend.database.models.content import Article
             from backend.services.seo_contextual_linker import seo_contextual_linker
-            from sqlalchemy import select
+            from sqlalchemy import select, func
 
             # Lấy thông tin Pillar Node
             pillar = await db.scalar(

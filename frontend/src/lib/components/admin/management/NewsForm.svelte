@@ -180,29 +180,56 @@
   // V2026: Product Picker + XOHI Title Generator
   let showProductPicker = $state(false);
   let isSuggestingTitles = $state(false);
-  let suggestedTitles = $state<string[]>([]);
+  let suggestedTitlesGrouped = $state<{
+    seo_sge: string[];
+    guide_advanced: string[];
+    related_keywords: string[];
+  }>({ seo_sge: [], guide_advanced: [], related_keywords: [] });
   let showTitleSuggestions = $state(false);
 
+  const isProductSelected = $derived(
+    !!formRelatedProductId &&
+    formRelatedProductId !== 'null' &&
+    formRelatedProductId !== 'undefined' &&
+    formRelatedProductId.trim() !== ''
+  );
+
   async function handleAiSuggestTitles() {
+    if (!isProductSelected) {
+      nanobot.showToast("Vui lòng chọn sản phẩm liên kết trước khi sinh tiêu đề.", "warning");
+      return;
+    }
     isSuggestingTitles = true;
-    suggestedTitles = [];
+    suggestedTitlesGrouped = { seo_sge: [], guide_advanced: [], related_keywords: [] };
     showTitleSuggestions = true;
     try {
-      const res = await apiClient.post<{ data: string[] }>('/api/v1/articles/title-suggest', {
+      const res = await apiClient.post<{
+        data: {
+          seo_sge: string[];
+          guide_advanced: string[];
+          related_keywords: string[];
+        }
+      }>('/api/v1/articles/title-suggest', {
         category: formCategory || '',
         keywords: formSeoKeywords || '',
         product_id: formRelatedProductId || ''
       });
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        suggestedTitles = res.data;
-        nanobot.showToast(`XOHI đã gợi ý ${res.data.length} tiêu đề.`, "success");
+      if (
+        res?.data &&
+        (res.data.seo_sge?.length > 0 ||
+         res.data.guide_advanced?.length > 0 ||
+         res.data.related_keywords?.length > 0)
+      ) {
+        suggestedTitlesGrouped = res.data;
+        const total = (res.data.seo_sge?.length ?? 0) + (res.data.guide_advanced?.length ?? 0) + (res.data.related_keywords?.length ?? 0);
+        nanobot.showToast(`XOHI đã gợi ý ${total} tiêu đề theo nhóm.`, "success");
       } else {
-        nanobot.showToast("XOHI chưa sinh được tiêu đề. Thử lại nhé.", "error");
+        nanobot.showToast("Hệ thống AI hiện chưa phản hồi tiêu đề phù hợp. Vui lòng thử lại hoặc thay đổi từ khóa.", "error");
         showTitleSuggestions = false;
       }
     } catch (e) {
       console.error('XOHI Title suggest failed:', e);
-      nanobot.showToast("Lỗi kết nối AI.", "error");
+      nanobot.showToast("Lỗi kết nối máy chủ AI hoặc hệ thống đang bảo trì. Vui lòng thử lại sau.", "error");
       showTitleSuggestions = false;
     } finally {
       isSuggestingTitles = false;
@@ -213,7 +240,7 @@
     formTitle = title;
     if (!editingId) formSlug = generateSlug(title);
     showTitleSuggestions = false;
-    suggestedTitles = [];
+    suggestedTitlesGrouped = { seo_sge: [], guide_advanced: [], related_keywords: [] };
     nanobot.showToast("Đã chọn tiêu đề.", "success");
   }
 
@@ -347,6 +374,49 @@
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-x-8 gap-y-4 mt-4">
       <!-- Left Column: Title, Slug, Category, Status, Excerpt (8/12) -->
       <div class="xl:col-span-8 flex flex-col gap-4">
+        <!-- Sản phẩm liên quan -->
+        <div class="field-group">
+          <label class="field-label flex items-center gap-2">
+            Sản phẩm liên quan
+          </label>
+          {#if formRelatedProductId && formRelatedProductName}
+            <div class="flex items-center gap-3 p-2 bg-white/[0.02] border border-cyan-500/20 rounded-xl">
+              <div class="w-8 h-8 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/5">
+                {#if formRelatedProductImage}
+                  <img src={resolveMediaUrl(formRelatedProductImage)} alt={formRelatedProductName} class="w-full h-full object-cover" />
+                {:else}
+                  <div class="w-full h-full flex items-center justify-center"><Package size={12} class="text-white/10" /></div>
+                {/if}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs text-white/80 truncate font-medium">{formRelatedProductName}</div>
+                <div class="text-[8px] text-cyan-400/60 font-black tracking-widest mt-0.5">ĐÃ LIÊN KẾT</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  onclick={() => showProductPicker = true}
+                  class="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
+                >Đổi</button>
+                <button
+                  onclick={() => { formRelatedProductId = null; formRelatedProductName = ''; formRelatedProductImage = null; }}
+                  class="p-1 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                ><X size={12} /></button>
+              </div>
+            </div>
+          {:else}
+            <button
+              onclick={() => showProductPicker = true}
+              class="w-full py-2 px-3 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-cyan-500/30 flex items-center justify-between group transition-all cursor-pointer"
+            >
+              <div class="flex items-center gap-2">
+                <Package size={12} class="text-white/20 group-hover:text-cyan-400" />
+                <span class="text-xs text-white/40 group-hover:text-cyan-400">Chọn sản phẩm liên kết...</span>
+              </div>
+              <span class="text-[8px] font-black tracking-wider text-white/15 group-hover:text-cyan-400">CHỌN SẢN PHẨM</span>
+            </button>
+          {/if}
+        </div>
+
         <!-- Tiêu đề -->
         <div class="field-group">
           <div class="flex items-center justify-between">
@@ -356,8 +426,9 @@
             </label>
             <button
               onclick={handleAiSuggestTitles}
-              disabled={isSuggestingTitles}
+              disabled={isSuggestingTitles || !isProductSelected}
               class="flex items-center gap-1 px-3 py-1 bg-[#0a192f] border border-cyan-900/40 rounded-lg text-[8px] font-black tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title={!isProductSelected ? "Vui lòng chọn sản phẩm liên kết trước khi sinh tiêu đề" : "Sinh tiêu đề tự động bằng AI"}
             >
               {#if isSuggestingTitles}
                 <div class="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -389,24 +460,65 @@
           {#if showTitleSuggestions}
             <div class="mt-2 bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
               <div class="px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                <span class="text-[8px] font-black tracking-[0.3em] text-white/20">GỢI Ý TIÊU ĐỀ</span>
-                <button onclick={() => { showTitleSuggestions = false; suggestedTitles = []; }} class="p-1 text-white/20 hover:text-white transition-colors cursor-pointer"><X size={10} /></button>
+                <span class="text-[8px] font-black tracking-[0.3em] text-white/20">GỢI Ý TIÊU ĐỀ THEO PHÂN TÍCH XOHI</span>
+                <button onclick={() => { showTitleSuggestions = false; suggestedTitlesGrouped = { seo_sge: [], guide_advanced: [], related_keywords: [] }; }} class="p-1 text-white/20 hover:text-white transition-colors cursor-pointer"><X size={10} /></button>
               </div>
               {#if isSuggestingTitles}
-                <div class="flex items-center justify-center py-6 gap-2">
-                  <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
-                  <span class="text-[9px] text-white/20 tracking-widest">Đang phân tích Top 10 Google...</span>
+                <div class="flex items-center justify-center py-8 gap-2">
+                  <div class="w-3.5 h-3.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                  <span class="text-[9px] text-white/20 tracking-widest font-black">ĐANG PHÂN TÍCH TOP 10 GOOGLE & SGE...</span>
                 </div>
               {:else}
-                {#each suggestedTitles as title, i}
-                  <button
-                    onclick={() => selectSuggestedTitle(title)}
-                    class="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-cyan-400 hover:bg-cyan-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-3"
-                  >
-                    <span class="shrink-0 w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-white/30">{i + 1}</span>
-                    <span class="leading-snug">{title}</span>
-                  </button>
-                {/each}
+                <!-- Nhóm 1: SEO & SGE -->
+                {#if suggestedTitlesGrouped.seo_sge?.length > 0}
+                  <div class="px-3 py-1.5 bg-cyan-950/20 border-b border-white/5 flex items-center gap-1.5">
+                    <div class="w-1 h-3 bg-cyan-400 rounded-full"></div>
+                    <span class="text-[8px] font-black tracking-widest text-cyan-400/80">NHÓM 1: TỐI ƯU SEO & SGE (TÊN SẢN PHẨM)</span>
+                  </div>
+                  {#each suggestedTitlesGrouped.seo_sge as title, i}
+                    <button
+                      onclick={() => selectSuggestedTitle(title)}
+                      class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-cyan-400 hover:bg-cyan-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
+                    >
+                      <span class="shrink-0 w-4 h-4 rounded bg-cyan-500/10 flex items-center justify-center text-[8px] font-black text-cyan-400">{i + 1}</span>
+                      <span class="leading-normal">{title}</span>
+                    </button>
+                  {/each}
+                {/if}
+
+                <!-- Nhóm 2: Hướng dẫn & Nâng cao -->
+                {#if suggestedTitlesGrouped.guide_advanced?.length > 0}
+                  <div class="px-3 py-1.5 bg-purple-950/20 border-b border-b-white/5 border-t border-t-white/5 flex items-center gap-1.5">
+                    <div class="w-1 h-3 bg-purple-400 rounded-full"></div>
+                    <span class="text-[8px] font-black tracking-widest text-purple-400/80">NHÓM 2: HƯỚNG DẪN & NÂNG CAO (CÁCH DÙNG, MẸO...)</span>
+                  </div>
+                  {#each suggestedTitlesGrouped.guide_advanced as title, i}
+                    <button
+                      onclick={() => selectSuggestedTitle(title)}
+                      class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-purple-400 hover:bg-purple-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
+                    >
+                      <span class="shrink-0 w-4 h-4 rounded bg-purple-500/10 flex items-center justify-center text-[8px] font-black text-purple-400">{i + 1}</span>
+                      <span class="leading-normal">{title}</span>
+                    </button>
+                  {/each}
+                {/if}
+
+                <!-- Nhóm 3: Từ khóa phụ bao phủ -->
+                {#if suggestedTitlesGrouped.related_keywords?.length > 0}
+                  <div class="px-3 py-1.5 bg-amber-950/20 border-b border-b-white/5 border-t border-t-white/5 flex items-center gap-1.5">
+                    <div class="w-1 h-3 bg-amber-400 rounded-full"></div>
+                    <span class="text-[8px] font-black tracking-widest text-amber-400/80">NHÓM 3: TỪ KHÓA PHỤ LIÊN QUAN (TĂNG ĐỘ BAO PHỦ)</span>
+                  </div>
+                  {#each suggestedTitlesGrouped.related_keywords as title, i}
+                    <button
+                      onclick={() => selectSuggestedTitle(title)}
+                      class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-amber-400 hover:bg-amber-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
+                    >
+                      <span class="shrink-0 w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-[8px] font-black text-amber-400">{i + 1}</span>
+                      <span class="leading-normal">{title}</span>
+                    </button>
+                  {/each}
+                {/if}
               {/if}
             </div>
           {/if}
@@ -541,52 +653,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- ── SECTION 1.5: Sản phẩm liên quan ──────────────────── -->
-  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
-    <div class="section-label mb-3">
-      <Package size={11} />
-      Sản phẩm liên quan
-    </div>
-
-    {#if formRelatedProductId && formRelatedProductName}
-      <!-- Selected Product Card -->
-      <div class="flex items-center gap-3 p-3 bg-white/[0.02] border border-cyan-500/20 rounded-xl">
-        <div class="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/5">
-          {#if formRelatedProductImage}
-            <img src={resolveMediaUrl(formRelatedProductImage)} alt={formRelatedProductName} class="w-full h-full object-cover" />
-          {:else}
-            <div class="w-full h-full flex items-center justify-center"><Package size={14} class="text-white/10" /></div>
-          {/if}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm text-white/80 truncate font-medium">{formRelatedProductName}</div>
-          <div class="text-[8px] text-cyan-400/60 font-black tracking-widest mt-0.5">ĐÃ CHỌN</div>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            onclick={() => showProductPicker = true}
-            class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
-          >Đổi</button>
-          <button
-            onclick={() => { formRelatedProductId = null; formRelatedProductName = ''; formRelatedProductImage = null; }}
-            class="p-1.5 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
-          ><X size={12} /></button>
-        </div>
-      </div>
-    {:else}
-      <!-- Empty State -->
-      <button
-        onclick={() => showProductPicker = true}
-        class="w-full py-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-cyan-500/30 flex items-center justify-center gap-2 group transition-all cursor-pointer"
-      >
-        <div class="w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400/50 group-hover:text-cyan-400">
-          <Package size={12} />
-        </div>
-        <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-cyan-400">Chọn sản phẩm liên quan</span>
-      </button>
-    {/if}
   </section>
 
   <!-- ── SECTION 2: Nội Dung Chính ──────────────────── -->

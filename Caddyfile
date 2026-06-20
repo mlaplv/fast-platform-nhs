@@ -37,22 +37,27 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 
 
 	# Serve dynamic thumbnail cache with fallback handler (Elite V3.1)
-	@cached_thumbnail path_regexp thumb ^/v65_assets/cache/t_(\d+)_75_([a-fA-F0-9\-]{36})
-	route @cached_thumbnail {
+	@cached_thumbnail path_regexp thumb ^/v65_assets/cache/t_(\d+)_75_([a-fA-F0-9\-]{36})(?:\.webp)?$
+	handle @cached_thumbnail {
 		root * /app/frontend/static
 		@thumbnail_exists file {path}
+		@thumbnail_not_exists not file {path}
+
 		header @thumbnail_exists Cache-Control "public, max-age=31536000"
 		file_server @thumbnail_exists
 
-		rewrite * /api/v1/media/{re.thumb.2}/thumb?w={re.thumb.1}
-		reverse_proxy api:8000 {
+		rewrite @thumbnail_not_exists /api/v1/media/{re.thumb.2}/thumb?w={re.thumb.1}
+		reverse_proxy @thumbnail_not_exists api:8000 {
 			flush_interval -1
 			header_up X-Real-IP {remote_host}
 		}
 	}
 
 	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
-	@dynamic_assets path /uploads/* /v65_assets/* /avatars/* /client_uploads/*
+	@dynamic_assets {
+		path /uploads/* /v65_assets/* /avatars/* /client_uploads/*
+		not path /v65_assets/cache/*
+	}
 	handle @dynamic_assets {
 		root * /app/frontend/static
 		header Cache-Control "public, max-age=31536000"
@@ -63,7 +68,7 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	@static_files {
 		path *.webp *.png *.jpg *.jpeg *.svg *.gif *.ico *.js *.css *.woff2 *.ttf
 		not {
-			path /_app/* /wasm/* /vad/* /models/*
+			path /_app/* /wasm/* /vad/* /models/* /v65_assets/cache/*
 		}
 	}
 	handle @static_files {
