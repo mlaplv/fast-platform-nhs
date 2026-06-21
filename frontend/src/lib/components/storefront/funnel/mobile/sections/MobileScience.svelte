@@ -4,8 +4,8 @@
   import Droplets from "@lucide/svelte/icons/droplets";
   import HelpCircle from "@lucide/svelte/icons/help-circle";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
+  import rawStyles from "./MobileScience.css?inline";
 
-  import "./MobileScience.css";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
 
   const shopStore = getShopStore();
@@ -271,4 +271,8 @@
     </div>
   </div>
 </div>
+
+<svelte:head>
+  {@html `<style>${rawStyles}</style>`}
+</svelte:head>
 
