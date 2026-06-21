@@ -26,6 +26,13 @@ elif [[ -f /proc/meminfo ]]; then
     TOTAL_RAM_GB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024/1024)}')
 fi
 
+# [VIETNAM NETWORK OPTIMIZATION]
+# Speed up pip, uv, and npm/pnpm downloads when running from Vietnam/Asia
+export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple"
+export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple"
+export NPM_CONFIG_REGISTRY="https://registry.npmmirror.com"
+export HF_ENDPOINT="https://hf-mirror.com"
+
 # Default Performance Settings (High RAM > 12GB)
 export UV_CONCURRENCY=8
 export PNPM_CONCURRENCY=4
