@@ -58,7 +58,30 @@
     content: string;
     created_at: string;
   }
-  let realReviews = $state<Review[]>(initialReviews.length > 0 ? initialReviews : []);
+
+  function mapRawReview(r: any): Review {
+    const cleanContent = r.content ? r.content.trim().replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim() : '';
+    const cleanName = r.name || r.customer_name
+      ? (r.name || r.customer_name).split('(')[0].split('-')[0].trim()
+      : 'Ẩn danh';
+    
+    const rawPhone = r.phone || r.customer_phone;
+    const maskedPhone = rawPhone
+      ? (rawPhone.startsWith('0') ? '0' + rawPhone.slice(-9, -3) + '***' : rawPhone.slice(0, 3) + '****' + rawPhone.slice(-3))
+      : '09x****xxx';
+
+    return {
+      id: r.id,
+      name: cleanName,
+      phone: maskedPhone,
+      location: r.location || r.customer_location || 'Việt Nam',
+      rating: r.rating || 5,
+      content: cleanContent,
+      initial: cleanName.charAt(0).toUpperCase()
+    };
+  }
+
+  let realReviews = $state<Review[]>(initialReviews.length > 0 ? initialReviews.map(mapRawReview) : []);
   let isLoading = $state(initialReviews.length === 0);
 
   const labels = $derived({
@@ -161,18 +184,7 @@
           status: 'APPROVED'
         }
       });
-      realReviews = (data.items || []).map((r: ReviewApiResponse) => {
-        const cleanContent = r.content.trim().replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim();
-        return {
-          id: r.id,
-          name: r.customer_name,
-          phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
-          location: r.customer_location || 'Việt Nam',
-          rating: r.rating,
-          content: cleanContent,
-          initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
-        };
-      });
+      realReviews = (data.items || []).map(mapRawReview);
     } catch (e) {
       console.error("Reviews Error:", e);
     } finally {
