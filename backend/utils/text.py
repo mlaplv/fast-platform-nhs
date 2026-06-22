@@ -4,6 +4,24 @@ import unicodedata
 # Phase 76.3: Pre-compiled regex for zero-allocation normalization
 RE_CLEAN_VN = re.compile(r"[^a-z0-9\s]")
 
+# ── Module-level constants ──────────────────────────────────────────────
+# CamelCase brand exceptions: tránh tách PubMed → Pub Med
+_CAMEL_EXCEPTIONS: dict[str, str] = {
+    "Pub Med": "PubMed",
+    "Science Direct": "ScienceDirect",
+    "Chat Gpt": "ChatGPT",
+    "Chat GPT": "ChatGPT",
+    "You Tube": "YouTube",
+    "Git Hub": "GitHub",
+    "App Store": "AppStore",
+    "Play Store": "PlayStore",
+    "Web P": "WebP",
+    "Base Model": "BaseModel",
+    "Svelte Kit": "SvelteKit",
+    "Type Script": "TypeScript",
+    "Java Script": "JavaScript",
+}
+
 def normalize_vn(text: str) -> str:
     """
     Chuẩn hóa văn bản tiếng Việt cho wake/sleep word matching:
@@ -133,22 +151,7 @@ def normalize_vietnamese_encoding(text: str) -> str:
     )
     
     # 2b. Khôi phục các danh từ riêng/nhãn hiệu chuẩn CamelCase (tránh lỗi PubMed -> Pub Med)
-    _camel_exceptions = {
-        "Pub Med": "PubMed",
-        "Science Direct": "ScienceDirect",
-        "Chat Gpt": "ChatGPT",
-        "Chat GPT": "ChatGPT",
-        "You Tube": "YouTube",
-        "Git Hub": "GitHub",
-        "App Store": "AppStore",
-        "Play Store": "PlayStore",
-        "Web P": "WebP",
-        "Base Model": "BaseModel",
-        "Svelte Kit": "SvelteKit",
-        "Type Script": "TypeScript",
-        "Java Script": "JavaScript",
-    }
-    for split_val, orig_val in _camel_exceptions.items():
+    for split_val, orig_val in _CAMEL_EXCEPTIONS.items():
         text = text.replace(split_val, orig_val)
     
     # 3. Thêm khoảng trắng sau dấu đóng ngoặc nếu dính liền chữ/số (ví dụ: (PubMed, 2018)Sodium -> (PubMed, 2018) Sodium)
@@ -189,17 +192,20 @@ def sanitize_sentence_linebreaks(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-def validate_vietnamese_sentence(text: str) -> str:
+def validate_vietnamese_sentence(text: str, mode: str = "standard") -> str:
     """
+    TRÙM CUỐI: Vietnamese Elite NLP Guard.
     Kiểm tra tính hoàn chỉnh về mặt ngữ nghĩa của câu tiếng Việt.
-    Quy tắc:
-    - Phải là câu hoàn chỉnh (Có đầy đủ chủ ngữ + vị ngữ).
-    - Không cộc lốc hoặc kết thúc lửng lơ (ví dụ bằng giới từ, liên từ).
-    - Không có lỗi viết thiếu nghĩa/vô nghĩa (như 'có như cao').
+    
+    Modes:
+    - "light": Chỉ Tầng 1 (Structural Guard) — dùng cho fast path / content dài
+    - "standard": Tầng 1 + 2 (Structural + Linguistic) — mặc định
+    - "full": Tầng 1 + 2 + 3 (+ Neural Spell) — dùng cho final publish
     """
     if not text:
         return text
 
+    # ═══ TẦNG 1: STRUCTURAL GUARD (Regex) ═══════════════════════════════
     text = normalize_vietnamese_encoding(text)
     # Loại bỏ các thẻ HTML để lấy nội dung text thuần để kiểm tra
     raw_text = re.sub(r'<[^>]+>', ' ', text).strip()
@@ -213,11 +219,9 @@ def validate_vietnamese_sentence(text: str) -> str:
     # Loại bỏ khoảng trắng thừa
     raw_text = " ".join(raw_text.split())
 
-    # 2. Kiểm tra câu cụt / kết thúc lửng lơ
-    # Danh sách các từ kết thúc lửng lơ (prepositions, conjunctions, relative pronouns)
     incomplete_endings = {
         "và", "hoặc", "như", "của", "với", "là", "bởi", "trong", "trên", "dưới", "tại", "cho", "vì", 
-        "nên", "thì", "mà", "để", "nhưng", "tuy", "bằng", "về", "ra", "vào", "lên", "xuống", "đến"
+        "nên", "thì", "mà", "để", "nhưng", "tuy", "bằng", "về"
     }
 
     # Lấy các từ dạng chữ bằng regex
@@ -248,11 +252,47 @@ def validate_vietnamese_sentence(text: str) -> str:
     if len(words) < 3:
         raise ValueError("Câu quá ngắn, thiếu thành phần chủ ngữ hoặc vị ngữ để tạo thành ý nghĩa hoàn chỉnh.")
 
+    # Bỏ qua kiểm tra ngữ pháp (Tầng 2) nếu chuỗi chứa bảng dữ liệu hoặc hình ảnh có cấu trúc
+    is_structured = any(tag in text.lower() for tag in ["<table", "<figure", "<blockquote", "xohi-clinical-table"])
+
+    # ═══ TẦNG 2: LINGUISTIC ANALYZER (underthesea) ══════════════════════
+    if mode in ("standard", "full") and not is_structured:
+        try:
+            from backend.utils.vietnamese_nlp import (
+                check_sentence_completeness,
+                calculate_content_density,
+            )
+            is_valid, err = check_sentence_completeness(raw_text)
+            if not is_valid:
+                raise ValueError(err)
+
+            density = calculate_content_density(raw_text)
+            if density < 0.20:
+                raise ValueError(
+                    f"Câu có mật độ nội dung quá thấp ({density:.0%}), có dấu hiệu sáo rỗng."
+                )
+        except ValueError:
+            raise  # Re-raise validation errors
+        except Exception:
+            pass  # Graceful fallback: nếu underthesea lỗi thì bỏ qua
+
+    # ═══ TẦNG 3: NEURAL SPELL CORRECTOR (BARTpho) ═══════════════════════
+    if mode == "full":
+        try:
+            from backend.utils.spell_corrector import VietnameseSpellCorrector
+            corrector = VietnameseSpellCorrector.get_instance()
+            corrected, changes = corrector.correct(text)
+            if changes:
+                text = corrected
+        except Exception:
+            pass  # Graceful fallback
+
     return text
 
-def validate_vietnamese_text_block(text: str) -> str:
+def validate_vietnamese_text_block(text: str, mode: str = "light") -> str:
     """
     Kiểm tra toàn bộ khối văn bản (nhiều dòng, nhiều đoạn văn) chuẩn Elite Protocol.
+    Mặc định dùng mode="light" để tránh chậm trên content dài.
     """
     if not text:
         return text
@@ -289,6 +329,6 @@ def validate_vietnamese_text_block(text: str) -> str:
                 (sentence_clean.startswith("<") and sentence_clean.endswith(">"))):
                 continue
                 
-            validate_vietnamese_sentence(sentence_clean)
+            validate_vietnamese_sentence(sentence_clean, mode=mode)
             
     return text

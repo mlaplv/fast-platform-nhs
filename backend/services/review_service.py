@@ -636,6 +636,17 @@ CHỈ THỊ QUAN TRỌNG:
             content_raw = str(getattr(response, "data", response)).strip()
             # Sanitize: bỏ quote dư và xử lý newline
             content_raw = content_raw.strip('"\' \n').split('\n')[0][:500]
+            
+            # Elite V2.2: Enforce Vietnamese NLP validation on AI-generated reviews
+            from backend.utils.text import validate_vietnamese_sentence
+            try:
+                content_raw = validate_vietnamese_sentence(content_raw, mode="standard")
+            except Exception as ve:
+                logger.warning(f"[ReviewService.ai_seed_one] AI Review validation standard failed for '{content_raw}': {ve}")
+                try:
+                    content_raw = validate_vietnamese_sentence(content_raw, mode="light")
+                except Exception as ve2:
+                    logger.warning(f"[ReviewService.ai_seed_one] AI Review validation light failed: {ve2}")
         except Exception as exc:
             logger.error(f"[ReviewService.ai_seed_one] LLM failed: {exc}")
             raise ValueError(f"AI không thể tạo nội dung: {exc}")

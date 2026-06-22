@@ -74,7 +74,7 @@ export const neuralCleanPastedHTML = (htmlStr: string): string => {
       const tag = el.tagName.toLowerCase();
 
       // 2.1 Absolute Attribute Stripping
-      const whitelist = ['href', 'src', 'alt', 'title', 'target', 'rel', 'style'];
+      const whitelist = ['class', 'href', 'src', 'alt', 'title', 'target', 'rel', 'style'];
       Array.from(el.attributes).forEach(attr => {
         if (!whitelist.includes(attr.name.toLowerCase())) {
           el.removeAttribute(attr.name);

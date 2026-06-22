@@ -92,7 +92,7 @@ class AutoFixResponse(BaseModel):
     def validate_new_text(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
         v = sanitize_sentence_linebreaks(v)
-        return validate_vietnamese_sentence(v)
+        return validate_vietnamese_sentence(v, mode="standard")
 
 class BulkFixRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -121,7 +121,7 @@ class SnippetRefinement(BaseModel):
     def validate_new_text(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
         v = sanitize_sentence_linebreaks(v)
-        return validate_vietnamese_sentence(v)
+        return validate_vietnamese_sentence(v, mode="standard")
 
 class AtomicFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -140,7 +140,7 @@ class ContentPatch(BaseModel):
     def validate_replacement_string(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
         v = sanitize_sentence_linebreaks(v)
-        return validate_vietnamese_sentence(v)
+        return validate_vietnamese_sentence(v, mode="standard")
 
 
 # ── CNS V93.0: Structured Clinical Evidence ─────────────────────────────────
@@ -220,6 +220,12 @@ class ScoutHeadline(BaseModel):
     title: str = Field(description="Tiêu đề gợi ý bám sát thực tế")
     type: str = Field(description="Phân loại: ADS (Quảng cáo) | TOP_10 (SEO) | AI_AUGMENTED (Sáng tạo)")
 
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_sentence
+        return validate_vietnamese_sentence(v, mode="light")
+
 class ScoutReport(BaseModel):
     model_config = ConfigDict(strict=True)
     topic: str
@@ -228,6 +234,20 @@ class ScoutReport(BaseModel):
     strategic_analysis: str = Field(description="Bản trình báo chiến lược AI chuyên sâu (Markdown)")
     ground_truth_summary: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh trinh sát từ Google")
     logs: List[str] = Field(default_factory=list, description="Nhật ký trinh sát thời gian thực")
+
+    @field_validator('strategic_analysis')
+    @classmethod
+    def validate_strategic_analysis(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
+    @field_validator('ground_truth_summary')
+    @classmethod
+    def validate_ground_truth_summary(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
 
 # ══════════════════════════════════════════════════════════════
 # ANALYSIS & ENRICHMENT SCHEMAS — 2026 Edition

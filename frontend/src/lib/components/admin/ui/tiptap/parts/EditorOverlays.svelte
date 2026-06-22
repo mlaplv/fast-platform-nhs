@@ -10,6 +10,7 @@
   import AnnotationTooltip from '../ui/AnnotationTooltip.svelte';
   import LinkBubbleMenu from '../ui/LinkBubbleMenu.svelte';
   import ImageBubbleMenu from '../ui/ImageBubbleMenu.svelte';
+  import TableBubbleMenu from '../ui/TableBubbleMenu.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { stripMarks } from '../utils/editorUtils';
   import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
@@ -28,6 +29,7 @@
     blockClicks = $bindable(),
     imageMenuVisible = $bindable(),
     linkMenuVisible = $bindable(),
+    tableMenuVisible = $bindable(),
     isHoveringLinkMenu = $bindable(),
     linkHoverTimeout = $bindable(),
     linkPos = $bindable(),
@@ -47,7 +49,9 @@
     linkMenuX,
     linkMenuY,
     imageMenuX,
-    imageMenuY
+    imageMenuY,
+    tableMenuX,
+    tableMenuY
   }: {
     editor: Editor | null;
     editable: boolean;
@@ -60,6 +64,7 @@
     blockClicks: boolean;
     imageMenuVisible: boolean;
     linkMenuVisible: boolean;
+    tableMenuVisible: boolean;
     isHoveringLinkMenu: boolean;
     linkHoverTimeout: ReturnType<typeof setTimeout> | null;
     linkPos: number | null;
@@ -80,6 +85,8 @@
     linkMenuY: number;
     imageMenuX: number;
     imageMenuY: number;
+    tableMenuX: number;
+    tableMenuY: number;
   } = $props();
 
 </script>
@@ -199,6 +206,19 @@
       if (!blockClicks) showMediaVault = true;
     }}
     onClose={() => imageMenuVisible = false}
+  />
+</div>
+{/if}
+
+{#if editor && editable && tableMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
+<div
+  use:portal
+  class="fixed -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out table-bubble-menu"
+  style="left: {tableMenuX}px; top: {tableMenuY}px; z-index: {Z_INDEX_ADMIN.TIPTAP_BUBBLE_MENU};"
+>
+  <TableBubbleMenu
+    {editor}
+    onClose={() => tableMenuVisible = false}
   />
 </div>
 {/if}

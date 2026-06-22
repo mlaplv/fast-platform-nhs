@@ -698,10 +698,25 @@ class ArticleService:
                 if match:
                     parsed = json.loads(match.group(0))
                     if isinstance(parsed, dict):
+                        from backend.utils.text import validate_vietnamese_sentence
+                        seo_title = parsed.get("seo_title", "")
+                        seo_desc = parsed.get("seo_description", "")
+                        seo_kw = parsed.get("seo_keywords", "")
+                        
+                        try:
+                            seo_title = validate_vietnamese_sentence(seo_title, mode="light")
+                        except Exception as ve:
+                            logger.warning(f"[ArticleService] SEO Title validation failed: {ve}")
+                        
+                        try:
+                            seo_desc = validate_vietnamese_sentence(seo_desc, mode="standard")
+                        except Exception as ve:
+                            logger.warning(f"[ArticleService] SEO Description validation failed: {ve}")
+                            
                         return {
-                            "seo_title": parsed.get("seo_title", ""),
-                            "seo_description": parsed.get("seo_description", ""),
-                            "seo_keywords": parsed.get("seo_keywords", ""),
+                            "seo_title": seo_title,
+                            "seo_description": seo_desc,
+                            "seo_keywords": seo_kw,
                         }
 
             return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
@@ -753,7 +768,23 @@ class ArticleService:
                 if match:
                     parsed = json.loads(match.group(0))
                     if isinstance(parsed, list):
-                        return parsed
+                        from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+                        validated_faqs = []
+                        for faq in parsed:
+                            if isinstance(faq, dict) and "question" in faq and "answer" in faq:
+                                q = str(faq["question"]).strip()
+                                a = str(faq["answer"]).strip()
+                                try:
+                                    q = validate_vietnamese_sentence(q, mode="light")
+                                except Exception as ve:
+                                    logger.warning(f"[ArticleService] FAQ Question validation failed: {ve}")
+                                try:
+                                    a = sanitize_sentence_linebreaks(a)
+                                    a = validate_vietnamese_sentence(a, mode="standard")
+                                except Exception as ve:
+                                    logger.warning(f"[ArticleService] FAQ Answer validation failed: {ve}")
+                                validated_faqs.append({"question": q, "answer": a})
+                        return validated_faqs
 
             return []
 
@@ -787,7 +818,13 @@ class ArticleService:
             result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0)
             if result:
                 text = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                return text[:300]
+                text = text[:300]
+                from backend.utils.text import validate_vietnamese_sentence
+                try:
+                    text = validate_vietnamese_sentence(text, mode="standard")
+                except Exception as ve:
+                    logger.warning(f"[ArticleService] Excerpt validation failed: {ve}")
+                return text
             return ""
         except Exception as e:
             logger.exception(f"[ArticleService] AI Excerpt Suggestion Failed: {e}")
@@ -831,7 +868,13 @@ class ArticleService:
             if result:
                 raw = str(getattr(result, "data", getattr(result, "output", result))).strip()
                 from backend.utils.noise_cleaner import noise_cleaner
-                return await noise_cleaner.clean(raw, strip_html=False)
+                cleaned = await noise_cleaner.clean(raw, strip_html=False)
+                from backend.utils.text import validate_vietnamese_text_block
+                try:
+                    cleaned = validate_vietnamese_text_block(cleaned)
+                except Exception as ve:
+                    logger.warning(f"[ArticleService] Content validation warning: {ve}")
+                return cleaned
             return ""
         except Exception as e:
             logger.exception(f"[ArticleService] AI Content Generation Failed: {e}")
@@ -965,11 +1008,17 @@ class ArticleService:
                 if match:
                     parsed = json.loads(match.group(0))
                     if isinstance(parsed, dict):
-                        return {
-                            "seo_sge": [t for t in parsed.get("seo_sge", []) if isinstance(t, str) and t.strip()][:3],
-                            "guide_advanced": [t for t in parsed.get("guide_advanced", []) if isinstance(t, str) and t.strip()][:3],
-                            "related_keywords": [t for t in parsed.get("related_keywords", []) if isinstance(t, str) and t.strip()][:3]
-                        }
+                        from backend.utils.text import validate_vietnamese_sentence
+                        validated_res = {"seo_sge": [], "guide_advanced": [], "related_keywords": []}
+                        for key in ["seo_sge", "guide_advanced", "related_keywords"]:
+                            for t in parsed.get(key, []):
+                                if isinstance(t, str) and t.strip():
+                                    try:
+                                        clean_t = validate_vietnamese_sentence(t.strip(), mode="light")
+                                        validated_res[key].append(clean_t)
+                                    except Exception as ve:
+                                        logger.warning(f"[ArticleService] Title validation failed for '{t}': {ve}")
+                        return {k: v[:3] for k, v in validated_res.items()}
             return fallback
         except Exception as e:
             logger.exception(f"[ArticleService] AI Title Suggestion Failed: {e}")

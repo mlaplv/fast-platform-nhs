@@ -115,6 +115,9 @@
 
   let showMediaVault = $state(false);
   let showLinkDialog = $state(false);
+  let tableMenuVisible = $state(false);
+  let tableMenuX = $state(0);
+  let tableMenuY = $state(0);
   let currentLinkData = $state({ url: '', title: '', target: null as string | null, rel: null as string | null });
   let lastDialogCloseAt = 0;
   $effect(() => { if (!showMediaVault) lastDialogCloseAt = Date.now(); });
@@ -372,6 +375,7 @@
       onSelectionUpdate: () => {
         // CNS V88.2: Ensure metrics update on selection change (e.g. word count of selected text could be next)
         updateMetrics();
+        updateTableMenu();
       }
     });
     updateMetrics();
@@ -441,6 +445,33 @@
     }
   }
 
+  function updateTableMenu() {
+    if (!editor || !editable) {
+      tableMenuVisible = false;
+      return;
+    }
+    const isActive = editor.isActive('table');
+    if (!isActive) {
+      tableMenuVisible = false;
+      return;
+    }
+    const { selection } = editor.state;
+    try {
+      const node = editor.view.domAtPos(selection.$from.pos).node;
+      const tableEl = (node instanceof HTMLElement ? node : node.parentElement)?.closest('.tiptap-content table');
+      if (tableEl) {
+        const rect = tableEl.getBoundingClientRect();
+        tableMenuX = rect.left + rect.width / 2;
+        tableMenuY = rect.top - 8;
+        tableMenuVisible = true;
+      } else {
+        tableMenuVisible = false;
+      }
+    } catch (e) {
+      tableMenuVisible = false;
+    }
+  }
+
   onDestroy(() => {
     if (editor) editor.destroy();
     if (metricsTimer) clearTimeout(metricsTimer);
@@ -453,6 +484,7 @@
   $effect(() => {
     if (showMediaVault || showLinkDialog) {
       if (imageMenuVisible) imageMenuVisible = false;
+      if (tableMenuVisible) tableMenuVisible = false;
     }
   });
 
@@ -664,6 +696,7 @@
 
   <div
     class="w-full overflow-y-auto document-scroll relative {fullScreen ? 'bg-[#0a0d14] flex-1 min-h-0' : (flex ? 'bg-transparent flex-1 min-h-0' : 'bg-transparent max-h-[650px]')}"
+    onscroll={updateTableMenu}
     onclick={(e) => { 
       if (e.target === e.currentTarget) editor?.commands.focus();
       handlers.handleImageClick(e); 
@@ -736,4 +769,7 @@
   {linkMenuY}
   {imageMenuX}
   {imageMenuY}
+  bind:tableMenuVisible={tableMenuVisible}
+  tableMenuX={tableMenuX}
+  tableMenuY={tableMenuY}
 />

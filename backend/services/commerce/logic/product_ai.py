@@ -86,10 +86,15 @@ async def suggest_faqs_logic(name: str, description: str) -> List[Dict[str, str]
                     for item in parsed:
                         if isinstance(item, dict):
                             item_dict: Dict[str, str] = {str(k): str(v) for k, v in item.items()}
+                            if "question" in item_dict:
+                                try:
+                                    item_dict["question"] = validate_vietnamese_sentence(item_dict["question"], mode="light")
+                                except Exception as ve:
+                                    logger.warning(f"[ProductAI] FAQ question validation failed: {ve}")
                             if "answer" in item_dict:
                                 try:
                                     item_dict["answer"] = sanitize_sentence_linebreaks(item_dict["answer"])
-                                    item_dict["answer"] = validate_vietnamese_sentence(item_dict["answer"])
+                                    item_dict["answer"] = validate_vietnamese_sentence(item_dict["answer"], mode="standard")
                                 except Exception as ve:
                                     logger.warning(f"[ProductAI] FAQ answer validation failed: {ve}")
                             result_list.append(item_dict)

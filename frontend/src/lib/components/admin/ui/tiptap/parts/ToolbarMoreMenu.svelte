@@ -23,6 +23,7 @@
   import UnlinkIcon from "@lucide/svelte/icons/unlink";
   import RemoveFormattingIcon from "@lucide/svelte/icons/remove-formatting";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import TableIcon from "@lucide/svelte/icons/table";
   import { fade } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
@@ -87,7 +88,7 @@
   >
     <!-- Extra Tools (Always in More) -->
     <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-       <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Extended Tools</span>
+        <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Extended Tools</span>
         <div class="flex gap-1.5">
            <button onclick={() => { editor?.chain().focus().toggleBulletList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.bulletList ? 'active-neural' : ''}" title="Bullet List"><ListIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().toggleOrderedList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.orderedList ? 'active-neural' : ''}" title="Ordered List"><ListOrderedIcon size={12}/></button>
@@ -95,6 +96,38 @@
            <button onclick={() => { editor?.chain().focus().toggleCode().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.code ? 'active-neural' : ''}" title="Code"><CodeIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().setHorizontalRule().run(); showMore=false; }} class="tb-btn !h-8 !w-8" title="Horizontal Rule"><MinusIcon size={12}/></button>
         </div>
+    </div>
+
+    <!-- Table Controls -->
+    <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
+       <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Table Controls</span>
+       {#if editor?.isActive('table')}
+         <div class="grid grid-cols-4 gap-1">
+           <button onclick={() => editor?.chain().focus().addColumnBefore().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 hover:bg-cyan-500/20" title="Add Column Before">+ Col L</button>
+           <button onclick={() => editor?.chain().focus().addColumnAfter().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 hover:bg-cyan-500/20" title="Add Column After">+ Col R</button>
+           <button onclick={() => editor?.chain().focus().addRowBefore().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 hover:bg-cyan-500/20" title="Add Row Before">+ Row A</button>
+           <button onclick={() => editor?.chain().focus().addRowAfter().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 hover:bg-cyan-500/20" title="Add Row Below">+ Row B</button>
+           <button onclick={() => editor?.chain().focus().deleteColumn().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 text-rose-400 hover:bg-rose-500/20" title="Delete Column">- Col</button>
+           <button onclick={() => editor?.chain().focus().deleteRow().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 text-rose-400 hover:bg-rose-500/20" title="Delete Row">- Row</button>
+           <button onclick={() => editor?.chain().focus().mergeCells().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 text-cyan-400 hover:bg-cyan-500/20" title="Merge Cells">Merge</button>
+           <button onclick={() => editor?.chain().focus().splitCell().run()} class="tb-btn !h-7 !w-auto px-1.5 text-[8px] bg-white/5 text-cyan-400 hover:bg-cyan-500/20" title="Split Cell">Split</button>
+         </div>
+         <div class="flex gap-1.5 mt-1 border-t border-white/5 pt-1.5">
+           <button onclick={() => editor?.chain().focus().deleteTable().run()} class="tb-btn !h-7 !w-full text-[9px] text-rose-500 hover:bg-rose-500/10" title="Delete Table">Delete Table</button>
+         </div>
+       {:else}
+         <button 
+           onclick={() => { 
+             editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); 
+             showMore = false; 
+           }} 
+           class="tb-btn !h-8 !w-full text-[9px] text-emerald-400 hover:bg-emerald-500/10 flex items-center justify-center gap-1.5"
+           title="Chèn bảng nghiên cứu lâm sàng"
+         >
+           <TableIcon size={12}/>
+           Chèn Bảng Lâm Sàng (3x3)
+         </button>
+       {/if}
     </div>
 
     {#if isCompact}

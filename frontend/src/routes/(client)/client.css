@@ -455,9 +455,216 @@ body.live-edit-mode .editable-wrapper.is-disabled {
   input[type="password"],
   input:not([type]),
   select,
-  textarea,
-  .tiptap-simple-content,
-  [contenteditable="true"] {
+    textarea,
+    .tiptap-simple-content,
+    [contenteditable="true"] {
+      font-size: 16px !important;
+    }
+  }
+
+/* ═══ CLINICAL DATA TABLES (SGE & AI Overview Optimization - Client Side) ═══ */
+figure.xohi-clinical-table {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 3rem 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0px !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+figure.xohi-clinical-table table {
+  display: table !important;
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  margin: 1.5rem 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important; /* Full width edge to edge */
+  font-size: 14px !important;
+  border-top: none !important; /* Removed to avoid border above caption */
+  border-bottom: 1px solid #cbd5e1 !important; /* Extremely soft bottom border */
+}
+
+/* Hide empty cells to prevent empty column layout spacing pollution */
+figure.xohi-clinical-table th:empty,
+figure.xohi-clinical-table td:empty {
+  display: none !important;
+}
+
+figure.xohi-clinical-table table caption,
+table caption,
+caption {
+  display: table-caption !important; /* Restored to prevent early text wrapping */
+  caption-side: top !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+  white-space: normal !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-bottom: 1rem !important;
+  letter-spacing: -0.02em !important;
+  border: none !important; /* Removed to avoid double borders under caption */
+  padding-bottom: 0.5rem !important;
+}
+
+figure.xohi-clinical-table th {
+  background: #f1f5f9 !important; /* Distinct header slate-100 background */
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-size: 11px !important;
+  border-top: 1px solid #cbd5e1 !important; /* Acts as the clean line below caption */
+  border-bottom: 1px solid #cbd5e1 !important; /* Soft header divider */
+  padding: 14px 16px !important;
+  text-align: left !important;
+  min-width: 100px !important;
+  vertical-align: middle !important;
+}
+
+figure.xohi-clinical-table td {
+  border-bottom: 1px solid #f1f5f9 !important; /* Delicate row separator */
+  padding: 16px 16px !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+  min-width: 100px !important;
+  vertical-align: middle !important;
+  background: transparent !important;
+}
+
+/* Reset inner margins for nested editor block elements */
+figure.xohi-clinical-table td p,
+figure.xohi-clinical-table th p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Zebra striping for even rows */
+figure.xohi-clinical-table tr:nth-child(even) td {
+  background: #f8fafc !important; /* Slate-50 background for even rows */
+}
+
+figure.xohi-clinical-table tr:hover td {
+  background: #f1f5f9 !important;
+}
+
+figure.xohi-clinical-table td strong,
+figure.xohi-clinical-table td b {
+  color: #0d9488 !important;
+  font-weight: 700 !important;
+}
+
+figure.xohi-clinical-table figcaption {
+  font-size: 11px !important;
+  color: #64748b !important;
+  margin-top: 1.25rem !important;
+  line-height: 1.6 !important;
+  text-align: right !important;
+  font-weight: 500 !important;
+}
+
+cite.xohi-cite,
+figure.xohi-clinical-table figcaption cite.xohi-cite {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  margin-left: 6px !important;
+  font-style: normal !important;
+  display: inline-block !important;
+}
+
+/* 📱 Mobile Optimization for Clinical Tables (Collapses to 1-Column Editorial Stack) */
+@media (max-width: 768px) {
+  figure.xohi-clinical-table {
+    margin: 2rem 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: visible !important;
+  }
+  
+  figure.xohi-clinical-table table,
+  figure.xohi-clinical-table tbody {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+  
+  /* Hide the abstract column header row on mobile */
+  figure.xohi-clinical-table tr:first-of-type {
+    display: none !important;
+  }
+  
+  /* Transform each row into a premium soft card with a left clinical teal accent bar */
+  figure.xohi-clinical-table tr {
+    display: block !important;
+    width: 100% !important;
+    background: #f8fafc !important; /* Extremely soft grey tint */
+    border-left: 3px solid #0d9488 !important; /* Clean Clinical Teal indicator */
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-radius: 0px !important;
+    padding: 1rem !important;
+    margin-bottom: 0.75rem !important;
+    box-sizing: border-box !important;
+  }
+  
+  figure.xohi-clinical-table tr:hover td {
+    background: transparent !important;
+  }
+  
+  /* Stack cells vertically */
+  figure.xohi-clinical-table td {
+    display: block !important;
+    width: 100% !important;
+    padding: 4px 0 !important;
+    border: none !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+  }
+  
+  /* Hide any empty cells to prevent empty spacing block collapse */
+  figure.xohi-clinical-table td:empty {
+    display: none !important;
+  }
+  
+  /* Treat the first cell as the header of this block - gentle capitalization */
+  figure.xohi-clinical-table td:first-of-type {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    text-transform: none !important; /* Gentle normal casing */
+    letter-spacing: normal !important;
+    border-bottom: 1px solid #cbd5e1 !important; /* Subtle separator */
+    padding-bottom: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  figure.xohi-clinical-table table caption,
+  table caption,
+  caption {
     font-size: 16px !important;
+    margin-bottom: 1.25rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 0.75rem !important;
+  }
+  
+  figure.xohi-clinical-table figcaption {
+    text-align: left !important;
+    margin-top: 1rem !important;
   }
 }

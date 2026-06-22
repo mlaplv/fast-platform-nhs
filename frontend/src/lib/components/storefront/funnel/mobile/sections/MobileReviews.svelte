@@ -132,6 +132,22 @@
     toastTimer = setTimeout(() => { showToast = false; }, 3000);
   }
 
+  // Slider State (Elite V2.2)
+  let activeReviewIndex = $state(0);
+  let reviewsScroller = $state<HTMLDivElement>();
+  let scrollTickingReviews = false;
+
+  function syncReviewOnScroll() {
+    if (!reviewsScroller || scrollTickingReviews) return;
+    scrollTickingReviews = true;
+    requestAnimationFrame(() => {
+      if (reviewsScroller) {
+        activeReviewIndex = Math.round(reviewsScroller.scrollLeft / reviewsScroller.clientWidth);
+      }
+      scrollTickingReviews = false;
+    });
+  }
+
   import { apiClient } from '$lib/utils/apiClient';
 
   async function fetchReviews() {
@@ -145,15 +161,18 @@
           status: 'APPROVED'
         }
       });
-      realReviews = (data.items || []).map((r: ReviewApiResponse) => ({
-        id: r.id,
-        name: r.customer_name,
-        phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
-        location: r.customer_location || 'Việt Nam',
-        rating: r.rating,
-        content: r.content.replace(/^<p>/i, '').replace(/<\/p>$/i, ''),
-        initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
-      }));
+      realReviews = (data.items || []).map((r: ReviewApiResponse) => {
+        const cleanContent = r.content.trim().replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim();
+        return {
+          id: r.id,
+          name: r.customer_name,
+          phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
+          location: r.customer_location || 'Việt Nam',
+          rating: r.rating,
+          content: cleanContent,
+          initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
+        };
+      });
     } catch (e) {
       console.error("Reviews Error:", e);
     } finally {
@@ -226,56 +245,84 @@
     </div>
   </div>
 
-  <div class="flex overflow-x-auto snap-x snap-mandatory gap-0 scrollbar-hide pb-10">
+  <div 
+    class="flex overflow-x-auto snap-x snap-mandatory gap-0 scrollbar-hide pb-2 reviews-scroll-container w-full" 
+    bind:this={reviewsScroller}
+    onscroll={syncReviewOnScroll}
+  >
     {#if isLoading && realReviews.length === 0}
-      <div class="py-20 text-center">
+      <div class="py-20 text-center w-full">
         <div class="w-10 h-10 border-2 border-[#FFB7C5]/20 border-t-[#FFB7C5] rounded-full animate-spin mx-auto mb-4"></div>
         <p class="text-[9px] font-black text-white/20 tracking-[0.4em]">Syncing_Voices...</p>
       </div>
     {:else if realReviews.length === 0}
-      <div class="py-20 text-center opacity-20">
+      <div class="py-20 text-center opacity-20 w-full">
         <p class="text-[10px] font-black tracking-widest">No Feedback Detected</p>
       </div>
     {:else}
       {#each realReviews.slice(0, 8) as review, i}
-        <div class="review-card-mobile flex-none snap-start p-6 bg-white/[0.03] border border-white/10 rounded-[5px] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-[5px] bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
-                {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
-              </div>
-              <div class="flex flex-col min-w-0">
-                <h4 class="text-white font-black text-sm tracking-tight italic leading-tight mb-1">{review.name || review.customer_name}</h4>
-                <div class="flex flex-col gap-0.5">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-[9px] text-white/40 font-bold tracking-tight">{review.location || review.customer_location || 'Việt Nam'}</span>
-                    <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
-                    <span class="text-[9px] text-[#FFB7C5] font-black tracking-widest uppercase">{labels.label_verified}</span>
+        <div class="w-full flex-none snap-center flex justify-center">
+          <div class="review-card-mobile p-6 bg-white/[0.03] border border-white/10 rounded-[5px] backdrop-blur-3xl relative overflow-hidden" style="width: calc(100% - 14px); max-width: 360px;" in:fly={{ y: 20, delay: i * 100 }}>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-[5px] bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
+                  {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <h4 class="text-white font-black text-sm tracking-tight italic leading-tight mb-1">{review.name || review.customer_name}</h4>
+                  <div class="flex flex-col gap-0.5">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] text-white/40 font-bold tracking-tight">{review.location || review.customer_location || 'Việt Nam'}</span>
+                      <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
+                      <span class="text-[9px] text-[#FFB7C5] font-black tracking-widest uppercase">{labels.label_verified}</span>
+                    </div>
+                    <span class="text-[9px] text-white/20 font-mono tracking-wider">
+                      {review.phone || (review.customer_phone ? review.customer_phone.slice(0, 3) + '****' + review.customer_phone.slice(-3) : '09x****xxx')}
+                    </span>
                   </div>
-                  <span class="text-[9px] text-white/20 font-mono tracking-wider">
-                    {review.phone || (review.customer_phone ? review.customer_phone.slice(0, 3) + '****' + review.customer_phone.slice(-3) : '09x****xxx')}
-                  </span>
                 </div>
               </div>
+              <div class="p-2 bg-white/5 rounded-xl border border-white/5">
+                 <ShieldCheck class="w-4 h-4 text-[#FFB7C5]/40" />
+              </div>
             </div>
-            <div class="p-2 bg-white/5 rounded-xl border border-white/5">
-               <ShieldCheck class="w-4 h-4 text-[#FFB7C5]/40" />
+            
+            <div class="rating-row flex gap-1 mb-4">
+              {#each Array(5) as _, s}
+                <Star 
+                  class="w-3 h-3 {s < review.rating ? 'text-amber-400 fill-amber-400 star-shimmer' : 'text-white/5'}" 
+                />
+              {/each}
             </div>
-          </div>
-          
-          <div class="rating-row flex gap-1 mb-4">
-            {#each Array(5) as _, s}
-              <Star 
-                class="w-3 h-3 {s < review.rating ? 'text-amber-400 fill-amber-400 star-shimmer' : 'text-white/5'}" 
-              />
-            {/each}
-          </div>
 
-          <div class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight review-content-text">“{@html review.content}”</div>
+            <div class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight review-content-text">
+              {#if review.content.includes("<")}
+                {@html review.content}
+              {:else}
+                “{review.content}”
+              {/if}
+            </div>
+          </div>
         </div>
       {/each}
     {/if}
   </div>
+
+  {#if realReviews.length > 1}
+    <div class="flex justify-center gap-1.5 mt-2 mb-8">
+      {#each realReviews.slice(0, 8) as _, idx}
+        <button 
+          class="w-1.5 h-1.5 rounded-full transition-all duration-300 {activeReviewIndex === idx ? 'bg-[#FFB7C5] w-3' : 'bg-white/20'}"
+          onclick={() => {
+            if (reviewsScroller) {
+              reviewsScroller.scrollTo({ left: idx * reviewsScroller.clientWidth, behavior: 'smooth' });
+            }
+          }}
+          aria-label="Xem đánh giá {idx + 1}"
+        ></button>
+      {/each}
+    </div>
+  {/if}
 
   <div class="mt-4 pb-6 px-[23px]">
       <button 
@@ -491,7 +538,8 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   
   .review-card-mobile {
-    width: 100%;
+    width: calc(100% - 14px);
+    max-width: 360px;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   }
 

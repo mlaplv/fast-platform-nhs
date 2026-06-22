@@ -13,7 +13,16 @@ import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list';
 import { AnnotationExtension } from './AnnotationPlugin';
 import { Div } from './DivExtension';
 import { Span } from './SpanExtension';
+import { Figure } from './FigureExtension';
+import { Figcaption } from './FigcaptionExtension';
+import { Cite } from './CiteExtension';
+import { Caption } from './CaptionExtension';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { neuralCleanPastedHTML } from '../utils/editorUtils';
+import { mergeAttributes } from '@tiptap/core';
 
 /**
  * [CNS V92.0] Neural ListItem: Allows inline content to prevent redundant <p> wrapping.
@@ -21,6 +30,16 @@ import { neuralCleanPastedHTML } from '../utils/editorUtils';
  */
 const NeuralListItem = ListItem.extend({
   content: 'paragraph block*',
+});
+
+// CNS V95.0 Custom table node to support caption preservation
+const CustomTable = Table.extend({
+  content: 'caption? tableRow+',
+  renderHTML({ HTMLAttributes }) {
+    return ['table', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+  },
+}).configure({
+  resizable: false,
 });
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
@@ -177,6 +196,14 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
   AnnotationExtension,
   Div,
   Span,
+  CustomTable,
+  TableRow,
+  TableHeader,
+  TableCell,
+  Figure,
+  Figcaption,
+  Cite,
+  Caption,
 ];
 
 export const editorProps = {
