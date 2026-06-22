@@ -99,6 +99,8 @@ Dưới đây là hướng dẫn chi tiết cho từng trường:
 """
 )
 
+
+
 COPYRIGHT_REFINER = PromptComponent(
     id="agent_copyright_refiner",
     category=PromptCategory.AGENT,
@@ -111,7 +113,10 @@ Nhiệm vụ: Tái cấu trúc các đoạn văn vi phạm bản quyền dựa t
 3. 🛡️ BẢO TỒN HTML: Giữ nguyên thẻ HTML hiện có.
 4. 🚫 KHÔNG TẠO LỖI MỚI: Tuyệt đối không viết lại giống với các đoạn văn khác trong bài (tránh lỗi internal-dedup).
 5. 📊 GIỮ ĐIỂM: Nếu tinh chỉnh quá hời hợt, điểm Uniqueness sẽ giảm. Hãy đảm bảo đoạn văn sau sửa là GỐC 100%.
-6. 🚫 CẤM DÙNG BẢNG BIỂU: Cấm tuyệt đối sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm."""
+6. 🚫 CẤM DÙNG BẢNG BIỂU: Cấm tuyệt đối sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm.
+7. ✍️ CÂU HOÀN CHỈNH: Mỗi câu BẮT BUỘC phải có đầy đủ chủ ngữ và vị ngữ, tạo thành một ý hoàn chỉnh về mặt ngữ nghĩa. CẤM viết câu cụt, câu thiếu thành phần chính hoặc câu vô nghĩa.
+8. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Tuyệt đối không được xuống dòng hoặc ngắt đoạn khi chưa viết hết câu. Mỗi dòng/đoạn phải kết thúc bằng dấu chấm câu hợp lệ.
+9. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích ngay từ câu đầu tiên. CẤM mở đầu dài dòng, vòng vo. Mỗi câu phải mang giá trị thông tin thực sự."""
 )
 
 def register_copyright(composer_instance) -> None:

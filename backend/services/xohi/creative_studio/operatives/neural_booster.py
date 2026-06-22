@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pydantic_ai import Agent
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from backend.services.xohi.creative_studio.models.schemas import NeuralBoosterReport, ClinicalSource
+from backend.services.xohi.creative_studio.models.schemas import NeuralBoosterReport, ClinicalSource, ClinicalDataTable, KeyStat
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin
 from backend.utils.text import extract_readable_text
@@ -87,12 +87,21 @@ _TRUSTED_DOMAINS = {
 }
 
 
-class _TranslatedSnippet(BaseModel):
-    """Schema nội bộ để AI translate JP → VI"""
+class _EnrichedSnippet(BaseModel):
+    """CNS V93.0: Schema nội bộ để AI translate JP/EN → VI và extract số liệu định lượng."""
     title_vi: str = Field(description="Tiêu đề dịch sang tiếng Việt tự nhiên, chuyên nghiệp")
     snippet_vi: str = Field(description="Trích đoạn dịch sang tiếng Việt — chính xác, không thêm thắt")
     year: str = Field(default="N/A", description="Năm công bố nếu có trong văn bản (YYYY), nếu không rõ trả về 'N/A'")
     relevance: str = Field(description="1-2 câu giải thích tại sao nghiên cứu này liên quan đến chủ đề đang xét")
+    key_stats: List[dict] = Field(
+        default_factory=list,
+        description=(
+            "Tối đa 3 số liệu/chỉ số ĐỊNH LƯỢNG cụ thể trích từ nghiên cứu. "
+            "Mỗi item là dict gồm: label (str), value (str), unit (str, có thể rỗng), note (str, có thể rỗng). "
+            "VD: {\"label\": \"Hiệu quả giảm nếp nhăn\", \"value\": \"43%\", \"unit\": \"\", \"note\": \"RCT, n=120, 8 tuần\"}. "
+            "Chỉ lấy số liệu CÓ TRONG TEXT, không bịa đặt. Nếu không có số liệu, trả về []"
+        )
+    )
 
 
 class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
@@ -109,16 +118,19 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
             retries=2
         )
         # Lazy singleton Agent dịch thuật — nhỏ gọn, dùng role "fast"
-        self._translate_agent: Agent[None, _TranslatedSnippet] | None = None
+        self._translate_agent: Agent[None, _EnrichedSnippet] | None = None
 
-    def _get_translate_agent(self) -> Agent[None, _TranslatedSnippet]:
+    def _get_translate_agent(self) -> Agent[None, _EnrichedSnippet]:
         if self._translate_agent is None:
             self._translate_agent = Agent(
-                output_type=_TranslatedSnippet,
+                output_type=_EnrichedSnippet,
                 system_prompt=(
-                    "Bạn là chuyên gia dịch thuật khoa học Nhật-Anh → Việt. "
-                    "Dịch CHÍNH XÁC, không diễn giải thêm, không thêm thắt. "
-                    "Giữ thuật ngữ chuyên ngành, dùng tiếng Việt chuyên nghiệp chuẩn học thuật."
+                    "Bạn là chuyên gia dịch thuật & phân tích khoa học Nhật-Anh → Việt. "
+                    "NHIỆM VỤ KÉP: (1) Dịch CHÍNH XÁC title và snippet — không diễn giải thêm. "
+                    "(2) Trích xuất tối đa 3 số liệu ĐỊNH LƯỢNG cụ thể (%, mg, mmHg, n=...) "
+                    "thực sự có trong text. Chỉ lấy số liệu đã được đo lường, KHÔNG bịa đặt. "
+                    "Giữ thuật ngữ chuyên ngành, dùng tiếng Việt chuyên nghiệp chuẩn học thuật. "
+                    "QUY TẮC KHOẢNG TRẮNG: Tuyệt đối KHÔNG viết dính liền chữ tiếng Việt với từ tiếng Anh, số, phần trăm (%) hoặc ký tự đóng/mở ngoặc đơn (Ví dụ: KHÔNG viết '31.4%là', 'biểu bìThấp', '(PubMed)Sodium'). Luôn dùng khoảng trắng đúng chuẩn chính tả."
                 ),
                 retries=1
             )
@@ -180,10 +192,10 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
         match = re.search(r'https?://(?:www\.)?([^/]+)', url)
         return match.group(1) if match else "Nguồn quốc tế"
 
-    async def _translate_snippet(
+    async def _enrich_snippet(
         self, title: str, snippet: str, url: str, topic: str
-    ) -> _TranslatedSnippet | None:
-        """Dịch title + snippet JP/EN → VI bằng LLM nhỏ (role=fast)."""
+    ) -> _EnrichedSnippet | None:
+        """CNS V93.0: Dịch title + snippet JP/EN → VI và extract key_stats định lượng."""
         if not title and not snippet:
             return None
         prompt = (
@@ -191,32 +203,28 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
             f"[TIÊU ĐỀ GỐC]: {title}\n"
             f"[TRÍCH ĐOẠN GỐC]: {snippet}\n"
             f"[URL NGUỒN]: {url}\n\n"
-            "Hãy dịch sang tiếng Việt CHUẨN HỌC THUẬT và cho biết mức độ liên quan."
+            "Nhiệm vụ: (1) Dịch tiêu đề và trích đoạn sang tiếng Việt CHUẨN HỌC THUẬT. "
+            "(2) Trích xuất tối đa 3 số liệu ĐỊNH LƯỢNG có trong text (%, n=, mg, etc.). "
+            "(3) Cho biết mức độ liên quan đến chủ đề."
         )
         try:
             agent = self._get_translate_agent()
-            # Note: timeout được xử lý bởi trinity_bridge.run() — không wrap thêm wait_for
             result = await trinity_bridge.run(agent, prompt, role="fast", timeout=15.0)
-            if result is None or not isinstance(result, _TranslatedSnippet):
+            if result is None or not isinstance(result, _EnrichedSnippet):
                 return None
             return result
         except Exception as e:
-            logger.warning(f"[NeuralBooster] Translate failed for '{title[:30]}': {e}")
+            logger.warning(f"[NeuralBooster] Enrich failed for '{title[:30]}': {e}")
             return None
 
     async def _search_clinical_evidence(self, topic: str, campaign_id: str) -> list[ClinicalSource]:
         """
-        CNS V92.0: Parallel search 4 queries → translate → trả về ClinicalSource list.
-        Timeout cứng per query để không treo event loop.
+        CNS V93.0: Parallel search 4 queries → enrich (translate + extract stats) → ClinicalSource list.
         """
         queries = self._build_clinical_queries(topic)
 
-        # Parallel fetch tất cả queries (không block nhau)
         fetch_tasks = [
-            asyncio.wait_for(
-                self._fetch_one_query(q),
-                timeout=_CLINICAL_SEARCH_TIMEOUT
-            )
+            asyncio.wait_for(self._fetch_one_query(q), timeout=_CLINICAL_SEARCH_TIMEOUT)
             for q in queries
         ]
 
@@ -229,7 +237,7 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
                 logger.warning(f"[NeuralBooster] A search query failed/timed-out: {r}")
                 raw_batches.append([])
 
-        # Gom tất cả items, dedup theo URL
+        # Gom + dedup theo URL
         seen_urls: set[str] = set()
         raw_items: list[dict] = []
         for batch in raw_batches:
@@ -239,43 +247,135 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
                     seen_urls.add(url)
                     raw_items.append(item)
 
+        # ── TRUSTED DOMAIN FILTER ──────────────────────────────────────────
+        def _is_trusted(u: str) -> bool:
+            return any(domain in u for domain in _TRUSTED_DOMAINS)
+
+        trusted_items = [item for item in raw_items if _is_trusted(item.get("link", ""))]
+        rejected_count = len(raw_items) - len(trusted_items)
+        if rejected_count > 0:
+            logger.info(
+                f"[NeuralBooster] Trusted-domain filter: kept {len(trusted_items)}/{len(raw_items)} "
+                f"(rejected {rejected_count} non-whitelisted URLs)"
+            )
+        raw_items = trusted_items
+        # ──────────────────────────────────────────────────────────────────
+
         if not raw_items:
-            logger.info("[NeuralBooster] No clinical search results found.")
+            logger.info("[NeuralBooster] No clinical search results found (or all filtered out).")
             return []
 
-        logger.info(f"[NeuralBooster] Found {len(raw_items)} unique clinical sources. Translating...")
+        logger.info(f"[NeuralBooster] Found {len(raw_items)} unique clinical sources. Enriching...")
 
-        # Parallel translate tất cả (max 8 để không spam LLM)
-        translate_tasks = [
-            self._translate_snippet(
+        # Parallel enrich: dịch + extract stats (max 8)
+        enrich_tasks = [
+            self._enrich_snippet(
                 title=item.get("title", ""),
                 snippet=item.get("snippet", ""),
                 url=item.get("link", ""),
                 topic=topic
             )
-            for item in raw_items[:8]  # Cap 8 nguồn tốt nhất
+            for item in raw_items[:8]
         ]
-        translated = await asyncio.gather(*translate_tasks, return_exceptions=True)
+        enriched = await asyncio.gather(*enrich_tasks, return_exceptions=True)
 
         clinical_sources: list[ClinicalSource] = []
-        for item, trans in zip(raw_items[:8], translated):
-            # Fix: kiểm tra None trước, rồi mới check isinstance
-            if trans is None or not isinstance(trans, _TranslatedSnippet):
+        for item, enc in zip(raw_items[:8], enriched):
+            if enc is None or not isinstance(enc, _EnrichedSnippet):
                 continue
             url = item.get("link", "")
+
+            # Parse key_stats từ list[dict] → list[KeyStat]
+            key_stats: list[KeyStat] = []
+            for ks in (enc.key_stats or []):
+                if isinstance(ks, dict) and ks.get("label") and ks.get("value"):
+                    try:
+                        key_stats.append(KeyStat(
+                            label=str(ks.get("label", "")),
+                            value=str(ks.get("value", "")),
+                            unit=str(ks.get("unit", "")),
+                            note=str(ks.get("note", ""))
+                        ))
+                    except Exception:
+                        pass
+
             source = ClinicalSource(
-                title_vi=trans.title_vi or item.get("title", ""),
+                title_vi=enc.title_vi or item.get("title", ""),
                 title_original=item.get("title", ""),
                 source_domain=self._get_domain_label(url),
                 source_url=url,
-                year=trans.year or "N/A",
-                snippet_vi=trans.snippet_vi or item.get("snippet", ""),
-                relevance=trans.relevance or ""
+                year=enc.year or "N/A",
+                snippet_vi=enc.snippet_vi or item.get("snippet", ""),
+                relevance=enc.relevance or "",
+                key_stats=key_stats
             )
             clinical_sources.append(source)
 
-        logger.info(f"[NeuralBooster] Translated {len(clinical_sources)} clinical sources.")
+        logger.info(f"[NeuralBooster] Enriched {len(clinical_sources)} clinical sources.")
         return clinical_sources
+
+    # ────────────────────────────────────────────────────────────
+    # PHASE 2.5: SYNTHESIZE DATA TABLES
+    # ────────────────────────────────────────────────────────────
+    async def _synthesize_data_tables(
+        self, sources: list[ClinicalSource], topic: str, campaign_id: str
+    ) -> list[ClinicalDataTable]:
+        """
+        CNS V93.0: Tổng hợp bảng số liệu có cấu trúc từ key_stats của nhiều nguồn.
+        Dùng 1 LLM call nhỏ — cap 2 bảng để tránh latency.
+        """
+        # Chỉ tổng hợp khi có ≥2 nguồn có số liệu
+        sources_with_stats = [s for s in sources if s.key_stats]
+        if len(sources_with_stats) < 2:
+            logger.info("[NeuralBooster] Not enough key_stats for table synthesis.")
+            return []
+
+        # Build context để gửi cho LLM
+        stats_context_lines = [f"[CHỦ ĐỀ]: {topic}\n"]
+        for src in sources_with_stats[:6]:  # Max 6 nguồn
+            stats_context_lines.append(
+                f"\n[NGUỒN: {src.source_domain}, {src.year}]\n"
+                f"Tiêu đề: {src.title_vi}\n"
+            )
+            for ks in src.key_stats:
+                unit_str = f" {ks.unit}" if ks.unit else ""
+                note_str = f" ({ks.note})" if ks.note else ""
+                stats_context_lines.append(f"  - {ks.label}: {ks.value}{unit_str}{note_str}")
+
+        stats_context = "\n".join(stats_context_lines)
+
+        _table_agent: Agent[None, list[ClinicalDataTable]] = Agent(
+            output_type=list[ClinicalDataTable],  # type: ignore[arg-type]
+            system_prompt=(
+                "Bạn là chuyên gia tổng hợp dữ liệu khoa học. "
+                "Từ các số liệu nghên cứu được cung cấp, tạo TỐI ĐA 2 bảng số liệu có cấu trúc. "
+                "Mỗi bảng phải có headers rõ ràng và rows với dữ liệu thực tế. "
+                "Bảng 1: hiệu quả lâm sàng (efficacy). Bảng 2: bảng so sánh các nghên cứu (comparison). "
+                "Tiêu đề và caption bất buộc tiếng Việt. source_citation theo format '(Tên, Năm)'. "
+                "CHỈ DÙNG số liệu ĐÃ CÓ trong context, không bịa đặt."
+            ),
+            retries=1
+        )
+
+        try:
+            tables = await trinity_bridge.run(
+                _table_agent,
+                stats_context,
+                role="fast",
+                timeout=20.0
+            )
+            if not isinstance(tables, list):
+                return []
+            # Validate và filter bảng hợp lệ
+            valid: list[ClinicalDataTable] = []
+            for t in tables:
+                if isinstance(t, ClinicalDataTable) and t.headers and t.rows:
+                    valid.append(t)
+            logger.info(f"[NeuralBooster] Synthesized {len(valid)} data table(s).")
+            return valid[:2]  # Cap 2 bảng
+        except Exception as e:
+            logger.warning(f"[NeuralBooster] Table synthesis failed: {e}")
+            return []
 
     # ────────────────────────────────────────────────────────────
     # MAIN ENTRY
@@ -318,21 +418,28 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
         clinical_sources, context = await asyncio.gather(clinical_task, context_task)
 
         if clinical_sources:
-            logs.append(f"✅ Trinh sát hoàn tất: Tìm được {len(clinical_sources)} nguồn uy tín ({', '.join(set(s.source_domain for s in clinical_sources[:3]))}...)")
+            stats_count = sum(len(s.key_stats) for s in clinical_sources)
+            logs.append(f"✅ Trinh sát hoàn tất: Tìm được {len(clinical_sources)} nguồn uy tín — {stats_count} số liệu định lượng ({', '.join(set(s.source_domain for s in clinical_sources[:3]))}...)")
         else:
             logs.append("⚠️ Không tìm được nguồn lâm sàng từ Google (tiếp tục với AI thuần).")
         await self._emit_progress(campaign_id, logs[-1])
 
-        # ── PHASE 2: Build prompt với clinical evidence context ──
-        logs.append("🧠 Đang phân tích cấu trúc & tìm kiếm cơ hội tối ưu EEAT...")
+        # ── PHASE 2.5: Tổng hợp bảng số liệu (song song với build prompt) ──
+        logs.append("📊 Đang tổng hợp bảng số liệu lâm sàng có cấu trúc...")
         await self._emit_progress(campaign_id, logs[-1])
 
+        # ── PHASE 2 + 2.5: Build prompt và tổng hợp bảng song song ──
         await self._emit_progress(campaign_id, context["log_msg"])
         logs.append(f"🛡️ [ROLE] Đã xác nhận phân vai tác chiến: {context['role_assignment']}")
         await self._emit_progress(campaign_id, logs[-1])
 
         logs.append("🛡️ [SHIELD] Đã kích hoạt SGE Shield V2.1 (Anti-AI Footprint)")
         await self._emit_progress(campaign_id, logs[-1])
+
+        # Chạy song song: table synthesis + context block build
+        table_task = asyncio.create_task(
+            self._synthesize_data_tables(clinical_sources, topic, campaign_id)
+        )
 
         # Build clinical evidence context block để inject vào prompt
         clinical_context_block = self._build_clinical_context_block(clinical_sources, topic)
@@ -343,6 +450,14 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
             f"{clinical_context_block}"
             f"[NỘI DUNG CẦN TINH CHỈNH]:\n{content[:10000]}"
         )
+
+        # Đợi table synthesis hoàn tất
+        data_tables = await table_task
+        if data_tables:
+            logs.append(f"📊 Tổng hợp hoàn tất: {len(data_tables)} bảng số liệu lâm sàng đã sẵn sàng.")
+        else:
+            logs.append("⚠️ Chưa đủ số liệu định lượng để tổng hợp bảng (tiếp tục với cite text).")
+        await self._emit_progress(campaign_id, logs[-1])
 
         is_adhoc = campaign_id == "adhoc"
         logs.append(f"🛡️ [SAFETY] Chế độ Ad-hoc Safety: {'ACTIVE' if is_adhoc else 'CAMPAIGN_MODE'}")
@@ -375,13 +490,16 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
 
             logs.append(f"✅ Hoàn tất! {len(result.patches)} phân đoạn tinh chỉnh sẵn sàng.")
             if clinical_sources:
+                stats_total = sum(len(s.key_stats) for s in clinical_sources)
                 logs.append(
-                    f"📚 Đính kèm {len(clinical_sources)} nguồn lâm sàng đã dịch thuần Việt để verify."
+                    f"📚 Đính kèm {len(clinical_sources)} nguồn lâm sàng ({stats_total} số liệu) "
+                    f"+ {len(data_tables)} bảng cấu trúc để verify."
                 )
             await self._emit_progress(campaign_id, logs[-1], status="DONE")
 
             result.logs = logs
             result.clinical_sources = clinical_sources
+            result.data_tables = data_tables
             return result
 
         except Exception as exc:
@@ -392,7 +510,8 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
                 patches=[],
                 summary=f"Tinh chỉnh thất bại: {str(exc)[:100]}",
                 logs=[*logs, err_msg],
-                clinical_sources=clinical_sources  # Vẫn trả về sources đã tìm được
+                clinical_sources=clinical_sources,
+                data_tables=data_tables  # Vẫn trả về bảng đã tổng hợp được
             )
 
     def _build_clinical_context_block(
@@ -423,6 +542,8 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
             "⚠️  QUAN TRỌNG: Khi bổ sung dữ liệu từ các nghiên cứu trên,",
             "   PHẢI cite đúng theo format: (Tên nguồn, Năm) — hoàn toàn tiếng Việt.",
             "   KHÔNG bịa đặt nguồn. Chỉ dùng các nghiên cứu đã được cung cấp.",
+            "   CẤM TUYỆT ĐỐI nhúng URL vào bài dưới dạng <a href> hoặc hyperlink.",
+            "   URL chỉ dùng để tham chiếu nội bộ — KHÔNG xuất hiện trong nội dung bài viết.",
             "═══════════════════════════════════════════════════════════\n",
         ]
         return "\n".join(lines) + "\n\n"

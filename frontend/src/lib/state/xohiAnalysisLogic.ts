@@ -22,7 +22,11 @@ export function extractBoostedText(text: string): string {
 
 export function stripBoostTags(text: string): string {
     if (!text) return "";
-    return text.replace(/\[\[BOOST\]\]/g, '').replace(/\[\[\/BOOST\]\]/g, '');
+    return text
+        .replace(/\[\[BOOST\]\]/g, ' ')
+        .replace(/\[\[\/BOOST\]\]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 export function refinementStitch(content: string, oldText: string, newText: string): string {

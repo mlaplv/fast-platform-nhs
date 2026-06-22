@@ -84,7 +84,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
       })
     ]);
 
-    if (!prodRes.ok) throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
+    if (!prodRes.ok || !catRes || !catRes.ok) throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
 
     const prodData = await prodRes.json() as Record<string, unknown>;
     const items = (prodData.data ?? []) as unknown[];

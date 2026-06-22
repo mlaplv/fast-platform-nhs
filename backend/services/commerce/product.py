@@ -1,13 +1,16 @@
 import logging
 from backend.utils.uid import new_id, new_short_id
 from datetime import datetime, timezone
-from sqlalchemy import select, func, and_, or_, update, delete
+from sqlalchemy import select, func, and_, or_, update, delete, text, cast
 from typing import List, Dict, Optional, TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
 from backend.database.models import ProductBase, ProductVariant, Order
-from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
+from backend.schemas.product import (
+    CreateProductRequest, UpdateProductRequest,
+    ProductResponse, ProductListResponse, ProductMetadata
+)
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
 from backend.utils.noise_cleaner import noise_cleaner
@@ -185,7 +188,8 @@ class ProductService:
         offset: int = 0,
         sort_by: str = "created_at",
         sort_order: str = "desc",
-        cursor: Optional[str] = None
+        cursor: Optional[str] = None,
+        is_public: bool = False
     ) -> ProductListResponse:
         """Elite V2.2: Advanced Product Query (Delegated)."""
         # Elite Note: We fetch and then hydrate to maintain consistency
@@ -196,11 +200,16 @@ class ProductService:
         
         # Post-processing hydration for list
         for prod in res.data:
-            await self._hydrate_product_response(db_session, prod)
+            await self._hydrate_product_response(db_session, prod, is_public=is_public)
             
         return res
 
-    async def _hydrate_product_response(self, db_session: AsyncSession, product: ProductResponse) -> None:
+    async def _hydrate_product_response(
+        self, 
+        db_session: AsyncSession, 
+        product: ProductResponse,
+        is_public: bool = False
+    ) -> None:
         """Elite V2.2: Centralized hydration for responses (Snake-to-Camel Sync)."""
         # R2026: Export to snake_case for internal logic compatibility
         prod_dict = product.model_dump(by_alias=True)
@@ -215,20 +224,32 @@ class ProductService:
         self._sanitize_vouchers(prod_dict)
         
         # 4. Sync back to model (Manual mapping for safety)
-        product.metadata = prod_dict.get("metadata", product.metadata)
+        # NOTE: prod_dict["metadata"] là dict thô (từ model_dump), phải re-validate về ProductMetadata
+        raw_metadata = prod_dict.get("metadata", {})
+        if isinstance(raw_metadata, dict):
+            product.metadata = ProductMetadata.model_validate(raw_metadata)
+        elif isinstance(raw_metadata, ProductMetadata):
+            product.metadata = raw_metadata
         product.orderCount = prod_dict.get("order_count", product.orderCount)
         product.orderCountText = prod_dict.get("order_count_text", product.orderCountText)
 
-    async def get_product(self, db_session: AsyncSession, product_id: str) -> ProductResponse:
+        # 5. Record total FAQ count in metadata and slice if admin
+        if product.metadata and isinstance(product.metadata, ProductMetadata):
+            faqs = product.metadata.faqs or []
+            product.metadata.faqs_total = len(faqs)
+            if not is_public:
+                product.metadata.faqs = faqs[:3]
+
+    async def get_product(self, db_session: AsyncSession, product_id: str, is_public: bool = False) -> ProductResponse:
         """Elite V2.2: Single Product Fetch (Delegated)."""
         product_res = await get_product_logic(db_session, product_id)
-        await self._hydrate_product_response(db_session, product_res)
+        await self._hydrate_product_response(db_session, product_res, is_public=is_public)
         return product_res
 
-    async def get_product_by_slug(self, db_session: AsyncSession, slug: str) -> ProductResponse:
+    async def get_product_by_slug(self, db_session: AsyncSession, slug: str, is_public: bool = False) -> ProductResponse:
         """Elite V2.2: Slug-based Product Fetch (Delegated)."""
         product_res = await get_product_by_slug_logic(db_session, slug)
-        await self._hydrate_product_response(db_session, product_res)
+        await self._hydrate_product_response(db_session, product_res, is_public=is_public)
         return product_res
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
@@ -346,7 +367,14 @@ class ProductService:
         if data.mobileImages is not None: product.mobile_images = data.mobileImages
         if data.attributes is not None: product.attributes = data.attributes
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
-        if data.metadata is not None: product.product_metadata = data.metadata.model_dump()
+        if data.metadata is not None:
+            existing_meta = dict(product.product_metadata or {})
+            new_meta = data.metadata.model_dump(exclude_unset=True)
+            new_meta.pop("faqs", None)
+            new_meta.pop("faqs_total", None)
+            new_meta.pop("_faqsLoaded", None)
+            existing_meta.update(new_meta)
+            product.product_metadata = existing_meta
         if data.isAiFeatured is not None: product.is_ai_featured = data.isAiFeatured
         if "ctvRateOverride" in data.model_fields_set: product.ctv_rate_override_bps = round(data.ctvRateOverride * 10000) if data.ctvRateOverride is not None else None
 
@@ -493,6 +521,64 @@ class ProductService:
 
         await db_session.commit()
         return data
+
+    async def get_product_faqs(
+        self,
+        db_session: AsyncSession,
+        product_id: str,
+        limit: int = 3,
+        offset: int = 0
+    ) -> Dict[str, object]:
+        """Retrieve paginated FAQs from the product metadata JSONB column.
+        
+        Dùng JSONB path operator để chỉ extract mảng faqs,
+        tránh deserialize toàn bộ product_metadata.
+        """
+        # Extract chỉ mảng faqs qua JSONB subscript – không load toàn bộ metadata
+        stmt = select(
+            cast(ProductBase.product_metadata["faqs"], JSONB)
+        ).where(
+            ProductBase.id == product_id,
+            ProductBase.deleted_at == None
+        )
+        result = await db_session.execute(stmt)
+        raw = result.scalar()
+        faqs: List[Dict[str, object]] = raw if isinstance(raw, list) else []
+
+        total = len(faqs)
+        return {
+            "data": faqs[offset: offset + limit],
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
+
+    async def update_product_faqs(
+        self,
+        db_session: AsyncSession,
+        product_id: str,
+        faqs: List[FaqItem]
+    ) -> None:
+        """Update only the faqs array within product_metadata JSONB column.
+        
+        Dùng jsonb_set UPDATE trực tiếp – không cần SELECT + ORM load.
+        """
+        faqs_json = json.dumps([faq.model_dump() for faq in faqs], ensure_ascii=False)
+        stmt = text(
+            """
+            UPDATE product_base
+            SET product_metadata = jsonb_set(
+                COALESCE(product_metadata, '{}'::jsonb),
+                '{faqs}',
+                :faqs_val::jsonb,
+                true
+            )
+            WHERE id = :product_id AND deleted_at IS NULL
+            """
+        )
+        result = await db_session.execute(stmt, {"faqs_val": faqs_json, "product_id": product_id})
+        if result.rowcount == 0:
+            raise NotFoundException(f"Product {product_id} not found")
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)

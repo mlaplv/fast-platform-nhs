@@ -443,11 +443,18 @@
     };
     try {
       if (editingId) {
+        if (payload.metadata && payload.metadata.faqs && payload.metadata._faqsLoaded) {
+          await apiClient.post(`/api/v1/products/${editingId}/faqs`, payload.metadata.faqs);
+        }
         await apiClient.patch(`/api/v1/products/${editingId}`, payload);
         editingId = null; showForm = false; await loadProducts();
         nanobot.showToast("Đã đồng bộ thay đổi", "success");
       } else {
-        await apiClient.post<Product>("/api/v1/products", payload);
+        const res = await apiClient.post<{ id: string }>("/api/v1/products", payload);
+        const newId = res?.id;
+        if (newId && payload.metadata && payload.metadata.faqs && payload.metadata.faqs.length > 0) {
+          await apiClient.post(`/api/v1/products/${newId}/faqs`, payload.metadata.faqs);
+        }
         nanobot.showToast("Đã xuất bản sản phẩm mới", "success");
         showForm = false; await loadProducts();
       }

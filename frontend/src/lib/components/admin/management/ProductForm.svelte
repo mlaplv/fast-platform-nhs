@@ -239,6 +239,7 @@
           <ProductFormMetadata 
             bind:formState={formState} 
             onOpenVault={openVaultForMetadata}
+            productId={editingId}
           />
         </div>
 

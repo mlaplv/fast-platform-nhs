@@ -322,6 +322,9 @@ export interface ProductMetadata {
   // Elite V2.2: Common Product Metadata
   video_start_time?: number;
   video_end_time?: number;
+  mobile_video_url?: string;
+  mobile_video_start_time?: number;
+  mobile_video_end_time?: number;
   vouchers?: { id: string; label: string; sub: string; type: 'ship' | 'discount' }[];
   brand?: string;
   origin?: string;
@@ -346,6 +349,8 @@ export interface ProductMetadata {
   combo_qty?: number;
   gifts?: { name: string; qty: number; image?: string; product_id?: string; variant_id?: string; slug?: string }[];
   faqs?: { question: string; answer: string }[];
+  faqs_total?: number;
+  _faqsLoaded?: boolean;
 
   // Viral 2026: Share & Promotion Engine
   share_count?: number;

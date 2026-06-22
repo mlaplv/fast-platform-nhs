@@ -27,6 +27,7 @@
     currentAnalysisStep = null,
     boosterAnnotations = [],
     clinicalSources = [],
+    dataTables = [],
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
@@ -55,6 +56,16 @@
       year: string;
       snippet_vi: string;
       relevance: string;
+      key_stats?: Array<{ label: string; value: string; unit?: string; note?: string }>;
+    }>;
+    dataTables?: Array<{
+      table_title: string;
+      source_citation: string;
+      source_url?: string;
+      headers: string[];
+      rows: string[][];
+      table_type: string;
+      caption_vi?: string;
     }>;
   } = $props();
 
@@ -66,6 +77,32 @@
 
   let isFixing = $state<string | null>(null);
   const phaseCtrl = createPhaseController();
+
+  // CNS V93.0: Copy HTML table to clipboard
+  let copiedTableIndex = $state<number | null>(null);
+  function buildTableHtml(tbl: typeof dataTables[0]): string {
+    const headerRow = tbl.headers.map((h: string) => `<th>${h}</th>`).join('');
+    const bodyRows = tbl.rows.map((row: string[]) =>
+      `<tr>${row.map((cell: string) => `<td>${cell}</td>`).join('')}</tr>`
+    ).join('\n        ');
+    return (
+      `<figure class="xohi-clinical-table">\n` +
+      `  <table>\n` +
+      `    <caption>${tbl.table_title}</caption>\n` +
+      `    <thead><tr>${headerRow}</tr></thead>\n` +
+      `    <tbody>\n        ${bodyRows}\n    </tbody>\n` +
+      `  </table>\n` +
+      `  <figcaption>${tbl.caption_vi || ''} <cite class="xohi-cite">${tbl.source_citation}</cite></figcaption>\n` +
+      `</figure>`
+    );
+  }
+  async function copyTableHtml(index: number) {
+    const tbl = dataTables[index];
+    if (!tbl) return;
+    await navigator.clipboard.writeText(buildTableHtml(tbl));
+    copiedTableIndex = index;
+    setTimeout(() => { copiedTableIndex = null; }, 2000);
+  }
 
   // CNS V85.22: Guard phase engine
   let prevLoadingKey = $state('');
@@ -357,6 +394,21 @@
                   </p>
                 {/if}
 
+                <!-- CNS V93.0: Key Stats badges -->
+                {#if src.key_stats && src.key_stats.length > 0}
+                  <div class="flex flex-wrap gap-1 pt-1">
+                    {#each src.key_stats as ks}
+                      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-300 tracking-tight">
+                        <strong class="text-emerald-200">{ks.value}{ks.unit ? ' ' + ks.unit : ''}</strong>
+                        <span class="text-emerald-400/70">{ks.label}</span>
+                        {#if ks.note}
+                          <span class="text-white/25 font-normal">({ks.note})</span>
+                        {/if}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
+
                 <!-- Footer: original title + verify link -->
                 <div class="flex items-center gap-2 mt-0.5 pt-1.5 border-t border-white/[0.04]">
                   <span class="text-[8px] text-white/20 font-mono truncate flex-1" title={src.title_original}>
@@ -381,6 +433,86 @@
           <div class="px-3 py-2 bg-black/20">
             <p class="text-[7.5px] text-white/20 leading-relaxed">
               ⚠️ Tất cả nguồn trên đã được AI dịch thuần Việt từ bản gốc Nhật/Anh. Nhấn <span class="text-sky-400/60">Verify ↗</span> để đọc bản gốc và xác minh độc lập.
+            </p>
+          </div>
+        </div>
+      {/if}
+
+      <!-- ═══ CNS V93.0: DATA TABLES SECTION ═══ -->
+      {#if dataTables && dataTables.length > 0 && !isBoosting}
+        <div class="mt-2 border-t border-white/5">
+          <!-- Header -->
+          <div class="px-3 py-2 flex items-center gap-2 bg-emerald-500/5">
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"></div>
+            <span class="text-[8px] font-black tracking-[0.25em] text-emerald-400/80">BẢNG SỐ LIỆU LÂM SÀNG</span>
+            <span class="ml-auto px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-black text-emerald-400">
+              📊 {dataTables.length} BẢNG CẤU TRÚC
+            </span>
+          </div>
+
+          <!-- Table cards -->
+          <div class="flex flex-col divide-y divide-white/[0.04]">
+            {#each dataTables as tbl, ti}
+              {@const typeColors: Record<string, string> = { efficacy: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', comparison: 'text-sky-300 bg-sky-500/10 border-sky-500/20', safety: 'text-amber-300 bg-amber-500/10 border-amber-500/20', ingredient: 'text-violet-300 bg-violet-500/10 border-violet-500/20' }}
+              {@const typeColor = typeColors[tbl.table_type] || typeColors.efficacy}
+              <div class="px-3 py-3 flex flex-col gap-2">
+                <!-- Table header row -->
+                <div class="flex items-center gap-2">
+                  <span class="px-1.5 py-0.5 rounded text-[7px] font-black border {typeColor} tracking-tight uppercase">
+                    {tbl.table_type}
+                  </span>
+                  <p class="text-[10px] font-bold text-emerald-200/90 flex-1 leading-snug">{tbl.table_title}</p>
+                  <button
+                    id="copy-table-{ti}"
+                    onclick={() => copyTableHtml(ti)}
+                    class="flex-shrink-0 px-2 py-1 rounded text-[7px] font-black border transition-all tracking-tight
+                      {copiedTableIndex === ti
+                        ? 'bg-emerald-500 text-black border-emerald-400'
+                        : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}"
+                    title="Copy HTML để paste vào bài"
+                  >
+                    {copiedTableIndex === ti ? '✅ Đã Copy' : '📋 Copy HTML'}
+                  </button>
+                </div>
+
+                <!-- Mini table preview -->
+                <div class="overflow-x-auto rounded border border-white/[0.06] bg-black/30">
+                  <table class="w-full text-[8px]">
+                    <thead>
+                      <tr class="border-b border-white/10">
+                        {#each tbl.headers as h}
+                          <th class="px-2 py-1 text-left text-white/50 font-black tracking-wide whitespace-nowrap">{h}</th>
+                        {/each}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {#each tbl.rows.slice(0, 4) as row}
+                        <tr class="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                          {#each row as cell}
+                            <td class="px-2 py-1 text-white/70 leading-relaxed">{cell}</td>
+                          {/each}
+                        </tr>
+                      {/each}
+                      {#if tbl.rows.length > 4}
+                        <tr><td colspan={tbl.headers.length} class="px-2 py-1 text-[7px] text-white/20 italic">+{tbl.rows.length - 4} hàng nữa...</td></tr>
+                      {/if}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Citation footer -->
+                <p class="text-[7.5px] text-white/20 leading-relaxed">
+                  {tbl.caption_vi || ''} <span class="text-emerald-400/50">{tbl.source_citation}</span>
+                </p>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Paste instruction -->
+          <div class="px-3 py-2 bg-black/20">
+            <p class="text-[7.5px] text-white/20 leading-relaxed">
+              📋 Nhấn <span class="text-emerald-400/60">Copy HTML</span> để copy bảng → paste vào TipTap editor.
+              Bảng đã tích hợp <code class="text-emerald-400/50">xohi-cite</code> cho SGE & AI Overview indexing.
             </p>
           </div>
         </div>

@@ -49,8 +49,14 @@
     return 'local';
   });
 
-  const videoStartTime = $derived(Number(metadata.video_start_time) || 0);
-  const videoEndTime = $derived(Number(metadata.video_end_time) || 0);
+  function parseMetadataTime(val: any): number | null {
+    if (val === null || val === undefined || val === '') return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  }
+
+  const videoStartTime = $derived(parseMetadataTime(metadata.mobile_video_start_time) ?? parseMetadataTime(metadata.video_start_time) ?? 0);
+  const videoEndTime = $derived(parseMetadataTime(metadata.mobile_video_end_time) ?? parseMetadataTime(metadata.video_end_time) ?? null);
 
   let videoEl = $state<HTMLVideoElement | null>(null);
   let hasSeekedInitial = $state(false);
@@ -68,7 +74,7 @@
       }
     }
 
-    if (currentEnd > 0 && videoEl.currentTime >= currentEnd) {
+    if (currentEnd !== null && currentEnd > 0 && videoEl.currentTime >= currentEnd) {
       videoEl.currentTime = currentStart;
       videoEl.play().catch(() => {});
     }
@@ -184,7 +190,7 @@
             poster={posterUrl}
             autoplay
             muted
-            loop
+            loop={videoEndTime === null}
             playsinline
             preload="auto"
             disablepictureinpicture

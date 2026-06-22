@@ -62,7 +62,7 @@ class ClientHomeController(Controller):
         
         # 2. Fetch actual products (Active only)
         # Elite Performance Fix P3.1: Giảm limit từ 100 xuống 24 để tối ưu tốc độ load home
-        all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE")
+        all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE", is_public=True)
         categories_resp = await category_service.list_categories(db_session)
         
         # Elite V2.2: Device-aware category filtering
@@ -77,12 +77,12 @@ class ClientHomeController(Controller):
                 filtered_cats = [c for c in full_list if c.showOnDesktop is not False]
         else:
             filtered_cats = []
-
+ 
         banners = await banner_service.list_banners(db_session, active_only=True)
         vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, exclude_viral=True, limit=20)
-
+ 
         # Elite V2.2: Optimized AI Featured fetch (R76)
-        ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)
+        ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True, is_public=True)
         ai_products = ai_products_resp.data if ai_products_resp else []
 
         # 3. Generate SEO Metadata (Elite V2.2)

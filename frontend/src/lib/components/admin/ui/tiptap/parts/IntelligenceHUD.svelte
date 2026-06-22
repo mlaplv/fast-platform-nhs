@@ -229,6 +229,7 @@
              currentAnalysisStep={currentAnalysisStep}
              boosterAnnotations={analysisData?.boosterAnnotations ?? []}
              clinicalSources={analysisData?.clinicalSources ?? []}
+             dataTables={analysisData?.dataTables ?? []}
           />
         </div>
      </div>

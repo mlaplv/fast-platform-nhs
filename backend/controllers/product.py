@@ -13,7 +13,8 @@ from backend.schemas.product import (
     UpdateProductRequest,
     ProductResponse,
     ProductListResponse,
-    BulkUpdateProductRequest
+    BulkUpdateProductRequest,
+    FaqItem
 )
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
 from backend.services.commerce.product import ProductService, provide_product_service
@@ -226,3 +227,28 @@ class ProductController(Controller):
         res_data = await product_service.sync_market_price(db_session, product_id)
         await db_session.commit()
         return SuccessResponse(message="Thành công", data=res_data)
+
+    @get("/{product_id:str}/faqs", guards=[PermissionGuard(PermissionEnum.PRODUCT_READ)])
+    async def get_product_faqs(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        product_id: str,
+        limit: int = 3,
+        offset: int = 0,
+    ) -> Dict[str, object]:
+        """Fetch paginated FAQs for a specific product directly from the database."""
+        return await product_service.get_product_faqs(db_session, product_id, limit, offset)
+
+    @post("/{product_id:str}/faqs", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
+    async def update_product_faqs(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        product_id: str,
+        data: List[FaqItem],
+    ) -> SuccessResponse:
+        """Update/Save all FAQs for a specific product directly in the database."""
+        await product_service.update_product_faqs(db_session, product_id, data)
+        await db_session.commit()
+        return SuccessResponse(ok=True, message="Cập nhật FAQ thành công")

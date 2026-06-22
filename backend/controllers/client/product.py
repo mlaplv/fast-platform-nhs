@@ -3,7 +3,7 @@ import logging
 from litestar import Controller, get
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from backend.schemas.product import ProductResponse, ProductListResponse
 from backend.services.commerce.product import ProductService, provide_product_service
@@ -51,6 +51,7 @@ class PublicProductController(Controller):
             origin=origin,
             product_ids=product_ids,
             cursor=cursor,
+            is_public=True
         )
 
 
@@ -62,7 +63,7 @@ class PublicProductController(Controller):
         slug: str
     ) -> ProductResponse:
         """PUBLIC: Get a single product by slug (Scalar Projection)."""
-        product = await product_service.get_product_by_slug(db_session, slug)
+        product = await product_service.get_product_by_slug(db_session, slug, is_public=True)
         product.seoMeta = SeoService.generate_seo_meta(product)
         return product
 
@@ -74,6 +75,18 @@ class PublicProductController(Controller):
         product_id: str
     ) -> ProductResponse:
         """PUBLIC: Get a single product by exact ID (Crucial for Reorder features)."""
-        product = await product_service.get_product(db_session, product_id)
+        product = await product_service.get_product(db_session, product_id, is_public=True)
         product.seoMeta = SeoService.generate_seo_meta(product)
         return product
+
+    @get("/{product_id:str}/faqs")
+    async def get_public_product_faqs(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        product_id: str,
+        limit: int = 3,
+        offset: int = 0,
+    ) -> Dict[str, object]:
+        """PUBLIC: Fetch paginated FAQs for a specific product."""
+        return await product_service.get_product_faqs(db_session, product_id, limit, offset)

@@ -114,3 +114,181 @@ def is_json(content: str) -> bool:
         return True
     except Exception:
         return False
+
+def normalize_vietnamese_encoding(text: str) -> str:
+    """
+    Chuẩn hóa font chữ tiếng Việt sang NFC để tránh lỗi hiển thị/lỗi font,
+    và tự động bổ sinh khoảng trắng hợp lý giữa các ranh giới từ bị dính liền.
+    """
+    if not text:
+        return text
+    # 1. Chuẩn hóa sang NFC
+    text = unicodedata.normalize("NFC", text)
+    
+    # 2. Thêm khoảng trắng giữa chữ thường và chữ hoa (ví dụ: bìThấp -> bì Thấp)
+    text = re.sub(
+        r'([a-zâăêơưđàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ])([A-ZÂĂÊƠƯĐÀÁẢÃẠẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ])',
+        r'\1 \2',
+        text
+    )
+    
+    # 2b. Khôi phục các danh từ riêng/nhãn hiệu chuẩn CamelCase (tránh lỗi PubMed -> Pub Med)
+    _camel_exceptions = {
+        "Pub Med": "PubMed",
+        "Science Direct": "ScienceDirect",
+        "Chat Gpt": "ChatGPT",
+        "Chat GPT": "ChatGPT",
+        "You Tube": "YouTube",
+        "Git Hub": "GitHub",
+        "App Store": "AppStore",
+        "Play Store": "PlayStore",
+        "Web P": "WebP",
+        "Base Model": "BaseModel",
+        "Svelte Kit": "SvelteKit",
+        "Type Script": "TypeScript",
+        "Java Script": "JavaScript",
+    }
+    for split_val, orig_val in _camel_exceptions.items():
+        text = text.replace(split_val, orig_val)
+    
+    # 3. Thêm khoảng trắng sau dấu đóng ngoặc nếu dính liền chữ/số (ví dụ: (PubMed, 2018)Sodium -> (PubMed, 2018) Sodium)
+    text = re.sub(
+        r'([\)\]\}])([a-zA-Z0-9âăêơưđÂĂÊƠƯĐàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])',
+        r'\1 \2',
+        text
+    )
+    
+    # 4. Thêm dấu cách sau dấu % nếu viết liền với chữ/số (ví dụ: 31.4%là -> 31.4% là)
+    text = re.sub(r'(\d+(?:\.\d+)?%)(\w)', r'\1 \2', text)
+    
+    # 5. Thêm dấu cách sau số nếu viết liền với chữ tiếng Việt (ví dụ: 4tuần -> 4 tuần)
+    text = re.sub(
+        r'(\d+)([a-zA-ZâăêơưđÂĂÊƠƯĐàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])',
+        r'\1 \2',
+        text
+    )
+    
+    # 6. Thêm dấu cách trước số/phần trăm nếu viết liền sau chữ tiếng Việt (ví dụ: lệ31.4% -> lệ 31.4%)
+    text = re.sub(
+        r'([a-zA-ZâăêơưđÂĂÊƠƯĐàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])(\d+)',
+        r'\1 \2',
+        text
+    )
+    return text
+
+def sanitize_sentence_linebreaks(text: str) -> str:
+    """
+    Tách dòng và khoảng trắng dư thừa trong câu để tránh lỗi ngắt dòng giữa chừng.
+    """
+    if not text:
+        return text
+    text = normalize_vietnamese_encoding(text)
+    # Thay thế các ký tự xuống dòng bằng khoảng trắng
+    text = re.sub(r'[\r\n]+', ' ', text)
+    # Thu gọn nhiều khoảng trắng liên tiếp
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+def validate_vietnamese_sentence(text: str) -> str:
+    """
+    Kiểm tra tính hoàn chỉnh về mặt ngữ nghĩa của câu tiếng Việt.
+    Quy tắc:
+    - Phải là câu hoàn chỉnh (Có đầy đủ chủ ngữ + vị ngữ).
+    - Không cộc lốc hoặc kết thúc lửng lơ (ví dụ bằng giới từ, liên từ).
+    - Không có lỗi viết thiếu nghĩa/vô nghĩa (như 'có như cao').
+    """
+    if not text:
+        return text
+
+    text = normalize_vietnamese_encoding(text)
+    # Loại bỏ các thẻ HTML để lấy nội dung text thuần để kiểm tra
+    raw_text = re.sub(r'<[^>]+>', ' ', text).strip()
+    if not raw_text:
+        return text
+
+    # 1. Kiểm tra ngắt dòng
+    if "\n" in raw_text or "\r" in raw_text:
+        raise ValueError("Tuyệt đối không được ngắt dòng khi chưa viết hết câu.")
+
+    # Loại bỏ khoảng trắng thừa
+    raw_text = " ".join(raw_text.split())
+
+    # 2. Kiểm tra câu cụt / kết thúc lửng lơ
+    # Danh sách các từ kết thúc lửng lơ (prepositions, conjunctions, relative pronouns)
+    incomplete_endings = {
+        "và", "hoặc", "như", "của", "với", "là", "bởi", "trong", "trên", "dưới", "tại", "cho", "vì", 
+        "nên", "thì", "mà", "để", "nhưng", "tuy", "bằng", "về", "ra", "vào", "lên", "xuống", "đến"
+    }
+
+    # Lấy các từ dạng chữ bằng regex
+    words = [w.strip() for w in re.findall(r'\b\w+\b', raw_text.lower(), re.UNICODE)]
+    if not words:
+        return text
+
+    last_word = words[-1]
+    if last_word in incomplete_endings:
+        raise ValueError(f"Câu bị viết thiếu nghĩa, kết thúc lửng lơ bằng từ nối '{last_word}'.")
+
+    # 3. Kiểm tra cụm từ vô nghĩa hoặc lỗi diễn đạt cụ thể (như 'có như cao?')
+    bad_patterns = [
+        r'\bcó như cao\b',
+        r'\bnhư cao\?$',
+        r'\bnhư cao\.$',
+        r'\bnhư cáo\b',
+        r'\btên gọi cáo\b',
+        r'\blà một trong những\s*$',
+        r'\bđược đánh giá là\s*$'
+    ]
+    for pattern in bad_patterns:
+        if re.search(pattern, raw_text.lower(), re.UNICODE):
+            raise ValueError("Lời văn thiếu nghĩa hoặc chứa lỗi diễn đạt ngớ ngẩn (ví dụ: 'có như cao', 'như cáo', 'tên gọi cáo').")
+
+    # 4. Kiểm tra câu quá ngắn / thiếu thành phần cơ bản
+    # Một câu tiếng Việt hoàn chỉnh thường có ít nhất 3 từ (ví dụ: "Nó rất tốt.", "Sản phẩm tốt.")
+    if len(words) < 3:
+        raise ValueError("Câu quá ngắn, thiếu thành phần chủ ngữ hoặc vị ngữ để tạo thành ý nghĩa hoàn chỉnh.")
+
+    return text
+
+def validate_vietnamese_text_block(text: str) -> str:
+    """
+    Kiểm tra toàn bộ khối văn bản (nhiều dòng, nhiều đoạn văn) chuẩn Elite Protocol.
+    """
+    if not text:
+        return text
+
+    text = normalize_vietnamese_encoding(text)
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+
+        # 1. Kiểm tra ngắt dòng giữa chừng (premature line break)
+        if i < len(lines) - 1:
+            next_line = lines[i+1].strip()
+            if next_line:
+                # Dòng hiện tại kết thúc bằng chữ hoặc số bình thường (không phải dấu câu kết thúc)
+                if line_clean[-1].isalnum():
+                    # Dòng tiếp theo bắt đầu bằng chữ thường
+                    if next_line[0].islower():
+                        raise ValueError("Tuyệt đối không được ngắt dòng khi chưa viết hết câu.")
+
+        # Tách các câu trong dòng để kiểm thử từng câu
+        sentences = re.split(r'(?<=[.!?])\s+', line_clean)
+        for sentence in sentences:
+            sentence_clean = sentence.strip()
+            if not sentence_clean:
+                continue
+            # Bỏ qua các định dạng đặc biệt (tiêu đề, list, bảng, HTML)
+            if (sentence_clean.startswith("#") or 
+                sentence_clean.startswith("*") or 
+                sentence_clean.startswith("-") or 
+                re.match(r'^\d+\.', sentence_clean) or
+                "|" in sentence_clean or
+                (sentence_clean.startswith("<") and sentence_clean.endswith(">"))):
+                continue
+                
+            validate_vietnamese_sentence(sentence_clean)
+            
+    return text

@@ -19,6 +19,7 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { apiClient } from '$lib/utils/apiClient';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
 
   let { data } = $props();
   const entity = $derived(data.entity);
@@ -260,6 +261,11 @@
 
 <!-- ===== ROOT ===== -->
 <div class="rv-root">
+
+  <SeoHead
+    title="Đánh giá từ khách hàng"
+    robots="noindex, nofollow"
+  />
 
   <!-- ── HEADER ── -->
   <header class="rv-header">

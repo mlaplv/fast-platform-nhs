@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Union, Optional, TypedDict
 from typing_extensions import NotRequired
 
@@ -48,6 +48,12 @@ class OutlineSection(BaseModel):
     heading: str = Field(description="Tiêu đề mục (bắt đầu bằng H2: hoặc H3:)")
     content: str = Field(description="Tóm tắt ý chính (1-2 câu). TUYỆT ĐỐI KHÔNG chèn ảnh [IMAGE_X] ở bước này.")
 
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
 class ArticleOutline(BaseModel):
     model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
     sections: List[OutlineSection] = Field(description="Danh sách các H2, H3 và mô tả nội dung kèm vị trí chèn ảnh [IMAGE_X]")
@@ -70,10 +76,23 @@ class AiReadyReport(BaseModel):
     ai_annotations: List[AiAnnotation] = Field(default_factory=list)
     logs: List[str] = Field(default_factory=list, description="Live progress logs")
 
+    @field_validator('summary')
+    @classmethod
+    def validate_summary(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
 class AutoFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     old_text: str
     new_text: str
+
+    @field_validator('new_text')
+    @classmethod
+    def validate_new_text(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+        v = sanitize_sentence_linebreaks(v)
+        return validate_vietnamese_sentence(v)
 
 class BulkFixRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -86,10 +105,23 @@ class BulkFixResponse(BaseModel):
     logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
     replacements: List[Dict[str, str]] = Field(default_factory=list, description="List of old vs new text to highlight in editor")
 
+    @field_validator('new_content')
+    @classmethod
+    def validate_new_content(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
 class SnippetRefinement(BaseModel):
     model_config = ConfigDict(strict=True)
     id: int
     new_text: str
+
+    @field_validator('new_text')
+    @classmethod
+    def validate_new_text(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+        v = sanitize_sentence_linebreaks(v)
+        return validate_vietnamese_sentence(v)
 
 class AtomicFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -103,22 +135,63 @@ class ContentPatch(BaseModel):
     replacement_string: str # Đoạn text thay thế (cải tiến)
     rationale: str          # Giải thích ngắn gọn tại sao sửa
 
+    @field_validator('replacement_string')
+    @classmethod
+    def validate_replacement_string(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+        v = sanitize_sentence_linebreaks(v)
+        return validate_vietnamese_sentence(v)
+
+
+# ── CNS V93.0: Structured Clinical Evidence ─────────────────────────────────
+class KeyStat(BaseModel):
+    """
+    Một chỉ số/số liệu cụ thể trích từ nghiên cứu.
+    Dùng để inject <blockquote class='xohi-stat'> và build data tables.
+    """
+    model_config = ConfigDict(strict=False)
+    label: str       # Tên chỉ số (VD: "Hiệu quả giảm nếp nhăn")
+    value: str       # Giá trị đo (VD: "43%", "2.1 mg/dL")
+    unit: str = ""   # Đơn vị (VD: "%", "mg", "mmHg") — rỗng nếu đã kèm trong value
+    note: str = ""   # Điều kiện/ghi chú (VD: "RCT, n=120, 8 tuần")
+
+
+class ClinicalDataTable(BaseModel):
+    """
+    CNS V93.0: Bảng số liệu lâm sàng có cấu trúc — sẵn sàng render HTML.
+    Tối ưu cho SGE, AI Overview và semantic indexing.
+    """
+    model_config = ConfigDict(strict=False)
+    table_title: str             # Tiêu đề bảng (tiếng Việt)
+    source_citation: str         # (Tên nguồn, Năm) — format cite
+    source_url: str = ""         # URL gốc để verify (nếu có)
+    headers: List[str]           # Danh sách tên cột
+    rows: List[List[str]]        # Data rows (ma trận 2D)
+    table_type: str = "efficacy" # "comparison" | "efficacy" | "safety" | "ingredient"
+    caption_vi: str = ""         # Mô tả bảng tiếng Việt (cho <figcaption>)
+
+
 class ClinicalSource(BaseModel):
     """
-    CNS V92.0: Bằng chứng lâm sàng đã được trinh sát và dịch thuần Việt.
+    CNS V93.0: Bằng chứng lâm sàng đã được trinh sát, dịch thuần Việt & extract số liệu.
     Đảm bảo minh bạch nguồn gốc & khả năng verify độc lập.
     """
     model_config = ConfigDict(strict=False)
-    title_vi: str           # Tiêu đề bài nghiên cứu dịch sang tiếng Việt
-    title_original: str     # Tiêu đề gốc (JP/EN) để verify
-    source_domain: str      # Tên nguồn: J-STAGE / PubMed / WHO / PMDA / JSCC...
-    source_url: str         # URL gốc để đọc thêm
-    year: str               # Năm công bố hoặc "N/A"
-    snippet_vi: str         # Trích đoạn đã dịch sang tiếng Việt chuẩn
-    relevance: str          # Giải thích ngắn tại sao nguồn này liên quan đến topic
+    title_vi: str                    # Tiêu đề bài nghiên cứu dịch sang tiếng Việt
+    title_original: str              # Tiêu đề gốc (JP/EN) để verify
+    source_domain: str               # Tên nguồn: J-STAGE / PubMed / WHO / PMDA / JSCC...
+    source_url: str                  # URL gốc để đọc thêm
+    year: str                        # Năm công bố hoặc "N/A"
+    snippet_vi: str                  # Trích đoạn đã dịch sang tiếng Việt chuẩn
+    relevance: str                   # Giải thích ngắn tại sao nguồn này liên quan đến topic
+    key_stats: List[KeyStat] = Field(  # CNS V93.0: Số liệu cụ thể trích được
+        default_factory=list,
+        description="Tối đa 3 chỉ số/số liệu thực tế trích từ nghiên cứu này"
+    )
+
 
 class NeuralBoosterReport(BaseModel):
-    """Kết quả tinh chỉnh toàn bộ content từ Neural Booster Agent."""
+    """CNS V93.0: Kết quả tinh chỉnh toàn bộ content từ Neural Booster Agent."""
     model_config = ConfigDict(strict=True)
     patches: List[ContentPatch] = Field(default_factory=list)
     summary: str = ""
@@ -127,6 +200,16 @@ class NeuralBoosterReport(BaseModel):
         default_factory=list,
         description="Danh sách nguồn lâm sàng uy tín đã trinh sát & dịch Việt"
     )
+    data_tables: List[ClinicalDataTable] = Field(  # CNS V93.0: Bảng số liệu có cấu trúc
+        default_factory=list,
+        description="Bảng số liệu lâm sàng tổng hợp từ nhiều nguồn — sẵn sàng inject HTML"
+    )
+
+    @field_validator('summary')
+    @classmethod
+    def validate_summary(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
 
 # ══════════════════════════════════════════════════════════════
 # SCOUT & INTELLIGENCE SCHEMAS — V62.2 Elite
@@ -171,6 +254,12 @@ class PlagiarismResult(BaseModel):
     verdict: str = Field(default="", description="Trường này hệ thống tự tổng hợp, hãy bỏ trống.")
     logs: List[str] = Field(default_factory=list, description="Live progress logs")
 
+    @field_validator('verdict_gap', 'verdict_evidence', 'verdict_strategy')
+    @classmethod
+    def validate_verdicts(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
 class SeoAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
     type: str # "missing_h1", "keyword_missing", etc
@@ -212,6 +301,20 @@ class SeoReport(BaseModel):
     quick_wins: List[str]
     seo_annotations: List[SeoAnnotation]
     logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
+
+    @field_validator('summary')
+    @classmethod
+    def validate_summary(cls, v: str) -> str:
+        from backend.utils.text import validate_vietnamese_text_block
+        return validate_vietnamese_text_block(v)
+
+    @field_validator('quick_wins')
+    @classmethod
+    def validate_quick_wins(cls, v: List[str]) -> List[str]:
+        from backend.utils.text import validate_vietnamese_sentence
+        for item in v:
+            validate_vietnamese_sentence(item)
+        return v
 
 class MediaAnalysisResult(BaseModel):
     model_config = ConfigDict(strict=True)

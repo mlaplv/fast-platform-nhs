@@ -230,7 +230,24 @@ export interface AIInspectResult {
   ai_annotations: AnalysisAnnotation[];
 }
 
-// CNS V92.0: Bằng chứng lâm sàng Nhật Bản / quốc tế (dịch thuần Việt)
+export interface KeyStat {
+  label: string;
+  value: string;
+  unit?: string;
+  note?: string;
+}
+
+export interface ClinicalDataTable {
+  table_title: string;
+  source_citation: string;
+  source_url?: string;
+  headers: string[];
+  rows: string[][];
+  table_type: string;
+  caption_vi?: string;
+}
+
+// CNS V93.0: Bằng chứng lâm sàng Nhật Bản / quốc tế (dịch thuần Việt & extract stats)
 export interface ClinicalSource {
   title_vi: string;        // Tiêu đề dịch sang tiếng Việt
   title_original: string;  // Tiêu đề gốc (JP/EN) để verify
@@ -239,6 +256,7 @@ export interface ClinicalSource {
   year: string;            // Năm công bố
   snippet_vi: string;      // Trích đoạn dịch Việt
   relevance: string;       // Liên quan đến chủ đề như thế nào
+  key_stats?: KeyStat[];   // CNS V93.0: Các số liệu định lượng
 }
 
 export interface NeuralAnalysisController {
@@ -264,6 +282,7 @@ export interface NeuralAnalysisController {
   readonly editorAnnotations: AnalysisAnnotation[];
   readonly boosterAnnotations: AnalysisAnnotation[];
   readonly clinicalSources: ClinicalSource[];  // CNS V92.0
+  readonly dataTables: ClinicalDataTable[];    // CNS V93.0: Bảng số liệu
   readonly streamingText: string;
   readonly streamingTarget: string | null;
   runCopyrightCheck: (force?: boolean, skipSave?: boolean) => Promise<void>;

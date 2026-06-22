@@ -14,6 +14,7 @@ async def suggest_seo_logic(name: str, description: str) -> Dict[str, str]:
             "Bạn là chuyên gia SEO hàng đầu Việt Nam. Hãy tối ưu tiêu đề, mô tả và từ khóa SEO cho sản phẩm này. "
             "QUY TẮC TỐI CAO: Dù tên sản phẩm hoặc mô tả đầu vào là tiếng Anh, bạn BẮT BUỘC phải phản hồi nội dung hoàn toàn bằng tiếng Việt thuần 100%. "
             "Nội dung phải súc tích, hấp dẫn và chuẩn SEO. "
+            "Các câu trong phần mô tả (description) bắt buộc phải là câu hoàn chỉnh (đầy đủ chủ ngữ và vị ngữ), tuyệt đối không ngắt dòng giữa chừng và viết ngắn gọn ngay từ đầu. "
             "Chỉ trả về JSON hợp lệ, không có markdown: "
             "{\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
         )
@@ -31,7 +32,14 @@ async def suggest_seo_logic(name: str, description: str) -> Dict[str, str]:
         if result:
             suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
             match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
-            parsed = json.loads(match.group(0)) if match else {"title": "", "description": "", "keywords": ""}
+            parsed: Dict[str, str] = json.loads(match.group(0)) if match else {"title": "", "description": "", "keywords": ""}
+            from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+            if "description" in parsed:
+                try:
+                    parsed["description"] = sanitize_sentence_linebreaks(parsed["description"])
+                    parsed["description"] = validate_vietnamese_sentence(parsed["description"])
+                except Exception as ve:
+                    logger.warning(f"[ProductAI] SEO description validation failed: {ve}")
             return parsed
         
         return {"title": f"{name} Chính Hãng", "description": "Sản phẩm chính hãng", "keywords": ""}
@@ -51,8 +59,9 @@ async def suggest_faqs_logic(name: str, description: str) -> List[Dict[str, str]
             "2. Ví dụ về câu hỏi chuẩn SGE: 'Kem dưỡng mắt White Label có tác dụng gì?', 'Cách sử dụng kem mắt White Label hiệu quả nhất?', 'Kem mắt White Label có tốt không và phù hợp với loại da nào?'.\n"
             "3. Tránh các câu hỏi chung chung, mơ hồ như 'Thông tin sản phẩm' hay 'Tại sao nên mua sản phẩm này?'.\n"
             "4. Câu trả lời (answer) phải ngắn gọn, súc tích (dưới 80 từ), đi thẳng vào câu hỏi, cung cấp thông tin hữu ích và chính xác dựa trên mô tả sản phẩm.\n"
-            "5. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%.\n"
-            "6. Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown:\n"
+            "5. Các câu trả lời (answer) bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (có đầy đủ chủ ngữ + vị ngữ), tuyệt đối không ngắt dòng khi chưa viết hết câu, và hãy chủ động viết ngắn gọn ngay từ đầu.\n"
+            "6. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%.\n"
+            "7. Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown:\n"
             "[{\"question\": \"...\", \"answer\": \"...\"}]"
         )
     )
@@ -70,9 +79,21 @@ async def suggest_faqs_logic(name: str, description: str) -> List[Dict[str, str]
             suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
             match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
             if match:
-                parsed = json.loads(match.group(0))
+                parsed: object = json.loads(match.group(0))
                 if isinstance(parsed, list):
-                    return parsed
+                    from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+                    result_list: List[Dict[str, str]] = []
+                    for item in parsed:
+                        if isinstance(item, dict):
+                            item_dict: Dict[str, str] = {str(k): str(v) for k, v in item.items()}
+                            if "answer" in item_dict:
+                                try:
+                                    item_dict["answer"] = sanitize_sentence_linebreaks(item_dict["answer"])
+                                    item_dict["answer"] = validate_vietnamese_sentence(item_dict["answer"])
+                                except Exception as ve:
+                                    logger.warning(f"[ProductAI] FAQ answer validation failed: {ve}")
+                            result_list.append(item_dict)
+                    return result_list
 
         return []
 
@@ -91,6 +112,7 @@ async def suggest_ingredients_logic(name: str, ingredients: str) -> List[Dict[st
             "- 'benefit': Công dụng/lợi ích nổi bật, ngắn gọn của thành phần đó trong sản phẩm (dưới 15 từ)\n"
             "- 'icon': Emoji đại diện phù hợp nhất cho thành phần đó theo nội dung (ví dụ: 💧 cho HA, 🧬 cho Ceramide/Collagen, 🌱 cho rau má, 🌿 cho trà xanh, 🛡️ cho Niacinamide, ✨ cho làm sáng, ...)\n"
             "QUY TẮC TỐI CAO: Toàn bộ thông tin tên thành phần, công dụng phải là tiếng Việt thuần 100%.\n"
+            "Các câu mô tả công dụng (benefit) bắt buộc phải là câu hoàn chỉnh về mặt ngữ nghĩa (có đầy đủ chủ ngữ + vị ngữ), tuyệt đối không ngắt dòng khi chưa viết hết câu, và viết ngắn gọn ngay từ đầu.\n"
             "Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown hoặc bất kỳ văn bản nào khác ngoài JSON:\n"
             "[{\"name\": \"...\", \"benefit\": \"...\", \"icon\": \"...\"}]"
         )
@@ -109,9 +131,21 @@ async def suggest_ingredients_logic(name: str, ingredients: str) -> List[Dict[st
             suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
             match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
             if match:
-                parsed = json.loads(match.group(0))
+                parsed: object = json.loads(match.group(0))
                 if isinstance(parsed, list):
-                    return parsed[:4]
+                    from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+                    result_list: List[Dict[str, str]] = []
+                    for item in parsed:
+                        if isinstance(item, dict):
+                            item_dict: Dict[str, str] = {str(k): str(v) for k, v in item.items()}
+                            if "benefit" in item_dict:
+                                try:
+                                    item_dict["benefit"] = sanitize_sentence_linebreaks(item_dict["benefit"])
+                                    item_dict["benefit"] = validate_vietnamese_sentence(item_dict["benefit"])
+                                except Exception as ve:
+                                    logger.warning(f"[ProductAI] Ingredient benefit validation failed: {ve}")
+                            result_list.append(item_dict)
+                    return result_list[:4]
 
         return []
 
@@ -146,7 +180,7 @@ async def suggest_specs_logic(raw_text: str) -> Dict[str, str]:
             suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
             match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
             if match:
-                parsed = json.loads(match.group(0))
+                parsed: object = json.loads(match.group(0))
                 if isinstance(parsed, dict):
                     return {str(k): str(v) for k, v in parsed.items()}
 
@@ -201,12 +235,18 @@ async def suggest_semantic_logic(name: str, description: str, seo_description: O
             html_res = re.sub(r"<li>\s*(?:\d+[\.\)\-:]\s*|-|•)\s*", "<li>", html_res)
             
             # Clean internal line breaks and extra spaces within each <li> content
-            def clean_li_content(match):
-                li_inner = match.group(1)
+            def clean_li_content(match: re.Match[str]) -> str:
+                li_inner: str = match.group(1)
                 # Remove newlines, tabs, carriage returns and reduce multiple spaces to one
                 li_inner = re.sub(r"\s+", " ", li_inner).strip()
                 # Clean leading numbers/bullets again just in case of spaces
                 li_inner = re.sub(r"^(?:\d+[\.\)\-:]\s*|-|•)\s*", "", li_inner)
+                from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+                try:
+                    li_inner = sanitize_sentence_linebreaks(li_inner)
+                    li_inner = validate_vietnamese_sentence(li_inner)
+                except Exception as ve:
+                    logger.warning(f"[ProductAI] Semantic highlight line validation failed: {ve}")
                 return f"<li>{li_inner}</li>"
             
             html_res = re.sub(r"<li>(.*?)</li>", clean_li_content, html_res, flags=re.DOTALL)

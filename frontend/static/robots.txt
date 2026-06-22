@@ -38,6 +38,7 @@ Disallow: /track
 Disallow: /search
 Disallow: /user
 Disallow: /auth
+Disallow: /*/reviews
 
 # Admin and internal APIs
 Disallow: /admin

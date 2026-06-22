@@ -25,9 +25,10 @@
 
   const nanobot = useNanobot();
 
-  let { formState = $bindable(), onOpenVault } = $props<{
+  let { formState = $bindable(), onOpenVault, productId = null } = $props<{
     formState: ProductFormState;
     onOpenVault?: (field: string) => void;
+    productId?: string | null;
   }>();
 
   let isScanning = $state(false);
@@ -173,17 +174,22 @@
     });
   }
 
-  async function autoDetectEndTime(url?: string) {
-    const target = url ?? formState.metadata?.video_url;
-    if (!target || !isVideoFile(target)) return;
+  async function autoDetectEndTime(url: string, isMobile: boolean) {
+    if (!url || !isVideoFile(url)) return;
     isDetectingDuration = true;
     detectError = null;
     try {
-      const dur = await detectVideoDuration(target);
+      const dur = await detectVideoDuration(url);
       if (dur !== null) {
-        formState.metadata.video_end_time = dur;
-        formState.metadata.video_start_time =
-          formState.metadata.video_start_time ?? 0;
+        if (isMobile) {
+          formState.metadata.mobile_video_end_time = dur;
+          formState.metadata.mobile_video_start_time =
+            formState.metadata.mobile_video_start_time ?? 0;
+        } else {
+          formState.metadata.video_end_time = dur;
+          formState.metadata.video_start_time =
+            formState.metadata.video_start_time ?? 0;
+        }
       } else {
         detectError = "Không đọc được thời lượng";
       }
@@ -193,14 +199,53 @@
   }
 
   // ─── FAQ Management (GEO 2026) ──────────────────────────────────
+  let isLoadingFaqs = $state(false);
+
+  // ─── FAQ State (GEO 2026) ─────────────────────────────────────
+  // $derived thay vì $effect – pure derivation, không có side-effect
+  const faqsLoaded = $derived(
+    formState.metadata.faqs_total === undefined ||
+    (formState.metadata.faqs?.length ?? 0) >= (formState.metadata.faqs_total ?? 0)
+  );
+
+  async function loadAllFaqs() {
+    if (!productId) return;
+    isLoadingFaqs = true;
+    try {
+      const res = await apiClient.get<{
+        data: { question: string; answer: string }[];
+        total: number;
+      }>(`/api/v1/products/${productId}/faqs`, {
+        params: { limit: 100, offset: formState.metadata.faqs?.length ?? 0 }
+      });
+      if (res && res.data && Array.isArray(res.data)) {
+        if (!formState.metadata.faqs) formState.metadata.faqs = [];
+        const existingQs = new Set(formState.metadata.faqs.map(f => f.question));
+        const newFaqs = res.data.filter(f => !existingQs.has(f.question));
+        formState.metadata.faqs.push(...newFaqs);
+        formState.metadata._faqsLoaded = true;
+        formState.metadata.faqs_total = formState.metadata.faqs.length;
+      }
+    } catch (err) {
+      console.error("Failed to load all FAQs:", err);
+      nanobot.showToast("Không thể tải thêm câu hỏi FAQ", "error");
+    } finally {
+      isLoadingFaqs = false;
+    }
+  }
+
   function addFaq() {
     if (!formState.metadata.faqs) formState.metadata.faqs = [];
     formState.metadata.faqs.push({ question: "", answer: "" });
+    formState.metadata.faqs_total = (formState.metadata.faqs_total || 0) + 1;
   }
 
   function removeFaq(index: number) {
     if (!formState.metadata.faqs) return;
     formState.metadata.faqs.splice(index, 1);
+    if (formState.metadata.faqs_total !== undefined) {
+      formState.metadata.faqs_total = Math.max(0, formState.metadata.faqs_total - 1);
+    }
   }
 
   // ─── Featured Ingredients Management ────────────────────────────
@@ -240,6 +285,8 @@
       if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
         if (!formState.metadata.faqs) formState.metadata.faqs = [];
         formState.metadata.faqs.push(...res.data);
+        formState.metadata.faqs_total = formState.metadata.faqs.length;
+        formState.metadata._faqsLoaded = true;
         nanobot.showToast(
           "XOHI đã tự động tạo thành công bộ câu hỏi FAQ.",
           "success",
@@ -466,7 +513,7 @@
         onchange={() => {
           const url = formState.metadata.video_url;
           if (url && isVideoFile(url)) {
-            autoDetectEndTime(url);
+            autoDetectEndTime(url, false);
           }
         }}
         placeholder="/uploads/video/desktop.mp4"
@@ -485,7 +532,7 @@
         onchange={() => {
           const url = formState.metadata.mobile_video_url;
           if (url && isVideoFile(url)) {
-            autoDetectEndTime(url);
+            autoDetectEndTime(url, true);
           }
         }}
         placeholder="/uploads/video/mobile.mp4"
@@ -495,45 +542,79 @@
 
     <!-- VIDEO PLAYBACK CONTROLS -->
     <div
-      class="md:col-span-2 flex flex-col gap-2 p-3 rounded-xl bg-amber-500/[0.04] border border-amber-500/15"
+      class="md:col-span-2 flex flex-col gap-4 p-4 rounded-2xl bg-amber-500/[0.03] border border-amber-500/10 shadow-inner"
     >
       <div class="flex items-center justify-between mb-1">
-        <div class="flex items-center gap-1.5">
-          <Clock size={10} class="text-amber-400/70" />
+        <div class="flex items-center gap-2">
+          <Clock size={12} class="text-amber-400" />
           <span
-            class="text-[9px] font-black text-amber-400/60 tracking-[0.25em]"
-            >Cắt ghép Video</span
+            class="text-[10px] font-black text-amber-400 tracking-[0.2em] uppercase"
+            >Cắt ghép Video (Trimming Settings)</span
           >
         </div>
         {#if isDetectingDuration}
           <div class="flex items-center gap-1.5 text-amber-400/60">
             <RefreshCw size={10} class="animate-spin" />
-            <span class="text-[8px] font-mono">Phân tích...</span>
+            <span class="text-[8px] font-mono">Đang phân tích thời lượng...</span>
           </div>
         {/if}
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="flex flex-col gap-1">
-          <label
-            class="text-[8px] font-bold text-white/30 tracking-wider"
-            >Bắt đầu (s)</label
-          >
-          <input
-            type="number"
-            bind:value={formState.metadata.video_start_time}
-            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Desktop Video Timings -->
+        <div class="p-3 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col gap-2">
+          <div class="text-[9px] font-bold text-white/50 tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+            Cấu hình Video Desktop
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-[8px] font-bold text-white/30 tracking-wider">Bắt đầu (s)</label>
+              <input
+                type="number"
+                step="0.1"
+                bind:value={formState.metadata.video_start_time}
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[8px] font-bold text-white/30 tracking-wider">Kết thúc (s)</label>
+              <input
+                type="number"
+                step="0.1"
+                bind:value={formState.metadata.video_end_time}
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
+            </div>
+          </div>
         </div>
-        <div class="flex flex-col gap-1">
-          <label
-            class="text-[8px] font-bold text-white/30 tracking-wider"
-            >Kết thúc (s)</label
-          >
-          <input
-            type="number"
-            bind:value={formState.metadata.video_end_time}
-            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
+
+        <!-- Mobile Video Timings -->
+        <div class="p-3 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col gap-2">
+          <div class="text-[9px] font-bold text-white/50 tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 bg-pink-400 rounded-full"></span>
+            Cấu hình Video Mobile
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-[8px] font-bold text-white/30 tracking-wider">Bắt đầu (s)</label>
+              <input
+                type="number"
+                step="0.1"
+                bind:value={formState.metadata.mobile_video_start_time}
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[8px] font-bold text-white/30 tracking-wider">Kết thúc (s)</label>
+              <input
+                type="number"
+                step="0.1"
+                bind:value={formState.metadata.mobile_video_end_time}
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -741,6 +822,22 @@
           </div>
         {/each}
       </div>
+    {/if}
+
+    {#if !faqsLoaded}
+      <button
+        type="button"
+        onclick={loadAllFaqs}
+        class="w-full py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-wider hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2"
+        disabled={isLoadingFaqs}
+      >
+        {#if isLoadingFaqs}
+          <RefreshCw size={12} class="animate-spin text-amber-400" />
+          ĐANG TẢI...
+        {:else}
+          ĐỌC THÊM CÂU HỎI (+{(formState.metadata.faqs_total || 0) - (formState.metadata.faqs?.length || 0)} CÂU)
+        {/if}
+      </button>
     {/if}
   </div>
 

@@ -24,9 +24,10 @@ class ClientNotificationController(Controller):
             raise NotAuthorizedException("Vui lòng đăng nhập để xem thông báo")
 
         user_email = user_state.get("sub")
+        user_roles = user_state.get("roles", [])
         logger.info(f"[Notification] Fetching notifications for: {user_email}")
         try:
-            return await notification_service.get_notifications(db_session, user_email)
+            return await notification_service.get_notifications(db_session, user_email, user_roles)
         except Exception as e:
             logger.exception(f"[Notification] Error fetching for {user_email}: {str(e)}")
             raise e

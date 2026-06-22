@@ -16,7 +16,8 @@ import type {
     BulkFixReplacement,
     TaskAcceptedResponse,
     CleanOptions,
-    ClinicalSource   // CNS V92.0
+    ClinicalSource,   // CNS V92.0
+    ClinicalDataTable  // CNS V93.0
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
@@ -56,6 +57,7 @@ export function createAnalysisController(config: {
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
     let boosterAnnotations = $state<AnalysisAnnotation[]>([]);
     let clinicalSources = $state<ClinicalSource[]>([]);  // CNS V92.0
+    let dataTables = $state<ClinicalDataTable[]>([]);    // CNS V93.0
     // CNS V87.0: SSE Streaming state — typewriter effect
     let streamingText = $state<string>("");        // Text đang stream từng chunk
     let streamingTarget = $state<string | null>(null); // Annotation text đang được sửa
@@ -708,6 +710,8 @@ export function createAnalysisController(config: {
         const topic = resolve(config.topic) ?? '';
         isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang tinh chỉnh..."; activeTab = 'enrich'; currentAnalysisStep = 0;
         bulkFixLogs = [];
+        clinicalSources = [];
+        dataTables = [];
         addTerminalLog("🚀 Neural Booster khởi động...");
         addTerminalLog("🧠 Đang phân tích cấu trúc nội dung...");
 
@@ -761,6 +765,15 @@ export function createAnalysisController(config: {
                         bulkFixLogs = [...bulkFixLogs, `📚 Đã trinh sát ${clinicalSources.length} nghiên cứu & bài báo uy tín (J-STAGE / PubMed / PMDA / Cosme).`];
                     } else {
                         clinicalSources = [];
+                    }
+
+                    // CNS V93.0: Lưu data tables tổng hợp
+                    const rawTables = (res.data as unknown as Record<string, unknown>)?.data_tables;
+                    if (Array.isArray(rawTables) && rawTables.length > 0) {
+                        dataTables = rawTables as ClinicalDataTable[];
+                        bulkFixLogs = [...bulkFixLogs, `📊 Đã tổng hợp ${dataTables.length} bảng số liệu cấu trúc chuẩn SGE.`];
+                    } else {
+                        dataTables = [];
                     }
                     
                     // CNS V96.0: Stop auto-apply. Just store patches for user review ("Duyệt nới thêm vào")
@@ -1056,6 +1069,7 @@ export function createAnalysisController(config: {
         get editorAnnotations() { return editorAnnotations; },
         get boosterAnnotations() { return boosterAnnotations; },
         get clinicalSources() { return clinicalSources; },  // CNS V92.0
+        get dataTables() { return dataTables; },            // CNS V93.0
         // CNS V87.0: expose streaming state cho UI typewriter effect
         get streamingText() { return streamingText; },
         get streamingTarget() { return streamingTarget; },
@@ -1063,7 +1077,7 @@ export function createAnalysisController(config: {
             // CLAUDE.md: dispose SSE resource khi component unmount
             _sseAbort?.abort(); _sseAbort = null;
             copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixStatus = ""; activeTab = null;
-            streamingText = ""; streamingTarget = null; clinicalSources = [];  // CNS V92.0: reset
+            streamingText = ""; streamingTarget = null; clinicalSources = []; dataTables = []; // CNS V93.0: reset
         }
     };
 }

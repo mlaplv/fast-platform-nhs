@@ -59,6 +59,11 @@ class ProductMetadata(BaseModel):
     scarcity_seconds: Optional[int] = Field(None, alias="scarcity_seconds")
     show_reviews: Optional[bool] = Field(None, alias="show_reviews")
     video_url: Optional[str] = Field(None, alias="video_url")
+    video_start_time: Optional[float] = Field(None, alias="video_start_time")
+    video_end_time: Optional[float] = Field(None, alias="video_end_time")
+    mobile_video_url: Optional[str] = Field(None, alias="mobile_video_url")
+    mobile_video_start_time: Optional[float] = Field(None, alias="mobile_video_start_time")
+    mobile_video_end_time: Optional[float] = Field(None, alias="mobile_video_end_time")
 
     # Elite 2026: AI Customer Sentiment Summary
     customer_sentiment_summary: Optional[str] = Field(None, alias="customer_sentiment_summary")
@@ -73,6 +78,7 @@ class ProductMetadata(BaseModel):
 
     # Elite V2.2: Product FAQs (Tùy biến từ Admin → hiện trên Product Detail + Schema JSON-LD)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
+    faqs_total: Optional[int] = Field(None, alias="faqs_total")
 
     # Elite V2.2: Featured Ingredients
     featured_ingredients: List[FeaturedIngredientItem] = Field(default_factory=list, alias="featured_ingredients")

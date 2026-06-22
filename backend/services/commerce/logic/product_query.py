@@ -53,6 +53,10 @@ async def list_products_logic(
 
     # 1. Filters
     if category_slug:
+        cat_check_stmt = select(Category.id).where(Category.slug == category_slug, Category.deleted_at == None)
+        cat_check_res = await db_session.execute(cat_check_stmt)
+        if not cat_check_res.scalar():
+            raise NotFoundException(f"Category with slug '{category_slug}' not found")
         stmt = stmt.where(Category.slug == category_slug)
     if category_id:
         stmt = stmt.where(ProductBase.category_id == category_id)

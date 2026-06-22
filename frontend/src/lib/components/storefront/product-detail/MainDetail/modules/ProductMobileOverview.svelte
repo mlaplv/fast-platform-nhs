@@ -122,15 +122,19 @@
   let videoEl = $state<HTMLVideoElement | null>(null);
   let videoMuted = $state(true);
 
+  function parseMetadataTime(val: any): number | null {
+    if (val === null || val === undefined || val === '') return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  }
+
   const videoStartTime = $derived(
-    typeof product.metadata?.video_start_time === 'number'
-      ? product.metadata.video_start_time
-      : 0
+    parseMetadataTime(product.metadata?.mobile_video_start_time) ?? 
+    parseMetadataTime(product.metadata?.video_start_time) ?? 0
   );
   const videoEndTime = $derived(
-    typeof product.metadata?.video_end_time === 'number'
-      ? product.metadata.video_end_time
-      : null
+    parseMetadataTime(product.metadata?.mobile_video_end_time) ?? 
+    parseMetadataTime(product.metadata?.video_end_time) ?? null
   );
 
   function handleTimeUpdate() {
