@@ -33,14 +33,45 @@
   let activeImageIndex = $state(0);
   let overrideImageIndex = $state<number | null>(null);
 
+  const displayImages = $derived.by(() => {
+    let images: string[] = [];
+    if (variations?.[0]?.images && variations[0].images.length > 0) {
+      images = variations[0].images.filter((img): img is string => img !== null);
+    } else {
+      images = [...(product.images || [])];
+    }
+    const video = product.metadata?.video_url;
+    if (video) {
+      images = [video, ...images];
+    }
+    return images;
+  });
+
   $effect(() => {
-    // Reset override when variant changes
-    selectedIndices;
+    // Reset override when variant changes and highlight the correct variant thumbnail
+    if (selectedIndices[0] >= 0) {
+      const variantImg = variations?.[0]?.images?.[selectedIndices[0]];
+      if (variantImg) {
+        const idx = displayImages.indexOf(variantImg);
+        if (idx >= 0) {
+          activeImageIndex = idx;
+        }
+      }
+    }
     overrideImageIndex = null;
   });
 
+  $effect(() => {
+    // Show video on product change if the first media is a video
+    const firstImg = displayImages[0];
+    if (isVideoUrl(firstImg)) {
+      overrideImageIndex = 0;
+      activeImageIndex = 0;
+    }
+  });
+
   let currentImage = $derived.by(() => {
-    const pImages = product.images || [];
+    const pImages = displayImages;
     if (overrideImageIndex !== null) {
       return pImages[overrideImageIndex] || pImages[0] || '/placeholder.png';
     }
@@ -140,7 +171,7 @@
   </div>
   
   <div class="thumbnails">
-    {#each (product.images || []).slice(0, 5) as img, i}
+    {#each displayImages.slice(0, 5) as img, i}
       <button 
         type="button"
         class="thumb-btn"

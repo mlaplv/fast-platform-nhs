@@ -212,6 +212,9 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
     // Derive LCP hero images for mobile and desktop
     const mobileHeroImage = (() => {
       const p = product;
+      const mobVideo = p.metadata?.mobile_video_url || p.metadata?.video_url;
+      if (mobVideo) return mobVideo;
+
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
       if (tierVar) {
         const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
@@ -226,6 +229,9 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     const desktopHeroImage = (() => {
       const p = product;
+      const deskVideo = p.metadata?.video_url;
+      if (deskVideo) return deskVideo;
+
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
       if (tierVar) {
         const deskImgs = (tierVar.images || []).filter(Boolean);

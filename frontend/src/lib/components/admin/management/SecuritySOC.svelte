@@ -46,6 +46,10 @@
     ai_status: string;
     threat_level: string;
     active_keys: number;
+    load_average?: [number, number, number];
+    load_overloaded?: boolean;
+    home_cache_active?: boolean;
+    home_query_risk?: 'HIGH_DB_LOAD' | 'SAFE_CACHED';
   }
 
   const nanobot = useNanobot();
@@ -69,13 +73,20 @@
     is_read_only: false,
     ai_status: "ACTIVE",
     threat_level: "LOW",
-    active_keys: 0
+    active_keys: 0,
+    load_average: [0.0, 0.0, 0.0],
+    load_overloaded: false,
+    home_cache_active: false,
+    home_query_risk: "HIGH_DB_LOAD"
   });
   let containers = $state<ContainerInfo[]>([]);
   let whitelistPhones = $state<string[]>([]);
   let newPhone = $state('');
   let phoneLoading = $state(false);
   
+  let zombieInfo = $state<{ count: number; processes: string[] }>({ count: 0, processes: [] });
+  let zombieLoading = $state(false);
+
   let isLoading = $state<boolean>(true);
   let isActionLoading = $state<string | null>(null);
   let opLoading = $state<string | null>(null); // Name of container being operated on
@@ -424,6 +435,40 @@
     }
   }
 
+  async function loadZombieData() {
+    try {
+      const res: any = await apiClient.get(`/api/v1/security/maintenance/zombies?t=${Date.now()}`);
+      zombieInfo = res.data || res || { count: 0, processes: [] };
+    } catch (e) {
+      console.error("Failed to load zombie processes data", e);
+    }
+  }
+
+  async function cleanZombieProcesses() {
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "DỌN DẸP TIẾN TRÌNH ZOMBIE",
+      message: `Xác nhận buộc ngưng và dọn dẹp ${zombieInfo.count} tiến trình docker logs bị treo chạy ngầm?`,
+      confirmLabel: "BUỘC DỌN DẸP",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
+    zombieLoading = true;
+    try {
+      const res: any = await apiClient.post(`/api/v1/security/maintenance/zombies/clean`);
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        await loadZombieData();
+      } else {
+        nanobot.ui.showToast(data.message, "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi dọn dẹp tiến trình zombie", "error");
+    } finally {
+      zombieLoading = false;
+    }
+  }
+
   async function loadSOCData(): Promise<void> {
     isLoading = true;
     try {
@@ -434,7 +479,8 @@
         apiClient.get<AuditLog[]>(`/api/v1/security/audit-logs?limit=100&t=${t}`),
         apiClient.get<SecurityStats>(`/api/v1/security/status?t=${t}`),
         apiClient.get<ContainerInfo[]>(`/api/v1/security/containers?t=${t}`),
-        apiClient.get<string[]>(`/api/v1/security/whitelist/phones?t=${t}`)
+        apiClient.get<string[]>(`/api/v1/security/whitelist/phones?t=${t}`),
+        loadZombieData()
       ]);
 
       // Robust extraction based on Elite apiClient V45 standards
@@ -697,7 +743,9 @@
         {#each [
           { label: 'Pulse', val: stats.ai_status, color: 'text-cyan-400', tip: 'Nhịp đập thời gian thực của AI Engine (Trinity)' },
           { label: 'Threat', val: stats.threat_level, color: stats.threat_level === 'LOW' ? 'text-emerald-400' : 'text-rose-500', tip: 'Mức độ đe dọa hệ thống dựa trên phân tích log' },
-          { label: 'Keys', val: stats.active_keys, color: 'text-purple-400', tip: 'Số lượng Key AI Gemini đang hoạt động trong vòng xoay' }
+          { label: 'Keys', val: stats.active_keys, color: 'text-purple-400', tip: 'Số lượng Key AI Gemini đang hoạt động trong vòng xoay' },
+          { label: 'Load Avg', val: stats.load_average ? stats.load_average[0].toFixed(2) : '0.00', color: stats.load_overloaded ? 'text-rose-500 animate-pulse' : 'text-cyan-400', tip: 'Tải trung bình hệ thống VPS (1 phút)' },
+          { label: 'Home DB Risk', val: stats.home_query_risk === 'SAFE_CACHED' ? 'CACHED' : 'DIRECT_DB', color: stats.home_query_risk === 'SAFE_CACHED' ? 'text-emerald-400' : 'text-orange-400 font-black animate-pulse', tip: 'Đánh giá rủi ro truy cập trang chủ (CACHED: Đang lưu bộ nhớ đệm, DIRECT_DB: Truy vấn SQL trực tiếp)' }
         ] as stat}
           <div 
             title={stat.tip}
@@ -847,6 +895,54 @@
               <div class="flex justify-between items-center text-[7px] text-gray-600 font-mono mt-1 pt-1 border-t border-white/5">
                 <span>FREQ: { (0.04 + (containers.reduce((acc, c) => acc + parseFloat(c.cpu || '0'), 0) / (containers.length || 1)) * 0.0005).toFixed(4) } GHz</span>
                 <span>AMP: { (8 + (containers.reduce((acc, c) => acc + parseFloat(c.cpu || '0'), 0) / (containers.length || 1)) * 0.35).toFixed(1) } mV</span>
+              </div>
+            </div>
+
+            <!-- Zombie Logs Watchdog card -->
+            <div class="bg-rose-950/[0.02] border border-rose-500/20 rounded-xl p-4 flex flex-col justify-between h-[128px] overflow-hidden relative group w-[240px] shrink-0">
+              <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.05)_0%,transparent_60%)]"></div>
+              
+              <div class="flex justify-between items-start z-10">
+                <div class="flex flex-col">
+                  <span class="text-[8px] text-rose-400 font-black tracking-widest uppercase">ZOMBIE LOGS WATCHDOG</span>
+                  <span class="text-[7px] text-gray-500 font-mono tracking-wider mt-0.5">Hung docker compose processes</span>
+                </div>
+                {#if zombieInfo.count > 0}
+                  <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
+                {:else}
+                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                {/if}
+              </div>
+
+              <div class="mt-2 flex-1 flex flex-col justify-center">
+                {#if zombieLoading}
+                  <div class="flex items-center gap-2 text-gray-500">
+                    <div class="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-[9px] font-bold">MUTING ZOMBIES...</span>
+                  </div>
+                {:else}
+                  <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl font-black {zombieInfo.count > 0 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}">{zombieInfo.count}</span>
+                    <span class="text-[8px] text-gray-500 font-bold uppercase">processes</span>
+                  </div>
+                  <span class="text-[7px] text-gray-400 font-mono mt-0.5 truncate max-w-[200px]" title={zombieInfo.processes.join(', ') || 'No zombies active'}>
+                    {zombieInfo.processes.length > 0 ? zombieInfo.processes[0].slice(0, 35) + '...' : 'System is clean'}
+                  </span>
+                {/if}
+              </div>
+
+              <div class="flex justify-between items-center text-[7px] font-mono mt-1 pt-1.5 border-t border-white/5">
+                <span class="text-gray-600">WATCHDOG: RUNNING</span>
+                {#if zombieInfo.count > 0}
+                  <button 
+                    onclick={cleanZombieProcesses}
+                    class="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 text-rose-400 rounded text-[7px] font-black hover:bg-rose-500/30 transition-all cursor-pointer"
+                  >
+                    CLEAN NOW
+                  </button>
+                {:else}
+                  <span class="text-emerald-400/80 font-bold">SECURED</span>
+                {/if}
               </div>
             </div>
 
@@ -1399,6 +1495,7 @@
                   <option value="security:blacklist:">security:blacklist: (Ban list)</option>
                   <option value="spam:">spam: (Rate limit history)</option>
                   <option value="helen:">helen: (Helen advisor temp cache)</option>
+                  <option value="support:client_home:">support:client_home: (Storefront Home Cache)</option>
                 </select>
               </div>
             </div>

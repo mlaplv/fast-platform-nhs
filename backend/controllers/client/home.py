@@ -1,9 +1,12 @@
 from __future__ import annotations
 import logging
-from litestar import Controller, get, Request
+import json
+import os
+from datetime import datetime
+from litestar import Controller, get, post, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from backend.services.commerce.product import ProductService, provide_product_service
 from backend.services.commerce.category import CategoryService, provide_category_service
@@ -17,6 +20,8 @@ from backend.schemas.client_home import HomeDataResponse
 from backend.schemas.promotion import VoucherListResponse
 from backend.schemas.category import CategoryResponse
 from backend.schemas.system_settings import SystemSettingsPayload, SystemSettingsResponse
+from backend.services.xohi_memory import xohi_memory
+from backend.schemas.common import SuccessResponse
 
 logger = logging.getLogger("api-gateway")
 
@@ -57,6 +62,20 @@ class ClientHomeController(Controller):
         request: Request
     ) -> HomeDataResponse:
         """PUBLIC: Get aggregated data for the home page."""
+        # Detect device type
+        user_agent = request.headers.get("user-agent", "").lower()
+        is_mobile = any(m in user_agent for m in ["mobile", "android", "iphone", "ipad"])
+
+        # Check Redis Cache (Elite V2.2)
+        cache_key = f"support:client_home:{'mobile' if is_mobile else 'desktop'}"
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                cached_data = await xohi_memory.client.get(cache_key)
+                if cached_data:
+                    return HomeDataResponse.model_validate_json(cached_data)
+        except Exception as cache_exc:
+            logger.warning(f"⚠️ [ClientHomeController] Redis cache read failed: {cache_exc}")
+
         # 1. Fetch system settings for shop info (Elite V2.2)
         system_settings = await settings_service.get_general_settings(db_session)
         
@@ -64,10 +83,6 @@ class ClientHomeController(Controller):
         # Elite Performance Fix P3.1: Giảm limit từ 100 xuống 24 để tối ưu tốc độ load home
         all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE", is_public=True)
         categories_resp = await category_service.list_categories(db_session)
-        
-        # Elite V2.2: Device-aware category filtering
-        user_agent = request.headers.get("user-agent", "").lower()
-        is_mobile = any(m in user_agent for m in ["mobile", "android", "iphone", "ipad"])
         
         if categories_resp:
             full_list = categories_resp.data
@@ -97,7 +112,7 @@ class ClientHomeController(Controller):
             )
 
         # Format response
-        return HomeDataResponse(
+        response_data = HomeDataResponse(
             banners=[b for b in banners.data] if banners else [],
             categories=filtered_cats,
             products=[p for p in all_products.data] if all_products else [],
@@ -107,6 +122,15 @@ class ClientHomeController(Controller):
             seo_meta=seo_meta,
             videos=[]
         )
+
+        # Save to Redis Cache (TTL = 60 seconds)
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                await xohi_memory.client.set(cache_key, response_data.model_dump_json(), ex=60)
+        except Exception as cache_exc:
+            logger.warning(f"⚠️ [ClientHomeController] Redis cache set failed: {cache_exc}")
+
+        return response_data
 
     @get("/category/{slug:str}")
     async def get_category_by_slug(
@@ -121,3 +145,54 @@ class ClientHomeController(Controller):
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Category slug '{slug}' not found")
         return res
+
+    @post("/report-error")
+    async def report_client_error(self, request: Request, data: Dict) -> SuccessResponse:
+        """
+        [SOC] Báo cáo lỗi kết nối/timeout từ Frontend và gửi Telegram alert.
+        """
+        from backend.services.telegram_service import telegram_service
+
+        error_type = data.get("error", "UNKNOWN_ERROR")
+        url = data.get("url", "N/A")
+        timestamp = data.get("timestamp", datetime.now().isoformat())
+        details = data.get("details", "")
+        
+        ip = (
+            request.headers.get("x-real-ip")
+            or (request.client.host if request.client else None)
+            or "unknown"
+        )
+
+        message = (
+            f"🚨 <b>[SOC ALERT] SỰ CỐ KẾT NỐI HỆ THỐNG</b>\n"
+            f"🔴 <b>Lỗi:</b> {error_type}\n"
+            f"🔗 <b>Endpoint:</b> {url}\n"
+            f"🌐 <b>IP Khách:</b> {ip}\n"
+            f"⏱️ <b>Thời gian:</b> {timestamp}\n"
+            f"📝 <b>Chi tiết:</b> {details}\n"
+            f"💡 <i>Khuyến nghị: Kiểm tra trạng thái tải của hệ thống.</i>"
+        )
+        
+        # 1. Ghi log audit an ninh
+        logger.error(f"❌ [SOC SYSTEM ERROR] {error_type} on {url} - client: {ip}")
+        audit_log_path = "logs/audit.log"
+        try:
+            os.makedirs("logs", exist_ok=True)
+            with open(audit_log_path, "a") as f:
+                log_entry = {
+                    "timestamp": timestamp,
+                    "action": "SYSTEM_CONNECTION_FAILED",
+                    "actor": "CLIENT_TELEMETRY",
+                    "ip": ip,
+                    "suspicious": True,
+                    "details": f"{error_type} on {url}: {details}"
+                }
+                f.write(json.dumps(log_entry) + "\n")
+        except Exception as log_err:
+            logger.error(f"❌ [SOC] Failed to write connection error to audit log: {log_err}")
+
+        # 2. Gửi Telegram alert
+        await telegram_service.send_alert(message)
+        
+        return SuccessResponse(message="Đã nhận báo cáo sự cố thành công.")

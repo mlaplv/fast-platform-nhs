@@ -44,7 +44,35 @@ export const load: PageLoad = async ({ fetch, parent }) => {
           signal: AbortSignal.timeout(5000) // Prevent hangs
       });
   } catch (err: unknown) {
-      console.error(`[ROOT FETCH FAILED] CONNECTION ERROR`);
+      console.error(`[ROOT FETCH FAILED] CONNECTION ERROR`, err);
+
+      // Fire-and-forget report to SOC
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const reportPayload = {
+          error: "CONNECTION_ERROR",
+          url: targetUrl,
+          timestamp: new Date().toISOString(),
+          details: `Error in storefront root load: ${errorMsg}`
+      };
+
+      if (browser) {
+          if (navigator.sendBeacon) {
+              navigator.sendBeacon('/api/v1/client/home/report-error', JSON.stringify(reportPayload));
+          } else {
+              fetch('/api/v1/client/home/report-error', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(reportPayload)
+              }).catch(() => {});
+          }
+      } else {
+          fetch('/api/v1/client/home/report-error', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(reportPayload)
+          }).catch(() => {});
+      }
+
       throw error(503, {
           message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
           details: "Vui lòng chờ giây lát và thử lại."

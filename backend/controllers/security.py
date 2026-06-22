@@ -265,7 +265,7 @@ class SecurityController(Controller):
             return SuccessResponse(message=f"Lỗi hệ thống: {str(e)}")
 
     @get("/status")
-    async def get_security_status(self) -> Dict:
+    async def get_security_status(self) -> Response:
         """
         [ELITE V2.2] Thống kê nhanh tình hình an ninh cho Dashboard.
         """
@@ -293,6 +293,21 @@ class SecurityController(Controller):
             if redis_status:
                 is_read_only = redis_status == "1"
 
+        # Load average (Elite V2.2 SOC Monitor)
+        try:
+            load_1, load_5, load_15 = os.getloadavg()
+        except Exception:
+            load_1, load_5, load_15 = 0.0, 0.0, 0.0
+
+        # Check Home Page Cache & DB Load Risk (6 queries check)
+        home_cache_active = False
+        try:
+            if trinity_bridge.rotator._use_redis and trinity_bridge.rotator.client:
+                keys = await trinity_bridge.rotator.client.keys("support:client_home:*")
+                home_cache_active = len(keys) > 0
+        except Exception:
+            pass
+
         return Response(
             content={
                 "is_read_only": is_read_only,
@@ -300,7 +315,11 @@ class SecurityController(Controller):
                 "threat_level": "LOW" if suspicious_count < 2 else ("MEDIUM" if suspicious_count < 5 else "HIGH"),
                 "active_keys": active_keys,
                 "suspicious_events": suspicious_count,
-                "total_logs": len(logs)
+                "total_logs": len(logs),
+                "load_average": [load_1, load_5, load_15],
+                "load_overloaded": load_1 > 4.0,
+                "home_cache_active": home_cache_active,
+                "home_query_risk": "HIGH_DB_LOAD" if not home_cache_active else "SAFE_CACHED"
             },
             headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
         )
@@ -580,7 +599,7 @@ class SecurityController(Controller):
         if not prefix:
             raise ValidationException("Missing prefix parameter")
         
-        WHITELIST_PREFIXES = {"pulse:", "tts:req:", "security:blacklist:", "spam:", "helen:"}
+        WHITELIST_PREFIXES = {"pulse:", "tts:req:", "security:blacklist:", "spam:", "helen:", "support:client_home:"}
         if prefix not in WHITELIST_PREFIXES:
             raise ValidationException(f"Prefix not in whitelist. Allowed prefixes: {', '.join(WHITELIST_PREFIXES)}")
         
@@ -600,5 +619,52 @@ class SecurityController(Controller):
                     break
             return SuccessResponse(message=f"Đã xóa sạch {count} keys với prefix {prefix} thành công.", success=True)
         except Exception as e:
+            return SuccessResponse(message=f"Lỗi: {e}", success=False)
+
+    @get("/maintenance/zombies")
+    async def get_zombie_processes(self) -> Dict:
+        """
+        [SOC OPS] Lấy số lượng tiến trình docker logs chạy ngầm bị treo.
+        """
+        import asyncio
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                "ps -eo pid,etime,args | grep -E 'docker logs|docker compose logs' | grep -v grep",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, _ = await proc.communicate()
+            lines = [line for line in stdout.decode("utf-8").splitlines() if line.strip() and "clean_zombie_logs" not in line]
+            
+            return {
+                "count": len(lines),
+                "processes": lines
+            }
+        except Exception as e:
+            logger.error(f"❌ [SOC] Failed to scan zombie processes: {e}")
+            return {"count": 0, "processes": []}
+
+    @post("/maintenance/zombies/clean")
+    async def clean_zombie_processes(self) -> SuccessResponse:
+        """
+        [SOC OPS] Chạy dọn dẹp các tiến trình docker logs bị treo chạy ngầm.
+        """
+        import asyncio
+        try:
+            script_path = "./scripts/clean_zombie_logs.sh"
+            if os.path.exists(script_path):
+                proc = await asyncio.create_subprocess_exec(
+                    "bash", script_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await proc.communicate()
+                msg = stdout.decode("utf-8").strip()
+                logger.warning(f"🚨 [SOC OPS] Zombie processes cleaned up by admin. Output: {msg}")
+                return SuccessResponse(message=f"Dọn dẹp thành công: {msg}")
+            else:
+                return SuccessResponse(message="Không tìm thấy script dọn dẹp.", success=False)
+        except Exception as e:
+            logger.error(f"❌ [SOC] Failed to clean zombie processes: {e}")
             return SuccessResponse(message=f"Lỗi: {e}", success=False)
 

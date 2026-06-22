@@ -38,9 +38,26 @@
   let overrideImageIndex = $state<number | null>(null);
 
   $effect(() => {
-    // Reset override when variant changes
-    selectedIndices;
+    // Reset override when variant changes and highlight the correct variant thumbnail
+    if (selectedIndices[0] >= 0) {
+      const variantImg = variations?.[0]?.images?.[selectedIndices[0]];
+      if (variantImg) {
+        const idx = displayImages.indexOf(variantImg);
+        if (idx >= 0) {
+          activeImageIndex = idx;
+        }
+      }
+    }
     overrideImageIndex = null;
+  });
+
+  $effect(() => {
+    // Show video on product change if the first media is a video
+    const firstImg = displayImages[0];
+    if (isVideoUrl(firstImg)) {
+      overrideImageIndex = 0;
+      activeImageIndex = 0;
+    }
   });
 
   let isInitialLcp = $state(true);
@@ -83,10 +100,17 @@
   }
 
   const displayImages = $derived.by(() => {
+    let images: string[] = [];
     if (variations?.[0]?.images && variations[0].images.length > 0) {
-      return variations[0].images;
+      images = [...variations[0].images];
+    } else {
+      images = [...(product.images || [])];
     }
-    return product.images || [];
+    const video = product.metadata?.video_url;
+    if (video) {
+      images = [video, ...images];
+    }
+    return images;
   });
 
   // Derive current image based on variant selection or thumbnail index

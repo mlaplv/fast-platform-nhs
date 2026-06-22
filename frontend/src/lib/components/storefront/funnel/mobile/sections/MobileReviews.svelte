@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import vnDivisions from '$lib/data/vn_divisions.json';
-  import { blur, fade, fly, scale } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
   import { elasticOut } from 'svelte/easing';
   import Star from "@lucide/svelte/icons/star";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
@@ -13,11 +13,20 @@
   import Send from "@lucide/svelte/icons/send";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
-  import { SHOP_CONFIG } from '$lib/constants/shop';
 
   import type { Review, Product } from '$lib/types';
+  import { mapRawReview, type RawReview } from '$lib/utils/review';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
+  // Module-scoped static lists to prevent re-computation on every component mount
+  const locations = (vnDivisions as Array<{ name: string }>).slice(1).map(d =>
+    d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
+  );
+
+  function normalize(str: string) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
 
   interface Props {
     product: Product;
@@ -28,67 +37,16 @@
   const ui = getClientUi();
   const product = $derived(propProduct || shopStore.product);
   const metadata = $derived(product?.metadata || {});
-  const trustScoreNum = $derived(parseFloat(String(metadata.reviews_trust_score || '4.9').split('/')[0]));
-  const reviewsCountTextFormatted = $derived.by(() => {
-    const raw = product?.orderCountText || metadata?.reviews_count_text || '';
-    if (raw) {
-      if (raw.toLowerCase().includes('lượt') || raw.toLowerCase().includes('mua')) {
-        return raw;
-      }
-      return `${raw} lượt mua`;
-    }
-    const count = product?.orderCount || product?.order_count;
-    if (count) {
-      return `${count.toLocaleString()}+ lượt mua`;
-    }
-    return '1.000+ lượt mua';
-  });
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
   const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || 'KHÁCH HÀNG');
   const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || 'NÓI GÌ VỀ CHÚNG TÔI?');
-  
-  interface ReviewApiResponse {
-    id: string | number;
-    customer_name: string;
-    customer_phone?: string;
-    customer_location?: string;
-    rating: number;
-    content: string;
-    created_at: string;
-  }
-
-  function mapRawReview(r: any): Review {
-    const cleanContent = r.content ? r.content.trim().replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim() : '';
-    const cleanName = r.name || r.customer_name
-      ? (r.name || r.customer_name).split('(')[0].split('-')[0].trim()
-      : 'Ẩn danh';
-    
-    const rawPhone = r.phone || r.customer_phone;
-    const maskedPhone = rawPhone
-      ? (rawPhone.startsWith('0') ? '0' + rawPhone.slice(-9, -3) + '***' : rawPhone.slice(0, 3) + '****' + rawPhone.slice(-3))
-      : '09x****xxx';
-
-    return {
-      id: r.id,
-      name: cleanName,
-      phone: maskedPhone,
-      location: r.location || r.customer_location || 'Việt Nam',
-      rating: r.rating || 5,
-      content: cleanContent,
-      initial: cleanName.charAt(0).toUpperCase()
-    };
-  }
 
   let realReviews = $state<Review[]>(initialReviews.length > 0 ? initialReviews.map(mapRawReview) : []);
   let isLoading = $state(initialReviews.length === 0);
 
   const labels = $derived({
-    headline: metadata?.reviews_headline || 'Khách hàng nói gì?',
-    trust_score: metadata?.reviews_trust_score || '4.9/5',
-    count_text: product?.orderCountText || metadata?.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product?.orderCount || product?.order_count)?.toLocaleString()}+ lượt mua` : ''),
-    hud_feedback: metadata?.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế',
     label_verified: metadata?.reviews_label_verified || 'Đã xác thực',
     label_store_verified: metadata?.reviews_label_store_verified || 'Xác thực bởi Cửa hàng',
     cta_write: metadata?.reviews_cta_write || 'Viết đánh giá',
@@ -114,28 +72,20 @@
   // Toast System
   let toastMessage = $state('');
   let showToast = $state(false);
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  let successTimer: ReturnType<typeof setTimeout> | undefined;
+  
+  const activeTimers = new Set<ReturnType<typeof setTimeout>>();
 
   $effect(() => {
     // Đóng form khi đăng xuất
     if (!authStore.isAuthenticated && showFormModal) {
       showFormModal = false;
     }
-
-    return () => {
-      if (toastTimer) clearTimeout(toastTimer);
-      if (successTimer) clearTimeout(successTimer);
-    };
   });
 
-  const locations = (vnDivisions as Array<{ name: string }>).slice(1).map(d =>
-    d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
-  );
-
-  function normalize(str: string) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-  }
+  onDestroy(() => {
+    activeTimers.forEach(clearTimeout);
+    activeTimers.clear();
+  });
 
   const filteredLocations = $derived.by(() => {
     let query = normalize(locationSearch);
@@ -151,8 +101,8 @@
   function triggerToast(msg: string) {
     toastMessage = msg;
     showToast = true;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { showToast = false; }, 3000);
+    const timer = setTimeout(() => { showToast = false; }, 3000);
+    activeTimers.add(timer);
   }
 
   // Slider State (Elite V2.2)
@@ -177,7 +127,7 @@
     if (!product?.id) return;
     isLoading = true;
     try {
-      const data = await apiClient.get<{ items: ReviewApiResponse[] }>(`/client/reviews`, {
+      const data = await apiClient.get<{ items: RawReview[] }>(`/client/reviews`, {
         params: {
           entity_type: 'PRODUCT',
           entity_id: product.id,
@@ -222,12 +172,12 @@
       });
 
       showSuccess = true;
-      if (successTimer) clearTimeout(successTimer);
-      successTimer = setTimeout(() => {
+      const timer = setTimeout(() => {
         showFormModal = false;
         showSuccess = false;
         name = ''; phone = ''; content = ''; locationSelected = '';
       }, 4000);
+      activeTimers.add(timer);
     } catch (e) {
       triggerToast("Lỗi hệ thống hoặc mất kết nối.");
     } finally {
@@ -564,7 +514,7 @@
   }
 
   .reviews-form-modal {
-    z-index: var(--z-review-overlay);
+    z-index: var(--z-modal);
     background-color: #030303; /* Hardcoded solid fallback for VPS Mode */
   }
 

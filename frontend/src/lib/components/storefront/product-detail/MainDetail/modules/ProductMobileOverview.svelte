@@ -166,20 +166,26 @@
   $effect(() => {
     if (selectedVariant) {
       const idx = selectedVariant.tierIndex?.[0] ?? selectedVariant.tier_index?.[0];
-      if (typeof idx === 'number' && idx >= 0 && idx < displayImages.length) {
-        activeImageIndex = idx;
-        if (carouselRef) {
-          // Defer the scrolling to requestAnimationFrame to ensure the DOM layout is stable
-          requestAnimationFrame(() => {
-            if (!carouselRef) return;
-            const width = carouselWidth || window.innerWidth || 375;
-            if (width > 0) {
-              carouselRef.scrollTo({
-                left: idx * width,
-                behavior: 'smooth'
-              });
-            }
-          });
+      if (typeof idx === 'number' && idx >= 0) {
+        // Shift index by 1 if there is a prepended video
+        const hasVideo = !!(product.metadata?.mobile_video_url || product.metadata?.video_url);
+        const targetIdx = hasVideo ? idx + 1 : idx;
+
+        if (targetIdx < displayImages.length) {
+          activeImageIndex = targetIdx;
+          if (carouselRef) {
+            // Defer the scrolling to requestAnimationFrame to ensure the DOM layout is stable
+            requestAnimationFrame(() => {
+              if (!carouselRef) return;
+              const width = carouselWidth || window.innerWidth || 375;
+              if (width > 0) {
+                carouselRef.scrollTo({
+                  left: targetIdx * width,
+                  behavior: 'smooth'
+                });
+              }
+            });
+          }
         }
       }
     }
@@ -211,16 +217,32 @@
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');
   
   const displayImages = $derived.by(() => {
+    let images: string[] = [];
     const tierVar = product.tierVariations?.[0] || product.tier_variations?.[0] || product.attributes?.tier_variations?.[0];
     if (tierVar) {
       const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
-      if (mobImgs.length > 0) return mobImgs;
-      const deskImgs = (tierVar.images || []).filter(Boolean);
-      if (deskImgs.length > 0) return deskImgs;
+      if (mobImgs.length > 0) {
+        images = [...mobImgs];
+      } else {
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) images = [...deskImgs];
+      }
     }
-    const globalMobImgs = product.mobileImages || product.metadata?.mobile_images || [];
-    if (globalMobImgs.length > 0) return globalMobImgs.filter(Boolean);
-    return product.images?.length > 0 ? product.images : [product.images?.[0] || ''];
+    if (images.length === 0) {
+      const globalMobImgs = product.mobileImages || product.metadata?.mobile_images || [];
+      if (globalMobImgs.length > 0) {
+        images = [...globalMobImgs.filter(Boolean)];
+      } else {
+        images = product.images?.length > 0 ? [...product.images] : [product.images?.[0] || ''];
+      }
+    }
+
+    // Add mobile video if exists, fallback to desktop video
+    const video = product.metadata?.mobile_video_url || product.metadata?.video_url;
+    if (video) {
+      images = [video, ...images];
+    }
+    return images;
   });
   
   const vouchers = $derived.by(() => {

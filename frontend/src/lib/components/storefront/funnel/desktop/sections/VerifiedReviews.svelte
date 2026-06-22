@@ -4,6 +4,7 @@
   import { fade, fly, scale, blur } from "svelte/transition";
   import { cubicOut, elasticOut, backOut } from "svelte/easing";
   import type { Review, ProductMetadata } from "$lib/types";
+  import { mapRawReview, type RawReview } from "$lib/utils/review";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -28,18 +29,8 @@
   );
   const metadata = $derived(product?.metadata || {});
 
-  interface ReviewApiResponse {
-    id: string | number;
-    customer_name: string;
-    customer_phone?: string;
-    customer_location?: string;
-    rating: number;
-    content: string;
-    created_at: string;
-  }
-
   let realReviews = $state<Review[]>(
-    initialReviews.length > 0 ? initialReviews : [],
+    initialReviews.length > 0 ? initialReviews.map(mapRawReview) : [],
   );
   let isLoading = $state(initialReviews.length === 0);
 
@@ -61,14 +52,18 @@
     metadata?.reviews_subheadline ||
       "Kiểm chứng công thức số 1 từ Nhật Bản. Thấm nhanh, không bết dính. Hiệu quả rõ rệt sau 2 tuần. Đừng bỏ lỡ siêu phẩm Best-seller!",
   );
-  const trustScore = $derived(metadata?.reviews_trust_score || "4.9/5");
-  const countText = $derived(
-    product?.orderCountText ||
-      metadata?.reviews_count_text ||
-      (product?.orderCount || product?.order_count
-        ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua`
-        : "")
+  const trustScore = $derived(
+    metadata?.reviews_trust_score !== undefined
+      ? String(metadata.reviews_trust_score)
+      : "4.9/5"
   );
+  const countText = $derived.by(() => {
+    if (product?.orderCountText) return product.orderCountText;
+    if (metadata?.reviews_count_text) return metadata.reviews_count_text;
+    const count = product?.orderCount || product?.order_count;
+    return count ? `${count.toLocaleString()}+ lượt mua` : "";
+  });
+
 
   // Elite V2.2: Live FOMO Pulse Logic
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
@@ -94,52 +89,51 @@
     };
   });
 
-  const labels = $derived({
-    trust_score:
-      (metadata.reviews_trust_score as string) || trustScore || "4.9/5",
-    count_text:
-      (metadata.reviews_count_text as string) ||
-      countText ||
-      (product?.orderCount || product?.order_count
-        ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua`
-        : ""),
-    hud_feedback:
-      (metadata.reviews_hud_feedback as string) ||
-      "Hệ thống // Phản hồi thực tế",
-    label_verified:
-      (metadata.reviews_label_verified as string) || "Đã xác thực",
-    label_compliant:
-      (metadata.reviews_label_compliant as string) || "Đã mua hàng",
-    label_store_verified:
-      (metadata.reviews_label_store_verified as string) ||
-      `Xác thực bởi ${ui.settings?.contact?.name || "Cửa hàng"}`,
-    label_secure_encryption:
-      (metadata.reviews_label_secure_encryption as string) ||
-      "Mã hóa bảo mật [AES-256]",
-    label_secure_gate:
-      (metadata.reviews_label_secure_gate as string) || "Cổng bảo mật // V2.2",
-    cta_write:
-      (metadata.reviews_cta_write as string) || "Viết đánh giá của bạn",
-    form_title:
-      (metadata.reviews_form_title as string) ||
-      "Module // Real_Voice_Analysis_V2",
-    form_name: (metadata.reviews_form_name_label as string) || "Danh tính",
-    form_phone: (metadata.reviews_form_phone_label as string) || "Liên hệ",
-    form_location: (metadata.reviews_form_location_label as string) || "Vị trí",
-    form_rating:
-      (metadata.reviews_form_rating_label as string) || "Đánh giá sao",
-    form_content:
-      (metadata.reviews_form_content_label as string) || "Trải nghiệm thực tế",
-    form_placeholder:
-      (metadata.reviews_form_placeholder_content as string) ||
-      "Hãy cho chúng tôi biết cảm nhận của bạn... *",
-    form_cta:
-      (metadata.reviews_form_cta_submit as string) || "Xác nhận gửi đánh giá",
-    success_title:
-      (metadata.reviews_form_success_title as string) ||
-      "Gửi đánh giá thành công!",
-    success_msg: (metadata.reviews_form_success_msg ||
-      "Hệ thống đã ghi nhận phản hồi của bạn. Đánh giá sẽ hiển thị sau khi được quản trị viên kiểm duyệt.") as string,
+  const labels = $derived.by(() => {
+    return {
+      trust_score: trustScore,
+      count_text:
+        (metadata.reviews_count_text as string) ||
+        countText ||
+        "",
+      hud_feedback:
+        (metadata.reviews_hud_feedback as string) ||
+        "Hệ thống // Phản hồi thực tế",
+      label_verified:
+        (metadata.reviews_label_verified as string) || "Đã xác thực",
+      label_compliant:
+        (metadata.reviews_label_compliant as string) || "Đã mua hàng",
+      label_store_verified:
+        (metadata.reviews_label_store_verified as string) ||
+        `Xác thực bởi ${ui.settings?.basic_info?.site_name || ui.settings?.name || "Cửa hàng"}`,
+      label_secure_encryption:
+        (metadata.reviews_label_secure_encryption as string) ||
+        "Mã hóa bảo mật [AES-256]",
+      label_secure_gate:
+        (metadata.reviews_label_secure_gate as string) || "Cổng bảo mật // V2.2",
+      cta_write:
+        (metadata.reviews_cta_write as string) || "Viết đánh giá của bạn",
+      form_title:
+        (metadata.reviews_form_title as string) ||
+        "Module // Real_Voice_Analysis_V2",
+      form_name: (metadata.reviews_form_name_label as string) || "Danh tính",
+      form_phone: (metadata.reviews_form_phone_label as string) || "Liên hệ",
+      form_location: (metadata.reviews_form_location_label as string) || "Vị trí",
+      form_rating:
+        (metadata.reviews_form_rating_label as string) || "Đánh giá sao",
+      form_content:
+        (metadata.reviews_form_content_label as string) || "Trải nghiệm thực tế",
+      form_placeholder:
+        (metadata.reviews_form_placeholder_content as string) ||
+        "Hãy cho chúng tôi biết cảm nhận của bạn... *",
+      form_cta:
+        (metadata.reviews_form_cta_submit as string) || "Xác nhận gửi đánh giá",
+      success_title:
+        (metadata.reviews_form_success_title as string) ||
+        "Gửi đánh giá thành công!",
+      success_msg: (metadata.reviews_form_success_msg ||
+        "Hệ thống đã ghi nhận phản hồi của bạn. Đánh giá sẽ hiển thị sau khi được quản trị viên kiểm duyệt.") as string,
+    };
   });
 
   let showFormModal = $state<boolean>(false);
@@ -229,25 +223,8 @@
         `/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`,
       );
       if (res.ok) {
-        const data: { items: ReviewApiResponse[] } = await res.json();
-        realReviews = (data.items || []).map((r) => {
-          const cleanName = r.customer_name
-            ? r.customer_name.split("(")[0].split("-")[0].trim()
-            : "Ẩn danh";
-
-          return {
-            id: r.id,
-            name: cleanName,
-            phone: r.customer_phone
-              ? "0" + r.customer_phone.slice(-9, -3) + "***"
-              : "09x****xxx",
-            location: r.customer_location || "Việt Nam",
-            rating: r.rating,
-            content: r.content,
-            initial: cleanName.charAt(0).toUpperCase(),
-            created_at: r.created_at,
-          };
-        });
+        const data: { items: RawReview[] } = await res.json();
+        realReviews = (data.items || []).map(mapRawReview);
       }
     } catch (e) {
       console.error("Master Sync Error (Reviews):", e);
@@ -683,18 +660,18 @@
                     <div
                       class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500"
                     >
-                      {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
+                      {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : '?')}
                       <div
                         class="absolute inset-0 bg-luxury-sakura/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"
                       ></div>
                     </div>
                     <div class="user-meta flex flex-col min-w-0">
-                      <h4 class="user-name font-black text-base text-white/95 tracking-tight truncate leading-tight mb-1">{review.name || review.customer_name}</h4>
+                      <h4 class="user-name font-black text-base text-white/95 tracking-tight truncate leading-tight mb-1">{review.name}</h4>
                       <div class="flex flex-col gap-0.5">
                         <div class="flex items-center gap-1.5 leading-none">
                           <span
                             class="text-[10px] text-white/40 font-bold tracking-tight"
-                            >{review.location || review.customer_location || 'Việt Nam'}</span
+                            >{review.location || 'Việt Nam'}</span
                           >
                           <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
                           <span
@@ -719,7 +696,7 @@
                         </div>
                         <span
                           class="text-[10px] text-white/20 font-mono tracking-wider"
-                          >{review.phone || (review.customer_phone ? '0' + review.customer_phone.slice(-9, -3) + '***' : '09x****xxx')}</span
+                          >{review.phone || '09x****xxx'}</span
                         >
                       </div>
                       <div class="flex items-center gap-0.5 mt-1.5">
