@@ -266,13 +266,13 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-[5px] bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
-                  {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : review.customer_name ? review.customer_name.charAt(0).toUpperCase() : '?')}
+                  {review.initial || (review.name ? review.name.charAt(0).toUpperCase() : '?')}
                 </div>
                 <div class="flex flex-col min-w-0">
-                  <h4 class="text-white font-black text-sm tracking-tight italic leading-tight mb-1">{review.name || review.customer_name}</h4>
+                  <h4 class="text-white font-black text-sm tracking-tight italic leading-tight mb-1">{review.name || 'Ẩn danh'}</h4>
                   <div class="flex flex-col gap-0.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="text-[9px] text-white/40 font-bold tracking-tight">{review.location || review.customer_location || 'Việt Nam'}</span>
+                      <span class="text-[9px] text-white/40 font-bold tracking-tight">{review.location || 'Việt Nam'}</span>
                       <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40 animate-pulse"></div>
                       <span class="text-[9px] text-[#FFB7C5] font-black tracking-widest uppercase">{labels.label_verified}</span>
                     </div>
