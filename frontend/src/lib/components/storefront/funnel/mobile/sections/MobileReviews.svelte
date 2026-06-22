@@ -64,7 +64,7 @@
   const labels = $derived({
     headline: metadata?.reviews_headline || 'Khách hàng nói gì?',
     trust_score: metadata?.reviews_trust_score || '4.9/5',
-    count_text: product?.orderCountText || metadata?.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua` : ''),
+    count_text: product?.orderCountText || metadata?.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product?.orderCount || product?.order_count)?.toLocaleString()}+ lượt mua` : ''),
     hud_feedback: metadata?.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế',
     label_verified: metadata?.reviews_label_verified || 'Đã xác thực',
     label_store_verified: metadata?.reviews_label_store_verified || 'Xác thực bởi Cửa hàng',
