@@ -277,7 +277,7 @@
                       <span class="text-[9px] text-[#FFB7C5] font-black tracking-widest uppercase">{labels.label_verified}</span>
                     </div>
                     <span class="text-[9px] text-white/20 font-mono tracking-wider">
-                      {review.phone || (review.customer_phone ? review.customer_phone.slice(0, 3) + '****' + review.customer_phone.slice(-3) : '09x****xxx')}
+                      {review.phone}
                     </span>
                   </div>
                 </div>
