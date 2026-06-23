@@ -8,6 +8,7 @@ import urllib.request
 from datetime import datetime
 from typing import TypedDict
 from litestar import Controller, route, Response, MediaType
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -67,6 +68,8 @@ class PublicSeoController(Controller):
             .where(ProductBase.status == "ACTIVE")
             .where(ProductBase.deleted_at == None)
             .where(ProductBase.slug.isnot(None))
+            .where(ProductBase.name.isnot(None))
+            .where(sa.func.trim(ProductBase.name) != "")
             .limit(2000)
         )
         for row in result.mappings():
@@ -82,6 +85,9 @@ class PublicSeoController(Controller):
         cat_result = await db_session.execute(
             select(Category.slug)
             .where(Category.slug.isnot(None))
+            .where(Category.deleted_at == None)
+            .where(Category.name.isnot(None))
+            .where(sa.func.trim(Category.name) != "")
             .limit(200)
         )
         for row_cat in cat_result.scalars():
@@ -91,7 +97,10 @@ class PublicSeoController(Controller):
         art_result = await db_session.execute(
             select(Article.slug, Article.updated_at, Article.created_at)
             .where(Article.status == "PUBLISHED")
+            .where(Article.deleted_at == None)
             .where(Article.slug.isnot(None))
+            .where(Article.title.isnot(None))
+            .where(sa.func.trim(Article.title) != "")
             .limit(500)
         )
         for row_art in art_result.mappings():

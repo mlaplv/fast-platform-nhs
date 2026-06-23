@@ -45,7 +45,7 @@ export interface CategoryLdConfig {
     name: string;
     url: string;
     description?: string;
-    numberOfItems: number;
+    numberOfItems?: number;
     items?: { name: string; url: string }[];
 }
 
@@ -181,6 +181,7 @@ export function buildWebSiteLd(siteName: string, siteUrl: string): string {
  * Used for Category pages to help AI understand product groupings.
  */
 export function buildCategoryLd(config: CategoryLdConfig): string {
+    const numItems = config.numberOfItems ?? (config.items ? config.items.length : 0);
     const schema: Record<string, unknown> = {
         "@context": "https://schema.org/",
         "@type": "CollectionPage",
@@ -188,13 +189,13 @@ export function buildCategoryLd(config: CategoryLdConfig): string {
         "name": config.name,
         "url": config.url,
         "description": config.description || "",
-        "numberOfItems": config.numberOfItems,
+        "numberOfItems": numItems,
     };
 
     if (config.items && config.items.length > 0) {
         schema.mainEntity = {
             "@type": "ItemList",
-            "numberOfItems": config.numberOfItems,
+            "numberOfItems": numItems,
             "itemListElement": config.items.slice(0, 15).map((item, i) => ({
                 "@type": "ListItem",
                 "position": i + 1,
@@ -235,17 +236,32 @@ export function buildFaqLd(faqs: FaqItem[]): string {
 }
 
 /**
+ * Clean html tags, decode HTML entities and collapse whitespaces.
+ */
+export function cleanHtmlText(text: string): string {
+    if (!text) return "";
+    return text
+        .replace(/<[^>]+>/g, "") // Strip HTML tags
+        .replace(/&nbsp;/gi, " ") // Decode non-breaking spaces
+        .replace(/&amp;/gi, "&")
+        .replace(/&quot;/gi, '"')
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/\s+/g, " ") // Collapse consecutive whitespaces
+        .trim();
+}
+
+/**
  * Truncate text for meta description (150-160 chars).
  * Cuts at word boundary to avoid broken words.
  */
 export function truncateDescription(text: string, maxLen: number = 160): string {
     if (!text) return "";
-    // Strip HTML
-    const clean = text.replace(/<[^>]+>/g, "").trim();
+    const clean = cleanHtmlText(text);
     if (clean.length <= maxLen) return clean;
     const truncated = clean.substring(0, maxLen - 3);
     const lastSpace = truncated.lastIndexOf(" ");
-    return (lastSpace > maxLen - 23 ? truncated.substring(0, lastSpace) : truncated) + "…";
+    return (lastSpace > maxLen - 20 ? truncated.substring(0, lastSpace) : truncated) + "…";
 }
 
 /**

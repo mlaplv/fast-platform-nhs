@@ -5,9 +5,7 @@
 # GROUP 1: BLOCK AI TRAINING CRAWLERS (Chống lấy dữ liệu dạy học AI)
 # ==============================================================================
 User-agent: GPTBot
-User-agent: ChatGPT-User
 User-agent: ClaudeBot
-User-agent: Claude-Web
 User-agent: anthropic-ai
 User-agent: Google-Extended
 User-agent: Applebot-Extended
@@ -26,33 +24,46 @@ Disallow: /
 # GROUP 2: ALLOW AI SEARCH & STANDARD CRAWLERS (Cho phép AI tìm kiếm quét để lấy Traffic)
 # ==============================================================================
 User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
 User-agent: PerplexityBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
 User-agent: Googlebot
 User-agent: Bingbot
+User-agent: Applebot
+User-agent: YouBot
 User-agent: *
 
-# Transactional flows - no SEO value
+# Block all paths by default
+Disallow: /
+
+# Allow Sitemap-defined indexable formats ONLY
+Allow: /sitemap.xml$
+Allow: /$
+Allow: /bai-viet$
+Allow: /khuyen-mai$
+Allow: /*.html$
+Allow: /*/$
+Allow: /*$
+
+# Block nested paths (2+ segments)
+Disallow: /*/*$
+Disallow: /*/*/$
+
+# Transactional/utility/admin/api pages explicitly (highest priority)
 Disallow: /checkout
 Disallow: /cart
 Disallow: /track
 Disallow: /search
 Disallow: /user
 Disallow: /auth
-Disallow: /*/reviews
-
-# Admin and internal APIs
 Disallow: /admin
 Disallow: /api
 Disallow: /ws
-
-# Internal utility pages
-Disallow: /google-merchant.xml
 Disallow: /thank-you
 Disallow: /payment
-
-# Allow public storefront
-Allow: /sitemap.xml
-Allow: /
+Disallow: /google-merchant.xml
+Disallow: /*/reviews
 
 # ==============================================================================
 # SITEMAP DECLARATION

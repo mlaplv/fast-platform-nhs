@@ -72,8 +72,16 @@ class SeoService:
 
     @staticmethod
     def _strip_html(text: str) -> str:
-        """Remove HTML tags from text."""
-        return _RE_HTML.sub('', text).strip()
+        """Remove HTML tags and clean up whitespace/entities."""
+        if not text:
+            return ""
+        # Remove tags
+        text = _RE_HTML.sub('', text)
+        # Decode common HTML entities
+        text = text.replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", '"').replace("&lt;", "<").replace("&gt;", ">")
+        # Collapse whitespace
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
 
     @staticmethod
     def _build_title(product: object, seo_title: Optional[str] = None) -> str:
@@ -990,7 +998,7 @@ class SeoService:
             "name": name,
             "potentialAction": {
                 "@type": "SearchAction",
-                "target": {"@type": "EntryPoint", "urlTemplate": f"{_SITE_URL}/products?q={{search_term_string}}"},
+                "target": {"@type": "EntryPoint", "urlTemplate": f"{_SITE_URL}/search?q={{search_term_string}}"},
                 "query-input": "required name=search_term_string"
             }
         }

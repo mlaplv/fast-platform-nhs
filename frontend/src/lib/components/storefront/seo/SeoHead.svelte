@@ -179,6 +179,72 @@
     return page.data.shopInfo?.seo_analytics?.meta_keywords || "";
   });
 
+  const finalRobots = $derived.by(() => {
+    // 1. Respect explicit overrides to noindex/none
+    if (robots && (robots.includes("noindex") || robots.includes("none"))) {
+      return robots;
+    }
+
+    // 2. Dev environment check (localhost or .local domains should not be indexed)
+    if (browser && (
+      window.location.hostname.includes("localhost") || 
+      window.location.hostname.includes("127.0.0.1") ||
+      window.location.hostname.endsWith(".local")
+    )) {
+      return "noindex, nofollow";
+    }
+
+    const path = page.url.pathname;
+    
+    // Homepage is always indexable
+    if (path === "/") {
+      return robots;
+    }
+
+    const cleanPath = path.endsWith("/") ? path.slice(0, -1) : path;
+    const segments = cleanPath.split("/").filter(Boolean);
+
+    // Any multi-segment page (e.g. /checkout/success/..., /user/profile, /[slug]/[sub]/[subsub]) is NOT in sitemap.xml
+    if (segments.length > 1) {
+      return "noindex, nofollow";
+    }
+
+    // If single segment, check allowed static storefront paths or product/category/article slugs
+    if (segments.length === 1) {
+      const seg = segments[0];
+
+      // Explicitly non-sitemap single-segment paths
+      const excludedSingleSegments = ["checkout", "cart", "track", "search", "user", "auth", "admin", "login", "payment", "thank-you"];
+      if (excludedSingleSegments.includes(seg)) {
+        return "noindex, nofollow";
+      }
+
+      // Allowed static/articles pages
+      if (seg === "bai-viet" || seg === "khuyen-mai" || seg.endsWith(".html")) {
+        return robots;
+      }
+
+      // Check category details (which must end with trailing slash)
+      if (pageType === "category") {
+        if (!path.endsWith("/")) {
+          return "noindex, nofollow";
+        }
+        return robots;
+      }
+
+      // Check product details (which must NOT end with trailing slash)
+      if (pageType === "product") {
+        if (path.endsWith("/")) {
+          return "noindex, nofollow";
+        }
+        return robots;
+      }
+    }
+
+    // Default fallback: allow if we have no clear indicator, but keep default robots setting
+    return robots;
+  });
+
   const resolvedBrand = $derived.by(() => {
     if (productData?.brand) {
       const b = productData.brand.toLowerCase().trim();
@@ -341,6 +407,7 @@
       // Frontend only manages Category (may not have backend-provided schema)
       if (pageType === "category" && categoryData) {
         seoFactory.categoryData = {
+          description: finalDescription,
           ...categoryData,
           url: absCanonical,
         } as CategoryLdConfig;
@@ -419,7 +486,7 @@
     {#if finalKeywords}
       <meta name="keywords" content={finalKeywords} />
     {/if}
-    <meta name="robots" content={robots} />
+    <meta name="robots" content={finalRobots} />
     <link rel="canonical" href={absCanonical} />
 
     <!-- Global Copyright & Author -->
