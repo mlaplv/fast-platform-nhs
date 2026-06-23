@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { getIngredientIcon } from '$lib/utils/product';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   interface Props {
     product: Product;
@@ -16,6 +17,7 @@
   }
 
   let { product, visibleAttributes, productInfo, onViewFullIngredients, onTriggerScan }: Props = $props();
+  const ui = getClientUi();
 
   const featuredIngredients = $derived(
     (product.metadata?.featured_ingredients || product.metadata?.ingredients || [])
@@ -37,7 +39,7 @@
   <div class="spec-bar">
     <div class="spec-item">
       <span class="spec-label">Thương hiệu</span>
-      <span class="spec-value">{productInfo.brand || 'Osmo Elite'}</span>
+      <span class="spec-value">{productInfo.brand || (ui.settings?.basic_info?.site_name || 'osmo.vn')}</span>
     </div>
     <div class="spec-item">
       <span class="spec-label">Xuất xứ</span>

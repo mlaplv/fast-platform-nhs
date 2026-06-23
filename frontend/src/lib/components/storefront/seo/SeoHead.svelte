@@ -12,6 +12,8 @@
     type CategoryLdConfig,
     type BreadcrumbItem,
     type FaqItem,
+    type ArticleLdConfig,
+    type ProductLdConfig,
     containsSchemaType,
     truncateDescription,
   } from "$lib/utils/seo";
@@ -68,13 +70,15 @@
   // ── Resolve Central Shop Settings Dynamically (SSOT & Zero Hardcode) ──
   const resolvedSiteName = $derived.by(() => {
     const dbSiteName = page.data.shopInfo?.basic_info?.site_name;
-    if (dbSiteName) return dbSiteName;
+    if (dbSiteName && dbSiteName.toLowerCase() !== "smartshop") return dbSiteName;
     if (siteName && siteName.trim()) return siteName;
     if (page.url.hostname) {
-      const name = page.url.hostname.split(".")[0];
+      const hostname = page.url.hostname;
+      if (hostname.includes("osmo")) return "osmo.vn";
+      const name = hostname.split(".")[0];
       return name.charAt(0).toUpperCase() + name.slice(1);
     }
-    return "SmartShop";
+    return "osmo.vn";
   });
 
   const resolvedSiteTitle = $derived(
@@ -97,7 +101,7 @@
   const finalTitle = $derived.by(() => {
     const isPlaceholder = (val: string) => {
       const v = val.toLowerCase().trim();
-      return v === "" || v === "smartshop";
+      return v === "" || v === "smartshop" || v === "osmo elite" || v === "osmoelite";
     };
 
     let baseTitle = title;
@@ -152,15 +156,19 @@
     let raw = description;
     const isPlaceholderDesc = (val: string) => {
       const v = val.toLowerCase().trim();
-      return v.includes("osmo elite việt nam") && v.includes("chăm sóc sức khỏe");
+      return v === "" || 
+             v.includes("smartshop") || 
+             v.includes("osmo elite") || 
+             v.includes("osmo elite việt nam");
     };
     if (!raw || isPlaceholderDesc(raw)) {
       if (pageType === "home" || page.url.pathname === "/") {
         raw = page.data.shopInfo?.seo_analytics?.meta_description || page.data.shopInfo?.basic_info?.description;
       }
-      if (!raw) {
+      if (!raw || isPlaceholderDesc(raw)) {
         const slogan = page.data.shopInfo?.basic_info?.slogan || "Chăm sóc sức khỏe và sắc đẹp chuyên sâu";
-        raw = `${finalTitle} - ${slogan}. Sản phẩm nội địa chất lượng cao, an toàn và lành tính.`;
+        const descText = page.data.shopInfo?.basic_info?.description || "Sản phẩm nội địa chất lượng cao, an toàn và lành tính";
+        raw = `${finalTitle} - ${slogan}. ${descText}.`;
       }
     }
     return truncateDescription(raw);
@@ -174,7 +182,7 @@
   const resolvedBrand = $derived.by(() => {
     if (productData?.brand) {
       const b = productData.brand.toLowerCase().trim();
-      if (b && b !== "smartshop") {
+      if (b && b !== "smartshop" && b !== "osmo elite" && b !== "osmoelite") {
         return productData.brand;
       }
     }
@@ -216,8 +224,8 @@
             const hasRating = productData.ratingValue !== undefined && productData.reviewCount !== undefined;
             const ratingText = hasRating 
               ? `✅ PASS (${productData.ratingValue} / ${productData.reviewCount} reviews)`
-              : "⚠️ SELF-HEALING (Defaults applied: 5.0 / 1 review)";
-            const ratingColor = hasRating ? "color: #a6e3a1; font-weight: bold;" : "color: #f9e2af; font-weight: bold;";
+              : "ℹ️ NO REVIEWS (aggregateRating correctly omitted from schema)";
+            const ratingColor = hasRating ? "color: #a6e3a1; font-weight: bold;" : "color: #89b4fa; font-weight: bold;";
             console.log("%c Schema Audit: ", ratingColor, ratingText);
           }
 

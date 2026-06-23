@@ -84,7 +84,7 @@
       const name = page.url.hostname.split(".")[0];
       return name.charAt(0).toUpperCase() + name.slice(1);
     }
-    return "SmartShop";
+    return "osmo.vn";
   });
 
   // CTV profile state

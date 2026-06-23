@@ -459,7 +459,7 @@
       </span>
     </button>
     <p class="text-[9px] text-stone-300 tracking-widest">
-      Mọi thông tin được bảo mật bởi osmo Elite
+      Mọi thông tin được bảo mật bởi {ui.settings?.basic_info?.site_name || 'osmo.vn'}
     </p>
   </div>
 </div>

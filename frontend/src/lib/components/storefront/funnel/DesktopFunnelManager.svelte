@@ -264,7 +264,7 @@
 
 <SeoHead
   pageType="product"
-  title={seoMeta?.title || product?.name || "osmo Elite"}
+  title={seoMeta?.title || product?.name || (clientUi.settings?.basic_info?.site_name || "osmo.vn")}
   description={seoMeta?.description ||
     product?.shortDescription ||
     product?.short_description ||
@@ -272,7 +272,7 @@
     ""}
   image={product?.images?.[0] || ""}
   keywords={seoMeta?.keywords || ""}
-  siteName={seoMeta?.site_name || product?.metadata?.seo_site_name || "osmo"}
+  siteName={seoMeta?.site_name || product?.metadata?.seo_site_name || (clientUi.settings?.basic_info?.site_name || "osmo.vn")}
   productData={{
     name: product?.name || "",
     price: product?.price || 0,
@@ -285,8 +285,8 @@
       ...(product?.images || []),
       ...(product?.tierVariations?.[0]?.images || [])
     ])).filter(Boolean),
-    ratingValue: data?.reviewStats?.average_rating || 5,
-    reviewCount: data?.reviewStats?.total_count || 1,
+    ratingValue: data?.reviewStats?.average_rating || undefined,
+    reviewCount: data?.reviewStats?.total_count || undefined,
   }}
   jsonLdScripts={[
     seoMeta?.json_ld_string,

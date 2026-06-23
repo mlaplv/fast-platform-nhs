@@ -4,14 +4,19 @@
   import HomeProductGrid from '$lib/components/storefront/home/HomeProductGrid.svelte';
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
 
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
   let { data }: { data: GenericPageData } = $props();
   const ui = getClientUi();
   const isMobile = $derived(ui.isMobile);
+  const siteName = $derived(ui.settings?.basic_info?.site_name || 'osmo.vn');
 </script>
 
-<svelte:head>
-  <title>{data.categoryName || 'Danh mục'} | osmo Elite</title>
-</svelte:head>
+<SeoHead
+  pageType="category"
+  title="{data.categoryName || 'Danh mục'} | {siteName}"
+  description="{data.categoryName || 'Danh mục'} chính hãng giá tốt tại {siteName}."
+/>
 
 <div class="category-page-wrapper bg-[#010101] min-h-screen">
   {#if isMobile}

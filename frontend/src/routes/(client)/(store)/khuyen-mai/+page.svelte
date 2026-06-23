@@ -14,18 +14,18 @@
   const products = $derived((data.products as Product[]) ?? []);
 
   // SEO & Metadata settings
-  const siteUrl = "https://osmo.vn";
-  const seoSiteName = "osmo Elite";
-  const seoTitle = "Mã Giảm Giá - Săn Ưu Đãi Độc Quyền | OSMO.VN";
-  const seoDescription = "Nhận ngay các mã giảm giá, voucher độc quyền, miễn phí vận chuyển cực hot từ OSMO - Mỹ phẩm Nhật Bản chính hãng!";
+  const siteUrl = $derived(ui.settings?.basic_info?.domain ? (ui.settings.basic_info.domain.startsWith("http") ? ui.settings.basic_info.domain : `https://${ui.settings.basic_info.domain}`) : "https://osmo.vn");
+  const siteName = $derived(ui.settings?.basic_info?.site_name || "osmo.vn");
+  const seoTitle = $derived(`Mã Giảm Giá - Săn Ưu Đãi Độc Quyền | ${siteName.toUpperCase()}`);
+  const seoDescription = $derived(`Nhận ngay các mã giảm giá, voucher độc quyền, miễn phí vận chuyển cực hot từ ${siteName} - Mỹ phẩm chính hãng!`);
 </script>
 
 <SeoHead
-  pageType="article"
+  pageType="default"
   title={seoTitle}
   description={seoDescription}
   canonical="{siteUrl}/khuyen-mai"
-  siteName={seoSiteName}
+  siteName={siteName}
 />
 
 {#if !ui.isDetermined}

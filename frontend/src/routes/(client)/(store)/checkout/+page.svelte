@@ -631,7 +631,7 @@
 </script>
 
 <SeoHead
-  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name || 'SmartShop'}"
+  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name || 'osmo.vn'}"
   robots="noindex, nofollow"
 />
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import type { Product } from '$lib/types';
   import ProductGrid from '../../product/ProductGrid.svelte';
   import { getRecentlyViewedStore } from '$lib/state/commerce/recentlyViewed.svelte';
@@ -16,6 +17,7 @@
     initialProducts?: Product[];
   }
   let { product, isMobile = false, initialProducts = [] }: Props = $props();
+  const ui = getClientUi();
 
   // Elite Performance Fix P2.2: Dùng dữ liệu từ server nếu có
   let categoryProducts = $state<Product[]>(initialProducts);
@@ -40,7 +42,7 @@
       });
     }
     if (brandProducts.length > 0) {
-      const brand = product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'] || 'osmo Elite';
+      const brand = product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'] || (ui.settings?.basic_info?.site_name || 'osmo.vn');
       list.push({ 
         id: 'brand', 
         label: 'Thương hiệu', 

@@ -11,9 +11,9 @@
 </script>
 
 <svelte:head>
-  <title>{status} - SmartShop Error</title>
+  <title>{status} - osmo.vn Error</title>
   <meta name="description" content="{status} - {message}" />
-  <meta property="og:title" content="{status} - SmartShop Error" />
+  <meta property="og:title" content="{status} - osmo.vn Error" />
   <meta property="og:description" content="{message}" />
 </svelte:head>
 

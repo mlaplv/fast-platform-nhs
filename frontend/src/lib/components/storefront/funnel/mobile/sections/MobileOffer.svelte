@@ -26,6 +26,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   interface MobileOfferProps {
     product?: Product;
@@ -42,6 +43,7 @@
   let { product: propProduct, onOpenDetails }: MobileOfferProps = $props();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
+  const ui = getClientUi();
   
   const product: Product | null = $derived(propProduct || shopStore.product);
 
@@ -466,7 +468,7 @@
                       <div class="absolute top-1 right-2 opacity-30 rotate-12">
                          <Sparkles class="w-3.5 h-3.5 text-black" />
                       </div>
-                      <div class="absolute bottom-1.5 left-3 opacity-10 font-[serif] text-[7px] font-bold tracking-widest text-black">Miccosmo Elite</div>
+                      <div class="absolute bottom-1.5 left-3 opacity-10 font-[serif] text-[7px] font-bold tracking-widest text-black uppercase">{ui.settings?.basic_info?.site_name || ui.settings?.name || "osmo.vn"}</div>
                    </div>
                 </div>
 

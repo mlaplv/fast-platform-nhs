@@ -126,13 +126,6 @@ export function buildOrganizationLd(config: OrganizationConfig): string {
         "name": config.name,
         "url": config.url,
         "image": config.logo,
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "24",
-            "bestRating": "5",
-            "worstRating": "1"
-        }
     };
 
     if (config.logo) org.logo = config.logo;
@@ -196,13 +189,6 @@ export function buildCategoryLd(config: CategoryLdConfig): string {
         "url": config.url,
         "description": config.description || "",
         "numberOfItems": config.numberOfItems,
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "24",
-            "bestRating": "5",
-            "worstRating": "1"
-        }
     };
 
     if (config.items && config.items.length > 0) {
@@ -215,11 +201,7 @@ export function buildCategoryLd(config: CategoryLdConfig): string {
                 "item": {
                     "@type": "Product",
                     "name": item.name,
-                    "url": item.url,
-                    "brand": {
-                        "@type": "Brand",
-                        "name": "Miccosmo"
-                    }
+                    "url": item.url
                 }
             })),
         };

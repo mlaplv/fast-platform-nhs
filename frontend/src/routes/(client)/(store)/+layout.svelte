@@ -39,7 +39,7 @@
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
     if (!isAdmin && ui.isMobile && ui.settings?.conversions?.fomo_enabled) {
-        fomoStore.init('smartshop-elite');
+        fomoStore.init('osmo-fomo');
     }
 
 
@@ -64,7 +64,7 @@
     const fomoEnabled = !isAdmin && ui.isMobile && ui.settings?.conversions?.fomo_enabled;
     if (fomoEnabled) {
         if (!fomoStore.isInitialized) {
-            fomoStore.init('smartshop-elite');
+            fomoStore.init('osmo-fomo');
         }
         if (!NeuralBarComponent) {
             import('$lib/components/client/common/NeuralActivityBar.svelte').then(m => {
@@ -95,13 +95,13 @@
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)
   const footerShopInfo = $derived({
-      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "SmartShop ELITE",
-      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống SmartShop",
-      slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "Mua sắm thông minh",
-      description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "Hệ thống thương mại điện tử Elite 2026.",
-      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1900-SMART",
-      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "contact@smartshop.test",
-      address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "Hà Nội, Việt Nam",
+      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "osmo.vn",
+      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "",
+      slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "",
+      description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "",
+      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "",
+      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "",
+      address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "",
       taxId: data.shopInfo?.contact_info?.tax_id || data.shopInfo?.tax_id || "",
       businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""
   });

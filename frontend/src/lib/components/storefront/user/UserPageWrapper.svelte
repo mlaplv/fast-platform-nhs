@@ -108,7 +108,7 @@
 </script>
 
 <SeoHead 
-  title="{title} | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  title="{title} | {ui.settings?.basic_info?.site_name || 'osmo.vn'}" 
   description={description}
   robots="noindex, nofollow"
 />

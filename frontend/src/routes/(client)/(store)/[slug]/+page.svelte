@@ -26,7 +26,7 @@
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
   const siteUrl = $derived(page.url.origin);
-  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || 'SmartShop');
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.name || 'osmo.vn');
 
   interface NewsItem {
     id: string;
@@ -200,8 +200,8 @@
       })),
       currency: "VND",
       availability: productData.product.stock > 0 ? 'InStock' : 'OutOfStock',
-      ratingValue: productData.reviewStats?.average_rating || 5,
-      reviewCount: productData.reviewStats?.total_count || 1
+      ratingValue: productData.reviewStats?.average_rating || undefined,
+      reviewCount: productData.reviewStats?.total_count || undefined
     }}
     jsonLdScripts={[productSeoMeta?.json_ld_string, productSeoMeta?.breadcrumb_ld_string, productSeoMeta?.faq_ld_string].filter(Boolean)}
   />

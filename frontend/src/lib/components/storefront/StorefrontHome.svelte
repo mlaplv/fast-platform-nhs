@@ -36,16 +36,16 @@
     });
 
     const shopInfo = $derived({
-        name: data.settings?.basic_info?.site_name || "osmo Elite",
+        name: data.settings?.basic_info?.site_name || "osmo.vn",
         companyName: data.settings?.contact_info?.company_name || "",
         taxId: data.settings?.contact_info?.tax_id || "",
         businessLicense: data.settings?.contact_info?.business_license || "",
-        slogan: data.settings?.basic_info?.slogan || "Agentic AI Commerce 2026", // Dynamic from Settings V2.2
-        subslogan: data.settings?.basic_info?.subslogan || "Làn da trắng mịn không chỉ là vẻ đẹp, đó là sự tự tin và kiêu hãnh của mỗi người phụ nữ.",
-        description: data.settings?.basic_info?.description || "Mỹ Phẩm Cao Cấp Từ Nhật Bản",
-        hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "1800-osmo",
-        email: data.settings?.contact_info?.email || "contact@osmo",
-        address: data.settings?.contact_info?.address || "TP. Hồ Chí Minh"
+        slogan: data.settings?.basic_info?.slogan || "",
+        subslogan: data.settings?.basic_info?.subslogan || "",
+        description: data.settings?.basic_info?.description || "",
+        hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "",
+        email: data.settings?.contact_info?.email || "",
+        address: data.settings?.contact_info?.address || ""
     });
 </script>
 

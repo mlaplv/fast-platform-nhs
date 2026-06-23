@@ -12,7 +12,7 @@
     ui.settings?.name || 
     page.data?.shopInfo?.basic_info?.site_name || 
     page.data?.shopInfo?.name || 
-    "SmartShop"
+    "osmo.vn"
   );
 
   let isBackendDown = $derived(status === 503 || message.includes("Backend Connection Failed"));

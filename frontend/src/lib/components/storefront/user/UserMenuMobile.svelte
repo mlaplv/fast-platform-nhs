@@ -16,6 +16,9 @@
   import Ticket from "@lucide/svelte/icons/ticket";
   import Award from "@lucide/svelte/icons/award";
   import X from "@lucide/svelte/icons/x";
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
+  const ui = getClientUi();
 
   interface Props {
     active: boolean;
@@ -71,7 +74,7 @@
               <Sparkles class="w-5 h-5 text-luxury-copper" />
            </div>
            <div>
-             <h2 class="text-[13px] font-black tracking-[3px] text-stone-800">osmo Elite</h2>
+             <h2 class="text-[13px] font-black tracking-[3px] text-stone-800">{ui.settings?.basic_info?.site_name || 'osmo.vn'}</h2>
              <p class="text-[9px] text-stone-400 tracking-widest mt-0.5">Luxury Experience</p>
            </div>
         </div>
@@ -149,7 +152,7 @@
         </button>
 
         <p class="text-[9px] text-center text-stone-300 tracking-[2px] mt-8">
-          Elite Member Experience • osmo 2026
+          Elite Member Experience • {ui.settings?.basic_info?.site_name || 'osmo.vn'} 2026
         </p>
       </div>
     </div>

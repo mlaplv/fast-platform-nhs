@@ -13,6 +13,7 @@
   import InteractiveDashboard from "$lib/components/ui/InteractiveDashboard.svelte";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
@@ -88,6 +89,7 @@
 
   const shopStore = getShopStore();
   const cartStore = getCartStore();
+  const ui = getClientUi();
 
   let cachedScrollHeight = 0;
   let cachedClientHeight = 0;
@@ -588,7 +590,7 @@
             <!-- Brand Card -->
             <div class="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1">
               <span class="text-[9px] font-bold text-white/35 uppercase tracking-widest">Thương hiệu</span>
-              <span class="text-[13px] font-bold text-white/90">{specBrand || 'Osmo Elite'}</span>
+              <span class="text-[13px] font-bold text-white/90">{specBrand || (ui.settings?.basic_info?.site_name || 'osmo.vn')}</span>
             </div>
 
             <!-- Origin Card -->

@@ -115,7 +115,7 @@
 
 </script>
 
-<SeoHead title="Đang xác thực | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" robots="noindex, nofollow" />
+<SeoHead title="Đang xác thực | {ui.settings?.basic_info?.site_name || 'osmo.vn'}" robots="noindex, nofollow" />
 
 <div class="fixed inset-0 bg-white z-[var(--z-modal-overlay)] flex items-center justify-center p-6">
 

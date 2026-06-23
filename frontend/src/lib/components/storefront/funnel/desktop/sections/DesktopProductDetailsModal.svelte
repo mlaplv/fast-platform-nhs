@@ -8,6 +8,7 @@
   import { fade } from 'svelte/transition';
   import { lightLiveEdit } from '$lib/state/commerce/liveEditState.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 
@@ -22,6 +23,7 @@
   }
 
   const shopStore = getShopStore();
+  const ui = getClientUi();
   let { active = $bindable(), product: propProduct, onTriggerScan }: { active: boolean; product?: Product; onTriggerScan?: () => void } = $props();
   const product = $derived(lightLiveEdit.isEditMode && lightLiveEdit.dirtyProduct ? lightLiveEdit.dirtyProduct : (propProduct || shopStore.product));
 
@@ -89,7 +91,7 @@
           <!-- Brand Card -->
           <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-1 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/10">
             <span class="text-[9px] font-bold text-white/30 uppercase tracking-widest">Thương hiệu</span>
-            <span class="text-[14px] font-bold text-white/90">{specBrand || 'Osmo Elite'}</span>
+            <span class="text-[14px] font-bold text-white/90">{specBrand || (ui.settings?.basic_info?.site_name || 'osmo.vn')}</span>
           </div>
 
           <!-- Origin Card -->

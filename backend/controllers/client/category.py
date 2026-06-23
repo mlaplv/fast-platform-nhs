@@ -58,6 +58,7 @@ class PublicCategoryController(Controller):
         
         verified_metadata = CategoryMetadata.model_validate(db_meta) if db_meta else CategoryMetadata()
 
+        await SeoService._resolve_settings(db_session)
         seo_meta = SeoService.generate_category_seo_meta(
             name=category.name,
             slug=category.slug,

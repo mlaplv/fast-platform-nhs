@@ -499,7 +499,7 @@
 </script>
 
 <SeoHead 
-  title="Đặt hàng thành công | {ui.settings?.basic_info?.site_name || ui.settings?.site_name || 'SmartShop'}" 
+  title="Đặt hàng thành công | {ui.settings?.basic_info?.site_name || ui.settings?.site_name || 'osmo.vn'}" 
   robots="noindex, nofollow"
 />
 

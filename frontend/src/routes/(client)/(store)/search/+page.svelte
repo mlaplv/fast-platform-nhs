@@ -36,7 +36,7 @@
   );
 
   // GEO 2026: SEO Meta
-  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "osmo.vn");
   const seoTitle = $derived(
     data.searchQuery
       ? `Tìm kiếm "${data.searchQuery}" | ${siteName}`

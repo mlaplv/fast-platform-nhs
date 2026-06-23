@@ -265,7 +265,7 @@
                   > ngay!
                 </p>
                 <p class="text-[9px] text-stone-400 italic mt-2 text-right">
-                  #StayElite #SmartShopAI
+                  #StayElite
                 </p>
               </div>
             </div>
@@ -347,7 +347,7 @@
       </div>
     {/if}
 
-    <!-- SECURE PACKAGING (SmartShop THEME) -->
+    <!-- SECURE PACKAGING (OSMO THEME) -->
     <div
       class="w-full mt-6 bg-[#fff4f1] border border-orange-100 p-4 transition-all duration-300"
     >

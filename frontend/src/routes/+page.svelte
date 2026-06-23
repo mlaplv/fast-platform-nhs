@@ -43,7 +43,7 @@
     // SEO Derivation — only computed when storefront (no wasted CPU for admin)
     const shopSettings = $derived(!isAdmin ? data.shopInfo : null);
     const seoSiteName = $derived(
-        shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo Elite"
+        shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo.vn"
     );
     const seoDescription = $derived(
         data.seo_meta?.description || 

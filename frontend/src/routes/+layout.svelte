@@ -366,12 +366,12 @@
   const siteName = $derived(
     isAdmin 
     ? "Xohi Admin Dashboard" 
-    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "osmo Elite")
+    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "osmo.vn")
   );
   const metaDescription = $derived(
     isAdmin
-    ? "Hệ thống quản trị Elite V2.2"
-    : `${siteName} - Hệ thống phân phối sản phẩm chăm sóc sức khỏe Elite V2.2`
+    ? "Hệ thống quản trị"
+    : `${siteName} - Mỹ phẩm chính hãng chất lượng cao.`
   );
 
   // Elite V2.2: Global Z-Index Injection (Client Only)

@@ -29,8 +29,8 @@ from backend.utils.schema_mutator import mutate_json_ld
 logger = logging.getLogger("api-gateway")
 
 # ── Config từ Env để tránh hardcode ────────────────────────────────────────────
-_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "osmo")
-_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "osmo Elite")
+_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "osmo.vn")
+_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "osmo.vn")
 _BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "osmo")
 _SITE_URL: str = f"https://{_BASE_DOMAIN}"
 
@@ -450,6 +450,53 @@ class SeoService:
     # ═══════════════════════════════════════════════════════════════════════════
 
     @staticmethod
+    async def _resolve_settings(db: Optional[AsyncSession] = None) -> None:
+        """Resolve site settings from database or Redis cache dynamically (Elite V2.2)."""
+        global _SITE_NAME, _SITE_URL, _BRAND_NAME
+        site_name = os.getenv("SEO_SITE_NAME") or "osmo.vn"
+        base_domain = os.getenv("APP_DOMAIN") or "osmo.vn"
+        site_url = f"https://{base_domain}"
+        brand_name = os.getenv("SEO_BRAND_NAME") or "osmo"
+
+        # 1. Try Redis cache first
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            cached = await xohi_memory.client.get("system:settings:primary_config")
+            if cached:
+                cfg = json.loads(cached)
+                basic = cfg.get("basic_info", {})
+                if basic.get("site_name"):
+                    site_name = basic["site_name"]
+                if basic.get("domain"):
+                    base_domain = basic["domain"]
+                    site_url = f"https://{base_domain}"
+        except Exception:
+            pass
+
+        # 2. Try DB if cache miss or db is passed
+        if db and site_name == "osmo.vn":
+            try:
+                from sqlalchemy import text
+                res = await db.execute(text("SELECT value FROM system_settings WHERE key = 'primary_config'"))
+                row = res.fetchone()
+                if row:
+                    cfg = row[0]
+                    if isinstance(cfg, str):
+                        cfg = json.loads(cfg)
+                    basic = cfg.get("basic_info", {})
+                    if basic.get("site_name"):
+                        site_name = basic["site_name"]
+                    if basic.get("domain"):
+                        base_domain = basic["domain"]
+                        site_url = f"https://{base_domain}"
+            except Exception:
+                pass
+
+        _SITE_NAME = site_name
+        _SITE_URL = site_url
+        _BRAND_NAME = brand_name
+
+    @staticmethod
     async def generate_seo_meta(
         product: ProductResponse,
         db: Optional[AsyncSession] = None
@@ -458,6 +505,7 @@ class SeoService:
         Entry point: Tạo đầy đủ SEO metadata + JSON-LD cho một sản phẩm.
         Output là SeoMetaSchema (strict-typed), không trả về bất kỳ 'Any'.
         """
+        await SeoService._resolve_settings(db)
         canonical_url: str = f"{_SITE_URL}/{product.slug}"
 
         # Fetch SGE metadata from DB
@@ -585,6 +633,42 @@ class SeoService:
         # Outbound E-E-A-T Authority Link Injection
         if product.description:
             product.description = SeoService.inject_outbound_authority_links(product.description)
+
+        # ── Live Review Injection: Query system_reviews table (SSOT) ──────────
+        # product.metadata.reviews (JSONB static) is NOT synced by ReviewService.
+        # We must query the actual SystemReview table for APPROVED reviews.
+        if db:
+            try:
+                from backend.database.models.system import SystemReview
+                review_stmt = select(
+                    SystemReview.customer_name,
+                    SystemReview.customer_location,
+                    SystemReview.rating,
+                    SystemReview.content,
+                ).where(
+                    SystemReview.entity_type == "PRODUCT",
+                    SystemReview.entity_id == product.id,
+                    SystemReview.status == "APPROVED",
+                    SystemReview.deleted_at.is_(None),
+                ).order_by(SystemReview.created_at.desc()).limit(5)
+
+                review_rows = (await db.execute(review_stmt)).all()
+                if review_rows:
+                    live_reviews: list[dict] = []
+                    for row in review_rows:
+                        # Strip HTML tags from review content for clean JSON-LD
+                        clean_content = re.sub(r"<[^>]+>", "", row.content or "").strip()
+                        live_reviews.append({
+                            "name": row.customer_name or "Khách hàng xác thực",
+                            "rating": row.rating,
+                            "content": clean_content,
+                            "location": row.customer_location or "",
+                        })
+                    # Inject into product.metadata so _build_json_ld reads them
+                    if product.metadata:
+                        product.metadata.reviews = live_reviews
+            except Exception as e:
+                logger.warning("[SeoService] Non-blocking: failed to load live reviews for schema: %s", e)
 
         title: str = SeoService._build_title(product, getattr(product, "seoTitle", None) or getattr(product, "seo_title", None))
         desc: str = SeoService._build_description(product)
@@ -717,6 +801,7 @@ class SeoService:
         from sqlalchemy import select
         from backend.database.models.seo import SeoNode, SeoEdge
 
+        await SeoService._resolve_settings(db)
         canonical_url = f"{_SITE_URL}/{slug}.html"
         final_seo_title = seo_title or SeoService._build_title(title)
         
@@ -778,7 +863,7 @@ class SeoService:
             "description": desc,
             "image": [image] if image else [],
             "datePublished": date_published or "2026-01-01",
-            "author": {"@type": "Person", "name": author},
+            "author": {"@type": "Person", "name": author, "url": _SITE_URL},
             "publisher": {"@type": "Organization", "name": _SITE_NAME, "logo": {"@type": "ImageObject", "url": f"{_SITE_URL}/favicon.svg"}},
             "url": canonical_url,
             "inLanguage": "vi",

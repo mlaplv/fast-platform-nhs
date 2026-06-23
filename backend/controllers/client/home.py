@@ -113,6 +113,7 @@ class ClientHomeController(Controller):
         seo_meta = None
         if system_settings and system_settings.settings:
             settings = system_settings.settings
+            await SeoService._resolve_settings(db_session)
             seo_meta = SeoService.generate_home_seo_meta(
                 title=settings.seo_analytics.meta_title,
                 description=settings.seo_analytics.meta_description,
