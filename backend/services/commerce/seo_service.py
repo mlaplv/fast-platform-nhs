@@ -19,9 +19,11 @@ import logging
 import os
 import re
 from typing import Optional
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.product import ProductResponse, SeoMetaSchema
+from backend.database.models.seo import SeoNode, SeoEdge
 from backend.utils.schema_mutator import mutate_json_ld
 
 logger = logging.getLogger("api-gateway")
@@ -151,6 +153,9 @@ class SeoService:
         product: ProductResponse,
         canonical_url: str,
         desc: str,
+        entities_json: Optional[list[dict]] = None,
+        pillar_url: Optional[str] = None,
+        cluster_nodes: Optional[list[tuple[str, str]]] = None,
     ) -> str:
         """
         Build Schema.org JSON-LD: Product + Offer + AggregateRating + Review.
@@ -279,6 +284,55 @@ class SeoService:
                     "worstRating": "1",
                 }
 
+        # SGE Entity Linking: isPartOf parent Pillar URL
+        if pillar_url:
+            schema["isPartOf"] = {
+                "@type": "WebPage",
+                "@id": f"{pillar_url}#webpage",
+                "url": pillar_url
+            }
+
+        # SGE Entity Linking: hasPart Cluster URLs (for Pillar nodes)
+        if cluster_nodes:
+            schema["hasPart"] = [
+                {
+                    "@type": "WebPage",
+                    "@id": f"{url}#webpage",
+                    "url": url,
+                    "name": label
+                }
+                for url, label in cluster_nodes
+                if url
+            ]
+
+        # SGE Entity Linking: about & mentions
+        if entities_json:
+            about_entities = [
+                {"@type": "Thing", "name": e["name"]}
+                for e in entities_json
+                if e.get("entity_type", "").lower() in ("brand", "ingredient") and e.get("name")
+            ]
+            if about_entities:
+                schema["about"] = about_entities[:2] if len(about_entities) > 1 else about_entities[0]
+
+            mentions_entities = [
+                {"@type": "Thing", "name": e["name"]}
+                for e in entities_json
+                if e.get("entity_type", "").lower() not in ("brand", "ingredient") and e.get("name")
+            ]
+            if mentions_entities:
+                schema["mentions"] = mentions_entities[:5]
+
+        # SGE Shield: Mutate JSON-LD schema (Shuffle keys only to preserve crawler trust, enable_drop=False)
+        entropy_cfg = SeoService._get_entropy_config()
+        if entropy_cfg.get("enabled", True):
+            schema = mutate_json_ld(
+                schema,
+                seed=product.slug,
+                enable_drop=False,
+                drop_probability=0.0,
+            )
+
         # Minified JSON — loại bỏ whitespace để tiết kiệm DOM/RAM
         return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
 
@@ -366,17 +420,153 @@ class SeoService:
     # ═══════════════════════════════════════════════════════════════════════════
 
     @staticmethod
-    def generate_seo_meta(product: ProductResponse) -> SeoMetaSchema:
+    async def generate_seo_meta(
+        product: ProductResponse,
+        db: Optional[AsyncSession] = None
+    ) -> SeoMetaSchema:
         """
         Entry point: Tạo đầy đủ SEO metadata + JSON-LD cho một sản phẩm.
         Output là SeoMetaSchema (strict-typed), không trả về bất kỳ 'Any'.
         """
         canonical_url: str = f"{_SITE_URL}/{product.slug}"
 
+        # Fetch SGE metadata from DB
+        intent_type = "unknown"
+        entities_json: list[dict] = []
+        pillar_url: Optional[str] = None
+        cluster_nodes: list[tuple[str, str]] = []
+
+        if db:
+            try:
+                # Find SEO Node for the product slug
+                node_stmt = select(SeoNode).where(
+                    SeoNode.node_slug == product.slug,
+                    SeoNode.deleted_at.is_(None)
+                )
+                node = (await db.execute(node_stmt)).scalars().first()
+                if node:
+                    intent_type = node.intent_type or "unknown"
+                    entities_json = node.entities_json or []
+                    if not isinstance(entities_json, list):
+                        entities_json = []
+                    
+                    if not entities_json:
+                        # Fallback: extract from product metadata
+                        metadata_dict = None
+                        if hasattr(product, "product_metadata") and product.product_metadata:
+                            metadata_dict = product.product_metadata
+                        elif hasattr(product, "metadata") and product.metadata:
+                            if isinstance(product.metadata, dict):
+                                metadata_dict = product.metadata
+                            elif hasattr(product.metadata, "model_dump"):
+                                metadata_dict = product.metadata.model_dump()
+                        
+                        if metadata_dict and isinstance(metadata_dict, dict):
+                            kg = metadata_dict.get("knowledge_graph")
+                            if isinstance(kg, dict) and "entities" in kg:
+                                kg_entities = kg["entities"]
+                                if isinstance(kg_entities, list):
+                                    for e in kg_entities:
+                                        if isinstance(e, dict) and "name" in e:
+                                            entities_json.append({
+                                                "name": e["name"],
+                                                "entity_type": e.get("type") or e.get("entity_type") or "unknown"
+                                            })
+                                    if entities_json:
+                                        node.entities_json = entities_json
+                                        from sqlalchemy.orm.attributes import flag_modified
+                                        flag_modified(node, "entities_json")
+                                        try:
+                                            await db.commit()
+                                        except Exception as commit_err:
+                                            logger.warning("[SeoService] Error committing fallback entities_json: %s", commit_err)
+                    
+                    if node.pillar_url_override:
+                        pillar_url = node.pillar_url_override
+                    else:
+                        # Find parent pillar node url
+                        edge_stmt = select(SeoNode.node_url, SeoNode.node_slug, SeoNode.entity_type).join(
+                            SeoEdge, SeoEdge.source_node_id == SeoNode.id
+                        ).where(
+                            SeoEdge.target_node_id == node.id,
+                            SeoNode.is_pillar == True,
+                            SeoNode.deleted_at.is_(None)
+                        )
+                        res_parent = (await db.execute(edge_stmt)).first()
+                        if res_parent:
+                            p_url, p_slug, p_type = res_parent
+                            if p_url:
+                                pillar_url = p_url
+                            else:
+                                if p_type == "article":
+                                    pillar_url = f"{_SITE_URL}/{p_slug}.html"
+                                else:
+                                    pillar_url = f"{_SITE_URL}/{p_slug}"
+
+                    # If this node is a pillar, find target cluster nodes
+                    if node.is_pillar:
+                        cluster_stmt = select(
+                            SeoNode.node_url,
+                            SeoNode.node_slug,
+                            SeoNode.entity_type,
+                            SeoNode.node_label
+                        ).join(
+                            SeoEdge, SeoEdge.target_node_id == SeoNode.id
+                        ).where(
+                            SeoEdge.source_node_id == node.id,
+                            SeoNode.deleted_at.is_(None)
+                        )
+                        res = (await db.execute(cluster_stmt)).all()
+                        for r_url, r_slug, r_type, r_label in res:
+                            if r_url:
+                                url = r_url
+                            else:
+                                if r_type == "article":
+                                    url = f"{_SITE_URL}/{r_slug}.html"
+                                else:
+                                    url = f"{_SITE_URL}/{r_slug}"
+                            cluster_nodes.append((url, r_label))
+            except Exception as e:
+                logger.error("[SeoService] Error loading product entity/intent metadata: %s", e)
+
+        # Fallback if entities_json is still empty (either node doesn't exist or node has no entities)
+        if not entities_json:
+            metadata_dict = None
+            if hasattr(product, "product_metadata") and product.product_metadata:
+                metadata_dict = product.product_metadata
+            elif hasattr(product, "metadata") and product.metadata:
+                if isinstance(product.metadata, dict):
+                    metadata_dict = product.metadata
+                elif hasattr(product.metadata, "model_dump"):
+                    metadata_dict = product.metadata.model_dump()
+            
+            if metadata_dict and isinstance(metadata_dict, dict):
+                kg = metadata_dict.get("knowledge_graph")
+                if isinstance(kg, dict) and "entities" in kg:
+                    kg_entities = kg["entities"]
+                    if isinstance(kg_entities, list):
+                        for e in kg_entities:
+                            if isinstance(e, dict) and "name" in e:
+                                entities_json.append({
+                                    "name": e["name"],
+                                    "entity_type": e.get("type") or e.get("entity_type") or "unknown"
+                                })
+
+        # Outbound E-E-A-T Authority Link Injection
+        if product.description:
+            product.description = SeoService.inject_outbound_authority_links(product.description)
+
         title: str = SeoService._build_title(product, getattr(product, "seoTitle", None) or getattr(product, "seo_title", None))
         desc: str = SeoService._build_description(product)
         keywords: str = SeoService._build_keywords(product)
-        json_ld: str = SeoService._build_json_ld(product, canonical_url, desc)
+        json_ld: str = SeoService._build_json_ld(
+            product,
+            canonical_url,
+            desc,
+            entities_json=entities_json,
+            pillar_url=pillar_url,
+            cluster_nodes=cluster_nodes
+        )
         breadcrumb_ld: str = SeoService._build_breadcrumb_ld(product, canonical_url)
 
         # FAQ JSON-LD from product metadata FAQs
@@ -526,14 +716,23 @@ class SeoService:
                         pillar_url = node.pillar_url_override
                     else:
                         # Find parent pillar node url
-                        edge_stmt = select(SeoNode.node_url).join(
+                        edge_stmt = select(SeoNode.node_url, SeoNode.node_slug, SeoNode.entity_type).join(
                             SeoEdge, SeoEdge.source_node_id == SeoNode.id
                         ).where(
                             SeoEdge.target_node_id == node.id,
                             SeoNode.is_pillar == True,
                             SeoNode.deleted_at.is_(None)
                         )
-                        pillar_url = (await db.execute(edge_stmt)).scalars().first()
+                        res_parent = (await db.execute(edge_stmt)).first()
+                        if res_parent:
+                            p_url, p_slug, p_type = res_parent
+                            if p_url:
+                                pillar_url = p_url
+                            else:
+                                if p_type == "article":
+                                    pillar_url = f"{_SITE_URL}/{p_slug}.html"
+                                else:
+                                    pillar_url = f"{_SITE_URL}/{p_slug}"
             except Exception as e:
                 logger.error("[SeoService] Error loading entity/intent metadata: %s", e)
 
@@ -596,7 +795,7 @@ class SeoService:
             about_entities = [
                 {"@type": "Thing", "name": e["name"]}
                 for e in entities_json
-                if e.get("entity_type") in ("Brand", "Ingredient") and e.get("name")
+                if e.get("entity_type", "").lower() in ("brand", "ingredient") and e.get("name")
             ]
             if about_entities:
                 schema["about"] = about_entities[:2] if len(about_entities) > 1 else about_entities[0]
@@ -604,7 +803,7 @@ class SeoService:
             mentions_entities = [
                 {"@type": "Thing", "name": e["name"]}
                 for e in entities_json
-                if e.get("entity_type") not in ("Brand", "Ingredient") and e.get("name")
+                if e.get("entity_type", "").lower() not in ("brand", "ingredient") and e.get("name")
             ]
             if mentions_entities:
                 schema["mentions"] = mentions_entities[:5]
@@ -710,3 +909,43 @@ class SeoService:
             json_ld_string=json.dumps(website_schema, separators=(",", ":"), ensure_ascii=False),
             breadcrumb_ld_string=json.dumps(org_schema, separators=(",", ":"), ensure_ascii=False)
         )
+
+    @staticmethod
+    def inject_outbound_authority_links(html_content: str) -> str:
+        """Inject E-E-A-T outbound authority links into HTML content dynamically."""
+        if not html_content:
+            return html_content
+
+        # Keyword to authority URL mapping
+        authority_map = {
+            "Tiến sĩ Kenneth K. Hansraj": "https://pubmed.ncbi.nlm.nih.gov/25393825/",
+            "Hiệp hội Placenta Nhật Bản": "https://www.jpla.jp/english/",
+            "Harvard Health Publishing": "https://www.health.harvard.edu",
+            "Đại học Y Harvard": "https://www.health.harvard.edu",
+            "PubMed": "https://pubmed.ncbi.nlm.nih.gov/",
+        }
+
+        injected_count = 0
+        for keyword, url in authority_map.items():
+            if injected_count >= 2:
+                break
+            if keyword in html_content:
+                # Split content by existing <a> tags to prevent nested links
+                parts = re.split(r'(<a[^>]*>.*?</a>)', html_content, flags=re.IGNORECASE | re.DOTALL)
+                changed = False
+                for i in range(len(parts)):
+                    if i % 2 == 0:  # Text outside <a> tags
+                        pattern = re.compile(re.escape(keyword))
+                        if pattern.search(parts[i]):
+                            parts[i] = pattern.sub(
+                                f'<a href="{url}" target="_blank" rel="noopener noreferrer" class="seo-authority-link">{keyword}</a>',
+                                parts[i],
+                                count=1
+                            )
+                            changed = True
+                            injected_count += 1
+                            break  # Move to next keyword
+                if changed:
+                    html_content = "".join(parts)
+
+        return html_content

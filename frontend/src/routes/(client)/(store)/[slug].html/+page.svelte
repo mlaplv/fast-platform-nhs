@@ -60,8 +60,7 @@
       headline: data.article.title,
       author: data.article.author || data.article.author_name || '',
       datePublished: data.article.publishedAt || data.article.published_at || data.article.created_at || '',
-      image: data.article.featuredImage || data.article.featured_image || '',
-      knowledge_graph: data.article.metadata?.knowledge_graph
+      image: data.article.featuredImage || data.article.featured_image || ''
     }}
     jsonLdScripts={[seo?.json_ld_string, seo?.breadcrumb_ld_string, seo?.faq_ld_string].filter(Boolean)}
   />

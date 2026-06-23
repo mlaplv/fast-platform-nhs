@@ -83,23 +83,23 @@
     { name: "Phương thức Thanh toán", href: "/phuong-thuc-thanh-toan.html" },
   ];
 
-  const socialLinks = [
+  const socialLinks = $derived([
     {
       icon: Facebook,
       label: "Facebook",
-      href: shopInfo.social_links?.facebook || "#",
+      href: shopInfo.social_links?.facebook,
     },
     {
       icon: Linkedin,
       label: "LinkedIn",
-      href: shopInfo.social_links?.linkedin || "#",
+      href: shopInfo.social_links?.linkedin,
     },
     {
       icon: Youtube,
       label: "YouTube",
-      href: shopInfo.social_links?.youtube || "#",
+      href: shopInfo.social_links?.youtube,
     },
-  ];
+  ].filter(link => link.href && link.href !== "#" && link.href.trim() !== ""));
 </script>
 
 <footer

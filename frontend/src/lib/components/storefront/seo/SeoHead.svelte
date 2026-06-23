@@ -9,8 +9,6 @@
   import { untrack } from "svelte";
   import { seoFactory } from "$lib/state/seo/schemaFactory.svelte";
   import {
-    type ProductLdConfig,
-    type ArticleLdConfig,
     type CategoryLdConfig,
     type BreadcrumbItem,
     type FaqItem,
@@ -291,11 +289,10 @@
     console.groupEnd();
   });
 
-  // ── V2.4: Schema Types that the frontend ALWAYS rebuilds ──
-  // Backend duplicates MUST be stripped unconditionally to prevent Google "Duplicate" errors.
+  // ── V3.0: Only filter types that frontend still rebuilds ──
+  // Product & Article schemas are now fully managed by Backend (SSOT).
   const FRONTEND_MANAGED_TYPES: string[] = [
-    'Product', 'BreadcrumbList', 'FAQPage', 'Article', 'CollectionPage',
-    'Organization', 'WebSite'
+    'BreadcrumbList', 'FAQPage', 'CollectionPage'
   ];
 
   // ── V2.4: SEO Factory Integration (SSR Compatible, Hard Clear) ──────────
@@ -332,41 +329,14 @@
         return true;
       });
 
-      // ── Build frontend-side LD based on pageType ──
-      if (pageType === "product" && productData) {
-        seoFactory.productData = {
-          ...productData,
-          name: productData.name || title,
-          url: absCanonical,
-          image: (productData.images || [image]).map((img) => toAbsolute(img)),
-          ratingValue: productData.ratingValue || 5.0,
-          reviewCount: productData.reviewCount || 1,
-          sellerName: resolvedSiteName,
-        } as ProductLdConfig;
-        // Clear other entity types to prevent cross-contamination
-        seoFactory.articleData = null;
-        seoFactory.categoryData = null;
-      } else if (pageType === "article" && articleData) {
-        seoFactory.articleData = {
-          ...articleData,
-          headline: articleData.headline || title,
-          url: absCanonical,
-          image: toAbsolute(articleData.image || image),
-          description: articleData.description || finalDescription,
-          publisherName: articleData.publisherName || resolvedSiteName,
-        } as ArticleLdConfig;
-        seoFactory.productData = null;
-        seoFactory.categoryData = null;
-      } else if (pageType === "category" && categoryData) {
+      // ── V3.0: Backend Is King — Product/Article schemas pass through manualScripts ──
+      // Frontend only manages Category (may not have backend-provided schema)
+      if (pageType === "category" && categoryData) {
         seoFactory.categoryData = {
           ...categoryData,
           url: absCanonical,
         } as CategoryLdConfig;
-        seoFactory.productData = null;
-        seoFactory.articleData = null;
       } else {
-        seoFactory.productData = null;
-        seoFactory.articleData = null;
         seoFactory.categoryData = null;
       }
     });
@@ -408,7 +378,7 @@
       The @graph output is deduplicated by @type in buildGraphLd().
       ==========================================================================
     -->
-    {#if !browser && seoFactory.finalLd}
+    {#if seoFactory.finalLd}
       {@html `<script type="application/ld+json" id="seo-schema-graph">${seoFactory.finalLd}</script>`}
     {/if}
 

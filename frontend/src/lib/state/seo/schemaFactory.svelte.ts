@@ -1,27 +1,14 @@
 import { 
-    buildProductLd, 
-    buildArticleLd, 
     buildCategoryLd, 
     buildBreadcrumbLd, 
     buildFaqLd, 
     buildGraphLd,
-    type ProductLdConfig,
-    type ArticleLdConfig,
     type CategoryLdConfig,
     type BreadcrumbItem,
     type FaqItem
 } from '$lib/utils/seo';
 
-interface KnowledgeGraphEntity {
-    name: string;
-    description: string;
-}
 
-interface KnowledgeGraph {
-    knowledge_graph?: {
-        entities?: KnowledgeGraphEntity[];
-    };
-}
 
 /**
  * Elite V2.5: SEO Schema Factory (Runes-based)
@@ -39,8 +26,7 @@ class SchemaFactory {
     // Data Stores
     breadcrumbItems = $state<BreadcrumbItem[]>([]);
     faqs = $state<FaqItem[]>([]);
-    productData = $state<Partial<ProductLdConfig> | null>(null);
-    articleData = $state<Partial<ArticleLdConfig> | null>(null);
+
     categoryData = $state<Partial<CategoryLdConfig> | null>(null);
     
     // Derived JSON-LD Strings
@@ -48,51 +34,7 @@ class SchemaFactory {
     faqLd = $derived(this.faqs.length > 0 ? buildFaqLd(this.faqs) : null);
     manualScripts = $state<(string | null | undefined)[]>([]);
     
-    productLd = $derived.by(() => {
-        if (this.pageType === 'product' && this.productData) {
-            const rawLd = buildProductLd(this.productData as ProductLdConfig);
-            try {
-                const json = JSON.parse(rawLd);
-                // Elite V2.2: SGE Knowledge Graph Injection (mentions)
-                const kg = (this.productData as Partial<ProductLdConfig> & KnowledgeGraph)?.knowledge_graph;
-                if (kg && Array.isArray(kg.entities)) {
-                    json.mentions = kg.entities.map((e: KnowledgeGraphEntity) => ({
-                        "@type": "Thing",
-                        "name": e.name,
-                        "description": e.description
-                    }));
-                }
 
-                return JSON.stringify(json);
-            } catch (e) {
-                return rawLd;
-            }
-        }
-        return null;
-    });
-
-    articleLd = $derived.by(() => {
-        if (this.pageType === 'article' && this.articleData) {
-            const rawLd = buildArticleLd(this.articleData as ArticleLdConfig);
-            try {
-                const json = JSON.parse(rawLd);
-                // Elite V2.2: SGE Knowledge Graph Injection (mentions)
-                const kg = (this.articleData as Partial<ArticleLdConfig> & KnowledgeGraph)?.knowledge_graph;
-                if (kg && Array.isArray(kg.entities)) {
-                    json.mentions = kg.entities.map((e: KnowledgeGraphEntity) => ({
-                        "@type": "Thing",
-                        "name": e.name,
-                        "description": e.description
-                    }));
-                }
-
-                return JSON.stringify(json);
-            } catch (e) {
-                return rawLd;
-            }
-        }
-        return null;
-    });
 
     categoryLd = $derived.by(() => {
         if (this.pageType === 'category' && this.categoryData) {
@@ -106,14 +48,17 @@ class SchemaFactory {
      * manualScripts đã được lọc sạch FRONTEND_MANAGED_TYPES ở SeoHead trước khi gán.
      * buildGraphLd() sẽ dedup thêm 1 lần cuối theo @type.
      */
+    /**
+     * V3.0: Backend Is King — Backend schemas pass through via manualScripts.
+     * Frontend only overrides BreadcrumbList (routing-aware) and FAQPage (lazy-loaded).
+     * Order matters: last @type wins in buildGraphLd dedup.
+     */
     graphLd = $derived.by(() => {
         const scripts = [
-            this.productLd,
-            this.articleLd,
             this.categoryLd,
-            this.breadcrumbLd,
-            this.faqLd,           // FAQ luôn cuối → override bất kỳ FAQPage từ manualScripts
-            ...this.manualScripts  // chỉ còn schema an toàn (LocalBusiness, WebSite, v.v.)
+            ...this.manualScripts,  // Backend schemas (Product, Article, Organization, etc.)
+            this.breadcrumbLd,      // Frontend breadcrumb overrides backend (routing-aware)
+            this.faqLd,             // Frontend FAQ overrides backend (lazy-loaded data)
         ];
         return buildGraphLd(scripts);
     });
@@ -195,8 +140,6 @@ class SchemaFactory {
         this.pageType = 'default';
         this.breadcrumbItems = [];
         this.faqs = [];
-        this.productData = null;
-        this.articleData = null;
         this.categoryData = null;
         this.manualScripts = [];
     }
@@ -204,22 +147,7 @@ class SchemaFactory {
     /** @deprecated — use hardReset() */
     reset() { this.hardReset(); }
 
-    /**
-     * Contextual update for SGE Entities
-     */
-    setProduct(data: ProductLdConfig, breadcrumbs: BreadcrumbItem[] = [], faqs: FaqItem[] = []) {
-        this.pageType = 'product';
-        this.productData = data;
-        this.breadcrumbItems = breadcrumbs;
-        this.faqs = faqs;
-    }
 
-    setArticle(data: ArticleLdConfig, breadcrumbs: BreadcrumbItem[] = [], faqs: FaqItem[] = []) {
-        this.pageType = 'article';
-        this.articleData = data;
-        this.breadcrumbItems = breadcrumbs;
-        this.faqs = faqs;
-    }
 
     setCategory(data: CategoryLdConfig, breadcrumbs: BreadcrumbItem[] = []) {
         this.pageType = 'category';

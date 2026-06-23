@@ -70,6 +70,8 @@ class PublicNewsController(Controller):
         """PUBLIC: Get a single news article by ID."""
         try:
             article = await article_service.get_article(db_session, article_id)
+            if article.content:
+                article.content = SeoService.inject_outbound_authority_links(article.content)
             if article.status != "PUBLISHED":
                 user = request.scope.get("state", {}).get("user")
                 is_admin = False
@@ -110,6 +112,8 @@ class PublicNewsController(Controller):
         """PUBLIC: Get a single news article by slug."""
         try:
             article = await article_service.get_article_by_slug(db_session, slug)
+            if article.content:
+                article.content = SeoService.inject_outbound_authority_links(article.content)
             if article.status != "PUBLISHED":
                 user = request.scope.get("state", {}).get("user")
                 is_admin = False

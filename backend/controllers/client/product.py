@@ -64,7 +64,7 @@ class PublicProductController(Controller):
     ) -> ProductResponse:
         """PUBLIC: Get a single product by slug (Scalar Projection)."""
         product = await product_service.get_product_by_slug(db_session, slug, is_public=True)
-        product.seoMeta = SeoService.generate_seo_meta(product)
+        product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
         return product
 
     @get("/{product_id:str}")
@@ -76,7 +76,7 @@ class PublicProductController(Controller):
     ) -> ProductResponse:
         """PUBLIC: Get a single product by exact ID (Crucial for Reorder features)."""
         product = await product_service.get_product(db_session, product_id, is_public=True)
-        product.seoMeta = SeoService.generate_seo_meta(product)
+        product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
         return product
 
     @get("/{product_id:str}/faqs")

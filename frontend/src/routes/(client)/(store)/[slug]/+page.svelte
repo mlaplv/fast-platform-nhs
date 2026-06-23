@@ -201,8 +201,7 @@
       currency: "VND",
       availability: productData.product.stock > 0 ? 'InStock' : 'OutOfStock',
       ratingValue: productData.reviewStats?.average_rating || 5,
-      reviewCount: productData.reviewStats?.total_count || 1,
-      knowledge_graph: productData.product.metadata?.knowledge_graph
+      reviewCount: productData.reviewStats?.total_count || 1
     }}
     jsonLdScripts={[productSeoMeta?.json_ld_string, productSeoMeta?.breadcrumb_ld_string, productSeoMeta?.faq_ld_string].filter(Boolean)}
   />
