@@ -166,7 +166,7 @@
     {breadcrumbItems}
     categoryData={{
       name: data.categoryName,
-      items: categoryData?.items?.map((it) => ({ name: it.name, url: `/${it.slug}` }))
+      items: categoryData?.items?.map((it) => ({ name: it.name, url: `${siteUrl}/${it.slug}` }))
     }}
     jsonLdScripts={[categorySeoMeta?.json_ld_string, categorySeoMeta?.breadcrumb_ld_string, categorySeoMeta?.faq_ld_string].filter(Boolean)}
   />

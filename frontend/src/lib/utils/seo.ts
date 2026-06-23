@@ -199,7 +199,8 @@ export function buildCategoryLd(config: CategoryLdConfig): string {
                 "@type": "ListItem",
                 "position": i + 1,
                 "item": {
-                    "@type": "Product",
+                    "@type": "WebPage",
+                    "@id": item.url,
                     "name": item.name,
                     "url": item.url
                 }
