@@ -94,6 +94,7 @@
     ])).filter(Boolean),
     ratingValue: data?.reviewStats?.average_rating || 5,
     reviewCount: data?.reviewStats?.total_count || 1,
+    knowledge_graph: product?.metadata?.knowledge_graph
   }}
   jsonLdScripts={[
     seoMeta?.json_ld_string,
