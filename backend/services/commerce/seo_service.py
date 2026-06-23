@@ -736,18 +736,8 @@ class SeoService:
             except Exception as e:
                 logger.error("[SeoService] Error loading entity/intent metadata: %s", e)
 
-        # Dynamic Schema Type based on Intent
-        schema_type = "Article"
-        if intent_type == "informational_why":
-            schema_type = "FAQPage"
-        elif intent_type == "informational_how":
-            schema_type = "HowTo"
-        elif intent_type == "informational_what":
-            schema_type = "TechArticle"
-        elif intent_type == "comparison":
-            schema_type = "ItemList"
-        elif intent_type == "transactional":
-            schema_type = "Product"
+        # Dynamic Schema Type based on Intent: Always use NewsArticle as the Core Schema for articles
+        schema_type = "NewsArticle"
 
         # Build SGE-optimized JSON-LD
         schema: dict = {
@@ -920,9 +910,16 @@ class SeoService:
         authority_map = {
             "Tiến sĩ Kenneth K. Hansraj": "https://pubmed.ncbi.nlm.nih.gov/25393825/",
             "Hiệp hội Placenta Nhật Bản": "https://www.jpla.jp/english/",
+            "Miccosmo Japan Laboratory": "https://www.miccosmo.co.jp/english/",
+            "chiết xuất nhau thai cừu": "https://www.jpla.jp/english/",
+            "nhau thai cừu": "https://www.jpla.jp/english/",
+            "ceramide tinh khiết": "https://pubmed.ncbi.nlm.nih.gov/31840425/",
+            "dầu hạt jojoba": "https://pubmed.ncbi.nlm.nih.gov/24442110/",
             "Harvard Health Publishing": "https://www.health.harvard.edu",
             "Đại học Y Harvard": "https://www.health.harvard.edu",
             "PubMed": "https://pubmed.ncbi.nlm.nih.gov/",
+            "ceramide": "https://pubmed.ncbi.nlm.nih.gov/31840425/",
+            "collagen": "https://pubmed.ncbi.nlm.nih.gov/30681787/",
         }
 
         injected_count = 0
