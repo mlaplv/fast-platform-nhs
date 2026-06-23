@@ -249,5 +249,5 @@ class AiInspector(BaseAgentOperative):
             final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
-            logger.error(f"[AiInspector] Bulk fix failed: {e}")
+            logger.exception(f"❌ [AiInspector] Bulk fix failed: {e}")
             return BulkFixResponse(new_content=draft, logs=logs)

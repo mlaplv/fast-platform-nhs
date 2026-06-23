@@ -38,7 +38,7 @@ class AnalystHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def _run_analysis(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], analyzer_class, category: str, force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type_adhoc: Optional[str] = None) -> GenericResponse:
+    async def _run_analysis(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], analyzer_class, category: str, force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type_adhoc: Optional[str] = None, analysis_cache_adhoc: Optional[dict] = None) -> GenericResponse:
         if campaign_id and campaign_repo:
             campaign = await campaign_repo.get(campaign_id)
             if not campaign: return GenericResponse(status="error", message="Campaign not found")
@@ -49,6 +49,8 @@ class AnalystHandler:
             # Mapping frontend content_type to internal Category domain
             cat = "PRODUCT_CATALOG" if content_type_adhoc == "product" else "CREATIVE_CONTENT"
             campaign = AdHocContent(content=raw_content, topic=raw_topic, category=cat)
+            if analysis_cache_adhoc:
+                campaign.gold_metadata["analysis_cache"] = analysis_cache_adhoc
 
         if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để phân tích.")
 
@@ -114,10 +116,10 @@ class AnalystHandler:
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
         return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type)
 
-    async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None) -> GenericResponse:
+    async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None, analysis_cache: Optional[dict] = None) -> GenericResponse:
         logger.info(f"📡 [AnalystHandler] Neural SEO Engine initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
-        return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type)
+        return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type, analysis_cache_adhoc=analysis_cache)
 
     async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None) -> GenericResponse:
         logger.info(f"🧠 [AnalystHandler] Neural AI-Ready Inspector initiating for campaign: {campaign_id}")
@@ -133,7 +135,9 @@ class AnalystHandler:
         try:
             result = await AiInspector().auto_fix(campaign, AutoFixRequest(**data))
             return GenericResponse(status="success", data=result.model_dump())
-        except Exception as e: return GenericResponse(status="error", message=str(e))
+        except Exception as e:
+            logger.exception(f"❌ [AnalystHandler] auto_fix failed for campaign {campaign_id}: {e}")
+            return GenericResponse(status="error", message=str(e))
 
     async def auto_fix_adhoc(self, content: str, target_snippet: str, annotation_type: str, error_message: str, topic: Optional[str] = None) -> GenericResponse:
         """CNS V86.5: Ad-hoc surgical fix — không cần campaign. Dùng cho ProductForm/NewsForm."""
@@ -161,6 +165,7 @@ class AnalystHandler:
         import json
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
 
         stream_prompt = (
             f"[BÀI VIẾT - CHỦ ĐỀ: {topic}]\n{content[:5000]}\n\n"
@@ -190,7 +195,7 @@ class AnalystHandler:
                 async for chunk in stream.stream_text(delta=True):
                     full_text += chunk
                     yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
-            clean_full = AiInspector("ai_inspect").clean_ai_html(full_text)
+            clean_full = AiInspector().clean_ai_html(full_text)
             yield f"data: {json.dumps({'done': True, 'full': clean_full}, ensure_ascii=False)}\n\n"
         except Exception as exc:
             logger.error(f"[AnalystHandler] stream_auto_fix error: {exc}", exc_info=True)
@@ -341,7 +346,9 @@ class AnalystHandler:
                         await campaign_repo.update(campaign)
                         if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
             return GenericResponse(status="success", data=res.model_dump())
-        except Exception as e: return GenericResponse(status="error", message=str(e))
+        except Exception as e:
+            logger.exception(f"❌ [AnalystHandler] Bulk fix failed for campaign {campaign_id or 'adhoc'}: {e}")
+            return GenericResponse(status="error", message=str(e))
 
     async def enrich(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         from backend.services.xohi.creative_studio.operatives.content_enricher import enricher
@@ -361,7 +368,9 @@ class AnalystHandler:
                     await campaign_repo.update(campaign)
                     if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
             return GenericResponse(status="success", data=res.model_dump())
-        except Exception as e: return GenericResponse(status="error", message=str(e))
+        except Exception as e:
+            logger.exception(f"❌ [AnalystHandler] Enrichment failed for campaign {campaign_id}: {e}")
+            return GenericResponse(status="error", message=str(e))
 
     async def scout(self, topic: str, campaign_id: Optional[str] = None) -> GenericResponse:
         """

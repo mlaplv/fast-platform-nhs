@@ -109,7 +109,13 @@ class BulkFixResponse(BaseModel):
     @classmethod
     def validate_new_content(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_text_block
-        return validate_vietnamese_text_block(v)
+        import logging
+        logger = logging.getLogger("api-gateway")
+        try:
+            return validate_vietnamese_text_block(v)
+        except Exception as e:
+            logger.warning(f"⚠️ [BulkFixResponse] new_content failed strict validation, falling back to raw output: {e}")
+            return v
 
 class SnippetRefinement(BaseModel):
     model_config = ConfigDict(strict=True)

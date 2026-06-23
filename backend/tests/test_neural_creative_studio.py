@@ -27,7 +27,7 @@ async def mock_trinity_run(*args, **kwargs):
         
     schema_str = str(schema)
     if "SeoReport" in schema_str:
-        return SeoReport(total_score=98, grade="A+", signals=[], summary="OK", quick_wins=[], seo_annotations=[])
+        return SeoReport(total_score=98, grade="A+", signals=[], summary="Bài viết của bạn đã đạt tiêu chuẩn tối ưu hóa công cụ tìm kiếm.", quick_wins=[], seo_annotations=[])
     elif "PlagiarismResult" in schema_str:
         return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="OK")
     elif "NeuralBoosterReport" in schema_str:

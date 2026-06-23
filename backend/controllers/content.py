@@ -128,7 +128,14 @@ class ContentController(Controller):
 
     @post("/analyze/seo")
     async def analyze_seo_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
-        return await content_factory.analyst.analyze_seo(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
+        return await content_factory.analyst.analyze_seo(
+            None, None,
+            force=data.force,
+            raw_content=data.content,
+            raw_topic=data.topic,
+            content_type=data.content_type,
+            analysis_cache=data.analysis_cache
+        )
 
     @post("/analyze/ai-inspect")
     async def analyze_ai_inspect_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:

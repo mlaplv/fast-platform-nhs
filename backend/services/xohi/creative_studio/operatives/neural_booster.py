@@ -36,6 +36,9 @@ _TRUSTED_DOMAINS = {
     "nihs.go.jp": "NIHS (Nhật Bản)",
     "cosme.net": "Cosme (Nhật Bản)",
     "jcia-net.or.jp": "JCIA (Nhật Bản)",
+    "mhlw.go.jp": "MHLW (Bộ Y tế, Lao động và Phúc lợi Nhật Bản)",
+    "ci.nii.ac.jp": "CiNii Articles (Nhật Bản)",
+    "dermatol.or.jp": "Hiệp hội Da liễu Nhật Bản (JDA)",
     
     # Tổ chức Y tế & Quản lý Y tế toàn cầu
     "who.int": "WHO (Tổ chức Y tế Thế giới)",
@@ -64,6 +67,7 @@ _TRUSTED_DOMAINS = {
     "cell.com": "Cell Press",
     "academic.oup.com": "Oxford Academic",
     "cambridge.org": "Cambridge Core",
+    "clinicaltrials.gov": "ClinicalTrials.gov (Mỹ)",
     
     # Y khoa / Lâm sàng danh tiếng
     "thelancet.com": "The Lancet",
@@ -71,6 +75,7 @@ _TRUSTED_DOMAINS = {
     "jamanetwork.com": "JAMA Network",
     "bmj.com": "The BMJ (British Medical Journal)",
     "cochranelibrary.com": "Cochrane Library",
+    "cochrane.org": "Cochrane Library",
     "mayoclinic.org": "Mayo Clinic",
     
     # Da liễu & Mỹ phẩm / Thành phần hóa chất chuyên sâu
@@ -79,6 +84,9 @@ _TRUSTED_DOMAINS = {
     "cosmeticsandtoiletries.com": "Cosmetics & Toiletries",
     "cosmeticsdesign.com": "Cosmetics Design",
     "chemicalsafetyfacts.org": "Chemical Safety Facts",
+    "aad.org": "American Academy of Dermatology (AAD)",
+    "scconline.org": "Society of Cosmetic Chemists",
+    "ifscc.org": "IFSCC (Liên đoàn Hóa mỹ phẩm Quốc tế)",
     
     # Các trang tin khoa học & cộng đồng nghiên cứu
     "sciencedaily.com": "ScienceDaily",
@@ -237,13 +245,21 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
                 logger.warning(f"[NeuralBooster] A search query failed/timed-out: {r}")
                 raw_batches.append([])
 
-        # Gom + dedup theo URL
+        # Gom + dedup theo URL và giới hạn trùng lặp domain (tối đa 2 link từ cùng 1 domain chính)
         seen_urls: set[str] = set()
+        domain_counts: dict[str, int] = {}
         raw_items: list[dict] = []
         for batch in raw_batches:
             for item in batch:
                 url = item.get("link", "")
                 if url and url not in seen_urls:
+                    # Trích xuất domain chính
+                    match_domain = re.search(r'https?://(?:www\.)?([^/]+)', url)
+                    domain = match_domain.group(1) if match_domain else ""
+                    if domain:
+                        if domain_counts.get(domain, 0) >= 2:
+                            continue
+                        domain_counts[domain] = domain_counts.get(domain, 0) + 1
                     seen_urls.add(url)
                     raw_items.append(item)
 
@@ -352,6 +368,7 @@ class NeuralBooster(BaseAgentOperative, SearchKeyMixin):
                 "Mỗi bảng phải có headers rõ ràng và rows với dữ liệu thực tế. "
                 "Bảng 1: hiệu quả lâm sàng (efficacy). Bảng 2: bảng so sánh các nghên cứu (comparison). "
                 "Tiêu đề và caption bất buộc tiếng Việt. source_citation theo format '(Tên, Năm)'. "
+                "Nếu bảng có cột 'Nguồn' (hoặc 'Nguồn nghiên cứu', 'Tên nguồn'), bạn BẮT BUỘC phải điền thông tin nguồn tương ứng cho từng dòng (ví dụ: 'J-STAGE, 2021', 'PubMed, 2022'...) lấy từ context, CẤM để trống ô dữ liệu nguồn này ở các hàng. "
                 "CHỈ DÙNG số liệu ĐÃ CÓ trong context, không bịa đặt."
             ),
             retries=1

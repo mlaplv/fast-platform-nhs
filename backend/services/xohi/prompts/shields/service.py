@@ -45,10 +45,11 @@ class SgeShieldService:
         selected = random.sample(patterns, min(4, len(patterns)))
         return f"[SGE SHIELD ENTROPY]\n" + "\n".join(selected)
 
-    def get_shield_component(self, seed: Optional[str] = None) -> PromptComponent:
-        entropy = self.get_entropy_instructions(seed)
+    def get_shield_component(self, seed: Optional[object] = None) -> PromptComponent:
+        seed_str = str(seed) if seed is not None else None
+        entropy = self.get_entropy_instructions(seed_str)
         return PromptComponent(
-            id=f"sge_shield_{seed[:8] if seed else 'global'}",
+            id=f"sge_shield_{seed_str[:8] if seed_str else 'global'}",
             category=PromptCategory.SHIELD,
             content=f"{entropy}\n[LEXICAL RULES] Cấm dùng: {', '.join(self.GLOBAL_BLACKLIST)}"
         )

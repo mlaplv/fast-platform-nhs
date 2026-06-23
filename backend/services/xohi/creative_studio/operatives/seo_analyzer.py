@@ -229,6 +229,32 @@ DRAFT:
             if response is None:
                 raise ValueError("Hệ thống AI quá tải hoặc quá thời gian chờ.")
             report = response
+            
+            # 🛡️ [SEO SCORE GUARD] Enforce monotonically non-decreasing score (>= previous score)
+            # This protects the total score and signals from dropping during revisions
+            if campaign and hasattr(campaign, "gold_metadata") and campaign.gold_metadata:
+                gold = campaign.gold_metadata
+                if isinstance(gold, dict):
+                    cache = gold.get("analysis_cache", {})
+                    if isinstance(cache, dict) and "seo" in cache:
+                        prev_seo = cache.get("seo", {})
+                        if isinstance(prev_seo, dict) and "data" in prev_seo:
+                            prev_data = prev_seo.get("data", {})
+                            if isinstance(prev_data, dict):
+                                prev_score = prev_data.get("total_score", 0)
+                                if prev_score and report.total_score < prev_score:
+                                    msg = f"🛡️ [Score Guard] Điểm SEO mới ({report.total_score}) thấp hơn điểm lịch sử ({prev_score}). Hệ thống bảo lưu điểm cao nhất: {prev_score}."
+                                    logger.warning(f"[SeoAnalyzer] {msg}")
+                                    logs.append(msg)
+                                    report.total_score = prev_score
+                                    report.grade = prev_data.get("grade", report.grade)
+                                    
+                                    # Restore previous signals to prevent individual indicator bar drops in the UI
+                                    prev_signals = prev_data.get("signals", [])
+                                    if prev_signals:
+                                        from backend.services.xohi.creative_studio.models.schemas import SeoSignal
+                                        report.signals = [SeoSignal(**s) if isinstance(s, dict) else s for s in prev_signals]
+            
             report.logs = logs
             
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
@@ -241,7 +267,7 @@ DRAFT:
                 report['seo_annotations'].extend(enrich_annotations)
 
             if primary_kw:
-                extra_annotations = self._audit_keyword_density(pure_text, primary_kw)
+                extra_annotations = self._audit_keyword_density(pure_text, primary_kw, draft=draft)
                 if hasattr(report, 'seo_annotations'):
                     report.seo_annotations.extend(extra_annotations)
                 elif isinstance(report, dict) and 'seo_annotations' in report:
@@ -262,7 +288,7 @@ DRAFT:
 
             return report
 
-    def _audit_keyword_density(self, plain_text: str, primary: str) -> List[SeoAnnotation]:
+    def _audit_keyword_density(self, plain_text: str, primary: str, draft: Optional[str] = None) -> List[SeoAnnotation]:
         """Deterministic safety check for keyword density (Rule R73.25)."""
         annotations = []
         words = plain_text.split()
@@ -295,8 +321,44 @@ DRAFT:
                 severity="error"
             ))
         elif kw_density < KEYWORD_DENSITY_MIN and primary:
+            # Let's find a target snippet in the draft HTML to rewrite
+            target_text = ""
+            if draft:
+                # 1. H1 Check: Only if H1 exists and does NOT contain the primary keyword
+                h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', draft, re.IGNORECASE | re.DOTALL)
+                if h1_match:
+                    h1_content = re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
+                    if primary.lower() not in h1_content.lower() and len(h1_content) >= 5:
+                        target_text = h1_match.group(0) # Keep the whole H1 tag
+                
+                # 2. If H1 is fine or not found, find the first H2/H3 or paragraph that does NOT contain the keyword
+                if not target_text:
+                    tag_matches = list(re.finditer(r'<(p|h2|h3)[^>]*>(.*?)</\1>', draft, re.IGNORECASE | re.DOTALL))
+                    for m in tag_matches:
+                        tag_content = m.group(2)
+                        plain_content = re.sub(r'<[^>]+>', '', tag_content).strip()
+                        # Pick the first substantial tag that does NOT have the keyword yet
+                        if len(plain_content) >= 15 and primary.lower() not in plain_content.lower():
+                            target_text = m.group(0)
+                            break
+                            
+                # 3. Fallback: If all matched tags already have the keyword, or if no tags found,
+                # find the first paragraph tag to rewrite
+                if not target_text:
+                    p_match = re.search(r'<p[^>]*>(.*?)</p>', draft, re.IGNORECASE | re.DOTALL)
+                    if p_match:
+                        target_text = p_match.group(0)
+            if not target_text:
+                # Fallback to plain text first line
+                lines = [line.strip() for line in plain_text.split('\n') if line.strip()]
+                target_text = lines[0] if lines else ""
+
+            # Ensure we don't have an empty target if it's somehow still empty
+            if len(target_text) < 5:
+                target_text = plain_text[:100] if len(plain_text) >= 5 else "Nội dung bài viết"
+
             annotations.append(SeoAnnotation(
-                type="keyword_missing", text="",
+                type="keyword_missing", text=target_text,
                 message=f"⚠️ Từ khóa chính '{primary}' xuất hiện quá ít ({kw_density:.1f}%). Nên đặt trong H1, intro paragraph và các H2 chính.",
                 severity="warning"
             ))
@@ -372,5 +434,5 @@ DRAFT:
             final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
-            logger.error(f"[SeoAnalyzer] Bulk fix failed: {e}")
+            logger.exception(f"❌ [SeoAnalyzer] Bulk fix failed: {e}")
             return BulkFixResponse(new_content=draft, logs=logs)

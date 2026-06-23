@@ -360,13 +360,13 @@
           <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: {annHex}15">
             <div class="flex items-start justify-between gap-2">
               <span class="text-[7px] font-black px-1 py-0.5 rounded " style="background: {annHex}20; color: {annHex}">{isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}</span>
-              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black transition-all disabled:opacity-40">
+              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer hover:bg-white/5 active:scale-95" style="border-color: {annHex}40; color: {annHex}; background: {annHex}10">
                 {#if streamingTarget === ann.text}
                   <span class="text-[8px] text-white/80 font-mono leading-relaxed">{streamingText}<span class="inline-block w-1 h-2.5 bg-orange-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                 {:else if isFixing === ann.text}
                   <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span> ĐANG PHẪU THUẬT...
                 {:else}
-                  <Sparkles size={8} class="text-yellow-400" /> PHẪU THUẬT
+                  <Sparkles size={8} style="color: {annHex}" /> PHẪU THUẬT
                 {/if}
               </button>
             </div>

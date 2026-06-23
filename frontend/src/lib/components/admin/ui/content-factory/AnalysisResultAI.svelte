@@ -132,13 +132,14 @@
                 <button
                   onclick={() => handleInternalFix!(ann.text, ann.type || 'ai', ann.message || '')}
                   disabled={!!isFixing}
-                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-300 text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer">
+                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer hover:bg-white/5 active:scale-95"
+                  style="border-color: {annHex}40; color: {annHex}; background: {annHex}10">
                   {#if streamingTarget === ann.text}
                     <span class="text-[8px] text-white/80 font-mono leading-relaxed max-w-[160px] truncate">{streamingText}<span class="inline-block w-1 h-2.5 bg-purple-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                   {:else if isFixing === ann.text}
                     <span class="w-2 h-2 border border-white/30 border-t-purple-400 rounded-full animate-spin"></span> ĐANG PHẪU THUẬT...
                   {:else}
-                    <Sparkles size={8} class="text-purple-400" /> PHẪU THUẬT
+                    <Sparkles size={8} style="color: {annHex}" /> PHẪU THUẬT
                   {/if}
                 </button>
               {/if}

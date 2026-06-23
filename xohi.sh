@@ -450,9 +450,9 @@ function view_logs() {
     echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api + workers)...${NC}"
     echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
     # Hiện 10 dòng cuối bất kể loại log để Sếp biết hệ thống vẫn chạy
-    docker compose logs --tail 10 api worker_high worker_default
+    docker compose logs --tail 10 api worker_high
     echo -e "${YELLOW}--- Đang theo dõi lỗi mới (ERROR/CRITICAL/WARNING) ---${NC}"
-    docker compose logs -f api worker_high worker_default --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+    docker compose logs -f api worker_high --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
 }
 
 function backup_data() {

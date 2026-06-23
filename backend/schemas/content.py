@@ -128,6 +128,7 @@ class AdhocAnalysisRequest(BaseModel):
     topic: Optional[str] = None
     content_type: Optional[str] = None
     force: bool = False
+    analysis_cache: Optional[Dict[str, object]] = None
 
 class BulkFixRequest(BaseModel):
     model_config = ConfigDict(strict=True)

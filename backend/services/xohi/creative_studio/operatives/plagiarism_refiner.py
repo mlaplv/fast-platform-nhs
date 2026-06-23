@@ -182,5 +182,5 @@ class PlagiarismRefiner(XoHiProgressMixin):
             final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
-            logger.error(f"[PlagiarismRefiner] AI Bulk Fix failed: {e}")
+            logger.exception(f"❌ [PlagiarismRefiner] AI Bulk Fix failed: {e}")
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)

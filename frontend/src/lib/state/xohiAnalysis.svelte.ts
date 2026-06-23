@@ -383,7 +383,8 @@ export function createAnalysisController(config: {
             const body = isAdhoc ? { 
                 content: (config.getContent ?? config.getEditedDraft)(), 
                 topic: resolve(config.topic) || '',
-                content_type: resolve(config.contentType)
+                content_type: resolve(config.contentType),
+                analysis_cache: $state.snapshot(resolve(config.analysis_cache))
             } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             status = await handleApiResponse<SEOResult>(res, (v) => { seoResult = v; }, 'seo');
