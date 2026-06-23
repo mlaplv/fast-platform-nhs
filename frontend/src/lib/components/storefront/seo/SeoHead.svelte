@@ -323,9 +323,9 @@
       // Catches FAQPage even when backend wraps it inside an @graph array.
       seoFactory.manualScripts = (jsonLdScripts || []).filter(s => {
         if (!s) return false;
-        for (const type of FRONTEND_MANAGED_TYPES) {
-          if (containsSchemaType(s, type)) return false;
-        }
+        if (containsSchemaType(s, 'BreadcrumbList') && breadcrumbItems && breadcrumbItems.length > 0) return false;
+        if (containsSchemaType(s, 'FAQPage') && validFaqs && validFaqs.length > 0) return false;
+        if (containsSchemaType(s, 'CollectionPage')) return false;
         return true;
       });
 
@@ -359,6 +359,26 @@
         seoFactory.hardReset();
       }
     };
+  });
+
+  // V3.0: Client-Side Deduplication Guard
+  // Manually remove any duplicate or stale script tags in the DOM on navigation/hydration.
+  $effect(() => {
+    const finalStr = seoFactory.finalLd; // Track changes reactively
+    if (!browser) return;
+
+    // Use requestAnimationFrame/setTimeout to ensure Svelte has finished updating the DOM head
+    const timer = setTimeout(() => {
+      const scripts = Array.from(document.querySelectorAll('script#seo-schema-graph'));
+      if (scripts.length > 1) {
+        // Keep only the last one (most up-to-date), remove the rest
+        for (let i = 0; i < scripts.length - 1; i++) {
+          scripts[i].remove();
+        }
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
   });
 
   // Prevent Duplicate Headers (Fallback only renders if no page-level SEO is active)

@@ -39,6 +39,7 @@ NEVER_DROP_KEYS: frozenset[str] = frozenset({
     "itemListElement", "position",
     "mainEntity", "acceptedAnswer", "text",
     "question",  # FAQPage
+    "shippingDetails", "hasMerchantReturnPolicy",
 })
 
 # Keys an toàn để drop (thực sự optional trong Schema.org)

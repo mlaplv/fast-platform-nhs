@@ -226,9 +226,9 @@
                                         onclick={() => openFaq(i)}
                                     >
                                         <div class="flex items-center justify-between gap-4 w-full h-full">
-                                            <span class="question-text flex-1 text-[13px] font-bold text-white/90">
+                                            <h3 class="question-text flex-1 text-[13px] font-bold text-white/90 m-0 text-left" style="font-size: 13px; line-height: inherit; font-weight: inherit;">
                                                 {faq.question}
-                                            </span>
+                                            </h3>
                                             <div class="faq-arrow-indicator shrink-0">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                                     <path d="M5 12h14m-7-7 7 7-7 7"/>
@@ -247,9 +247,9 @@
                                     onclick={() => openFaq(i)}
                                 >
                                     <div class="flex items-center justify-between gap-4 w-full h-full">
-                                        <span class="question-text flex-1 text-[13px] font-bold text-white/90">
+                                        <h3 class="question-text flex-1 text-[13px] font-bold text-white/90 m-0 text-left" style="font-size: 13px; line-height: inherit; font-weight: inherit;">
                                             {faq.question}
-                                        </span>
+                                        </h3>
                                         <div class="faq-arrow-indicator shrink-0">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M5 12h14m-7-7 7 7-7 7"/>

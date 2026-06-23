@@ -702,12 +702,14 @@
     <a
       href="#diagnostics"
       class="mouse-scroll-indicator"
-      aria-label={labels.aria_scroll}
+      aria-label={labels.aria_scroll || "Cuộn xuống phần chẩn đoán"}
+      title={labels.aria_scroll || "Cuộn xuống phần chẩn đoán"}
       onclick={(e) => {
         e.preventDefault();
         scrollToQuiz?.();
       }}
     >
+      <span class="sr-only">{labels.aria_scroll || "Cuộn xuống phần chẩn đoán"}</span>
       <div class="mouse-body">
         <div class="mouse-wheel"></div>
       </div>

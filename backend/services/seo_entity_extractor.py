@@ -219,7 +219,7 @@ class SeoEntityExtractor:
         mapping: dict[str, str] = {
             "informational_why": "FAQPage",
             "informational_how": "HowTo",
-            "informational_what": "TechArticle",
+            "informational_what": "NewsArticle",
             "comparison": "ItemList",
             "transactional": "Product",
             "pillar": "WebPage",

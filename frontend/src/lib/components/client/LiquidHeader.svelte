@@ -134,6 +134,7 @@
           {#each navLinks as link (link.id)}
             <a
               href={link.href}
+              aria-label={link.label}
               use:registerNavElement={link.id}
               class="island-link relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 {activeId === link.id ? 'is-active text-white' : 'text-white/40 hover:text-white/80'}"
               onmouseenter={() => hoverId = link.id}
@@ -145,6 +146,7 @@
                 }
               }}
             >
+              <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">{link.label}</span>
               {#if link.icon}
                  <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
               {/if}

@@ -487,9 +487,9 @@
   }
 
   :global(.news-article-prose a) {
-    color: inherit !important;
-    text-decoration: none !important;
-    font-weight: inherit !important;
+    color: #2563eb !important;
+    text-decoration: underline !important;
+    font-weight: 600 !important;
     cursor: pointer;
   }
 

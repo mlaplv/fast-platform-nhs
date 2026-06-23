@@ -220,9 +220,9 @@
                     class="faq-btn-item cursor-pointer"
                     onclick={() => openFaq(chunkIdx * 4 + i)}
                   >
-                    <span class="faq-q-text">
+                    <h3 class="faq-q-text m-0 text-left" style="font-size: inherit; font-weight: inherit; line-height: inherit; display: inline;">
                       {faq.q}
-                    </span>
+                    </h3>
                   </button>
                 {/each}
               </div>
@@ -243,9 +243,9 @@
               class="faq-btn-item cursor-pointer"
               onclick={() => openFaq(i)}
             >
-              <span class="faq-q-text">
+              <h3 class="faq-q-text m-0 text-left" style="font-size: inherit; font-weight: inherit; line-height: inherit; display: inline;">
                   {faq.q}
-              </span>
+              </h3>
             </button>
           {/each}
         </div>

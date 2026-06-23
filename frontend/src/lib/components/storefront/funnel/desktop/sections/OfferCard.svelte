@@ -330,7 +330,7 @@
       />
       <img
         src={variantImage}
-        alt=""
+        alt="Reflection of {product?.name || ''}"
         aria-hidden="true"
         loading="lazy"
         decoding="async"

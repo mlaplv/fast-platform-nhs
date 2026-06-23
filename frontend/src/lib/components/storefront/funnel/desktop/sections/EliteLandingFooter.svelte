@@ -232,6 +232,27 @@
               Sản phẩm được dán nhãn DNA chống hàng giả. Hỗ trợ truy xuất nguồn
               gốc nhà máy tại Tokyo, Nhật Bản.
             </p>
+            <div class="mt-4 pt-4 border-t border-white/5 flex flex-col gap-2">
+              <span class="text-white/40 text-[9px] font-medium">Tài liệu Y khoa & E-E-A-T</span>
+              <div class="flex flex-row flex-wrap gap-x-3 gap-y-1">
+                <a
+                  href="https://pubmed.ncbi.nlm.nih.gov/31840425/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-400 hover:text-blue-300 text-[9px] font-bold underline transition-colors"
+                >
+                  Nghiên cứu Ceramide (PubMed)
+                </a>
+                <a
+                  href="https://www.jpla.jp/english/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-400 hover:text-blue-300 text-[9px] font-bold underline transition-colors"
+                >
+                  Hiệp hội Placenta Nhật Bản (JPLA)
+                </a>
+              </div>
+            </div>
           </div>
 
           <button

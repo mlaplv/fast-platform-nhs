@@ -165,9 +165,14 @@ class SeoService:
             product.discountPrice if product.discountPrice else product.price
         )
 
-        # Brand: ưu tiên metadata.brand → env fallback
+        # Brand: ưu tiên attributes.brand hoặc attributes["Thương hiệu"] -> metadata.brand -> env fallback
         brand_name: str = _BRAND_NAME
-        if product.metadata:
+        if product.attributes and isinstance(product.attributes, dict):
+            brand_val = product.attributes.get("brand") or product.attributes.get("Thương hiệu")
+            if isinstance(brand_val, str) and brand_val.strip():
+                brand_name = brand_val.strip()
+
+        if brand_name == _BRAND_NAME and product.metadata:
             meta_brand = getattr(product.metadata, "brand", None)
             if isinstance(meta_brand, str) and meta_brand.strip():
                 brand_name = meta_brand.strip()
@@ -204,6 +209,26 @@ class SeoService:
                     "@type": "Organization",
                     "name": _SITE_NAME,
                 },
+                "shippingDetails": {
+                    "@type": "OfferShippingDetails",
+                    "shippingRate": {
+                        "@type": "MonetaryAmount",
+                        "value": "0",
+                        "currency": "VND"
+                    },
+                    "shippingDestination": {
+                        "@type": "DefinedRegion",
+                        "addressCountry": "VN"
+                    }
+                },
+                "hasMerchantReturnPolicy": {
+                    "@type": "MerchantReturnPolicy",
+                    "applicableCountry": "VN",
+                    "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+                    "merchantReturnDays": "7",
+                    "returnMethod": "https://schema.org/ReturnByMail",
+                    "returnFees": "https://schema.org/FreeReturn"
+                }
             },
         }
 
@@ -305,12 +330,14 @@ class SeoService:
                 if url
             ]
 
-        # SGE Entity Linking: about & mentions
+        # SGE Entity Linking: about & mentions (excluding "brand" type entities and matching brand names to prevent duplicate brand errors)
         if entities_json:
             about_entities = [
                 {"@type": "Thing", "name": e["name"]}
                 for e in entities_json
-                if e.get("entity_type", "").lower() in ("brand", "ingredient") and e.get("name")
+                if e.get("entity_type", "").lower() == "ingredient"
+                and e.get("name")
+                and e["name"].strip().lower() != brand_name.strip().lower()
             ]
             if about_entities:
                 schema["about"] = about_entities[:2] if len(about_entities) > 1 else about_entities[0]
@@ -318,7 +345,10 @@ class SeoService:
             mentions_entities = [
                 {"@type": "Thing", "name": e["name"]}
                 for e in entities_json
-                if e.get("entity_type", "").lower() not in ("brand", "ingredient") and e.get("name")
+                if e.get("entity_type", "").lower() not in ("brand", "ingredient")
+                and e.get("name")
+                and e["name"].strip().lower() != brand_name.strip().lower()
+                and e["name"].strip().lower() != "miccosmo"  # Hardcoded safety fallback for Miccosmo sub-brands
             ]
             if mentions_entities:
                 schema["mentions"] = mentions_entities[:5]
