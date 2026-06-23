@@ -4,7 +4,7 @@ from litestar import Controller, get, post, patch, delete, Request
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body
-from litestar.response import Redirect
+from litestar.response import Redirect, File
 from litestar.exceptions import HTTPException
 from litestar.di import Provide
 from backend.database.repositories import MediaRegistryRepository, provide_media_repo
@@ -81,13 +81,18 @@ class MediaController(Controller):
         return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.updates)} metadata updates")
 
     @get("/{asset_id:str}/thumb", guards=[])
-    async def get_media_thumbnail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, w: int = 300, q: int = 75) -> Redirect:
+    async def get_media_thumbnail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, w: int = 300, q: int = 75) -> Union[Redirect, File]:
         asset = await media_repo.get(str(asset_id))
         if not asset:
             resp = Redirect(path="/v65_assets/placeholder.webp")
             resp.headers["Cache-Control"] = "public, max-age=3600"
             return resp
         path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
+        if path and path.startswith("/"):
+            import os
+            local_path = os.path.join("frontend/static", path.lstrip("/"))
+            if os.path.exists(local_path):
+                return File(path=local_path, media_type="image/webp", headers={"Cache-Control": "public, max-age=31536000"})
         resp = Redirect(path=path or "/v65_assets/placeholder.webp")
         resp.headers["Cache-Control"] = "public, max-age=86400"
         return resp

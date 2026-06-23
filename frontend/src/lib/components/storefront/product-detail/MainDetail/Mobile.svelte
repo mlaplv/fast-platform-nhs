@@ -38,6 +38,7 @@
 
   // --- TAB & SCROLL STATE ---
   let activeTab = $state("overview");
+  let isScrollingToSection = $state(false);
   let loadBelowFold = $state(false);
   let showTabs = $state(false);
   let isScrolled = $state(false);
@@ -74,6 +75,8 @@
   }
 
   function scrollToSection(id: string) {
+    activeTab = id;
+    isScrollingToSection = true;
     setTimeout(() => {
       const el = document.getElementById(id);
       if (el) {
@@ -86,6 +89,9 @@
           });
         });
       }
+      setTimeout(() => {
+        isScrollingToSection = false;
+      }, 800);
     }, 0);
   }
 
@@ -237,6 +243,7 @@
     };
     
     sectionObserver = new IntersectionObserver((entries) => {
+      if (isScrollingToSection) return;
       const intersectingEntry = entries.find(entry => entry.isIntersecting);
       if (intersectingEntry) {
         activeTab = intersectingEntry.target.id;

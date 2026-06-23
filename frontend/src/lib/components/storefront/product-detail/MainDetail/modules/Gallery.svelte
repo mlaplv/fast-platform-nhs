@@ -36,8 +36,31 @@
   // --- Gallery State ---
   let activeImageIndex = $state(0);
   let overrideImageIndex = $state<number | null>(null);
+  let prevProduct = $state(product.id);
+  let isInitialLcp = $state(true);
+
+  onMount(() => {
+    isInitialLcp = false;
+  });
 
   $effect(() => {
+    const currentProductId = product.id;
+    const isProductChanged = currentProductId !== prevProduct;
+    if (isProductChanged) {
+      prevProduct = currentProductId;
+    }
+
+    const firstImg = displayImages[0];
+    const hasVideo = isVideoUrl(firstImg);
+
+    if (isInitialLcp || isProductChanged) {
+      if (hasVideo) {
+        overrideImageIndex = 0;
+        activeImageIndex = 0;
+        return;
+      }
+    }
+
     // Reset override when variant changes and highlight the correct variant thumbnail
     if (selectedIndices[0] >= 0) {
       const variantImg = variations?.[0]?.images?.[selectedIndices[0]];
@@ -45,24 +68,12 @@
         const idx = displayImages.indexOf(variantImg);
         if (idx >= 0) {
           activeImageIndex = idx;
+          overrideImageIndex = null;
+          return;
         }
       }
     }
     overrideImageIndex = null;
-  });
-
-  $effect(() => {
-    // Show video on product change if the first media is a video
-    const firstImg = displayImages[0];
-    if (isVideoUrl(firstImg)) {
-      overrideImageIndex = 0;
-      activeImageIndex = 0;
-    }
-  });
-
-  let isInitialLcp = $state(true);
-  onMount(() => {
-    isInitialLcp = false;
   });
   
   // Detect video URL
@@ -100,17 +111,29 @@
   }
 
   const displayImages = $derived.by(() => {
-    let images: string[] = [];
-    if (variations?.[0]?.images && variations[0].images.length > 0) {
-      images = [...variations[0].images];
-    } else {
-      images = [...(product.images || [])];
+    let images = product.images?.length ? [...product.images] : 
+                 product.mobileImages?.length ? [...product.mobileImages] : 
+                 variations?.[0]?.images ? variations[0].images.filter(Boolean) : [];
+
+    const metaVideo = product.metadata?.video_url || product.metadata?.mobile_video_url;
+    const inlineVideos = (product.images || []).filter(isVideoUrl);
+    
+    const allVideos = new Set<string>();
+    if (metaVideo) allVideos.add(metaVideo);
+    for (const v of inlineVideos) {
+      allVideos.add(v);
     }
-    const video = product.metadata?.video_url;
-    if (video) {
-      images = [video, ...images];
+    
+    images = images.filter(img => !isVideoUrl(img));
+
+    if (selectedIndices[0] >= 0) {
+      const variantImg = variations?.[0]?.images?.[selectedIndices[0]];
+      if (variantImg && images.length > 0) {
+        images[0] = variantImg;
+      }
     }
-    return images;
+    
+    return [...images, ...allVideos];
   });
 
   // Derive current image based on variant selection or thumbnail index
@@ -169,7 +192,7 @@
       </button>
     {:else}
       <img 
-        src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : ((currentImage === displayImages[0] && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800))} 
+        src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(currentImage, 800)} 
         width="450"
         height="450"
         alt={product.name} 

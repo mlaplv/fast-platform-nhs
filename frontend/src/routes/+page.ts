@@ -36,7 +36,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       };
   }
 
-  const targetUrl = '/api/v1/client/home';
+  const targetUrl = '/api/v1/client/home?layout_only=true';
 
   let res;
   try {

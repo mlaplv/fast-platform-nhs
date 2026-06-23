@@ -86,8 +86,9 @@
     null
   );
   let campaignExists = $state(true);
+  let isClosedByUser = $state(false);
   const isEnabled = $derived(
-    promoConfig?.enabled === true && !!promoConfig?.voucher_id && campaignExists
+    promoConfig?.enabled === true && !isClosedByUser && !!promoConfig?.voucher_id && campaignExists
   );
 
   const shareCount = $derived(
@@ -582,6 +583,16 @@
         <div class="stu-view">
           {#if variant === 'floating'}
             <div class="stu-ios-container">
+              <button 
+                class="stu-ios-close-btn" 
+                onclick={() => isClosedByUser = true} 
+                aria-label="Đóng"
+              >
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
               <div class="stu-ios-content">
                 <h4 class="stu-ios-title first-letter:uppercase">{displayRewardLabel}</h4>
                 {#if errorMsg}
@@ -817,13 +828,35 @@
 
   /* --- Floating Variant (iOS 26 x TikTok) --- */
   .stu-ios-container {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: 8px 12px;
+    padding-right: 32px;
     background: #111827; /* Solid dark color for accessibility contrast */
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  .stu-ios-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 4px;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, transform 0.2s;
+  }
+  .stu-ios-close-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .stu-ios-close-btn:active {
+    transform: scale(0.9);
   }
   .stu-ios-content { display: flex; flex-direction: column; gap: 0; }
   .stu-ios-title { 

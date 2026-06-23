@@ -509,7 +509,7 @@
               <span class="text-[9.5px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-0.5 -right-1.5 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[6.5px] scale-90 shadow-md whitespace-nowrap">
+            <span aria-hidden="true" class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[8px] shadow-md whitespace-nowrap">
               {activeRatePercent}
             </span>
           </button>
@@ -531,7 +531,7 @@
               <span class="text-[9.5px] font-black text-white drop-shadow-md tracking-wider">CTV</span>
             </div>
             <!-- Dynamic small badge showing % on floating bubble -->
-            <span class="absolute -top-0.5 -right-1.5 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[6.5px] scale-90 shadow-md whitespace-nowrap">
+            <span aria-hidden="true" class="absolute -top-1 -right-2 px-1 py-0.5 bg-rose-700 text-white rounded-full font-black text-[8px] shadow-md whitespace-nowrap">
               +{activeRatePercent}
             </span>
           </button>

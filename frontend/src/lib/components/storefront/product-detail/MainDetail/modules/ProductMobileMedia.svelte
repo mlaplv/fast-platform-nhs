@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import type { Product } from '$lib/types';
@@ -31,6 +32,11 @@
     isVideoUrl,
     resolvedLcpUrl
   }: Props = $props();
+
+  let isInitialLcp = $state(true);
+  onMount(() => {
+    isInitialLcp = false;
+  });
 </script>
 
 <section class="media-section">
@@ -74,7 +80,7 @@
         {:else}
           {#if i === 0}
             <img 
-              src={resolvedLcpUrl || resolveOptimizedImageUrl(img, 600)} 
+              src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(img, 600)} 
               width="412"
               height="412"
               alt={product.name} 

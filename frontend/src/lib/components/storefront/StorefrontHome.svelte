@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import type { HomeData, ShopInfo, Product, Category, Banner } from '$lib/types';
     import { getClientUi } from '$lib/state/commerce/ui.svelte';
     import HeaderDesktop from './layout/HeaderDesktop.svelte';
@@ -11,9 +12,26 @@
 
     let { data, isMobile }: { data: HomeData, isMobile: boolean } = $props();
 
+    // Lazy client-side products to save SSR memory and database connection load
+    let products = $state<Product[]>([]);
+    let aiProducts = $state<Product[]>([]);
+
     $effect(() => {
         if (data.settings) {
             ui.settings = data.settings as ShopInfo;
+        }
+    });
+
+    onMount(async () => {
+        try {
+            const res = await fetch('/api/v1/client/home');
+            if (res.ok) {
+                const fullData = await res.json();
+                products = fullData.products || [];
+                aiProducts = fullData.ai_products || [];
+            }
+        } catch (e) {
+            console.error("Failed to dynamically load storefront products:", e);
         }
     });
 
@@ -35,7 +53,7 @@
     <HomeMobile
         banners={data.banners}
         categories={data.categories}
-        products={data.products}
+        products={products}
         videos={data.videos} 
         resolvedLcpUrl={data.resolvedMobileLcpUrl}
     />
@@ -45,8 +63,8 @@
         <HomeDesktop
             banners={data.banners}
             categories={data.categories}
-            products={data.products}
-            aiProducts={data.ai_products}
+            products={products}
+            aiProducts={aiProducts}
             resolvedLcpUrl={data.resolvedDesktopLcpUrl}
         />
     </main>

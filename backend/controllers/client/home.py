@@ -59,7 +59,8 @@ class ClientHomeController(Controller):
         banner_service: BannerService,
         settings_service: SettingsService,
         promotion_service: PromotionAdminService,
-        request: Request
+        request: Request,
+        layout_only: bool = False
     ) -> HomeDataResponse:
         """PUBLIC: Get aggregated data for the home page."""
         # Detect device type
@@ -67,7 +68,7 @@ class ClientHomeController(Controller):
         is_mobile = any(m in user_agent for m in ["mobile", "android", "iphone", "ipad"])
 
         # Check Redis Cache (Elite V2.2)
-        cache_key = f"support:client_home:{'mobile' if is_mobile else 'desktop'}"
+        cache_key = f"support:client_home:{'layout_' if layout_only else ''}{'mobile' if is_mobile else 'desktop'}"
         try:
             if xohi_memory._use_redis and xohi_memory.client:
                 cached_data = await xohi_memory.client.get(cache_key)
@@ -79,9 +80,7 @@ class ClientHomeController(Controller):
         # 1. Fetch system settings for shop info (Elite V2.2)
         system_settings = await settings_service.get_general_settings(db_session)
         
-        # 2. Fetch actual products (Active only)
-        # Elite Performance Fix P3.1: Giảm limit từ 100 xuống 24 để tối ưu tốc độ load home
-        all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE", is_public=True)
+        # 2. Fetch banners & categories
         categories_resp = await category_service.list_categories(db_session)
         
         if categories_resp:
@@ -94,13 +93,23 @@ class ClientHomeController(Controller):
             filtered_cats = []
  
         banners = await banner_service.list_banners(db_session, active_only=True)
-        vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, exclude_viral=True, limit=20)
- 
-        # Elite V2.2: Optimized AI Featured fetch (R76)
-        ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True, is_public=True)
-        ai_products = ai_products_resp.data if ai_products_resp else []
 
-        # 3. Generate SEO Metadata (Elite V2.2)
+        # 3. Fetch heavy data only when not layout_only (Elite Performance optimization)
+        products_list = []
+        ai_products = []
+        vouchers_list = []
+
+        if not layout_only:
+            all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE", is_public=True)
+            products_list = [p for p in all_products.data] if all_products else []
+
+            vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, exclude_viral=True, limit=20)
+            vouchers_list = [v for v in vouchers_resp.data] if vouchers_resp else []
+
+            ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True, is_public=True)
+            ai_products = ai_products_resp.data if ai_products_resp else []
+
+        # 4. Generate SEO Metadata (Elite V2.2)
         seo_meta = None
         if system_settings and system_settings.settings:
             settings = system_settings.settings
@@ -115,9 +124,9 @@ class ClientHomeController(Controller):
         response_data = HomeDataResponse(
             banners=[b for b in banners.data] if banners else [],
             categories=filtered_cats,
-            products=[p for p in all_products.data] if all_products else [],
-            ai_products=[p for p in ai_products],
-            vouchers=[v for v in vouchers_resp.data] if vouchers_resp else [],
+            products=products_list,
+            ai_products=ai_products,
+            vouchers=vouchers_list,
             settings=system_settings.settings if system_settings else SystemSettingsPayload(),
             seo_meta=seo_meta,
             videos=[]

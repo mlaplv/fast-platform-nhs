@@ -135,8 +135,6 @@
             fetchpriority="high" 
             type="image/webp" 
           />
-        {:else}
-          <link rel="preload" as="video" type="video/mp4" href={data.resolvedMobileLcpUrl} fetchpriority="high" />
         {/if}
       {/if}
     {:else}
@@ -150,8 +148,6 @@
             fetchpriority="high" 
             type="image/webp" 
           />
-        {:else}
-          <link rel="preload" as="video" type="video/mp4" href={data.resolvedDesktopLcpUrl} fetchpriority="high" />
         {/if}
       {/if}
     {/if}

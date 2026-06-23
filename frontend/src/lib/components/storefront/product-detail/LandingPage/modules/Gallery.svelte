@@ -34,16 +34,19 @@
   let overrideImageIndex = $state<number | null>(null);
 
   const displayImages = $derived.by(() => {
-    let images: string[] = [];
-    if (variations?.[0]?.images && variations[0].images.length > 0) {
-      images = variations[0].images.filter((img): img is string => img !== null);
-    } else {
-      images = [...(product.images || [])];
+    let images = product.images?.length ? [...product.images] : 
+                 product.mobileImages?.length ? [...product.mobileImages] : 
+                 variations?.[0]?.images ? variations[0].images.filter((img): img is string => img !== null) : [];
+    
+    images = images.filter(img => !isVideoUrl(img));
+
+    if (selectedIndices[0] >= 0) {
+      const variantImg = variations?.[0]?.images?.[selectedIndices[0]];
+      if (variantImg && images.length > 0) {
+        images[0] = variantImg;
+      }
     }
-    const video = product.metadata?.video_url;
-    if (video) {
-      images = [video, ...images];
-    }
+    
     return images;
   });
 

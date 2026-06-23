@@ -11,27 +11,39 @@
   let { products, categories = [] }: Props = $props();
 
   let activeTab = $state(0);
+  let categoryProducts = $state<Record<string, Product[]>>({});
+  let loadingCategory = $state(false);
 
-  // Elite 2.2: Dynamic Filtering & Category Mapping
+  // Elite 2.2: Lazy fetch category products only on user tab selection (saves DB/CPU)
+  $effect(() => {
+    if (activeTab > 0) {
+      const selectedCategory = categories[activeTab - 1];
+      if (selectedCategory && !categoryProducts[selectedCategory.id]) {
+        loadingCategory = true;
+        fetch(`/api/v1/client/products?category_id=${selectedCategory.id}&limit=20`)
+          .then(res => res.json())
+          .then(resData => {
+            categoryProducts[selectedCategory.id] = resData.data || [];
+          })
+          .catch(err => console.error("Failed to lazy fetch category products:", err))
+          .finally(() => {
+            loadingCategory = false;
+          });
+      }
+    }
+  });
+
   const filteredProducts = $derived.by(() => {
     if (activeTab === 0) return products;
     
-    // index 0 is "Tất cả", so cat index is activeTab - 1
     const selectedCategory = categories[activeTab - 1];
-    if (!selectedCategory) return products;
+    if (!selectedCategory) return [];
 
-    return products.filter(p => 
-      p.categoryId === selectedCategory.id || 
-      p.category === selectedCategory.name
-    );
+    return categoryProducts[selectedCategory.id] || [];
   });
 
   function handleTabChange(index: number) {
     activeTab = index;
-    // Elite UX: Scroll slightly to the top of the feed if user is deep in scroll
-    if (typeof window !== 'undefined') {
-       // Optional: Add logic to smooth scroll into view if needed
-    }
   }
 
   /**
@@ -108,9 +120,18 @@
   {/if}
 
   <!-- Loading State (Conditional) -->
-  {#if filteredProducts.length === 0}
+  {#if loadingCategory}
     <div class="empty-state">
-      <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="no-data" />
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-solid border-black/20 border-t-black/80 mb-2"></div>
+      <p>Đang tải sản phẩm...</p>
+    </div>
+  {:else if filteredProducts.length === 0}
+    <div class="empty-state">
+      <svg class="w-16 h-16 mx-auto mb-3 opacity-30 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+        <path d="M3.3 7 12 12l8.7-5" />
+        <path d="M12 22V12" />
+      </svg>
       <p>Không tìm thấy sản phẩm phù hợp</p>
     </div>
   {/if}

@@ -210,34 +210,36 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
     }
 
     // Derive LCP hero images for mobile and desktop
+    const isVideo = (url: string | undefined | null) => url ? /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(url.split('?')[0].toLowerCase()) : false;
+
     const mobileHeroImage = (() => {
       const p = product;
-      const mobVideo = p.metadata?.mobile_video_url || p.metadata?.video_url;
-      if (mobVideo) return mobVideo;
-
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
       if (tierVar) {
-        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean).filter(img => !isVideo(img));
         if (mobImgs.length > 0) return mobImgs[0];
-        const deskImgs = (tierVar.images || []).filter(Boolean);
+        const deskImgs = (tierVar.images || []).filter(Boolean).filter(img => !isVideo(img));
         if (deskImgs.length > 0) return deskImgs[0];
       }
-      if (p.mobileImages && p.mobileImages.length > 0) return p.mobileImages[0];
-      if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) return p.metadata.mobile_images[0];
-      return p.images?.[0];
+      if (p.mobileImages && p.mobileImages.length > 0) {
+        const first = p.mobileImages.filter(Boolean).filter(img => !isVideo(img))[0];
+        if (first) return first;
+      }
+      if (p.metadata?.mobile_images && p.metadata.mobile_images.length > 0) {
+        const first = p.metadata.mobile_images.filter(Boolean).filter(img => !isVideo(img))[0];
+        if (first) return first;
+      }
+      return (p.images || []).filter(Boolean).filter(img => !isVideo(img))[0];
     })();
 
     const desktopHeroImage = (() => {
       const p = product;
-      const deskVideo = p.metadata?.video_url;
-      if (deskVideo) return deskVideo;
-
       const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
       if (tierVar) {
-        const deskImgs = (tierVar.images || []).filter(Boolean);
+        const deskImgs = (tierVar.images || []).filter(Boolean).filter(img => !isVideo(img));
         if (deskImgs.length > 0) return deskImgs[0];
       }
-      return p.images?.[0];
+      return (p.images || []).filter(Boolean).filter(img => !isVideo(img))[0];
     })();
 
     const [resolvedMobileLcpUrl, resolvedDesktopLcpUrl] = await Promise.all([
