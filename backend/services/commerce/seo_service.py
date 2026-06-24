@@ -19,6 +19,7 @@ import logging
 import os
 import re
 from typing import Optional
+from datetime import date, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -206,7 +207,7 @@ class SeoService:
                 "url": canonical_url,
                 "priceCurrency": "VND",
                 "price": effective_price,
-                "priceValidUntil": "2026-12-31",
+                "priceValidUntil": f"{date.today().year}-12-31",
                 "availability": (
                     "https://schema.org/InStock"
                     if product.stock > 0
@@ -239,6 +240,14 @@ class SeoService:
                 }
             },
         }
+
+        # GEO V4.0: Freshness signal for AI search engines (Gemini AI Overviews)
+        updated_at = getattr(product, "updatedAt", None) or getattr(product, "updated_at", None)
+        if updated_at:
+            if isinstance(updated_at, datetime):
+                schema["dateModified"] = updated_at.strftime("%Y-%m-%d")
+            elif isinstance(updated_at, str):
+                schema["dateModified"] = updated_at[:10]
 
         # AggregateRating + Review từ metadata.reviews (tối đa 5 để không phình schema)
         meta_reviews: list = []
@@ -393,11 +402,12 @@ class SeoService:
         ]
 
         if product.category:
+            cat_slug: str = getattr(product, "category_slug", None) or getattr(product, "categorySlug", None) or product.slug.split("-")[0]
             items.append({
                 "@type": "ListItem",
                 "position": 2,
                 "name": product.category,
-                "item": {"@id": f"{_SITE_URL}/{product.slug.split('-')[0]}/"},
+                "item": {"@id": f"{_SITE_URL}/{cat_slug}/"},
             })
             items.append({
                 "@type": "ListItem",
@@ -859,8 +869,9 @@ class SeoService:
             except Exception as e:
                 logger.error("[SeoService] Error loading entity/intent metadata: %s", e)
 
-        # Dynamic Schema Type based on Intent: Always use NewsArticle as the Core Schema for articles
-        schema_type = "NewsArticle"
+        # GEO V4.0: Map intent_type → Schema.org type per Google Article structured data guidelines
+        # NewsArticle is reserved for timely news content only
+        schema_type = "NewsArticle" if intent_type == "news" else "Article"
 
         # Build SGE-optimized JSON-LD
         schema: dict = {
@@ -991,7 +1002,6 @@ class SeoService:
 
         # WebSite + SearchAction (GEO 2026 AI Ready)
         website_schema = {
-            "@context": "https://schema.org",
             "@type": "WebSite",
             "@id": f"{_SITE_URL}#website",
             "url": _SITE_URL,
@@ -1005,7 +1015,6 @@ class SeoService:
 
         # Organization (Branding trust for AI Search)
         org_schema = {
-            "@context": "https://schema.org",
             "@type": "Organization",
             "@id": f"{_SITE_URL}#organization",
             "name": name,
@@ -1014,13 +1023,18 @@ class SeoService:
             "sameAs": [] # Add social links if available
         }
 
+        # GEO V4.0: Gộp WebSite + Organization vào @graph duy nhất
+        home_graph: dict = {
+            "@context": "https://schema.org",
+            "@graph": [website_schema, org_schema]
+        }
         return SeoMetaSchema(
             title=final_title,
             description=final_desc,
             keywords=final_keywords,
             canonical_url=canonical_url,
-            json_ld_string=json.dumps(website_schema, separators=(",", ":"), ensure_ascii=False),
-            breadcrumb_ld_string=json.dumps(org_schema, separators=(",", ":"), ensure_ascii=False)
+            json_ld_string=json.dumps(home_graph, separators=(",", ":"), ensure_ascii=False),
+            breadcrumb_ld_string=""
         )
 
     @staticmethod
@@ -1058,7 +1072,7 @@ class SeoService:
                         pattern = re.compile(re.escape(keyword))
                         if pattern.search(parts[i]):
                             parts[i] = pattern.sub(
-                                f'<a href="{url}" target="_blank" rel="noopener noreferrer" class="seo-authority-link">{keyword}</a>',
+                                f'<a href="{url}" target="_blank" rel="nofollow noopener noreferrer" class="seo-authority-link">{keyword}</a>',
                                 parts[i],
                                 count=1
                             )

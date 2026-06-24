@@ -165,11 +165,7 @@ def mutate_json_ld(
     # Step 2: Shuffle key order (deep recursive)
     mutated = _shuffle_keys_recursive(mutated, rng)
 
-    # Step 3: Biến đổi @id suffix (nếu có)
-    at_id = mutated.get("@id")
-    if at_id and isinstance(at_id, str) and "#" in at_id:
-        # Thêm entropy suffix: #product → #product-a3f
-        suffix = hashlib.md5(effective_seed.encode()).hexdigest()[:3]
-        mutated["@id"] = f"{at_id}-{suffix}"
+    # @id is a permanent IRI anchor — NEVER mutate per W3C JSON-LD 1.1 §3.3
+    # Key shuffle alone is sufficient for fingerprint diversification.
 
     return mutated

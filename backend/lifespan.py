@@ -144,6 +144,21 @@ async def lifespan(app: Litestar):
                 logger.warning(f"⚠️ [SEO Auto-Migrate] Failed to run alter table: {migrate_ex}")
                 await session.rollback()
 
+            # SGE Shield V1.0: Warmup entropy config cache on startup from DB
+            try:
+                from backend.database.models import SystemSetting
+                from backend.services.commerce.seo_service import update_entropy_cache
+                stmt_settings = select(SystemSetting).where(SystemSetting.key == "primary_config")
+                res_settings = await session.execute(stmt_settings)
+                setting_row = res_settings.scalar_one_or_none()
+                if setting_row and isinstance(setting_row.value, dict):
+                    entropy_dict = setting_row.value.get("entropy")
+                    if isinstance(entropy_dict, dict):
+                        update_entropy_cache(entropy_dict)
+                        logger.info(f"✓ [Lifespan] Loaded entropy config cache on boot: {entropy_dict}")
+            except Exception as se_ex:
+                logger.warning(f"⚠️ [Lifespan] Failed to load entropy config on boot: {se_ex}")
+
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(
                 VoiceProfile.user_id,

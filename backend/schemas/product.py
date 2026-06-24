@@ -289,6 +289,7 @@ class ProductResponse(BaseModel):
     lastMarketSync: Optional[datetime] = Field(None, alias="last_market_sync")
 
     createdAt: datetime = Field(alias="created_at")
+    updatedAt: Optional[datetime] = Field(None, alias="updated_at")
 
     @model_validator(mode="before")
     @classmethod

@@ -64,51 +64,13 @@ class SchemaFactory {
     });
 
     /**
-     * Elite V2.5: Output Guard — Lớp kiểm soát đầu ra cuối cùng (PURE COMPUTATION).
-     * Không có side effects — log được thực hiện bằng $effect riêng trong SeoHead.
-     *
-     *   1. Dedup @graph theo normalized @type key (case-insensitive, Array-aware)
-     *   2. Lọc entity không hợp lệ (rỗng, thiếu @type)
-     *   3. Re-serialize thành chuỗi JSON sạch
+     * V4.0: Pass-through with XSS protection only.
+     * Deduplication is handled by buildGraphLd() — no redundant re-parse (KISS).
      */
     finalLd = $derived.by(() => {
         const raw = this.graphLd;
         if (!raw || raw.length < 10) return '';
-
-        try {
-            const parsed = JSON.parse(raw);
-            const graph = parsed['@graph'];
-
-            // Not a @graph structure — return as-is (single entity)
-            if (!Array.isArray(graph)) return raw;
-
-            // ── Dedup Pass: normalize @type → unique key ──
-            const seen = new Map<string, Record<string, unknown>>();
-            const noType: Record<string, unknown>[] = [];
-
-            for (const entity of graph) {
-                if (!entity || typeof entity !== 'object') continue;
-                const rawType = entity['@type'];
-                if (!rawType && Object.keys(entity).length === 0) continue;
-                if (!rawType) { noType.push(entity); continue; }
-
-                const key = Array.isArray(rawType)
-                    ? rawType.map((t: string) => String(t).toLowerCase()).sort().join('+')
-                    : String(rawType).toLowerCase();
-                seen.set(key, entity); // last wins
-            }
-
-            const cleanGraph = [...seen.values(), ...noType];
-            if (cleanGraph.length === 0) return '';
-
-            return JSON.stringify({
-                '@context': 'https://schema.org',
-                '@graph': cleanGraph,
-            }).replace(/</g, '\\u003C');
-
-        } catch {
-            return raw;
-        }
+        return raw.replace(/</g, '\\u003C');
     });
 
     /**
