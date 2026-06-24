@@ -67,12 +67,25 @@ class SeoMatchingService:
         tenant = current_tenant_id.get() or "default"
 
         # Step 0: Only allow articles in category "Bài viết"
+        related_product_id = None
         if entity_type.lower() == "article":
-            category_row = await db.execute(
-                text("SELECT category FROM articles WHERE id = :id AND deleted_at IS NULL"),
+            art_row = (await db.execute(
+                text("SELECT category, article_metadata FROM articles WHERE id = :id AND deleted_at IS NULL"),
                 {"id": entity_id}
-            )
-            cat = category_row.scalar()
+            )).first()
+            if not art_row:
+                return MatchResultResponse(
+                    node_id="",
+                    matched_pillar_id=None,
+                    match_tier="unclassified",
+                    ai_confidence=0.0,
+                    ai_reasoning="Không tìm thấy thông tin bài viết.",
+                )
+            cat = art_row[0]
+            metadata = art_row[1] or {}
+            if isinstance(metadata, dict):
+                related_product_id = metadata.get("related_product_id")
+
             if cat and cat != "Bài viết":
                 logger.info(f"[SeoMatch] Skipping {entity_id} because category is '{cat}' (not 'Bài viết')")
                 # Delete any existing SEO node for this article if it exists
@@ -93,6 +106,73 @@ class SeoMatchingService:
                     ai_confidence=0.0,
                     ai_reasoning=f"Bài viết thuộc danh mục '{cat}' không thuộc đối tượng đồ thị SEO.",
                 )
+
+        # Step 0.5: If related_product_id is provided, automatically link to the product's SEO node as a Pillar
+        if entity_type.lower() == "article" and related_product_id:
+            related_product_id = str(related_product_id).strip()
+            if related_product_id.lower() not in ("null", "undefined", ""):
+                prod_node = await db.scalar(
+                    select(SeoNode).where(
+                        SeoNode.entity_type == "PRODUCT",
+                        SeoNode.entity_id == related_product_id,
+                        SeoNode.tenant_id == tenant,
+                        SeoNode.deleted_at.is_(None)
+                    )
+                )
+                if not prod_node:
+                    # Look up product base details to register it
+                    from backend.database.models.commerce import ProductBase
+                    prod_row = (await db.execute(
+                        select(ProductBase.name, ProductBase.slug).where(
+                            ProductBase.id == related_product_id,
+                            ProductBase.deleted_at == None
+                        )
+                    )).first()
+                    if prod_row:
+                        prod_node = await self._graph_svc.register_node(db, RegisterNodeRequest(
+                            entity_type="PRODUCT",
+                            entity_id=related_product_id,
+                            is_pillar=True,
+                            node_label=prod_row[0],
+                            node_slug=prod_row[1],
+                            node_url=f"/product/{prod_row[1]}",
+                            ai_summary=prod_row[0],
+                        ))
+                        await db.flush()
+
+                if prod_node:
+                    if not prod_node.is_pillar:
+                        prod_node.is_pillar = True
+
+                    # Register current article node
+                    ai_summary = f"{title}. {content_excerpt[:300]}" if content_excerpt else title
+                    node = await self._graph_svc.register_node(db, RegisterNodeRequest(
+                        entity_type=entity_type,
+                        entity_id=entity_id,
+                        is_pillar=False,
+                        node_label=title,
+                        node_slug=slug,
+                        node_url=url,
+                        ai_summary=ai_summary,
+                    ))
+                    await db.flush()
+
+                    # Automatically create a confirmed PILLAR_CLUSTER edge
+                    await self._create_cluster_edge(
+                        db, node.id, prod_node.id,
+                        link_type=SeoLinkType.PILLAR_CLUSTER,
+                        confidence=1.0,
+                        reasoning=f"Tự động liên kết theo sản phẩm được chọn: {related_product_id}",
+                        is_confirmed=True,
+                    )
+                    logger.info(f"[SeoMatch] Linked article {node.id} to selected product pillar {prod_node.id}")
+                    return MatchResultResponse(
+                        node_id=node.id,
+                        matched_pillar_id=prod_node.id,
+                        match_tier="auto",
+                        ai_confidence=1.0,
+                        ai_reasoning=f"Tự động liên kết theo sản phẩm được chọn: {related_product_id}",
+                    )
 
         # Step 1: Register node (upsert)
         ai_summary = f"{title}. {content_excerpt[:300]}" if content_excerpt else title

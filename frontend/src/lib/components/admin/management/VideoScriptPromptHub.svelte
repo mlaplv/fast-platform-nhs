@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { fade, slide } from "svelte/transition";
+  import { fade, slide, scale } from "svelte/transition";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import X from "@lucide/svelte/icons/x";
   import Copy from "@lucide/svelte/icons/copy";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
   import Camera from "@lucide/svelte/icons/camera";
   import Sun from "@lucide/svelte/icons/sun";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
@@ -59,6 +60,15 @@
   let activeDropdown = $state<"camera" | "lighting" | "ar" | "movement" | null>(
     null,
   );
+
+  // Full view modal state
+  let fullViewPrompt = $state<string | null>(null);
+  let fullViewTitle = $state<string>("");
+
+  function openFullView(title: string, text: string) {
+    fullViewTitle = title;
+    fullViewPrompt = text;
+  }
 
   function toggleDropdown(
     name: "camera" | "lighting" | "ar" | "movement",
@@ -714,19 +724,28 @@
                 class="text-[10px] font-mono font-bold text-blue-400 uppercase"
                 >Master Prompt cho Gemini Pro (Toàn bộ kịch bản)</span
               >
-              <button
-                onclick={() => {
-                  navigator.clipboard.writeText(getGeminiMasterPrompt());
-                  nanobot.showToast(
-                    "Đã sao chép Master Prompt cho Gemini Pro!",
-                    "success",
-                  );
-                }}
-                class="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-all"
-                title="Sao chép Master Prompt"
-              >
-                <Copy class="w-3.5 h-3.5" />
-              </button>
+              <div class="flex items-center gap-1.5">
+                <button
+                  onclick={() => openFullView("Master Prompt cho Gemini Pro", getGeminiMasterPrompt())}
+                  class="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-all"
+                  title="Xem toàn màn hình"
+                >
+                  <Maximize2 class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onclick={() => {
+                    navigator.clipboard.writeText(getGeminiMasterPrompt());
+                    nanobot.showToast(
+                      "Đã sao chép Master Prompt cho Gemini Pro!",
+                      "success",
+                    );
+                  }}
+                  class="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-all"
+                  title="Sao chép Master Prompt"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
             <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
               Dán câu lệnh tổng quát này vào Gemini Pro để nhận phân tích, tối
@@ -750,19 +769,28 @@
                 class="text-[10px] font-mono font-bold text-pink-400 uppercase"
                 >Toàn bộ lời thoại liền mạch (Dùng cho CapCut / TTS)</span
               >
-              <button
-                onclick={() => {
-                  navigator.clipboard.writeText(getCombinedVoiceover());
-                  nanobot.showToast(
-                    "Đã sao chép toàn bộ Voiceover liền mạch!",
-                    "success",
-                  );
-                }}
-                class="p-1 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded transition-all"
-                title="Sao chép toàn bộ lời thoại"
-              >
-                <Copy class="w-3.5 h-3.5" />
-              </button>
+              <div class="flex items-center gap-1.5">
+                <button
+                  onclick={() => openFullView("Toàn bộ lời thoại liền mạch", getCombinedVoiceover())}
+                  class="p-1 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded transition-all"
+                  title="Xem toàn màn hình"
+                >
+                  <Maximize2 class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onclick={() => {
+                    navigator.clipboard.writeText(getCombinedVoiceover());
+                    nanobot.showToast(
+                      "Đã sao chép toàn bộ Voiceover liền mạch!",
+                      "success",
+                    );
+                  }}
+                  class="p-1 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded transition-all"
+                  title="Sao chép toàn bộ lời thoại"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
             <p class="text-[11px] text-gray-400 leading-relaxed font-sans">
               Đoạn văn gộp thoại của toàn bộ phân cảnh, có thể dán trực tiếp vào
@@ -797,17 +825,26 @@
                 class="text-[10px] font-mono font-bold text-gray-400 uppercase"
                 >Phân cảnh #{scene.scene_number || idx + 1}</span
               >
-              <button
-                onclick={() =>
-                  copyPromptToClipboard(
-                    promptText,
-                    scene.scene_number || idx + 1,
-                  )}
-                class="p-1 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
-                title="Sao chép prompt này"
-              >
-                <Copy class="w-3.5 h-3.5" />
-              </button>
+              <div class="flex items-center gap-1.5">
+                <button
+                  onclick={() => openFullView(`Phân cảnh #${scene.scene_number || idx + 1}`, promptText)}
+                  class="p-1 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
+                  title="Xem toàn màn hình"
+                >
+                  <Maximize2 class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onclick={() =>
+                    copyPromptToClipboard(
+                      promptText,
+                      scene.scene_number || idx + 1,
+                    )}
+                  class="p-1 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
+                  title="Sao chép prompt này"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <p
@@ -831,6 +868,69 @@
       {/if}
     </div>
   </div>
+
+  <!-- Full View Modal for Prompts -->
+  {#if fullViewPrompt !== null}
+    <div
+      class="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+      transition:fade={{ duration: 150 }}
+    >
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="fixed inset-0 bg-transparent"
+        onclick={() => {
+          fullViewPrompt = null;
+        }}
+      ></div>
+      <div
+        class="bg-[#0b0b0f] border border-gray-800/60 rounded-2xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl shadow-cyan-950/20 relative z-10"
+        transition:scale={{ duration: 150, start: 0.95 }}
+      >
+        <!-- Modal Header -->
+        <div
+          class="flex items-center justify-between px-6 py-4 border-b border-gray-900/60 bg-black/20"
+        >
+          <h3
+            class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider"
+          >
+            {fullViewTitle}
+          </h3>
+          <div class="flex items-center gap-2">
+            <button
+              onclick={() => {
+                if (fullViewPrompt) {
+                  navigator.clipboard.writeText(fullViewPrompt);
+                  nanobot.showToast("Đã sao chép nội dung!", "success");
+                }
+              }}
+              class="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-all flex items-center gap-1.5 text-xs font-mono"
+              title="Sao chép"
+            >
+              <Copy class="w-4 h-4" />
+              <span>Sao chép</span>
+            </button>
+            <button
+              onclick={() => {
+                fullViewPrompt = null;
+              }}
+              class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+              title="Đóng"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-black/40">
+          <pre
+            class="text-xs text-gray-200 leading-relaxed font-mono whitespace-pre-wrap select-all selection:bg-cyan-500/30 selection:text-white"
+          >{fullViewPrompt}</pre>
+        </div>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 <svelte:window onclick={closeAllDropdowns} />

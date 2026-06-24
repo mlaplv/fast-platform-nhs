@@ -253,7 +253,8 @@
     try {
       const res = await apiClient.post<{ data: { seo_title: string; seo_description: string; seo_keywords: string } }>('/api/v1/articles/seo-suggest', {
         title: formTitle,
-        content: formContent || formExcerpt || ''
+        content: formContent || formExcerpt || '',
+        product_id: formRelatedProductId || ''
       });
       if (res?.data) {
         formSeoTitle = res.data.seo_title || formSeoTitle;
@@ -278,7 +279,8 @@
     try {
       const res = await apiClient.post<{ data: { question: string; answer: string }[] }>('/api/v1/articles/faq-suggest', {
         title: formTitle,
-        content: formContent || formExcerpt || ''
+        content: formContent || formExcerpt || '',
+        product_id: formRelatedProductId || ''
       });
       if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
         formFaqs = [...formFaqs, ...res.data];
@@ -312,7 +314,8 @@
       const res = await apiClient.post<{ data: string }>('/api/v1/articles/excerpt-suggest', {
         title: formTitle,
         category: formCategory || '',
-        content: formContent || ''
+        content: formContent || '',
+        product_id: formRelatedProductId || ''
       });
       if (res?.data && typeof res.data === 'string' && res.data.trim()) {
         formExcerpt = res.data.trim();
@@ -338,7 +341,8 @@
       const res = await apiClient.post<{ data: string }>('/api/v1/articles/content-suggest', {
         title: formTitle,
         category: formCategory || '',
-        excerpt: formExcerpt || ''
+        excerpt: formExcerpt || '',
+        product_id: formRelatedProductId || ''
       });
       if (res?.data && typeof res.data === 'string' && res.data.trim()) {
         formContent = res.data.trim();

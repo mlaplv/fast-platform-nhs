@@ -20,6 +20,32 @@
   let canMerge = $derived(editor ? editor.can().mergeCells() : false);
   let canSplit = $derived(editor ? editor.can().splitCell() : false);
 
+  // Safe can() checks for destructive column/row ops — prevents RangeError: No cell with offset N found
+  let canDeleteColumn = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().deleteColumn(); } catch { return false; }
+  });
+  let canDeleteRow = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().deleteRow(); } catch { return false; }
+  });
+  let canAddRowBefore = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().addRowBefore(); } catch { return false; }
+  });
+  let canAddRowAfter = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().addRowAfter(); } catch { return false; }
+  });
+  let canAddColumnBefore = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().addColumnBefore(); } catch { return false; }
+  });
+  let canAddColumnAfter = $derived(() => {
+    if (!editor || editor.isDestroyed) return false;
+    try { return editor.can().addColumnAfter(); } catch { return false; }
+  });
+
   // Helper to determine alignment in active cell
   let currentAlign = $derived(
     editor?.isActive({ textAlign: 'center' }) ? 'center'
@@ -30,9 +56,19 @@
 
   let isHeaderRow = $derived(editor?.isActive('tableHeader') || false);
 
+  /**
+   * Safe execute — wraps all table commands in try/catch.
+   * ProseMirror table ops (deleteColumn, deleteRow, etc.) can throw
+   * RangeError ("No cell with offset N found") if the selection/table
+   * state is inconsistent (e.g. merged cells, cursor outside valid cell).
+   */
   function execute(command: () => void) {
     if (!editor || editor.isDestroyed) return;
-    command();
+    try {
+      command();
+    } catch (err) {
+      console.warn('[TableBubbleMenu] Table command failed (state may be inconsistent):', err);
+    }
   }
 </script>
 
@@ -115,9 +151,27 @@
         <div class="flex flex-col gap-1 p-1 bg-black/25 rounded-xl border border-white/5">
           <span class="text-[7px] font-black text-white/20 uppercase tracking-wider px-1 text-center">Rows</span>
           <div class="grid grid-cols-3 gap-1">
-            <button onclick={() => execute(() => editor.chain().focus().addRowBefore().run())} class="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95" title="Thêm dòng phía trên"><ArrowUp size={11} /></button>
-            <button onclick={() => execute(() => editor.chain().focus().addRowAfter().run())} class="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95" title="Thêm dòng phía dưới"><ArrowDown size={11} /></button>
-            <button onclick={() => execute(() => editor.chain().focus().deleteRow().run())} class="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95" title="Xóa dòng hiện tại"><Trash2 size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().addRowBefore().run())}
+              disabled={!canAddRowBefore()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canAddRowBefore() ? 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Thêm dòng phía trên"
+            ><ArrowUp size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().addRowAfter().run())}
+              disabled={!canAddRowAfter()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canAddRowAfter() ? 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Thêm dòng phía dưới"
+            ><ArrowDown size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().deleteRow().run())}
+              disabled={!canDeleteRow()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canDeleteRow() ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Xóa dòng hiện tại"
+            ><Trash2 size={11} /></button>
           </div>
         </div>
 
@@ -125,9 +179,27 @@
         <div class="flex flex-col gap-1 p-1 bg-black/25 rounded-xl border border-white/5">
           <span class="text-[7px] font-black text-white/20 uppercase tracking-wider px-1 text-center">Columns</span>
           <div class="grid grid-cols-3 gap-1">
-            <button onclick={() => execute(() => editor.chain().focus().addColumnBefore().run())} class="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95" title="Thêm cột bên trái"><ArrowLeft size={11} /></button>
-            <button onclick={() => execute(() => editor.chain().focus().addColumnAfter().run())} class="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95" title="Thêm cột bên phải"><ArrowRight size={11} /></button>
-            <button onclick={() => execute(() => editor.chain().focus().deleteColumn().run())} class="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95" title="Xóa cột hiện tại"><Trash2 size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().addColumnBefore().run())}
+              disabled={!canAddColumnBefore()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canAddColumnBefore() ? 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Thêm cột bên trái"
+            ><ArrowLeft size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().addColumnAfter().run())}
+              disabled={!canAddColumnAfter()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canAddColumnAfter() ? 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Thêm cột bên phải"
+            ><ArrowRight size={11} /></button>
+            <button
+              onclick={() => execute(() => editor.chain().focus().deleteColumn().run())}
+              disabled={!canDeleteColumn()}
+              class="p-1.5 rounded-lg flex items-center justify-center transition-all active:scale-95
+                {canDeleteColumn() ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}"
+              title="Xóa cột hiện tại"
+            ><Trash2 size={11} /></button>
           </div>
         </div>
       </div>

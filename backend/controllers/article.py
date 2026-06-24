@@ -145,30 +145,35 @@ class ArticleController(Controller):
     @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
     async def suggest_faqs(
         self,
+        db_session: AsyncSession,
         article_service: ArticleService,
         data: Dict[str, str],
     ) -> Dict[str, object]:
         """GEO 2026: XOHI Auto FAQ Generator for Articles."""
         title = data.get("title", "")
         content = data.get("content", "")
-        faqs = await article_service.suggest_faqs(title, content)
+        product_id = data.get("product_id", "")
+        faqs = await article_service.suggest_faqs(db_session, title, content, product_id)
         return {"data": faqs}
 
     @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
     async def suggest_seo(
         self,
+        db_session: AsyncSession,
         article_service: ArticleService,
         data: Dict[str, str],
     ) -> Dict[str, object]:
         """GEO 2026: XOHI Auto SEO Generator for Articles."""
         title = data.get("title", "")
         content = data.get("content", "")
-        seo = await article_service.suggest_seo(title, content)
+        product_id = data.get("product_id", "")
+        seo = await article_service.suggest_seo(db_session, title, content, product_id)
         return {"data": seo}
 
     @post("/excerpt-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
     async def suggest_excerpt(
         self,
+        db_session: AsyncSession,
         article_service: ArticleService,
         data: Dict[str, str],
     ) -> Dict[str, object]:
@@ -176,12 +181,14 @@ class ArticleController(Controller):
         title = data.get("title", "")
         category = data.get("category", "")
         content = data.get("content", "")
-        excerpt = await article_service.suggest_excerpt(title, category, content)
+        product_id = data.get("product_id", "")
+        excerpt = await article_service.suggest_excerpt(db_session, title, category, content, product_id)
         return {"data": excerpt}
 
     @post("/content-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
     async def suggest_content(
         self,
+        db_session: AsyncSession,
         article_service: ArticleService,
         data: Dict[str, str],
     ) -> Dict[str, object]:
@@ -189,7 +196,8 @@ class ArticleController(Controller):
         title = data.get("title", "")
         category = data.get("category", "")
         excerpt = data.get("excerpt", "")
-        content = await article_service.suggest_content(title, category, excerpt)
+        product_id = data.get("product_id", "")
+        content = await article_service.suggest_content(db_session, title, category, excerpt, product_id)
         return {"data": content}
 
     @post("/title-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)

@@ -38,6 +38,16 @@ class AnomalyDetector:
     Compares recent metrics vs historical baseline to detect spikes.
     """
 
+    def __init__(self) -> None:
+        # Warm psutil CPU baseline ngay khi tạo object (non-blocking, ~0ms).
+        # cpu_percent() lần đầu luôn trả 0.0 — phải gọi 1 lần trước để thiết lập
+        # window đo đạc. Sau đó interval=None sẽ trả delta từ lần gọi trước — ZERO blocking.
+        try:
+            import psutil, os
+            psutil.Process(os.getpid()).cpu_percent(interval=None)
+        except Exception:
+            pass
+
     async def scan(self, tenant_id: str = "default") -> List[AnomalyAlert]:
         """
         Run all anomaly checks in parallel (V76). Returns list of alerts.
@@ -66,6 +76,14 @@ class AnomalyDetector:
         await run_check("db_pool", self._check_db_pool)
         await run_check("redis_replication", self._check_redis_replication)
         await run_check("docker_containers", self._check_docker_containers)
+        # ── Performance & Resource Guards ────────────────────────────────────
+        await run_check("memory_pressure", self._check_memory_pressure)   # RSS vs cgroup limit
+        await run_check("swap_pressure", self._check_swap_pressure)        # Host swap saturation
+        await run_check("cpu_pressure", self._check_cpu_pressure)          # CPU spike detection
+        await run_check("disk_pressure", self._check_disk_pressure)        # Disk nearly full
+        await run_check("event_loop_lag", self._check_event_loop_lag)      # asyncio stall detection
+        await run_check("db_slow_queries", self._check_db_slow_queries)    # Accumulated slow queries
+        await run_check("db_leak_rate", self._check_db_leak_rate)          # Connection leak counter
 
         if alerts:
             await self._persist_alerts(alerts, tenant_id)
@@ -97,6 +115,111 @@ class AnomalyDetector:
                 message=f"⚡ Độ trễ AI đang tăng cao: Trung bình {avg_latency:.0f}ms trong 30p qua.",
                 data={"avg_latency": avg_latency}
             )
+        return None
+
+    async def _check_memory_pressure(self) -> Optional[AnomalyAlert]:
+        """
+        [OOM Guard] Kiểm tra áp lực RAM của container API.
+        Đọc /proc/meminfo của host và RSS của process hiện tại.
+        - > 90% limit → CRITICAL (nguy cơ OOM kill ngay lập tức)
+        - > 80% limit → WARNING (gần OOM)
+        """
+        import os
+        try:
+            import psutil
+            process = psutil.Process(os.getpid())
+            rss_bytes = process.memory_info().rss
+            rss_mb = rss_bytes / (1024 * 1024)
+
+            # Đọc container mem limit từ /sys/fs/cgroup (Docker cgroup v1/v2)
+            limit_mb: float = 0
+            for cgroup_path in [
+                "/sys/fs/cgroup/memory/memory.limit_in_bytes",      # cgroup v1
+                "/sys/fs/cgroup/memory.max",                        # cgroup v2
+            ]:
+                if os.path.exists(cgroup_path):
+                    try:
+                        with open(cgroup_path) as f:
+                            raw = f.read().strip()
+                        # "max" = unlimited trong cgroup v2
+                        if raw not in ("max", ""):
+                            limit_bytes = int(raw)
+                            # Bỏ qua giá trị phi lý (> 1TB)
+                            if limit_bytes < 1_099_511_627_776:
+                                limit_mb = limit_bytes / (1024 * 1024)
+                                break
+                    except Exception:
+                        pass
+
+            # Fallback: dùng host total RAM nếu không đọc được cgroup
+            if limit_mb <= 0:
+                mem = psutil.virtual_memory()
+                limit_mb = mem.total / (1024 * 1024)
+
+            pct = (rss_mb / limit_mb * 100) if limit_mb > 0 else 0
+
+            if pct >= 90:
+                return AnomalyAlert(
+                    type="memory_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [OOM ALERT] RAM API đạt {pct:.1f}% giới hạn "
+                        f"({rss_mb:.0f}/{limit_mb:.0f} MiB). Nguy cơ OOM Kill ngay lập tức!"
+                    ),
+                    data={"rss_mb": round(rss_mb, 1), "limit_mb": round(limit_mb, 1), "pct": round(pct, 1)}
+                )
+            elif pct >= 80:
+                return AnomalyAlert(
+                    type="memory_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [Near-OOM] RAM API đạt {pct:.1f}% giới hạn "
+                        f"({rss_mb:.0f}/{limit_mb:.0f} MiB). Hãy kiểm tra lưu lượng và tối ưu bộ nhớ."
+                    ),
+                    data={"rss_mb": round(rss_mb, 1), "limit_mb": round(limit_mb, 1), "pct": round(pct, 1)}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Memory pressure check failed: {e}")
+        return None
+
+    async def _check_swap_pressure(self) -> Optional[AnomalyAlert]:
+        """
+        [OOM Guard] Kiểm tra Swap usage của host.
+        Swap > 50% = dấu hiệu hệ thống đang thiếu RAM thực, sắp ảnh hưởng hiệu năng.
+        """
+        try:
+            import psutil
+            swap = psutil.swap_memory()
+            if swap.total <= 0:
+                return None
+            swap_pct = swap.percent
+            swap_used_mb = swap.used / (1024 * 1024)
+            swap_total_mb = swap.total / (1024 * 1024)
+
+            if swap_pct >= 80:
+                return AnomalyAlert(
+                    type="swap_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [SWAP CRITICAL] Swap đạt {swap_pct:.1f}% "
+                        f"({swap_used_mb:.0f}/{swap_total_mb:.0f} MiB). "
+                        f"Hệ thống có nguy cơ OOM kill đột ngột!"
+                    ),
+                    data={"swap_pct": swap_pct, "swap_used_mb": round(swap_used_mb, 1), "swap_total_mb": round(swap_total_mb, 1)}
+                )
+            elif swap_pct >= 50:
+                return AnomalyAlert(
+                    type="swap_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [SWAP High] Host đang dùng {swap_pct:.1f}% Swap "
+                        f"({swap_used_mb:.0f}/{swap_total_mb:.0f} MiB). "
+                        f"RAM vật lý có thể đầy, hiệu năng sẽ giảm."
+                    ),
+                    data={"swap_pct": swap_pct, "swap_used_mb": round(swap_used_mb, 1), "swap_total_mb": round(swap_total_mb, 1)}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Swap pressure check failed: {e}")
         return None
 
     async def _check_db_pool(self) -> Optional[AnomalyAlert]:
@@ -352,3 +475,200 @@ class AnomalyDetector:
                     ),
                     tenant_id=tenant_id
                 )
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PERFORMANCE & RESOURCE CHECKS (V2.3)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    async def _check_cpu_pressure(self) -> Optional[AnomalyAlert]:
+        """
+        Phát hiện CPU spike của process API.
+        [OPT] Dùng interval=None (non-blocking, đọc delta từ lần gọi trước) thay vì
+        interval=1.0 (block 1 giây). Baseline đã được warm trong __init__.
+        Chi phí thực tế: < 1ms (chỉ đọc /proc/{pid}/stat).
+        """
+        try:
+            import psutil, os
+            process = psutil.Process(os.getpid())
+            # interval=None: đọc CPU % từ lần gọi gần nhất trước đó — ZERO blocking
+            cpu_pct: float = process.cpu_percent(interval=None)
+            num_cpus = psutil.cpu_count(logical=True) or 1
+            cpu_pct_normalized = cpu_pct / num_cpus
+
+            if cpu_pct_normalized >= 85:
+                return AnomalyAlert(
+                    type="cpu_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [CPU CRITICAL] API process đang dùng {cpu_pct_normalized:.1f}% CPU "
+                        f"(raw {cpu_pct:.1f}% / {num_cpus} cores). "
+                        f"Nguy cơ throttling, response time sẽ tăng vọt."
+                    ),
+                    data={"cpu_pct": round(cpu_pct_normalized, 1), "raw_pct": round(cpu_pct, 1), "num_cpus": num_cpus}
+                )
+            elif cpu_pct_normalized >= 70:
+                return AnomalyAlert(
+                    type="cpu_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [CPU High] API process đang dùng {cpu_pct_normalized:.1f}% CPU "
+                        f"({num_cpus} cores). Tải cao — kiểm tra background tasks."
+                    ),
+                    data={"cpu_pct": round(cpu_pct_normalized, 1), "raw_pct": round(cpu_pct, 1), "num_cpus": num_cpus}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] CPU pressure check failed: {e}")
+        return None
+
+    async def _check_disk_pressure(self) -> Optional[AnomalyAlert]:
+        """
+        Kiểm tra disk usage của partition chứa /app (code + logs + cache).
+        > 95% → CRITICAL (sắp hết disk, log write sẽ fail → container crash)
+        > 85% → WARNING  (cần dọn dẹp cache/log)
+        """
+        try:
+            import psutil
+            usage = psutil.disk_usage("/app")
+            pct = usage.percent
+            free_gb = usage.free / (1024 ** 3)
+            total_gb = usage.total / (1024 ** 3)
+
+            if pct >= 95:
+                return AnomalyAlert(
+                    type="disk_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [DISK CRITICAL] Disk /app đầy {pct:.1f}% "
+                        f"(chỉ còn {free_gb:.1f}/{total_gb:.1f} GB). "
+                        f"Log write có thể fail — container sẽ crash!"
+                    ),
+                    data={"pct": pct, "free_gb": round(free_gb, 2), "total_gb": round(total_gb, 2)}
+                )
+            elif pct >= 85:
+                return AnomalyAlert(
+                    type="disk_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [Disk High] Disk /app đã dùng {pct:.1f}% "
+                        f"(còn {free_gb:.1f} GB). Hãy dọn cache, log cũ, hoặc Docker images."
+                    ),
+                    data={"pct": pct, "free_gb": round(free_gb, 2), "total_gb": round(total_gb, 2)}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Disk pressure check failed: {e}")
+        return None
+
+    async def _check_event_loop_lag(self) -> Optional[AnomalyAlert]:
+        """
+        Đo asyncio event loop lag bằng cách tính drift của asyncio.sleep(0).
+        Nếu sleep(0) thực tế mất > 200ms → event loop đang bị block bởi sync code.
+        > 500ms → CRITICAL  (heavy blocking, toàn bộ API bị stall)
+        > 200ms → WARNING   (stall nhẹ, có thể do import nặng hoặc GC pause)
+        """
+        try:
+            import time
+            start = time.perf_counter()
+            await asyncio.sleep(0)  # Yield to event loop — nên trở về gần như tức thì
+            lag_ms = (time.perf_counter() - start) * 1000
+
+            if lag_ms >= 500:
+                return AnomalyAlert(
+                    type="event_loop_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [Event Loop BLOCKED] asyncio lag {lag_ms:.0f}ms! "
+                        f"Có sync code đang block event loop — toàn bộ API bị stall."
+                    ),
+                    data={"lag_ms": round(lag_ms, 1)}
+                )
+            elif lag_ms >= 200:
+                return AnomalyAlert(
+                    type="event_loop_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [Event Loop Lag] asyncio lag {lag_ms:.0f}ms. "
+                        f"Có thể do GC pause hoặc blocking I/O trong coroutine."
+                    ),
+                    data={"lag_ms": round(lag_ms, 1)}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] Event loop lag check failed: {e}")
+        return None
+
+    async def _check_db_slow_queries(self) -> Optional[AnomalyAlert]:
+        """
+        Đọc slow query counter từ _DB_STATS (zero I/O — in-memory only).
+        Cảnh báo khi trong chu kỳ scan tích lũy > 5 slow queries (>1s mỗi query).
+        Reset counter sau khi alert để tránh spam.
+        """
+        try:
+            from backend.database.alchemy_config import _DB_STATS
+            count = _DB_STATS.get("slow_query_count", 0)
+            last_sql = _DB_STATS.get("last_slow_query_sql", "")
+            last_dur = _DB_STATS.get("last_slow_query_duration_ms", 0)
+
+            if count >= 10:
+                # Reset để tránh alert spam liên tục
+                _DB_STATS["slow_query_count"] = 0
+                return AnomalyAlert(
+                    type="db_slow_query_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [DB Slow Queries] {count} slow queries (>1s) tích lũy! "
+                        f"Query chậm nhất: {last_dur}ms. Kiểm tra index và N+1 queries."
+                    ),
+                    data={"count": count, "last_sql": last_sql[:150], "last_dur_ms": last_dur}
+                )
+            elif count >= 5:
+                _DB_STATS["slow_query_count"] = 0
+                return AnomalyAlert(
+                    type="db_slow_query_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [DB Slow Queries] {count} slow queries (>1s) trong chu kỳ scan. "
+                        f"Query chậm nhất: {last_dur}ms. Xem xét tối ưu."
+                    ),
+                    data={"count": count, "last_sql": last_sql[:150], "last_dur_ms": last_dur}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] DB slow query check failed: {e}")
+        return None
+
+    async def _check_db_leak_rate(self) -> Optional[AnomalyAlert]:
+        """
+        Đọc connection leak counter từ _DB_STATS (in-memory, zero I/O).
+        Cảnh báo khi có connection bị giữ >10s (checkout leak) trong chu kỳ scan.
+        Reset counter sau khi alert.
+        """
+        try:
+            from backend.database.alchemy_config import _DB_STATS
+            count = _DB_STATS.get("leak_count", 0)
+            last_dur = _DB_STATS.get("last_leak_duration_ms", 0)
+            last_time = _DB_STATS.get("last_leak_time", "N/A")
+
+            if count >= 3:
+                _DB_STATS["leak_count"] = 0
+                return AnomalyAlert(
+                    type="db_connection_leak_critical",
+                    severity="CRITICAL",
+                    message=(
+                        f"🚨 [DB Leak] {count} connection leaks (checkout >10s) phát hiện! "
+                        f"Leak nghiêm trọng nhất: {last_dur}ms. "
+                        f"Kiểm tra AI call trong transaction scope."
+                    ),
+                    data={"leak_count": count, "last_dur_ms": last_dur, "last_time": last_time}
+                )
+            elif count >= 1:
+                _DB_STATS["leak_count"] = 0
+                return AnomalyAlert(
+                    type="db_connection_leak_warning",
+                    severity="WARNING",
+                    message=(
+                        f"⚠️ [DB Leak] {count} connection leak (checkout >10s). "
+                        f"Duration: {last_dur}ms lúc {last_time}."
+                    ),
+                    data={"leak_count": count, "last_dur_ms": last_dur, "last_time": last_time}
+                )
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] DB leak rate check failed: {e}")
+        return None

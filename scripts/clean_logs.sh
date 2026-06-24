@@ -11,12 +11,11 @@ BACKUPS_DIR="${BASE_DIR}/backups"
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] BẮT ĐẦU DỌN DẸP HỆ THỐNG ==="
 
 # 1. Truncate Docker logs qua helper container (không cần sudo)
+# [FIX V2.3] Không dùng truncate trực tiếp lên log file của container đang chạy vì sẽ làm lệch file offset của Docker daemon,
+# dẫn đến lệnh 'docker logs' / 'docker compose logs' bị treo cứng (hang) và sau đó bị kill.
+# Hệ thống đã cấu hình max-size="10m" và max-file="3" trong docker-compose.yml nên Docker sẽ tự động xoay vòng log an toàn.
 echo "-> [1/4] Đang làm sạch Docker Container logs..."
-if docker run --rm -v /var/lib/docker/containers:/var/lib/docker/containers alpine sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
-    echo "   ✔ Đã làm sạch toàn bộ tệp tin logs Docker thành công!"
-else
-    echo "   ✘ Lỗi hoặc không thể dọn dẹp logs Docker."
-fi
+echo "   ✔ Bỏ qua (Docker đã tự động xoay vòng log qua cấu hình max-size trong docker-compose.yml)."
 
 # 2. Xóa các file .log trên Host
 echo "-> [2/4] Đang làm sạch các tệp tin .log trên Host..."

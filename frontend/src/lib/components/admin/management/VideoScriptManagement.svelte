@@ -315,14 +315,15 @@ YÊU CẦU: Thực thi ngay lệnh sinh video chuyển động cho Phân cảnh 
       },
     );
 
-    text += `HƯỚNG DẪN ĐẠO DIỄN QUAN TRỌNG ĐỂ TRÁNH LỖI NHIỄM CHÉO (CROSS-CONTAMINATION):\n`;
+    text += `HƯỚNG DẪN ĐẠO DIỄN QUAN TRỌNG ĐỂ TRÁNH LỖI NHIỄM CHÉO (CROSS-CONTAMINATION) & CHỈ CHỈNH BỐI CẢNH:\n`;
     text += `* Mỗi phân cảnh là một video 4s - 6s HOÀN TOÀN ĐỘC LẬP. Tuyệt đối KHÔNG lấy các chi tiết đồ họa, chữ viết, mã QR, hoặc nút CTA của phân cảnh sau vẽ đè lên phân cảnh trước.\n`;
     text += `* TUYỆT ĐỐI KHÔNG vẽ trực tiếp mã QR, nút bấm mua hàng, hay chữ quảng cáo lên video. Các phần này chỉ là ghi chú sản xuất để chèn ở khâu hậu kỳ.\n`;
     text += `* Sử dụng chính xác thiết kế bao bì của sản phẩm và logo thương hiệu từ ảnh đính kèm làm mẫu tham chiếu trực quan. Giữ logo và nhãn sản phẩm tĩnh, không biến đổi nhãn mác.\n`;
     text += `* Duy trì tính nhất quán về gương mặt nhân vật nữ, chất kem dưỡng và mẫu vỏ hộp qua các phân cảnh.\n\n`;
-    text += `YÊU CẦU THỰC THI:\n`;
-    text += `1. Hãy ghi nhớ toàn bộ thông tin nền tảng thương hiệu và kịch bản này để định hình bối cảnh cho dự án.\n`;
-    text += `2. KHÔNG tự động gộp các cảnh hoặc sinh video hỗn tạp chứa nhiều cảnh cùng lúc. Khi sếp gửi yêu cầu tạo cho từng phân cảnh riêng biệt, hãy sử dụng chính xác chỉ dẫn của phân cảnh đó để tạo video chuyển động.`;
+    text += `⚠️ YÊU CẦU THỰC THI QUAN TRỌNG (HÃY ĐỌC KỸ):\n`;
+    text += `1. Đây là BƯỚC THIẾT LẬP DỰ ÁN. Bạn chỉ được phép ghi nhớ toàn bộ thông tin nền tảng thương hiệu và kịch bản này để định hình bối cảnh cho dự án.\n`;
+    text += `2. TUYỆT ĐỐI KHÔNG TỰ Ý SINH VIDEO HOẶC CHẠY BẤT KỲ PHÂN CẢNH NÀO NGAY BÂY GIỜ.\n`;
+    text += `3. Hãy trả lời ngắn gọn: "Tôi đã ghi nhớ toàn bộ dự án [Tên sản phẩm]. Hãy gửi ảnh kèm lệnh của từng Phân cảnh cụ thể, tôi sẽ thực hiện sinh video tương ứng." và dừng lại để đợi lệnh tiếp theo của tôi.`;
     return text;
   }
 

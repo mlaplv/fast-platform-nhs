@@ -55,8 +55,21 @@
     return isNaN(num) ? null : num;
   }
 
-  const videoStartTime = $derived(parseMetadataTime(metadata.mobile_video_start_time) ?? parseMetadataTime(metadata.video_start_time) ?? 0);
-  const videoEndTime = $derived(parseMetadataTime(metadata.mobile_video_end_time) ?? parseMetadataTime(metadata.video_end_time) ?? null);
+  const isUsingMobileVideo = $derived(!!(metadata.mobile_video_url as string | undefined)?.trim());
+
+  const videoStartTime = $derived.by(() => {
+    const mobStart = parseMetadataTime(metadata.mobile_video_start_time);
+    if (mobStart !== null) return mobStart;
+    if (isUsingMobileVideo) return 0;
+    return parseMetadataTime(metadata.video_start_time) ?? 0;
+  });
+
+  const videoEndTime = $derived.by(() => {
+    const mobEnd = parseMetadataTime(metadata.mobile_video_end_time);
+    if (mobEnd !== null) return mobEnd;
+    if (isUsingMobileVideo) return null;
+    return parseMetadataTime(metadata.video_end_time) ?? null;
+  });
 
   let videoEl = $state<HTMLVideoElement | null>(null);
   let hasSeekedInitial = $state(false);

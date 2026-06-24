@@ -3,17 +3,16 @@
 
 echo "🧹 [SOC Maintenance] Scanning for orphaned docker logs processes..."
 
-# Find pids of docker logs commands running under current user
-# Exclude the current grep process and the script itself
-PIDS=$(ps -eo pid,etime,args | grep -E "docker logs|docker compose logs" | grep -v grep | grep -v "clean_zombie_logs.sh" | awk '{print $1}')
+# Find PIDs of docker logs / docker compose logs processes that are orphaned (PPID = 1 and TTY = ?)
+PIDS=$(ps -eo pid,ppid,tty,args | grep -E "docker logs|docker compose logs" | grep -v grep | awk '$2 == 1 && $3 == "?" {print $1}')
 
 if [ -z "$PIDS" ]; then
     echo "✅ No orphaned docker logs processes found."
     exit 0
 fi
 
-echo "Found the following docker logs processes:"
-ps -eo pid,etime,args | grep -E "docker logs|docker compose logs" | grep -v grep | grep -v "clean_zombie_logs.sh"
+echo "Found the following orphaned docker logs processes:"
+ps -eo pid,ppid,tty,args | grep -E "docker logs|docker compose logs" | grep -v grep | awk '$2 == 1 && $3 == "?"'
 
 # Let's kill them
 for pid in $PIDS; do

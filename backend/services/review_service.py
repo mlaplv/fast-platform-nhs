@@ -435,15 +435,22 @@ class ReviewService:
         - Phong cách: ngẫu nhiên (tiktok / shopee / lazada / authentic)
         - Bypass anti-spam: không check duplicate
         - Extensible: thêm NEWS/CATEGORY chỉ cần thêm branch load entity
+
+        [LEAK FIX] 3-phase architecture để không giữ DB connection trong suốt AI call:
+          Phase 1 — DB Read:  lấy entity data, session tự trả connection về pool ngay sau.
+          Phase 2 — AI Call: gọi LLM hoàn toàn offline với asyncio.timeout(30) guard.
+          Phase 3 — DB Write: checkout connection mới để insert review.
         """
-        import uuid
+        import asyncio
         import logging
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
         logger = logging.getLogger("api-gateway")
 
-        # --- 1. Load entity context (Extensible architecture) ---
+        # ─────────────────────────────────────────────────────────────
+        # PHASE 1: DB READ — thu thập dữ liệu entity, KHÔNG giữ session
+        # ─────────────────────────────────────────────────────────────
         entity_name = ""
         entity_desc = ""
         entity_attrs: dict[str, object] = {}
@@ -459,9 +466,10 @@ class ReviewService:
             row = (await self.review_repo.session.execute(stmt)).fetchone()
             if not row:
                 raise ValueError(f"Product {entity_id} not found")
-            entity_name = row.name or ""
-            entity_desc = row.short_description or ""
-            entity_attrs = (row.product_metadata or {}).get("attributes", {})
+            # Đọc giá trị ra biến Python ngay — không giữ tham chiếu ORM
+            entity_name = str(row.name or "")
+            entity_desc = str(row.short_description or "")
+            entity_attrs = dict((row.product_metadata or {}).get("attributes", {}))
         elif entity_type == "NEWS":
             from sqlalchemy import select
             from backend.database.models.content import Article
@@ -472,8 +480,8 @@ class ReviewService:
             row = (await self.review_repo.session.execute(stmt)).fetchone()
             if not row:
                 raise ValueError(f"News article {entity_id} not found")
-            entity_name = row.title or ""
-            entity_desc = row.excerpt or ""
+            entity_name = str(row.title or "")
+            entity_desc = str(row.excerpt or "")
         elif entity_type == "CATEGORY":
             from sqlalchemy import select, text
             row = (await self.review_repo.session.execute(
@@ -482,10 +490,21 @@ class ReviewService:
             )).fetchone()
             if not row:
                 raise ValueError(f"Category {entity_id} not found")
-            entity_name = row.name or ""
-            entity_desc = row.description or ""
+            entity_name = str(row.name or "")
+            entity_desc = str(row.description or "")
         else:
             raise ValueError(f"Unsupported entity_type: {entity_type}")
+
+        # Chủ động expire session để SQLAlchemy trả connection về pool ngay
+        # trước khi bước vào AI call (phase 2) kéo dài hàng chục giây
+        await self.review_repo.session.flush()
+        self.review_repo.session.expire_all()
+
+        # ─────────────────────────────────────────────────────────────
+        # PHASE 2: AI CALL — không còn giữ bất kỳ DB connection nào
+        # asyncio.timeout(30) đảm bảo không bao giờ block quá 30s,
+        # tránh trường hợp Caddy cut request → CancelledError → invalidate conn.
+        # ─────────────────────────────────────────────────────────────
 
         # --- 2. Random style — backend chọn, UI không cần control ---
         style = random.choice(["tiktok", "shopee", "lazada", "authentic"])
@@ -621,22 +640,26 @@ CHỈ THỊ QUAN TRỌNG:
 
         prompt = f"Dữ liệu: {content_foundation}"
 
-        # --- 7. Call LLM qua trinity_bridge ---
+        # --- 7. Call LLM qua trinity_bridge (PHASE 2 — không giữ DB connection) ---
         agent = Agent(output_type=str, retries=2)
         try:
-            response = await trinity_bridge.run(
-                agent,
-                prompt,
-                system_prompt=system_prompt,
-                role="lite",
-                timeout=30.0,
-                safety_none=True,
-                model_settings={"max_tokens": 300, "thinking": False},
-            )
+            # [LEAK FIX] asyncio.timeout(30) làm application-level guard.
+            # Nếu AI call vượt 30s, raise TimeoutError ngay tại đây thay vì để
+            # Caddy (60s) cut → CancelledError → connection bị invalidate.
+            async with asyncio.timeout(30):
+                response = await trinity_bridge.run(
+                    agent,
+                    prompt,
+                    system_prompt=system_prompt,
+                    role="lite",
+                    timeout=30.0,
+                    safety_none=True,
+                    model_settings={"max_tokens": 300, "thinking": False},
+                )
             content_raw = str(getattr(response, "data", response)).strip()
             # Sanitize: bỏ quote dư và xử lý newline
             content_raw = content_raw.strip('"\' \n').split('\n')[0][:500]
-            
+
             # Elite V2.2: Enforce Vietnamese NLP validation on AI-generated reviews
             from backend.utils.text import validate_vietnamese_sentence
             try:
@@ -647,9 +670,17 @@ CHỈ THỊ QUAN TRỌNG:
                     content_raw = validate_vietnamese_sentence(content_raw, mode="light")
                 except Exception as ve2:
                     logger.warning(f"[ReviewService.ai_seed_one] AI Review validation light failed: {ve2}")
+        except asyncio.TimeoutError:
+            logger.error("[ReviewService.ai_seed_one] LLM call exceeded 30s application timeout — aborting to protect DB pool.")
+            raise ValueError("AI generation timed out after 30s. Vui lòng thử lại.")
         except Exception as exc:
             logger.error(f"[ReviewService.ai_seed_one] LLM failed: {exc}")
             raise ValueError(f"AI không thể tạo nội dung: {exc}")
+
+        # ─────────────────────────────────────────────────────────────
+        # PHASE 3: DB WRITE — checkout connection MỚI, chỉ giữ đúng thời
+        # gian cần thiết để insert 1 row, không còn rủi ro leak.
+        # ─────────────────────────────────────────────────────────────
 
         # --- 8. Insert SystemReview APPROVED — bypass duplicate check ---
         review = SystemReview(

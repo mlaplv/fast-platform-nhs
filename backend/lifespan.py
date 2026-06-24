@@ -189,6 +189,13 @@ async def lifespan(app: Litestar):
     try:
         # 3. [GHOST MODE] Start GC Watchdog first
         gc.set_threshold(700, 10, 5) # Chống rác tích tụ lâu
+        # [OPT] Dọn rác import-time ngay sau startup — giải phóng ~30-50MB heap
+        gc.collect(generation=2)
+        import ctypes
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)  # Trả RAM về OS ngay
+        except Exception:
+            pass
         gc_task = _aio.create_task(_gc_watchdog_loop())
 
         # 4. Start Background Loops
@@ -266,23 +273,37 @@ async def _media_cleanup_loop():
 async def _gc_watchdog_loop():
     """
     [GHOST MODE] Vệ binh giải phóng RAM.
-    Theo dõi mức độ sử dụng RAM và chủ động gọi bộ dọn rác (GC) 
-    khi có dấu hiệu RAM bị chiếm dụng bất thường hoặc sau chu kỳ 10 phút.
+    [OPT V2.3] Trigger sớm hơn (400MB), chạy mỗi 5 phút, và gọi malloc_trim
+    để trả RAM về OS — giúp giảm RSS thực tế thấy được trên docker stats.
     """
+    import ctypes
+    _libc = None
+    try:
+        _libc = ctypes.CDLL("libc.so.6")
+    except Exception:
+        pass
+
     process = psutil.Process(os.getpid())
     while True:
         try:
-            # 1. Định kỳ 10 phút dọn rác một lần bất kể trạng thái
-            await _aio.sleep(600) 
-            
+            # Chạy mỗi 5 phút (300s) thay vì 10 phút
+            await _aio.sleep(300)
+
             ram_mb = process.memory_info().rss / (1024 * 1024)
-            # Threshold adjusted to 1.2GB (V2.2: Accommodates fastembed + Litestar)
-            if ram_mb > 1200:
+            if ram_mb > 1000:
                 logger.warning(f"[GhostMode] RAM usage high ({ram_mb:.1f}MB). Forcing aggressive GC...")
-                gc.collect(generation=2) # Dọn rác ở tầng sâu nhất
-            elif ram_mb > 800:
-                gc.collect() # Dọn rác thông thường khi vượt 800MB
-                
+                gc.collect(generation=2)
+                if _libc:
+                    _libc.malloc_trim(0)  # Trả fragmented pages về OS
+            elif ram_mb > 600:
+                logger.info(f"[GhostMode] RAM {ram_mb:.1f}MB > 600MB threshold. Running standard GC + trim.")
+                gc.collect()
+                if _libc:
+                    _libc.malloc_trim(0)
+            elif ram_mb > 400:
+                # Dọn nhẹ gen0 để giữ heap sạch
+                gc.collect(generation=0)
+
         except Exception as e:
             logger.error(f"[GhostMode] Watchdog error: {e}")
 

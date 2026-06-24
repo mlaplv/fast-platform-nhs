@@ -22,7 +22,6 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { neuralCleanPastedHTML } from '../utils/editorUtils';
-import { mergeAttributes } from '@tiptap/core';
 
 /**
  * [CNS V92.0] Neural ListItem: Allows inline content to prevent redundant <p> wrapping.
@@ -32,13 +31,11 @@ const NeuralListItem = ListItem.extend({
   content: 'paragraph block*',
 });
 
-// CNS V95.0 Custom table node to support caption preservation
-const CustomTable = Table.extend({
-  content: 'caption? tableRow+',
-  renderHTML({ HTMLAttributes }) {
-    return ['table', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
-  },
-}).configure({
+// CNS V95.1 CustomTable: ONLY configure resizable: false.
+// DO NOT override content schema — 'caption? tableRow+' breaks ProseMirror's
+// findCell() offset math, causing: RangeError: No cell with offset N found.
+// Caption nodes are handled via the separate Caption extension.
+const CustomTable = Table.configure({
   resizable: false,
 });
 

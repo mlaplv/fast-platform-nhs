@@ -74,26 +74,26 @@ class AlchemyConfig:
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
-                # [Elite V2.2] Optimized pooling for 2GB/4GB RAM VPS
-                # pool_size=12: handle concurrent requests safely under peak load
-                # max_overflow=8: burst buffer before hard-reject (total max 20 conn per engine)
-                # pool_timeout=10: fail fast instead of hanging requests
+                # [OPT V2.3] Single Uvicorn worker — pool_size=8 là đủ.
+                # Concurrent DB ops thực tế hiếm khi vượt 6-8 với 1 worker.
+                # Giảm từ pool_size=12+overflow=8 (max 20) → 8+4 (max 12)
+                # Tiết kiệm ~4 idle asyncpg connections × ~4MB = ~16MB RAM.
                 engine_kwargs.update({
-                    "pool_size": 12,
-                    "max_overflow": 8,
+                    "pool_size": 8,
+                    "max_overflow": 4,
                     "pool_timeout": 10,
                     "pool_pre_ping": True,
                     "pool_recycle": 300,
-                    # [PHASE 8] Truyen cau hinh chuyen sau xuong asyncpg
+                    "pool_reset_on_return": "rollback",
                     "connect_args": {
                         "command_timeout": 30,
                         "server_settings": {
-                            "jit": "off", # Tat JIT de tiet kiem RAM cho Postgres
-                            "application_name": "fast-platform-v2.2",
+                            "jit": "off",
+                            "application_name": "fast-platform-v2.3",
                         }
                     }
                 })
-                logger.info(f"[Database] Initializing Elite asyncpg engine with optimized pool limits")
+                logger.info("[Database] Initializing asyncpg engine: pool_size=8, max_overflow=4, pool_timeout=10")
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine

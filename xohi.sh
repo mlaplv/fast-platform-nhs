@@ -447,12 +447,7 @@ function create_superuser() {
 
 
 function view_logs() {
-    echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api + workers)...${NC}"
-    echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
-    # Hiện 10 dòng cuối bất kể loại log để Sếp biết hệ thống vẫn chạy
-    docker compose logs --tail 10 api worker_high
-    echo -e "${YELLOW}--- Đang theo dõi lỗi mới (ERROR/CRITICAL/WARNING) ---${NC}"
-    docker compose logs -f api worker_high --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+    view_logs_tmux
 }
 
 function view_logs_tmux() {
@@ -463,10 +458,14 @@ function view_logs_tmux() {
         sudo apt-get install -y tmux &>/dev/null || true
     fi
 
+    # Kích hoạt chế độ chuột (lăn chuột cuộn log) trong tmux
+    tmux set-option -g mouse on 2>/dev/null || true
+
     if [ -n "$TMUX" ]; then
-        # Đang ở trong tmux rồi, chạy trực tiếp docker compose logs
-        echo -e "${GREEN}Đang chạy bên trong TMUX. Đang mở log...${NC}"
-        docker compose logs -f api worker_high --tail 100
+        # Đang ở trong tmux rồi, chạy trực tiếp docker compose logs lọc lỗi
+        echo -e "${GREEN}Đang chạy bên trong TMUX. Đang mở log lỗi/cảnh báo...${NC}"
+        printf '\033[1;33m=== ĐANG THEO DÕI LOG LỖI/CẢNH BÁO (CTRL+C ĐỂ THOÁT, PHÍM Q ĐỂ THOÁT CHẾ ĐỘ CUỘN CHUỘT) ===\033[0m\n'
+        docker compose logs -f api worker_high --tail 500 | grep -Ei --line-buffered 'ERROR|CRITICAL|EXCEPTION|WARNING|WARN'
     else
         echo -e "${GREEN}Thiết lập thành công! Hệ thống sẽ chuyển hướng Sếp vào TMUX Session 'xohi-logs'.${NC}"
         echo -e "${YELLOW}----------------------------------------------------------------------${NC}"
@@ -475,8 +474,8 @@ function view_logs_tmux() {
         echo -e "   - Nếu đứt mạng giữa chừng, log vẫn chạy ngầm trên VPS mà không tạo zombie."
         echo -e "   - Để vào lại xem tiếp: Chọn lại mục này hoặc gõ: ${GREEN}tmux attach -t xohi-logs${NC}"
         echo -e "${YELLOW}----------------------------------------------------------------------${NC}"
-        read -p "Nhấn Enter để bắt đầu xem log..."
-        tmux new-session -A -s xohi-logs "docker compose logs -f api worker_high --tail 100"
+        read -p "Nhấn Enter để bắt đầu xem log lỗi..."
+        tmux new-session -A -s xohi-logs "printf '\033[1;33m=== ĐANG THEO DÕI LOG LỖI/CẢNH BÁO (CTRL+C ĐỂ THOÁT, PHÍM Q ĐỂ THOÁT CHẾ ĐỘ CUỘN CHUỘT) ===\033[0m\n' && docker compose logs -f api worker_high --tail 500 | grep -Ei --line-buffered 'ERROR|CRITICAL|EXCEPTION|WARNING|WARN'"
     fi
 }
 
@@ -659,7 +658,7 @@ function clean_backups() {
     
     echo -e "${YELLOW}-> Đang xác thực quyền hạn...${NC}"
     # Xác thực mật khẩu admin thông qua container api
-    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "^MATCH$"; then
         echo -e "${YELLOW}-> Xác thực thành công. Đang dọn dẹp thư mục backups/...${NC}"
         sudo rm -rf "${BACKUP_DIR:?}"/*
         echo -e "${GREEN}[OK] Đã dọn sạch toàn bộ bản sao lưu!${NC}"
@@ -867,7 +866,7 @@ function purge_full_database() {
     read -s -p "Nhập mã quản trị để xác nhận (Admin Password): " confirm_pass
     echo ""
     
-    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "^MATCH$"; then
         echo -e "${CYAN}-> Xác thực thành công. Đang tải danh sách bảng...${NC}"
         # Chạy script làm sạch (Sử dụng -it để tương tác chọn bảng)
         if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
@@ -895,7 +894,7 @@ function reset_db_for_marketing() {
     read -s -p "Nhập mã quản trị để xác nhận (Admin Password): " confirm_pass
     echo ""
     
-    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "^MATCH$"; then
         echo -e "${CYAN}-> Xác thực thành công. Bắt đầu thực thi script reset...${NC}"
         if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
             docker exec -it fast_platform_api /opt/venv/bin/python3 backend/scripts/reset_db_marketing.py
@@ -1076,16 +1075,11 @@ function total_garbage_clean() {
     echo -e "${CYAN}[CLEAN] Đang tiến hành dọn rác toàn diện (Cache, Logs & Old Packages)...${NC}"
 
     # 1. Truncate Docker logs
+    # [FIX V2.3] Không dùng truncate trực tiếp lên log file của container đang chạy vì sẽ làm lệch file offset của Docker daemon,
+    # dẫn đến lệnh 'docker logs' / 'docker compose logs' bị treo cứng (hang) và sau đó bị kill.
+    # Hệ thống đã cấu hình max-size="10m" và max-file="3" trong docker-compose.yml nên Docker sẽ tự động xoay vòng log an toàn.
     echo -e "${YELLOW}-> [1/6] Đang giải phóng bộ nhớ logs Docker...${NC}"
-    if docker run --rm -v /var/lib/docker/containers:/var/lib/docker/containers alpine sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
-        echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker (qua container helper)!${NC}"
-    else
-        if sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log' 2>/dev/null; then
-            echo -e "${GREEN}   ✔ Đã làm sạch toàn bộ tệp tin logs Docker!${NC}"
-        else
-            echo -e "${YELLOW}[INFO] Không tìm thấy tệp logs hoặc thiếu quyền thực thi.${NC}"
-        fi
-    fi
+    echo -e "${GREEN}   ✔ Bỏ qua (Docker đã tự động xoay vòng log qua cấu hình max-size trong docker-compose.yml).${NC}"
 
     # 2. Clean UV cache inside container
     if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then

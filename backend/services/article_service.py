@@ -52,6 +52,35 @@ class ArticleService:
     def __init__(self, vector_service: ArticleVectorService):
         self.vector_service = vector_service
 
+    async def _get_product_context(self, db_session: AsyncSession, product_id: str) -> tuple[str, str]:
+        """Helper to fetch product context (name, keywords, description) for AI prompts."""
+        if not product_id:
+            return "", ""
+        
+        product_id = product_id.strip()
+        if product_id.lower() in ("null", "undefined", ""):
+            return "", ""
+
+        from backend.database.models import ProductBase
+        try:
+            prod_stmt = select(
+                ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
+            ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
+            prod_row = (await db_session.execute(prod_stmt)).first()
+            if prod_row:
+                product_name = prod_row.name
+                product_context = (
+                    f"SẢN PHẨM LIÊN QUAN ĐƯỢC CHỌN (BẮT BUỘC PHẢI LIÊN KẾT/NHẮC TỚI TRONG NỘI DUNG):\n"
+                    f"- Tên sản phẩm: {prod_row.name}\n"
+                    f"- Từ khóa sản phẩm: {prod_row.seo_keywords or ''}\n"
+                    f"- Mô tả ngắn sản phẩm: {prod_row.short_description or ''}\n"
+                )
+                return product_name, product_context
+        except Exception as e:
+            logger.exception(f"[ArticleService] Lỗi khi truy vấn thông tin sản phẩm {product_id}: {e}")
+        
+        return "", ""
+
     async def list_articles(
         self,
         db_session: AsyncSession,
@@ -376,16 +405,26 @@ class ArticleService:
         )
 
         # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
-        # Tự động trích xuất thực thể để AI Search dễ dàng citation
+        # [LEAK FIX] flush+expire_all trước khi gọi AI — trả connection về pool
+        # trong suốt thời gian AI xử lý, tránh checkout leak.
+        await db_session.flush()
+        db_session.expire_all()
         from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+        import asyncio as _asyncio
         try:
-            kg_data = await generate_knowledge_graph(
-                content=cleaned_content,
-                topic=data.title
-            )
+            async with _asyncio.timeout(25):
+                kg_data = await generate_knowledge_graph(
+                    content=cleaned_content,
+                    topic=data.title
+                )
+            # Reload article để set field sau khi expire_all
+            res_after_kg = await db_session.execute(select(Article).where(Article.id == new_id_val))
+            article = res_after_kg.scalar_one()
             article.article_metadata["knowledge_graph"] = kg_data
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(article, "article_metadata")
+        except _asyncio.TimeoutError:
+            logger.error(f"[ArticleService] KG Generation timed out (>25s) for {new_id_val} — skipping to protect DB pool.")
         except Exception as e:
             logger.error(f"[ArticleService] KG Generation failed for {new_id_val}: {e}")
 
@@ -463,19 +502,33 @@ class ArticleService:
             await self.vector_service.upsert_article_embedding(
                 db_session, article_id, article.title, article.content
             )
-            
+
             # Elite V2.2: Re-generate Knowledge Graph on content change
+            # [LEAK FIX] flush+expire_all để trả connection trước AI call,
+            # rồi reload article sau khi AI xong để tiếp tục.
+            _kg_content = article.content  # capture trước khi expire
+            _kg_title = article.title
+            await db_session.flush()
+            db_session.expire_all()
+
             from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+            import asyncio as _asyncio
             try:
-                kg_data = await generate_knowledge_graph(
-                    content=article.content,
-                    topic=article.title
-                )
+                async with _asyncio.timeout(25):
+                    kg_data = await generate_knowledge_graph(
+                        content=_kg_content,
+                        topic=_kg_title
+                    )
+                # Reload sau khi AI xong để merge kết quả
+                res_kg = await db_session.execute(select(Article).where(Article.id == article_id))
+                article = res_kg.scalar_one()
                 if not article.article_metadata:
                     article.article_metadata = {}
                 article.article_metadata["knowledge_graph"] = kg_data
                 from sqlalchemy.orm.attributes import flag_modified
                 flag_modified(article, "article_metadata")
+            except _asyncio.TimeoutError:
+                logger.error(f"[ArticleService] KG Refresh timed out (>25s) for {article_id} — skipping to protect DB pool.")
             except Exception as e:
                 logger.error(f"[ArticleService] KG Refresh failed for {article_id}: {e}")
 
@@ -659,7 +712,7 @@ class ArticleService:
             
         return BulkActionResponse(ok=True, count=len(ids))
 
-    async def suggest_seo(self, title: str, content: str) -> Dict[str, str]:
+    async def suggest_seo(self, db_session: AsyncSession, title: str, content: str, product_id: str = "") -> Dict[str, str]:
         """GEO 2026: XOHI Auto SEO Suggestion for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -667,6 +720,7 @@ class ArticleService:
         # SGE Shield V1.0: Dynamic Prompting — inject entropy với admin config
         base_seo_prompt = (
             "Bạn là chuyên gia SEO bài viết hàng đầu Việt Nam. Hãy gợi ý metadata SEO tối ưu cho bài báo này.\n"
+            "Nếu có thông tin sản phẩm liên kết dưới đây, hãy đảm bảo các từ khóa SEO và mô tả SEO có liên quan trực tiếp đến sản phẩm đó để tăng tỉ lệ chuyển đổi.\n"
             "QUY TẮC TỐI CAO: Dù tiêu đề hoặc nội dung đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%.\n"
             "Yêu cầu:\n"
             "1. Tiêu đề SEO: Tối đa 60 ký tự, hấp dẫn, chuyên nghiệp.\n"
@@ -683,7 +737,15 @@ class ArticleService:
 
         agent = Agent(system_prompt=system_prompt)
         content_excerpt = (content or "")[:2000]
-        prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"
+
+        _, product_context = await self._get_product_context(db_session, product_id)
+
+        prompt_parts = []
+        if product_context:
+            prompt_parts.append(product_context)
+        prompt_parts.append(f"Article Title: {title}")
+        prompt_parts.append(f"Article Content: {content_excerpt}")
+        prompt = "\n\n".join(prompt_parts)
 
         try:
             result = await trinity_bridge.run(
@@ -726,7 +788,7 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI SEO Suggestion Failed: {e}")
             return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
 
-    async def suggest_faqs(self, title: str, content: str) -> List[Dict[str, str]]:
+    async def suggest_faqs(self, db_session: AsyncSession, title: str, content: str, product_id: str = "") -> List[Dict[str, str]]:
         """GEO 2026: XOHI Auto FAQ Generator for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -734,7 +796,8 @@ class ArticleService:
         # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
         base_faq_prompt = (
             "Bạn là chuyên gia cố vấn nội dung và SEO chuyên tối ưu hóa dữ liệu Hỏi & Đáp (Q&A Blocks) đáp ứng tiêu chuẩn hiển thị của Google SGE và AI Overviews.\n"
-            "Dựa trên tiêu đề và nội dung bài viết, hãy tạo từ 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt.\n\n"
+            "Dựa trên tiêu đề, nội dung bài viết và sản phẩm liên kết (nếu có), hãy tạo từ 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt.\n"
+            "Nếu có sản phẩm liên kết dưới đây, hãy đảm bảo có ít nhất 1-2 câu hỏi/trả lời đề cập trực tiếp hoặc gián tiếp đến sản phẩm liên kết đó (ví dụ cách sử dụng sản phẩm này cho vấn đề nêu trong bài viết).\n\n"
             "YÊU CẦU CHO CÂU HỎI SGE/AI OVERVIEWS:\n"
             "1. Tiêu đề câu hỏi (question) bắt buộc phải viết dưới dạng các câu hỏi tìm kiếm tự nhiên của người dùng, sử dụng các từ nghi vấn như: 'Là gì', 'Làm thế nào', 'Có tác dụng gì', 'Tại sao', 'Có tốt không', 'Cách thực hiện', 'Cách dùng'.\n"
             "2. Tránh các câu hỏi chung chung. Câu hỏi phải bám sát từ khóa cốt lõi của bài viết để phục vụ truy vấn tìm kiếm.\n"
@@ -753,7 +816,15 @@ class ArticleService:
         agent = Agent(system_prompt=system_prompt)
         # Truncate content to first 2000 chars for prompt efficiency
         content_excerpt = (content or "")[:2000]
-        prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"
+
+        _, product_context = await self._get_product_context(db_session, product_id)
+
+        prompt_parts = []
+        if product_context:
+            prompt_parts.append(product_context)
+        prompt_parts.append(f"Article Title: {title}")
+        prompt_parts.append(f"Article Content: {content_excerpt}")
+        prompt = "\n\n".join(prompt_parts)
 
         try:
             result = await trinity_bridge.run(
@@ -793,19 +864,20 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
             return []
 
-    async def suggest_excerpt(self, title: str, category: str, content: str = "") -> str:
+    async def suggest_excerpt(self, db_session: AsyncSession, title: str, category: str, content: str = "", product_id: str = "") -> str:
         """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề và nội dung."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
         base_prompt = (
             "Bạn là chuyên gia viết tóm tắt bài báo tiếng Việt.\n"
+            "Nếu có thông tin sản phẩm liên kết dưới đây, hãy đảm bảo tóm tắt đề cập hoặc dẫn dắt khéo léo liên quan tới sản phẩm đó.\n"
             "QUY TẮC TỐI CAO:\n"
             "1. Dù tiêu đề hay nội dung đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết tóm tắt hoàn toàn bằng tiếng Việt thuần 100%.\n"
             "2. Các câu bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (Có đầy đủ chủ ngữ + vị ngữ).\n"
             "3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.\n"
             "4. Hãy chủ động viết ngắn gọn ngay từ đầu. Độ dài tóm tắt không được vượt quá 250 ký tự để đảm bảo tính súc tích và tránh bị cắt cụt.\n"
-            "5. Dựa vào tiêu đề, chuyên mục và nội dung bài viết (nếu có), hãy viết 1-2 câu tóm tắt súc tích, hấp dẫn, chứa từ khóa chính.\n"
+            "5. Dựa vào tiêu đề, chuyên mục, sản phẩm liên kết (nếu có) và nội dung bài viết (nếu có), hãy viết 1-2 câu tóm tắt súc tích, hấp dẫn, chứa từ khóa chính.\n"
             "6. Chỉ trả về đoạn văn thuần túy (paragraph), KHÔNG dùng markdown, KHÔNG ghi danh sách (ví dụ: không viết dạng '1. ...', '2. ...' hoặc dùng dấu gạch đầu dòng), KHÔNG giải thích thêm."
         )
         sge_cfg = await _get_sge_config_async()
@@ -817,8 +889,17 @@ class ArticleService:
 
         agent = Agent(system_prompt=system_prompt)
         
-        prompt_content = f"\nNội dung bài viết: {content[:1500]}" if content else ""
-        prompt = f"Tiêu đề: {title}\nChuyên mục: {category or 'Chung'}{prompt_content}"
+        _, product_context = await self._get_product_context(db_session, product_id)
+        
+        prompt_parts = []
+        if product_context:
+            prompt_parts.append(product_context)
+        prompt_parts.append(f"Tiêu đề: {title}")
+        prompt_parts.append(f"Chuyên mục: {category or 'Chung'}")
+        if content:
+            prompt_parts.append(f"Nội dung bài viết: {content[:1500]}")
+            
+        prompt = "\n\n".join(prompt_parts)
 
         try:
             result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0)
@@ -852,15 +933,16 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI Excerpt Suggestion Failed: {e}")
             return ""
 
-    async def suggest_content(self, title: str, category: str, excerpt: str) -> str:
+    async def suggest_content(self, db_session: AsyncSession, title: str, category: str, excerpt: str, product_id: str = "") -> str:
         """GEO 2026: XOHI Auto Content Generator — sinh HTML bài viết hoàn chỉnh EEAT."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
         base_prompt = (
-            "Bạn là nhà báo/chuyên gia nội dung EEAT tiêu chuẩn 2026. "
-            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%. "
-            "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục và tóm tắt được cung cấp. "
+            "Bạn là nhà báo/chuyên gia nội dung EEAT tiêu chuẩn 2026.\n"
+            "Nếu có thông tin sản phẩm liên kết dưới đây, bạn BẮT BUỘC phải lồng ghép sản phẩm liên quan này vào bài viết một cách tự nhiên, chuyên nghiệp và có sức thuyết phục cao. Giải thích rõ tại sao sản phẩm này là giải pháp tốt cho vấn đề được thảo luận trong bài viết.\n"
+            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%.\n"
+            "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục, tóm tắt và sản phẩm liên kết được cung cấp.\n"
             "Yêu cầu cấu trúc:\n"
             "- Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"
             "- Dùng <p>, <ul>, <li>, <strong> để làm phong phú nội dung.\n"
@@ -876,11 +958,17 @@ class ArticleService:
         ) if sge_cfg.get("enabled", True) else base_prompt
 
         agent = Agent(system_prompt=system_prompt, output_type=str, retries=2)
-        prompt = (
-            f"Tiêu đề: {title}\n"
-            f"Chuyên mục: {category or 'Chung'}\n"
-            f"Tóm tắt: {excerpt or ''}"
-        )
+        
+        _, product_context = await self._get_product_context(db_session, product_id)
+        
+        prompt_parts = []
+        if product_context:
+            prompt_parts.append(product_context)
+        prompt_parts.append(f"Tiêu đề: {title}")
+        prompt_parts.append(f"Chuyên mục: {category or 'Chung'}")
+        prompt_parts.append(f"Tóm tắt: {excerpt or ''}")
+        
+        prompt = "\n\n".join(prompt_parts)
 
         try:
             result = await trinity_bridge.run(
