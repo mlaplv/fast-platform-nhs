@@ -119,7 +119,7 @@ class ArticleService:
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt,
             Article.status, Article.category, Article.views,
-            Article.created_at, Article.author_id, Article.featured_image,
+            Article.created_at, Article.updated_at, Article.author_id, Article.featured_image,
             Article.seo_keywords, Article.seo_og_image, Article.article_metadata,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -237,7 +237,7 @@ class ArticleService:
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt,
             Article.status, Article.category, Article.views,
-            Article.created_at, Article.author_id, Article.featured_image,
+            Article.created_at, Article.updated_at, Article.author_id, Article.featured_image,
             Article.article_metadata,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -267,7 +267,7 @@ class ArticleService:
             Article.seo_title, Article.seo_description,
             Article.seo_keywords, Article.seo_og_image,
             Article.featured_image, Article.article_metadata,
-            Article.created_at, Article.author_id,
+            Article.created_at, Article.updated_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             Article.id == article_id,
@@ -291,7 +291,7 @@ class ArticleService:
             Article.seo_title, Article.seo_description,
             Article.seo_keywords, Article.seo_og_image,
             Article.featured_image, Article.article_metadata,
-            Article.created_at, Article.author_id,
+            Article.created_at, Article.updated_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             Article.slug == slug,
@@ -317,6 +317,7 @@ class ArticleService:
             image=article_data["featured_image"],
             author=article_data["author_name"],
             date_published=article_data["created_at"].isoformat() if article_data["created_at"] else None,
+            date_modified=article_data["updated_at"].isoformat() if article_data.get("updated_at") else None,
             faqs=faqs,
             db=db_session,
         )

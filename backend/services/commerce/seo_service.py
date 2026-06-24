@@ -808,6 +808,7 @@ class SeoService:
         image: Optional[str] = None,
         author: str = "Admin",
         date_published: Optional[str] = None,
+        date_modified: Optional[str] = None,
         faqs: Optional[list[dict]] = None,
         seo_title: Optional[str] = None,
         seo_description: Optional[str] = None,
@@ -887,6 +888,9 @@ class SeoService:
             "url": canonical_url,
             "inLanguage": "vi",
         }
+
+        if date_modified:
+            schema["dateModified"] = date_modified[:10] if len(date_modified) >= 10 else date_modified
 
         # Inject mainEntity if FAQPage and faqs are present
         if schema_type == "FAQPage" and faqs:
@@ -1081,5 +1085,21 @@ class SeoService:
                             break  # Move to next keyword
                 if changed:
                     html_content = "".join(parts)
+
+        # Elite V2.2: Hardening existing external links to ensure E-E-A-T rel authority compliance
+        def _harden_external_link(match: re.Match) -> str:
+            tag = match.group(0)
+            href_m = re.search(r'href=["\']([^"\']+)["\']', tag, re.IGNORECASE)
+            if href_m:
+                href = href_m.group(1)
+                if not href.startswith('/') and not href.startswith('#') and 'osmo.vn' not in href and not href.startswith(('tel:', 'mailto:', 'javascript:')):
+                    tag_no_rel = re.sub(r'\s*rel=["\'][^"\']*["\']', '', tag, flags=re.IGNORECASE)
+                    if tag_no_rel.endswith('/>'):
+                        return tag_no_rel[:-2] + ' rel="nofollow noopener noreferrer"/>'
+                    else:
+                        return tag_no_rel[:-1] + ' rel="nofollow noopener noreferrer">'
+            return tag
+
+        html_content = re.sub(r'<a\b[^>]*>', _harden_external_link, html_content, flags=re.IGNORECASE)
 
         return html_content

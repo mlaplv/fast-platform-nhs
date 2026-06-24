@@ -238,7 +238,7 @@
                 <a
                   href="https://pubmed.ncbi.nlm.nih.gov/31840425/"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="nofollow noopener noreferrer"
                   class="text-blue-400 hover:text-blue-300 text-[9px] font-bold underline transition-colors"
                 >
                   Nghiên cứu Ceramide (PubMed)
@@ -246,7 +246,7 @@
                 <a
                   href="https://www.jpla.jp/english/"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="nofollow noopener noreferrer"
                   class="text-blue-400 hover:text-blue-300 text-[9px] font-bold underline transition-colors"
                 >
                   Hiệp hội Placenta Nhật Bản (JPLA)
