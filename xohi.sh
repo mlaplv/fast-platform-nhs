@@ -455,6 +455,31 @@ function view_logs() {
     docker compose logs -f api worker_high --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
 }
 
+function view_logs_tmux() {
+    echo -e "${CYAN}[LOGS - TMUX] Chuẩn bị khởi chạy chế độ xem Log An Toàn (Chống Zombie)...${NC}"
+    if ! command -v tmux &> /dev/null; then
+        echo -e "${YELLOW}Không tìm thấy tmux. Đang tiến hành cài đặt...${NC}"
+        sudo apt-get update -y &>/dev/null || true
+        sudo apt-get install -y tmux &>/dev/null || true
+    fi
+
+    if [ -n "$TMUX" ]; then
+        # Đang ở trong tmux rồi, chạy trực tiếp docker compose logs
+        echo -e "${GREEN}Đang chạy bên trong TMUX. Đang mở log...${NC}"
+        docker compose logs -f api worker_high --tail 100
+    else
+        echo -e "${GREEN}Thiết lập thành công! Hệ thống sẽ chuyển hướng Sếp vào TMUX Session 'xohi-logs'.${NC}"
+        echo -e "${YELLOW}----------------------------------------------------------------------${NC}"
+        echo -e "💡 ${GREEN}HƯỚNG DẪN TMUX:${NC}"
+        echo -e "   - Để thoát (detach) và giữ log chạy ngầm an toàn: Nhấn ${YELLOW}Ctrl + B${NC}, sau đó nhấn phím ${YELLOW}D${NC}."
+        echo -e "   - Nếu đứt mạng giữa chừng, log vẫn chạy ngầm trên VPS mà không tạo zombie."
+        echo -e "   - Để vào lại xem tiếp: Chọn lại mục này hoặc gõ: ${GREEN}tmux attach -t xohi-logs${NC}"
+        echo -e "${YELLOW}----------------------------------------------------------------------${NC}"
+        read -p "Nhấn Enter để bắt đầu xem log..."
+        tmux new-session -A -s xohi-logs "docker compose logs -f api worker_high --tail 100"
+    fi
+}
+
 function backup_data() {
     BACKUP_DIR="backups"
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -1188,6 +1213,10 @@ if [[ -n "$1" ]]; then
             restart_backend_services --no-wait
             exit 0
             ;;
+        logs-tmux|log-tmux|tmux-log|tmux-logs|4a|4A)
+            view_logs_tmux
+            exit 0
+            ;;
         ui-ssr|ssr-update|update-ui|ui|dist-ro|caddy-ro|update-ro|ro)
             update_storefront_ssr
             exit 0
@@ -1228,6 +1257,7 @@ while true; do
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
     echo "4) XEM LOG BACKEND"
+    echo "4a) XEM LOG AN TOÀN TRÁNH ZOMBIE (TMUX)"
     echo "5) SAO LƯU DỮ LIỆU (DB + Images)"
     echo "6) KHÔI PHỤC DỮ LIỆU"
     echo "7) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
@@ -1272,6 +1302,9 @@ while true; do
             ;;
         4)
             view_logs
+            ;;
+        4a|4A)
+            view_logs_tmux
             ;;
         5)
             backup_data

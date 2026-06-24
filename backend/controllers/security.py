@@ -628,13 +628,15 @@ class SecurityController(Controller):
         """
         import asyncio
         try:
-            proc = await asyncio.create_subprocess_shell(
-                "ps -eo pid,etime,args | grep -E 'docker logs|docker compose logs' | grep -v grep",
+            # Chạy trong container alpine với pid=host để quét các tiến trình của host
+            proc = await asyncio.create_subprocess_exec(
+                "docker", "run", "--rm", "--pid=host", "alpine", "sh", "-c",
+                "ps | grep -E 'docker logs|docker compose logs' | grep -v grep | grep -v 'clean_zombie_logs.sh'",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
             stdout, _ = await proc.communicate()
-            lines = [line for line in stdout.decode("utf-8").splitlines() if line.strip() and "clean_zombie_logs" not in line]
+            lines = [line.strip() for line in stdout.decode("utf-8").splitlines() if line.strip()]
             
             return {
                 "count": len(lines),
@@ -651,20 +653,32 @@ class SecurityController(Controller):
         """
         import asyncio
         try:
-            script_path = "./scripts/clean_zombie_logs.sh"
-            if os.path.exists(script_path):
-                proc = await asyncio.create_subprocess_exec(
-                    "bash", script_path,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await proc.communicate()
-                msg = stdout.decode("utf-8").strip()
+            cmd = (
+                "PIDS=$(ps | grep -E 'docker logs|docker compose logs' | grep -v grep | awk '{print $1}'); "
+                "if [ -n \"$PIDS\" ]; then "
+                "  for pid in $PIDS; do kill -9 $pid 2>/dev/null; done; "
+                "  echo \"Cleaned PIDs: $PIDS\"; "
+                "else "
+                "  echo \"No processes found\"; "
+                "fi"
+            )
+            proc = await asyncio.create_subprocess_exec(
+                "docker", "run", "--rm", "--pid=host", "alpine", "sh", "-c", cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+            msg = stdout.decode("utf-8").strip()
+            err = stderr.decode("utf-8").strip()
+            
+            if proc.returncode == 0:
                 logger.warning(f"🚨 [SOC OPS] Zombie processes cleaned up by admin. Output: {msg}")
                 return SuccessResponse(message=f"Dọn dẹp thành công: {msg}")
             else:
-                return SuccessResponse(message="Không tìm thấy script dọn dẹp.", success=False)
+                logger.error(f"❌ [SOC] Failed to clean zombie processes: {err}")
+                return SuccessResponse(message=f"Lỗi: {err}", success=False)
         except Exception as e:
             logger.error(f"❌ [SOC] Failed to clean zombie processes: {e}")
             return SuccessResponse(message=f"Lỗi: {e}", success=False)
+
 
