@@ -175,7 +175,8 @@ class ArticleController(Controller):
         """GEO 2026: XOHI Auto Excerpt Generator — sinh Tóm tắt theo tiêu đề."""
         title = data.get("title", "")
         category = data.get("category", "")
-        excerpt = await article_service.suggest_excerpt(title, category)
+        content = data.get("content", "")
+        excerpt = await article_service.suggest_excerpt(title, category, content)
         return {"data": excerpt}
 
     @post("/content-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)

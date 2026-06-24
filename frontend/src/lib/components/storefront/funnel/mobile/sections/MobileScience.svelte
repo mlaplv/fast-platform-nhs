@@ -223,6 +223,9 @@
                     <h3 class="faq-q-text m-0 text-left" style="font-size: inherit; font-weight: inherit; line-height: inherit; display: inline;">
                       {faq.q}
                     </h3>
+                    <div style="display: none;" aria-hidden="true">
+                      {faq.a}
+                    </div>
                   </button>
                 {/each}
               </div>
@@ -246,6 +249,9 @@
               <h3 class="faq-q-text m-0 text-left" style="font-size: inherit; font-weight: inherit; line-height: inherit; display: inline;">
                   {faq.q}
               </h3>
+              <div style="display: none;" aria-hidden="true">
+                {faq.a}
+              </div>
             </button>
           {/each}
         </div>

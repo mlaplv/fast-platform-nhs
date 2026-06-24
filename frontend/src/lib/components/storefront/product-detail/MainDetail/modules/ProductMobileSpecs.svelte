@@ -694,37 +694,36 @@
       <div class="flex flex-col gap-2 mt-4">
         {#each product.metadata.faqs as faq, i}
           <div
-            class="bg-gray-50/50 border border-gray-100 rounded-[5px] overflow-hidden transition-all {activeMobileFaq ===
-            i
+            class="bg-gray-50/50 border border-gray-100 rounded-[5px] overflow-hidden transition-all {activeMobileFaq === i
               ? 'border-[#d12a0f]/30 bg-white shadow-sm'
               : ''}"
           >
-            <button
-              class="w-full flex items-center justify-between p-3 text-left bg-transparent border-none"
-              onclick={() =>
-                (activeMobileFaq = activeMobileFaq === i ? null : i)}
-            >
-              <h3
-                class="text-[14px] font-bold text-gray-900 leading-tight pr-4"
+            <h3 class="m-0">
+              <button
+                class="w-full flex items-center justify-between p-3 text-left bg-transparent border-none cursor-pointer"
+                onclick={() => (activeMobileFaq = activeMobileFaq === i ? null : i)}
               >
-                {faq.question}
-              </h3>
-              <ChevronDown
-                size={14}
-                class="text-gray-400 transition-transform {activeMobileFaq === i
-                  ? 'rotate-180 text-[#d12a0f]'
-                  : ''}"
-              />
-            </button>
-            {#if activeMobileFaq === i}
-              <div class="px-3 pb-3 animate-[fadeIn_0.2s_ease-out]">
-                <p
-                  class="text-[12px] text-gray-600 leading-relaxed border-t border-gray-50 pt-2"
-                >
-                  {faq.answer}
-                </p>
-              </div>
-            {/if}
+                <span class="text-[14px] font-bold text-gray-900 leading-tight pr-4">
+                  {faq.question}
+                </span>
+                <ChevronDown
+                  size={14}
+                  class="text-gray-400 transition-transform {activeMobileFaq === i
+                    ? 'rotate-180 text-[#d12a0f]'
+                    : ''}"
+                />
+              </button>
+            </h3>
+            <div 
+              class="px-3 pb-3 transition-all duration-300"
+              style:display={activeMobileFaq === i ? "block" : "none"}
+            >
+              <p
+                class="text-[12px] text-gray-600 leading-relaxed border-t border-gray-50 pt-2"
+              >
+                {faq.answer}
+              </p>
+            </div>
           </div>
         {/each}
       </div>

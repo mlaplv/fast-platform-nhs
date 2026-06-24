@@ -478,7 +478,7 @@
       {/if}
 
       <button aria-label="Chứng nhận" class="w-8 h-8 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-lg focus:outline-none" onclick={triggerVerify}>
-        <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
+        <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" width="32" height="32" class="w-full h-full object-contain" />
       </button>
   
       <button aria-label="Thích" class="flex flex-col items-center gap-1 drop-shadow-lg active:scale-90 transition-transform" onclick={handleLike}>

@@ -243,7 +243,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
     })();
 
     const [resolvedMobileLcpUrl, resolvedDesktopLcpUrl] = await Promise.all([
-      mobileHeroImage ? resolveDirectCacheUrl(fetch, mobileHeroImage, 600) : Promise.resolve(''),
+      mobileHeroImage ? resolveDirectCacheUrl(fetch, mobileHeroImage, 450) : Promise.resolve(''),
       desktopHeroImage ? resolveDirectCacheUrl(fetch, desktopHeroImage, 800) : Promise.resolve('')
     ]);
 

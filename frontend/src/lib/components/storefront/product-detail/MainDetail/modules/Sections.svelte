@@ -465,38 +465,37 @@
       <div class="px-0 flex flex-col gap-2">
         {#each product.metadata.faqs as faq, i}
           <div
-            class="border border-gray-100 rounded-[5px] transition-all {activeFaq ===
-            i
+            class="border border-gray-100 rounded-[5px] transition-all {activeFaq === i
               ? 'bg-white shadow-md border-[#ee4d2d]/30'
               : 'bg-gray-50/30'}"
           >
-            <button
-              class="w-full flex items-center justify-between p-4 text-left bg-transparent border-none cursor-pointer group"
-              onclick={() => (activeFaq = activeFaq === i ? null : i)}
-            >
-              <h3
-                class="text-[15px] font-bold text-gray-900 group-hover:text-[#ee4d2d] transition-colors"
+            <h3 class="m-0">
+              <button
+                class="w-full flex items-center justify-between p-4 text-left bg-transparent border-none cursor-pointer group"
+                onclick={() => (activeFaq = activeFaq === i ? null : i)}
               >
-                {faq.question}
-              </h3>
-              <ChevronDown
-                size={18}
-                class="text-gray-400 transition-transform duration-300 {activeFaq ===
-                i
-                  ? 'rotate-180 text-[#ee4d2d]'
-                  : ''}"
-              />
-            </button>
+                <span class="text-[15px] font-bold text-gray-900 group-hover:text-[#ee4d2d] transition-colors">
+                  {faq.question}
+                </span>
+                <ChevronDown
+                  size={18}
+                  class="text-gray-400 transition-transform duration-300 {activeFaq === i
+                    ? 'rotate-180 text-[#ee4d2d]'
+                    : ''}"
+                />
+              </button>
+            </h3>
 
-            {#if activeFaq === i}
-              <div class="px-4 pb-4">
-                <p
-                  class="text-[14px] text-gray-600 leading-relaxed w-full border-t border-gray-100 pt-3"
-                >
-                  {faq.answer}
-                </p>
-              </div>
-            {/if}
+            <div 
+              class="px-4 pb-4 transition-all duration-300"
+              style:display={activeFaq === i ? "block" : "none"}
+            >
+              <p
+                class="text-[14px] text-gray-600 leading-relaxed w-full border-t border-gray-100 pt-3"
+              >
+                {faq.answer}
+              </p>
+            </div>
           </div>
         {/each}
       </div>

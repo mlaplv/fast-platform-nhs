@@ -92,6 +92,21 @@
   });
 
   let isInitialLcp = $state(true);
+  let rects: Record<number, DOMRect> = {};
+
+  $effect(() => {
+    if (!browser) return;
+    const clearCache = () => {
+      rects = {};
+    };
+    window.addEventListener("resize", clearCache);
+    window.addEventListener("scroll", clearCache, { passive: true });
+    return () => {
+      window.removeEventListener("resize", clearCache);
+      window.removeEventListener("scroll", clearCache);
+    };
+  });
+
   onMount(() => {
     isInitialLcp = false;
     return () => {
@@ -533,6 +548,8 @@
             <img
               src="/01.Badge_52ad415e46.webp"
               alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo"
+              width="56"
+              height="56"
               class="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
             />
           </button>
@@ -583,8 +600,11 @@
             <div
               class="hud-metric-segment group relative pt-3 px-6 pb-3 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]"
               style:--idx={i}
+              onmouseenter={(e) => {
+                rects[i] = e.currentTarget.getBoundingClientRect();
+              }}
               onmousemove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
+                const rect = rects[i] || (rects[i] = e.currentTarget.getBoundingClientRect());
                 e.currentTarget.style.setProperty(
                   "--light-x",
                   `${e.clientX - rect.left}px`,

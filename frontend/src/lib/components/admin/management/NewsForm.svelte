@@ -311,7 +311,8 @@
     try {
       const res = await apiClient.post<{ data: string }>('/api/v1/articles/excerpt-suggest', {
         title: formTitle,
-        category: formCategory || ''
+        category: formCategory || '',
+        content: formContent || ''
       });
       if (res?.data && typeof res.data === 'string' && res.data.trim()) {
         formExcerpt = res.data.trim();

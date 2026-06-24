@@ -136,7 +136,7 @@
     
     <div class="flex items-center gap-2 relative z-10">
       <div class="w-16 h-16 rounded-none flex items-center justify-center relative group">
-        <img src="/01.Badge_52ad415e46.webp" alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo" class="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+        <img src="/01.Badge_52ad415e46.webp" alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo" width="64" height="64" class="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
       </div>
       <div>
         <h2 class="text-3xl sm:text-4xl font-black text-white leading-none mb-2 drop-shadow-lg flex items-center gap-3">

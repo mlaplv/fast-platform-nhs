@@ -792,17 +792,20 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
             return []
 
-    async def suggest_excerpt(self, title: str, category: str) -> str:
-        """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề."""
+    async def suggest_excerpt(self, title: str, category: str, content: str = "") -> str:
+        """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề và nội dung."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
         base_prompt = (
-            "Bạn là chuyên gia viết tóm tắt bài báo tiếng Việt. "
-            "QUY TẮC TỐI CAO: Dù tiêu đề đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết tóm tắt hoàn toàn bằng tiếng Việt thuần 100%. "
-            "Dựa vào tiêu đề và chuyên mục, hãy viết 1-2 câu tóm tắt súc tích (tối đa 300 ký tự), "
-            "hấp dẫn, chứa từ khóa chính. Chỉ trả về đoạn văn thuần túy, KHÔNG dùng markdown, "
-            "KHÔNG giải thích thêm."
+            "Bạn là chuyên gia viết tóm tắt bài báo tiếng Việt.\n"
+            "QUY TẮC TỐI CAO:\n"
+            "1. Dù tiêu đề hay nội dung đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết tóm tắt hoàn toàn bằng tiếng Việt thuần 100%.\n"
+            "2. Các câu bắt buộc phải là một câu hoàn chỉnh về mặt ngữ nghĩa (Có đầy đủ chủ ngữ + vị ngữ).\n"
+            "3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.\n"
+            "4. Hãy chủ động viết ngắn gọn ngay từ đầu. Độ dài tóm tắt không được vượt quá 250 ký tự để đảm bảo tính súc tích và tránh bị cắt cụt.\n"
+            "5. Dựa vào tiêu đề, chuyên mục và nội dung bài viết (nếu có), hãy viết 1-2 câu tóm tắt súc tích, hấp dẫn, chứa từ khóa chính.\n"
+            "6. Chỉ trả về đoạn văn thuần túy (paragraph), KHÔNG dùng markdown, KHÔNG ghi danh sách (ví dụ: không viết dạng '1. ...', '2. ...' hoặc dùng dấu gạch đầu dòng), KHÔNG giải thích thêm."
         )
         sge_cfg = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -812,13 +815,31 @@ class ArticleService:
         ) if sge_cfg.get("enabled", True) else base_prompt
 
         agent = Agent(system_prompt=system_prompt)
-        prompt = f"Tiêu đề: {title}\nChuyên mục: {category or 'Chung'}"
+        
+        prompt_content = f"\nNội dung bài viết: {content[:1500]}" if content else ""
+        prompt = f"Tiêu đề: {title}\nChuyên mục: {category or 'Chung'}{prompt_content}"
 
         try:
             result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0)
             if result:
                 text = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                text = text[:300]
+                
+                # Loại bỏ hoàn toàn các ký tự xuống dòng dư thừa trong tóm tắt
+                text = re.sub(r'[\r\n]+', ' ', text)
+                text = re.sub(r'\s+', ' ', text).strip()
+                
+                # Cắt gọn an toàn đến câu hoàn chỉnh cuối cùng nếu vượt quá 300 ký tự
+                if len(text) > 300:
+                    matches = list(re.finditer(r'[.!?](?:\s|$)', text[:300]))
+                    if matches:
+                        text = text[:matches[-1].end()].strip()
+                    else:
+                        space_idx = text[:300].rfind(' ')
+                        if space_idx > 0:
+                            text = text[:space_idx].strip()
+                        else:
+                            text = text[:300].strip()
+
                 from backend.utils.text import validate_vietnamese_sentence
                 try:
                     text = validate_vietnamese_sentence(text, mode="standard")

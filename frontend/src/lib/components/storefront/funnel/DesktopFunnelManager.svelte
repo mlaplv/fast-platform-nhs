@@ -32,12 +32,11 @@
   import LiquidHeader from "$lib/components/client/LiquidHeader.svelte";
   import HeroBanner from "$lib/components/client/HeroBanner.svelte";
 
-  // Desktop Dynamic JIT Components
-  let DiagnosticsSectionComponent = $state<Component<any> | null>(null);
-  let ScienceBentoComponent = $state<Component<any> | null>(null);
-  let VerifiedReviewsComponent = $state<Component<any> | null>(null);
-  let OfferGridComponent = $state<Component<any> | null>(null);
-  let EliteLandingFooterComponent = $state<Component<any> | null>(null);
+  import DiagnosticsSection from "./desktop/sections/DiagnosticsSection.svelte";
+  import ScienceBento from "./desktop/sections/ScienceBento.svelte";
+  import VerifiedReviews from "./desktop/sections/VerifiedReviews.svelte";
+  import OfferGrid from "./desktop/sections/OfferGrid.svelte";
+  import EliteLandingFooter from "./desktop/sections/EliteLandingFooter.svelte";
 
   // Lazy-loaded heavy modal components
   let ScannerHUDComponent = $state<Component<any> | null>(null);
@@ -56,24 +55,6 @@
       VerificationCenterComponent = mod.default;
     }
   }
-
-  $effect(() => {
-    if (loadJIT) {
-      Promise.all([
-        import("./desktop/sections/DiagnosticsSection.svelte"),
-        import("./desktop/sections/ScienceBento.svelte"),
-        import("./desktop/sections/VerifiedReviews.svelte"),
-        import("./desktop/sections/OfferGrid.svelte"),
-        import("./desktop/sections/EliteLandingFooter.svelte")
-      ]).then(([diagMod, sciMod, revMod, offMod, footMod]) => {
-        DiagnosticsSectionComponent = diagMod.default;
-        ScienceBentoComponent = sciMod.default;
-        VerifiedReviewsComponent = revMod.default;
-        OfferGridComponent = offMod.default;
-        EliteLandingFooterComponent = footMod.default;
-      });
-    }
-  });
 
   const shopStore = setShopStore();
   const product = $derived(data?.product);
@@ -313,56 +294,23 @@
     <!-- SECTIONS WITH DYNAMIC JIT RENDERING -->
     {#if hasQuiz}
       <section id="diagnostics" class="snap-session">
-        {#if DiagnosticsSectionComponent}
-          {@const Diagnostics = DiagnosticsSectionComponent}
-          <Diagnostics {product} />
-        {:else}
-          <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
-            <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
-          </div>
-        {/if}
+        <DiagnosticsSection {product} />
       </section>
     {/if}
 
     <section id="science" class="snap-session">
-      {#if ScienceBentoComponent}
-        {@const Science = ScienceBentoComponent}
-        <Science />
-      {:else}
-        <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
-          <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
-        </div>
-      {/if}
+      <ScienceBento />
     </section>
 
     <section id="reviews" class="snap-session">
-      {#if VerifiedReviewsComponent}
-        {@const VerifiedReviews = VerifiedReviewsComponent}
-        <VerifiedReviews initialReviews={data.reviews} />
-      {:else}
-        <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
-          <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
-        </div>
-      {/if}
+      <VerifiedReviews initialReviews={data.reviews} />
     </section>
 
     <section id="offers" class="snap-session">
-      {#if OfferGridComponent}
-        {@const OfferGrid = OfferGridComponent}
-        <OfferGrid onTriggerScan={triggerScan} />
-      {:else}
-        <div class="w-full min-h-[400px] flex items-center justify-center bg-[#010101]">
-          <div class="w-10 h-10 border border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin"></div>
-        </div>
-      {/if}
+      <OfferGrid onTriggerScan={triggerScan} />
     </section>
 
-    {#if EliteLandingFooterComponent}
-      {@const EliteLandingFooter = EliteLandingFooterComponent}
-      <EliteLandingFooter {product} onTriggerScan={triggerScan} />
-    {:else}
-      <div class="w-full min-h-[200px] bg-[#010101]"></div>
-    {/if}
+    <EliteLandingFooter {product} onTriggerScan={triggerScan} />
   {:else}
     <div
       class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white"

@@ -80,7 +80,7 @@
         {:else}
           {#if i === 0}
             <img 
-              src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(img, 600)} 
+              src={(isInitialLcp && resolvedLcpUrl) ? resolvedLcpUrl : resolveOptimizedImageUrl(img, 450)} 
               width="412"
               height="412"
               alt={product.name} 
@@ -90,9 +90,9 @@
             />
           {:else}
             <img 
-              src={resolveOptimizedImageUrl(img, 600)} 
-              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 600)} 600w, {resolveOptimizedImageUrl(img, 700)} 700w, {resolveOptimizedImageUrl(img, 800)} 800w"
-              sizes="(max-width: 767px) 100vw, 600px"
+              src={resolveOptimizedImageUrl(img, 450)} 
+              srcset="{resolveOptimizedImageUrl(img, 412)} 412w, {resolveOptimizedImageUrl(img, 450)} 450w, {resolveOptimizedImageUrl(img, 600)} 600w"
+              sizes="(max-width: 767px) 100vw, 450px"
               width="412"
               height="412"
               alt={product.name} 

@@ -39,7 +39,7 @@
   // --- TAB & SCROLL STATE ---
   let activeTab = $state("overview");
   let isScrollingToSection = $state(false);
-  let loadBelowFold = $state(false);
+  let loadBelowFold = $state(true);
   let showTabs = $state(false);
   let isScrolled = $state(false);
   let isShrunk = $state(false);

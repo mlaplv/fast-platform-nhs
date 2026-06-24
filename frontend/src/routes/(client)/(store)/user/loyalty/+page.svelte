@@ -29,18 +29,19 @@
     completedCount <= 1 ? 0 : Math.min(372, (completedCount - 1) * 62)
   );
 
-  // Drag-to-scroll timeline states & handlers
   let isDown = false;
   let startX = 0;
   let scrollLeft = 0;
   let scrollContainer = $state<HTMLDivElement | null>(null);
+  let containerOffsetLeft = 0;
 
   function handleMouseDown(e: MouseEvent) {
     if (!scrollContainer) return;
     isDown = true;
     scrollContainer.style.cursor = 'grabbing';
     scrollContainer.style.userSelect = 'none';
-    startX = e.pageX - scrollContainer.offsetLeft;
+    containerOffsetLeft = scrollContainer.offsetLeft;
+    startX = e.pageX - containerOffsetLeft;
     scrollLeft = scrollContainer.scrollLeft;
   }
 
@@ -63,7 +64,7 @@
   function handleMouseMove(e: MouseEvent) {
     if (!isDown || !scrollContainer) return;
     e.preventDefault();
-    const x = e.pageX - scrollContainer.offsetLeft;
+    const x = e.pageX - containerOffsetLeft;
     const walk = (x - startX) * 1.5; // Scroll speed
     scrollContainer.scrollLeft = scrollLeft - walk;
   }

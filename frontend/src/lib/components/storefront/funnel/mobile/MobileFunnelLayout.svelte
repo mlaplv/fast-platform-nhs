@@ -47,37 +47,10 @@
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
 
-  let DiagnosticsComponent = $state<Component | null>(null);
-  let ScienceComponent = $state<Component | null>(null);
-  let ReviewsComponent = $state<Component | null>(null);
-  let OfferComponent = $state<Component | null>(null);
-
-  $effect(() => {
-    if (loadJIT) {
-      // Elite V2.6: Stagger dynamic imports across animation frames to completely prevent simultaneous mounting reflows
-      import('./sections/MobileDiagnostics.svelte').then((mod) => {
-        DiagnosticsComponent = mod.default;
-        
-        requestAnimationFrame(() => {
-          import('./sections/MobileScience.svelte').then((mod) => {
-            ScienceComponent = mod.default;
-            
-            requestAnimationFrame(() => {
-              import('./sections/MobileReviews.svelte').then((mod) => {
-                ReviewsComponent = mod.default;
-                
-                requestAnimationFrame(() => {
-                  import('./sections/MobileOffer.svelte').then((mod) => {
-                    OfferComponent = mod.default;
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    }
-  });
+  import Diagnostics from './sections/MobileDiagnostics.svelte';
+  import Science from './sections/MobileScience.svelte';
+  import Reviews from './sections/MobileReviews.svelte';
+  import Offer from './sections/MobileOffer.svelte';
 
   async function openDetailsModal() {
     if (!MobileProductDetailsModalComponent) {
@@ -229,50 +202,22 @@
 
   <!-- SECTION 2: NATIVE DIAGNOSTICS -->
   <section id="diagnostics" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
-    {#if DiagnosticsComponent}
-      {@const Diagnostics = DiagnosticsComponent}
-      <Diagnostics {product} />
-    {:else}
-      <div class="w-full h-full bg-[#000] flex items-center justify-center">
-        <div class="w-8 h-8 border border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
-      </div>
-    {/if}
+    <Diagnostics {product} />
   </section>
 
   <!-- SECTION 3: NATIVE SCIENCE -->
   <section id="science" class="mobile-snap-section" data-section-idx={hasVideo ? 3 : 2}>
-    {#if ScienceComponent}
-      {@const Science = ScienceComponent}
-      <Science {product} />
-    {:else}
-      <div class="w-full h-full bg-[#000] flex items-center justify-center">
-        <div class="w-8 h-8 border border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
-      </div>
-    {/if}
+    <Science {product} />
   </section>
 
   <!-- SECTION 4: NATIVE REVIEWS -->
   <section id="reviews" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
-    {#if ReviewsComponent}
-      {@const Reviews = ReviewsComponent}
-      <Reviews {product} initialReviews={reviews} />
-    {:else}
-      <div class="w-full h-full bg-[#000] flex items-center justify-center">
-        <div class="w-8 h-8 border border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
-      </div>
-    {/if}
+    <Reviews {product} initialReviews={reviews} />
   </section>
 
   <!-- SECTION 5: NATIVE OFFER -->
   <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
-    {#if OfferComponent}
-      {@const Offer = OfferComponent}
-      <Offer {product} onOpenDetails={openDetailsModal} {relatedProducts} {reviewStats} />
-    {:else}
-      <div class="w-full h-full bg-[#000] flex items-center justify-center">
-        <div class="w-8 h-8 border border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
-      </div>
-    {/if}
+    <Offer {product} onOpenDetails={openDetailsModal} {relatedProducts} {reviewStats} />
   </section>
 
 

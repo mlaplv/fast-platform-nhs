@@ -478,7 +478,7 @@
 
   // Elite Performance V2.2: Intersection Observer Sentinel for Below-the-fold dynamic modules
   let dynamicSection = $state<HTMLElement | null>(null);
-  let shouldRenderDynamic = $state(false);
+  let shouldRenderDynamic = $state(true);
 
   $effect(() => {
     if (!dynamicSection) return;

@@ -42,9 +42,14 @@
 
 	async function handlePillarChange(e: Event) {
 		const target = e.target as HTMLSelectElement;
-		selectedPillarId.value = target.value || null;
+		const val = target.value || null;
+		selectedPillarId.value = val;
 		selectedNodeId.value = null; // Clear selected node
 		await fetchGraph(apiBase);
+		if (val) {
+			selectedNodeId.value = val;
+			isSidebarOpen.value = true;
+		}
 	}
 
 	async function handleReconcile() {

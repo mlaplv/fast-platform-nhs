@@ -124,7 +124,7 @@
     <div class="absolute -right-20 -top-20 w-40 h-40 bg-blue-500/10 blur-[40px] rounded-full pointer-events-none"></div>
     <div class="flex items-center gap-3 relative z-10">
       <div class="w-12 h-12 flex items-center justify-center relative">
-        <img src="/01.Badge_52ad415e46.webp" alt="Verified Badge" class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
+        <img src="/01.Badge_52ad415e46.webp" alt="Verified Badge" width="48" height="48" class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
       </div>
       <div>
         <h2 class="text-xl font-black text-white tracking-tighter leading-none italic">Verified Osmo</h2>
