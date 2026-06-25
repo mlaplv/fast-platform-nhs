@@ -126,8 +126,14 @@ class SnippetRefinement(BaseModel):
     @classmethod
     def validate_new_text(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+        import logging
+        logger = logging.getLogger("api-gateway")
         v = sanitize_sentence_linebreaks(v)
-        return validate_vietnamese_sentence(v, mode="standard")
+        try:
+            return validate_vietnamese_sentence(v, mode="standard")
+        except Exception as e:
+            logger.warning(f"⚠️ [SnippetRefinement] new_text validation warning: {e}")
+            return v
 
 class AtomicFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -145,8 +151,14 @@ class ContentPatch(BaseModel):
     @classmethod
     def validate_replacement_string(cls, v: str) -> str:
         from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+        import logging
+        logger = logging.getLogger("api-gateway")
         v = sanitize_sentence_linebreaks(v)
-        return validate_vietnamese_sentence(v, mode="standard")
+        try:
+            return validate_vietnamese_sentence(v, mode="standard")
+        except Exception as e:
+            logger.warning(f"⚠️ [ContentPatch] replacement_string validation warning: {e}")
+            return v
 
 
 # ── CNS V93.0: Structured Clinical Evidence ─────────────────────────────────

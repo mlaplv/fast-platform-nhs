@@ -413,6 +413,9 @@
 				} else if (Number(result.data?.skipped_stale) > 0) {
 					errorMessage = `Không thể apply. Bài viết đã bị sửa đổi nội dung. Cần chạy lại phân tích.`;
 					nanobot.showToast(errorMessage, 'error');
+				} else if (Number(result.data?.skipped_inject_fail) > 0) {
+					errorMessage = `Không thể chèn ${result.data.skipped_inject_fail} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.`;
+					nanobot.showToast(errorMessage, 'warning');
 				} else {
 					successMessage = 'Không có liên kết Approved nào được chèn.';
 					nanobot.showToast(successMessage, 'info');
@@ -441,6 +444,7 @@
 				
 				const applied = Number(result.data?.applied_count || 0);
 				const skipped = Number(result.data?.skipped_stale || 0);
+				const injectFail = Number(result.data?.skipped_inject_fail || 0);
 				const processed = Number(result.data?.processed_articles || 0);
 
 				if (applied > 0) {
@@ -450,10 +454,16 @@
 						errorMessage = `Bỏ qua ${skipped} liên kết vì nội dung bài viết gốc đã bị thay đổi bên ngoài.`;
 						nanobot.showToast(errorMessage, 'warning');
 					}
+					if (injectFail > 0) {
+						nanobot.showToast(`${injectFail} link không khớp cấu trúc HTML, cần Phân tích lại.`, 'warning');
+					}
 					await fetchContextualLinks();
 				} else if (skipped > 0) {
 					errorMessage = `Không thể chèn liên kết. Toàn bộ ${skipped} liên kết đã bị hết hạn (do nội dung bài viết gốc đã thay đổi).`;
 					nanobot.showToast(errorMessage, 'error');
+				} else if (injectFail > 0) {
+					errorMessage = `Không thể chèn ${injectFail} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.`;
+					nanobot.showToast(errorMessage, 'warning');
 				} else {
 					successMessage = 'Không có liên kết nào được chèn.';
 					nanobot.showToast(successMessage, 'info');

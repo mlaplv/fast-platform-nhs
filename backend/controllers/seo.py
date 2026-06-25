@@ -687,6 +687,12 @@ class SeoController(Controller):
                 data=result,
             )
 
+        if result["applied_count"] == 0 and result.get("skipped_inject_fail", 0) > 0:
+            return SuccessResponse(
+                message=f"Không thể chèn {result['skipped_inject_fail']} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.",
+                data=result,
+            )
+
         return SuccessResponse(
             message=f"Đã apply {result['applied_count']} link vào nội dung bài viết.",
             data=result,
@@ -731,6 +737,7 @@ class SeoController(Controller):
 
         total_applied = 0
         total_skipped = 0
+        total_inject_fail = 0
 
         # 2. Xử lý apply cho từng article trong 1 session duy nhất
         for src_id in unique_src_ids:
@@ -739,14 +746,16 @@ class SeoController(Controller):
             )
             total_applied += res_apply["applied_count"]
             total_skipped += res_apply["skipped_stale"]
+            total_inject_fail += res_apply.get("skipped_inject_fail", 0)
 
         await db_session.commit()
 
         return SuccessResponse(
-            message=f"Đã chèn thành công {total_applied} liên kết vào {len(unique_src_ids)} bài viết. (Bỏ qua {total_skipped} link hết hạn).",
+            message=f"Đã chèn thành công {total_applied} liên kết vào {len(unique_src_ids)} bài viết. (Bỏ qua {total_skipped} link hết hạn, {total_inject_fail} link không khớp HTML).",
             data={
                 "applied_count": total_applied,
                 "skipped_stale": total_skipped,
+                "skipped_inject_fail": total_inject_fail,
                 "processed_articles": len(unique_src_ids),
             }
         )

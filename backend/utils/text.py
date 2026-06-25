@@ -231,7 +231,26 @@ def validate_vietnamese_sentence(text: str, mode: str = "standard") -> str:
 
     last_word = words[-1]
     if last_word in incomplete_endings:
-        raise ValueError(f"Câu bị viết thiếu nghĩa, kết thúc lửng lơ bằng từ nối '{last_word}'.")
+        # Cho phép các cụm từ kết thúc hợp lệ trong tiếng Việt (compound endings)
+        valid_compounds = {
+            "trong": {"bên", "phía", "ở", "nằm", "trong"},
+            "trên": {"bên", "phía", "ở", "nằm", "trên"},
+            "dưới": {"bên", "phía", "ở", "nằm", "dưới"},
+            "về": {"trở", "mang", "gửi", "đi", "quay", "hướng", "đem", "chuyển", "tìm", "thu", "sẻ", "hiểu", "tập", "cứu", "nói", "viết", "nghĩ", "bàn", "kể", "hỏi", "biết"},
+            "nên": {"trở", "làm", "tạo"},
+            "cho": {"tặng", "đưa", "gửi", "dành", "cấp", "bán", "phát", "chỉ", "để", "làm", "viết"},
+            "bằng": {"công", "san", "thăng", "cân"},
+            "như": {"ví", "coi", "xem", "cũng"},
+            "tại": {"tồn", "thực", "hiện", "tại"}
+        }
+        is_valid_ending = False
+        if len(words) >= 2:
+            prev_word = words[-2]
+            if last_word in valid_compounds and prev_word in valid_compounds[last_word]:
+                is_valid_ending = True
+        
+        if not is_valid_ending:
+            raise ValueError(f"Câu bị viết thiếu nghĩa, kết thúc lửng lơ bằng từ nối '{last_word}'.")
 
     # 3. Kiểm tra cụm từ vô nghĩa hoặc lỗi diễn đạt cụ thể (như 'có như cao?')
     bad_patterns = [

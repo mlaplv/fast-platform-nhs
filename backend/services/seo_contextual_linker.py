@@ -34,9 +34,10 @@ from backend.utils.uid import new_id_default
 logger = logging.getLogger("api-gateway")
 
 _BATCH_SIZE = 5                # Số câu gửi AI mỗi lần
-_MIN_CONFIDENCE = 0.80         # Nâng độ tự tin tối thiểu lên 0.80 để tránh gán bừa bãi
+_MIN_CONFIDENCE = 0.85         # Nâng lên 0.85 để giảm noise — chỉ giữ gợi ý chất lượng cao
 _MAX_LINKS_PER_PILLAR = 1     # Giới hạn 1 link cho mỗi Pillar trỏ về để tránh nhồi nhét
-_MAX_LINKS_PER_ARTICLE = 3    # Mật độ an toàn tối đa 3 link ngữ cảnh SGE cho mỗi bài viết Cluster
+_MAX_LINKS_PER_ARTICLE = 2    # Giảm xuống 2 cho mật độ an toàn hơn, tránh link spam
+_MAX_TOTAL_LINKS_IN_ARTICLE = 4  # Cluster đã có >= 4 link nội bộ → KHÔNG thêm nữa
 _AI_TIMEOUT = 25.0
 
 
@@ -129,6 +130,11 @@ class SeoContextualLinker:
     Sentence Split → Entity Pre-filter → PydanticAI Batch → Validation → Persist.
     """
 
+    @staticmethod
+    def _count_existing_links(html_content: str) -> int:
+        """Đếm số lượng link (<a> tag) đã có trong nội dung bài viết Cluster."""
+        return len(re.findall(r'<a\s', html_content, re.IGNORECASE))
+
     # ─── Public Entry Point ──────────────────────────────────────────────────
 
     async def analyze_article(
@@ -190,6 +196,54 @@ class SeoContextualLinker:
         if not pillars:
             logger.info("[ContextualLinker] All pillars are already linked in this article — skipping")
             return [] if is_dry_run else 0
+
+        # Step 0c: Topical relevance gate — chỉ giữ Pillar có topic cốt lõi xuất hiện trong bài viết
+        content_lower = article_content.lower()
+        topically_relevant = []
+        for p in pillars:
+            topic = (p.get("pillar_topic") or "").lower().strip()
+            if topic:
+                # Tất cả từ khóa của topic phải xuất hiện trong bài viết
+                topic_words = [w for w in topic.split() if len(w) >= 2]
+                if topic_words and all(w in content_lower for w in topic_words):
+                    topically_relevant.append(p)
+                    continue
+            # Fallback: kiểm tra entities_json có entity nào >= 6 ký tự xuất hiện trong bài không
+            entities = p.get("entities", [])
+            has_relevant_entity = any(
+                (ent.get("name") or "").lower().strip() in content_lower
+                for ent in entities
+                if len((ent.get("name") or "").strip()) >= 6
+            )
+            if has_relevant_entity:
+                topically_relevant.append(p)
+            else:
+                logger.debug(
+                    "[ContextualLinker] Pillar '%s' not topically relevant to article %s — skipped",
+                    p['label'], article_id,
+                )
+
+        pillars = topically_relevant
+        if not pillars:
+            logger.info("[ContextualLinker] No topically relevant pillars for article %s — skipping", article_id)
+            return [] if is_dry_run else 0
+
+        # Step 0d: Link density gate — Cluster đã có đủ link nội bộ → không thêm nữa
+        existing_link_count = self._count_existing_links(article_content)
+        available_slots = _MAX_TOTAL_LINKS_IN_ARTICLE - existing_link_count
+        if available_slots <= 0:
+            logger.info(
+                "[ContextualLinker] Article %s already has %d internal links (max %d) — skipping",
+                article_id, existing_link_count, _MAX_TOTAL_LINKS_IN_ARTICLE,
+            )
+            return [] if is_dry_run else 0
+
+        # Điều chỉnh số link tối đa cho bài viết này dựa trên slots còn trống
+        effective_max = min(_MAX_LINKS_PER_ARTICLE, available_slots)
+        logger.info(
+            "[ContextualLinker] Article %s: %d existing links, %d slots available, effective max = %d",
+            article_id, existing_link_count, available_slots, effective_max,
+        )
 
         # Step 0b: Load article's own entities from seo_nodes
         article_node = await db.scalar(
@@ -266,8 +320,8 @@ class SeoContextualLinker:
                 continue
 
             # Density constraint: Giới hạn số lượng link trỏ đến 1 pillar, và giới hạn tổng số link cho cả bài viết
-            if persisted >= _MAX_LINKS_PER_ARTICLE:
-                logger.info("[ContextualLinker] Reached maximum allowed contextual links (%d) for article %s", _MAX_LINKS_PER_ARTICLE, article_id)
+            if persisted >= effective_max:
+                logger.info("[ContextualLinker] Reached effective max contextual links (%d) for article %s (existing: %d)", effective_max, article_id, existing_link_count)
                 break
 
             pid = suggestion.target_pillar_id
@@ -407,17 +461,18 @@ class SeoContextualLinker:
             entities = p.get("entities", [])
             for ent in entities:
                 name = ent.get("name", "").lower().strip()
-                if name and len(name) >= 3:
+                if name and len(name) >= 4:
                     if name not in entity_pillar_map:
                         entity_pillar_map[name] = []
                     if p["id"] not in entity_pillar_map[name]:
                         entity_pillar_map[name].append(p["id"])
 
-            # Also use pillar label/topic as entity (cleaned and chunked to handle product names without volume/weight suffixes)
+            # Chỉ dùng pillar_topic + tên sản phẩm cốt lõi (full phrase)
+            # CẤM tách bigram/trigram — gây noise match bừa bãi ("rich gold", "gold gel"...)
             label = p.get("label") or ""
             topic = p.get("pillar_topic")
             
-            additional_terms = []
+            additional_terms: list[str] = []
             if topic:
                 additional_terms.append(topic.lower().strip())
             
@@ -426,34 +481,31 @@ class SeoContextualLinker:
             core = parts[0].strip()
             core_cleaned = re.sub(r'\s*\d+(?:\.\d+)?\s*(?:g|gr|ml|l|kg|oz)\b.*$', '', core, flags=re.IGNORECASE).strip()
             
-            if len(core_cleaned) >= 3:
+            if len(core_cleaned) >= 5:
                 additional_terms.append(core_cleaned.lower())
                 
-                # Strip common brand names
+                # Strip common brand prefixes → chỉ giữ tên sản phẩm cốt lõi (full phrase)
                 lower_core = core_cleaned.lower()
                 for brand in ["miccosmo white label", "miccosmo hurry harry", "miccosmo", "hurry harry", "white label"]:
                     if lower_core.startswith(brand):
                         suffix = core_cleaned[len(brand):].strip()
-                        if len(suffix) >= 3:
+                        if len(suffix) >= 5:
                             additional_terms.append(suffix.lower())
-                
-                # Extract bigrams and trigrams
-                words = core_cleaned.split()
-                if len(words) >= 2:
-                    for i in range(len(words) - 1):
-                        additional_terms.append(f"{words[i]} {words[i+1]}".lower())
-                    for i in range(len(words) - 2):
-                        additional_terms.append(f"{words[i]} {words[i+1]} {words[i+2]}".lower())
             
+            # Stop words mở rộng — loại cụm generic không mang ngữ nghĩa thực thể
             stop_words = {
                 "kem", "serum", "gel", "tinh chất", "sữa rửa", "nước hoa", "mặt nạ", "kem dưỡng", "dưỡng da",
                 "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão", "lão hóa", "chăm sóc", "tẩy tế", "tế bào", "nhạy cảm",
-                "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả"
+                "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả",
+                "premium", "rich", "gold", "white", "label", "special", "perfect", "natural",
+                "body", "face", "skin", "hair", "cream", "lotion", "wash", "oil", "mask",
+                "dưỡng ẩm", "dưỡng trắng", "chống nắng", "trị mụn", "giảm thâm", "se khít",
+                "làm sạch", "tẩy trang", "dưỡng thể", "dưỡng tóc", "chăm sóc da",
             }
             
             for t in additional_terms:
                 t_clean = t.strip()
-                if len(t_clean) >= 4 and t_clean not in stop_words:
+                if len(t_clean) >= 6 and t_clean not in stop_words:
                     if t_clean not in entity_pillar_map:
                         entity_pillar_map[t_clean] = []
                     if p["id"] not in entity_pillar_map[t_clean]:
@@ -514,15 +566,16 @@ class SeoContextualLinker:
             "Bạn là chuyên gia SEO thực thể (Entity SEO) chuyên tối ưu hóa cho Google SGE/AI Overviews.\n"
             "Nhiệm vụ: Phân tích từng câu trong danh sách và đề xuất chèn hyperlink nội bộ trỏ tới Pillar Page thích hợp nhất.\n\n"
 
-            "QUY TẮC BẮT BUỘC (Tránh Án Phạt Spam Link của Google):\n"
-            "1. CHỈ chèn link vào cụm từ mang ngữ nghĩa thực thể thực sự chất lượng mô tả: Nỗi đau cụ thể của khách hàng (pain_point), Tính năng sản phẩm độc đáo (feature), "
-            "Thương hiệu (brand), Thành phần đặc trị (ingredient), hoặc Triệu chứng bệnh lý (symptom).\n"
-            "2. CẤM TUYỆT ĐỐI chèn link vào từ đơn lẻ chung chung (Ví dụ: 'kem', 'serum', 'gel', 'mụn', 'da'...) hoặc đại từ (nó, họ, chúng tôi, mình, bạn...), danh từ chung chung vô nghĩa (tại đây, xem thêm, click, link, website, bài viết, sản phẩm...).\n"
-            "3. Anchor text phải tự nhiên, có nghĩa đầy đủ, độ dài tối ưu từ 2 đến 8 từ. Ví dụ tốt: 'trị thâm nách Beppin', 'placenta dưỡng trắng da', 'làn da khô ráp xỉn màu'. Ví dụ xấu: 'kem', 'ở đây'.\n"
-            "4. Câu linked_sentence PHẢI giữ nguyên 100% nội dung câu gốc, không được thay đổi, thêm, bớt bất kỳ ký tự hay dấu câu nào. Chỉ bọc cụm anchor_text chính xác bằng thẻ <a href='URL_CUA_PILLAR'>...</a>.\n"
-            "5. Chỉ chèn tối đa 1 link duy nhất trên mỗi câu. Bỏ qua nếu câu đã có sẵn liên kết.\n"
-            "6. Trong 'reasoning', giải thích cụ thể tại sao thực thể này bổ trợ ngữ nghĩa sâu sắc cho người đọc và kết nối logic với Pillar đích.\n\n"
-            "Chỉ đề xuất when cực kỳ chắc chắn và độ tự tin cao. Nếu không chắc chắn, đặt should_link=false."
+            "QUY TẮC BẮT BUỘC (Tránh Án Phạt Spam Link của Google và Đảm bảo Trọng tâm): \n"
+            "1. CHỈ chèn link vào cụm từ mang ngữ nghĩa thực thể thực sự chất lượng và liên quan trực tiếp đến Pillar Page đích. \n"
+            "2. Đảm bảo tính liên kết chặt chẽ (Topical Alignment): KHÔNG được chèn link từ các cụm từ chung chung về nỗi đau (ví dụ: 'làn da khô', 'thâm sạm') vào trang sản phẩm cụ thể trừ khi câu gốc hoặc anchor text có chứa tên sản phẩm/thương hiệu đó (ví dụ: 'Miccosmo', 'White Label', 'Placenta Essence') hoặc thành phần chủ đạo độc quyền của sản phẩm.\n"
+            "3. Anchor text phải là danh từ riêng, tên thương hiệu, tên sản phẩm hoặc cụm từ khóa có chứa thành phần/tính năng độc quyền của sản phẩm. Tuyệt đối không dùng các từ khóa chung chung làm anchor để trỏ về trang bán sản phẩm cụ thể. Ví dụ tốt: 'tinh chất Placenta Miccosmo', 'kem trị thâm nách Beppin'. Ví dụ xấu: 'làn da vẫn khô khốc', 'dưỡng ẩm', 'trị thâm'.\n"
+            "4. CẤM TUYỆT ĐỐI chèn link vào từ đơn lẻ chung chung (Ví dụ: 'kem', 'serum', 'gel', 'mụn', 'da'...) hoặc đại từ (nó, họ, chúng tôi, mình, bạn...), danh từ chung chung vô nghĩa (tại đây, xem thêm, click, link, website, bài viết, sản phẩm...).\n"
+            "5. Anchor text phải tự nhiên, có nghĩa đầy đủ, độ dài tối ưu từ 2 đến 8 từ.\n"
+            "6. Câu linked_sentence PHẢI giữ nguyên 100% nội dung câu gốc, không được thay đổi, thêm, bớt bất kỳ ký tự hay dấu câu nào. Chỉ bọc cụm anchor_text chính xác bằng thẻ <a href='URL_CUA_PILLAR'>...</a>.\n"
+            "7. Chỉ chèn tối đa 1 link duy nhất trên mỗi câu. Bỏ qua nếu câu đã có sẵn liên kết.\n"
+            "8. Trong 'reasoning', giải thích cụ thể tại sao thực thể này bổ trợ ngữ nghĩa sâu sắc cho người đọc và kết nối logic với Pillar đích.\n\n"
+            "Chỉ đề xuất khi cực kỳ chắc chắn và độ tự tin cao. Nếu không chắc chắn, đặt should_link=false."
         )
 
         user_msg = (
@@ -636,24 +689,51 @@ class SeoContextualLinker:
 
         sent_pattern = SEP.join(re.escape(w) for w in sent_words)
         sent_match = re.search(sent_pattern, content)
+
+        # Fallback: cho phép inline HTML tags nằm sát từ (zero-width separator)
         if not sent_match:
-            return content, False
+            FLEX_SEP = r'(?:<[^>]*>|\s)*'
+            flex_pattern = FLEX_SEP.join(re.escape(w) for w in sent_words)
+            sent_match = re.search(flex_pattern, content)
 
-        matched_html = sent_match.group(0)
+        if sent_match:
+            matched_html = sent_match.group(0)
 
-        # Find anchor_text within the matched region (also tag-tolerant)
+            # Find anchor_text within the matched region (also tag-tolerant)
+            anchor_words = anchor_text.split()
+            if not anchor_words:
+                return content, False
+
+            anchor_pattern = SEP.join(re.escape(w) for w in anchor_words)
+            anchor_match = re.search(anchor_pattern, matched_html)
+
+            # Flex anchor fallback
+            if not anchor_match:
+                flex_anchor = r'(?:<[^>]*>|\s)*'.join(re.escape(w) for w in anchor_words)
+                anchor_match = re.search(flex_anchor, matched_html)
+
+            if anchor_match:
+                # Replace matched anchor region with clean <a> tag
+                new_html = matched_html[:anchor_match.start()] + a_tag + matched_html[anchor_match.end():]
+                return content.replace(matched_html, new_html, 1), True
+
+        # ── Final fallback: tìm anchor_text trực tiếp trong content (bỏ qua sentence) ──
+        # Anchor text đã qua Rule 6 validation (2-8 từ), đủ đặc thù để tránh false match
         anchor_words = anchor_text.split()
-        if not anchor_words:
-            return content, False
+        if anchor_words:
+            direct_anchor_pat = r'(?:<[^>]*>|\s)*'.join(re.escape(w) for w in anchor_words)
+            direct_match = re.search(direct_anchor_pat, content)
+            if direct_match:
+                matched_anchor = direct_match.group(0)
+                new_content = content.replace(matched_anchor, a_tag, 1)
+                logger.info("[ContextualLinker] Used direct anchor fallback for: %s", anchor_text)
+                return new_content, True
 
-        anchor_pattern = SEP.join(re.escape(w) for w in anchor_words)
-        anchor_match = re.search(anchor_pattern, matched_html)
-        if not anchor_match:
-            return content, False
-
-        # Replace matched anchor region with clean <a> tag
-        new_html = matched_html[:anchor_match.start()] + a_tag + matched_html[anchor_match.end():]
-        return content.replace(matched_html, new_html, 1), True
+        logger.warning(
+            "[ContextualLinker] All injection paths failed. anchor='%s', sentence='%s'",
+            anchor_text, original_sentence[:80],
+        )
+        return content, False
 
     # ─── Apply Approved Links ────────────────────────────────────────────────
 
@@ -697,8 +777,14 @@ class SeoContextualLinker:
         content = article.content
         applied = 0
         skipped_stale = 0
+        skipped_inject_fail = 0
 
         for link in links:
+            # Check content_hash trước — nếu hash không khớp → nội dung bài viết thực sự đã thay đổi
+            if link.content_hash and link.content_hash != current_hash:
+                skipped_stale += 1
+                continue
+
             attrs = []
             if link.link_rel and link.link_rel.strip().lower() not in ["", "dofollow"]:
                 attrs.append(f'rel="{link.link_rel.strip()}"')
@@ -723,15 +809,27 @@ class SeoContextualLinker:
                     link.reviewed_by = reviewer_id
                 applied += 1
             else:
-                skipped_stale += 1
+                skipped_inject_fail += 1
+                logger.warning(
+                    "[ContextualLinker] Inject fail for link %s in article %s: sentence not found in HTML",
+                    link.id, article_id,
+                )
 
-        # JIT: Tránh ghi đè thô bạo vào nội dung database để bảo tồn nội dung HTML nguyên bản.
-        # if applied > 0:
-        #     article.content = content
-        #     from sqlalchemy.orm.attributes import flag_modified
-        #     flag_modified(article, "content")
+        if applied > 0:
+            article.content = content
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(article, "content")
+            logger.info(
+                "[ContextualLinker] Wrote %d injected links into article %s content",
+                applied, article_id,
+            )
 
-        return {"applied_count": applied, "article_id": article_id, "skipped_stale": skipped_stale}
+        return {
+            "applied_count": applied,
+            "article_id": article_id,
+            "skipped_stale": skipped_stale,
+            "skipped_inject_fail": skipped_inject_fail,
+        }
 
     # ─── Helpers ─────────────────────────────────────────────────────────────
 
