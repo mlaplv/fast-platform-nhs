@@ -4,7 +4,7 @@
   import { cubicOut } from "svelte/easing";
   import NewsDetailReviews from "./NewsDetailReviews.svelte";
   import ImageWithFallback from "../ui/ImageWithFallback.svelte";
-  import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, resolveOptimizedImageUrl, injectContextualLinks } from "$lib/state/utils";
 
   // Svelte 5 safe slide transition workaround to prevent NaNpx errors
   function slide(node: HTMLElement, { duration = 200 } = {}) {
@@ -132,8 +132,9 @@
   // Elite V2.2: Professional Accordion State
   let activeFaq = $state<number | null>(null);
   let loadBelowFold = $state(false);
+  let contextualLinks = $state<ContextualLinkInfo[]>([]);
 
-  onMount(() => {
+  onMount(async () => {
     // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
     if (typeof window !== "undefined") {
       if ("requestIdleCallback" in window) {
@@ -146,6 +147,22 @@
         }, 200);
       }
     }
+
+    if (article.id) {
+      try {
+        const res = await fetch(`/api/v1/client/news/${article.id}/contextual-links`);
+        if (res.ok) {
+          const data = await res.json();
+          contextualLinks = data.links || [];
+        }
+      } catch (e) {
+        console.error("[SGE] Failed to fetch JIT contextual links:", e);
+      }
+    }
+  });
+
+  const injectedContent = $derived.by(() => {
+    return injectContextualLinks(article.content, contextualLinks);
   });
 
   $effect(() => {
@@ -270,7 +287,7 @@
           this={proseWrapper}
           class="pt-[10px] pb-0 px-[10px] news-article-prose"
         >
-          {@html article.content}
+          {@html injectedContent}
         </svelte:element>
 
         <!-- Social Share Bar -->

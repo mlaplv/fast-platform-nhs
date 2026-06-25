@@ -43,7 +43,7 @@
   }
 
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
-  import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, resolveOptimizedImageUrl, injectContextualLinks } from "$lib/state/utils";
   interface Props {
     article: {
       id: string;
@@ -109,8 +109,9 @@
   // Elite V2.2: Professional Mobile Accordion State
   let activeFaq = $state<number | null>(null);
   let loadBelowFold = $state(false);
+  let contextualLinks = $state<ContextualLinkInfo[]>([]);
 
-  onMount(() => {
+  onMount(async () => {
     // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
     if (typeof window !== "undefined") {
       if ("requestIdleCallback" in window) {
@@ -123,6 +124,22 @@
         }, 200);
       }
     }
+
+    if (article.id) {
+      try {
+        const res = await fetch(`/api/v1/client/news/${article.id}/contextual-links`);
+        if (res.ok) {
+          const data = await res.json();
+          contextualLinks = data.links || [];
+        }
+      } catch (e) {
+        console.error("[SGE] Failed to fetch JIT contextual links:", e);
+      }
+    }
+  });
+
+  const injectedContent = $derived.by(() => {
+    return injectContextualLinks(article.content, contextualLinks);
   });
 
   $effect(() => {
@@ -439,7 +456,7 @@
   <!-- Content Reader (Elite Prose) -->
   <div bind:this={contentRef}>
     <svelte:element this={innerWrapper} class="px-[5px] py-0 elite-prose-mobile">
-      {@html article.content}
+      {@html injectedContent}
     </svelte:element>
   </div>
 

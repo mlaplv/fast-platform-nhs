@@ -446,69 +446,27 @@ class ArticleService:
 
     async def _background_embed_and_kg(self, article_id: str, title: str, content: str, tenant_id: str) -> None:
         """
-        [ARCH FIX] Background task: Embedding + Knowledge Graph generation.
-        Chạy hoàn toàn ngoài request lifecycle với session DB riêng.
-
-        Nguyên tắc:
-        - Session riêng → connection chỉ bị giữ vài trăm ms cho INSERT/UPDATE
-        - Model nạp ở background → không gây OOM spike cho response đang trả
-        - Nếu fail → log error, article vẫn đã được lưu thành công
+        [ARCH FIX] Offload embedding and Knowledge Graph generation to the arq background worker.
         """
-        import asyncio as _asyncio
-        import gc
-        import ctypes
-        from backend.database.alchemy_config import alchemy_config
-        from backend.database import current_tenant_id as _ctx_tenant
-
-        # Set tenant context cho background task (không kế thừa từ request)
-        _token = _ctx_tenant.set(tenant_id)
         try:
-            # --- Phase 1: Embedding (có thể nạp model ~200MB nếu chưa có) ---
+            from backend.infra.arq_config import get_redis_settings
+            from arq import create_pool
+            
+            redis_pool = await create_pool(get_redis_settings())
             try:
-                # [ARCH FIX] Không truyền session để việc tính toán vector và nạp model không chiếm giữ kết nối DB
-                await self.vector_service.upsert_article_embedding(
-                    None, article_id, title, content
+                await redis_pool.enqueue_job(
+                    "generate_article_embed_and_kg_job",
+                    article_id,
+                    title,
+                    content,
+                    tenant_id,
+                    _queue_name="high"
                 )
-                logger.info(f"[Background] Embedding completed for article {article_id}")
-            except Exception as e:
-                logger.error(f"[Background] Embedding failed for {article_id}: {e}")
-
-            # --- Phase 2: Knowledge Graph (gọi AI, tối đa 25s) ---
-            try:
-                from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
-                async with _asyncio.timeout(25):
-                    kg_data = await generate_knowledge_graph(content=content, topic=title)
-                # Ghi KG vào article với session riêng
-                async with alchemy_config.create_session_maker()() as kg_session:
-                    from sqlalchemy.orm.attributes import flag_modified
-                    res = await kg_session.execute(select(Article).where(Article.id == article_id))
-                    article = res.scalar_one_or_none()
-                    if article:
-                        if not article.article_metadata:
-                            article.article_metadata = {}
-                        article.article_metadata["knowledge_graph"] = kg_data
-                        flag_modified(article, "article_metadata")
-                        await kg_session.commit()
-                logger.info(f"[Background] KG completed for article {article_id}")
-            except _asyncio.TimeoutError:
-                logger.error(f"[Background] KG timed out (>25s) for {article_id}")
-            except Exception as e:
-                logger.error(f"[Background] KG failed for {article_id}: {e}")
-
-            # --- Phase 3: Giải phóng fastembed model (~200MB) khỏi RAM ---
-            # Model chỉ cần cho embedding — giữ vĩnh viễn sẽ gây OOM trên VPS 1.2GB.
-            # Lần embed tiếp theo sẽ warmup lại (~3-4s) — chấp nhận được cho background task.
-            from backend.services.ai_engine.core.encoder_singleton import release_shared_encoder
-            release_shared_encoder()
-
-            gc.collect(generation=2)
-            try:
-                ctypes.CDLL("libc.so.6").malloc_trim(0)
-            except Exception:
-                pass
-
-        finally:
-            _ctx_tenant.reset(_token)
+                logger.info(f"🧬 [ArticleService] Enqueued generate_article_embed_and_kg_job for article {article_id}")
+            finally:
+                await redis_pool.aclose()
+        except Exception as e:
+            logger.error(f"❌ [ArticleService] Failed to enqueue Article Embed & KG job: {e}")
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
         """Update an article and its embedding."""

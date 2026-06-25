@@ -138,11 +138,14 @@ class SeoContextualLinker:
         article_content: str,
         article_title: str,
         target_pillar_id: Optional[str] = None,
-    ) -> int:
+        dry_run: bool = False,
+    ) -> int | list[dict]:
         """
         Main pipeline. Chạy sau khi SeoMatchingService hoàn tất.
-        Returns: số lượng suggestions đã persist.
+        Returns: số lượng suggestions đã persist (nếu không phải dry_run) hoặc danh sách đề xuất (nếu dry_run).
         """
+        import os
+        is_dry_run = dry_run or os.getenv("SEO_LINKER_DRY_RUN", "false").lower() == "true"
         tenant = current_tenant_id.get() or "default"
         content_hash = hashlib.md5(article_content.encode()).hexdigest()
 
@@ -150,13 +153,13 @@ class SeoContextualLinker:
         pillars = await self._load_pillars_with_entities(db, tenant)
         if not pillars:
             logger.info("[ContextualLinker] No pillars found — skipping")
-            return 0
+            return [] if is_dry_run else 0
 
         if target_pillar_id:
             pillars = [p for p in pillars if p["id"] == target_pillar_id]
             if not pillars:
                 logger.info(f"[ContextualLinker] Target pillar {target_pillar_id} not found — skipping")
-                return 0
+                return [] if is_dry_run else 0
 
         # Lọc bỏ các pillars đã có sẵn link trỏ đến trong article_content để tránh Double Link (Google Link Spam Penalty)
         active_pillars = []
@@ -186,7 +189,7 @@ class SeoContextualLinker:
         pillars = active_pillars
         if not pillars:
             logger.info("[ContextualLinker] All pillars are already linked in this article — skipping")
-            return 0
+            return [] if is_dry_run else 0
 
         # Step 0b: Load article's own entities from seo_nodes
         article_node = await db.scalar(
@@ -202,13 +205,13 @@ class SeoContextualLinker:
         sentences = self._split_sentences(article_content)
         if not sentences:
             logger.info("[ContextualLinker] No sentences found — skipping")
-            return 0
+            return [] if is_dry_run else 0
 
         # Step 2: Entity pre-filter
         candidates = self._entity_prefilter(sentences, pillars, article_node)
         if not candidates:
             logger.info("[ContextualLinker] No candidate sentences after pre-filter — skipping")
-            return 0
+            return [] if is_dry_run else 0
 
         logger.info(
             "[ContextualLinker] %d/%d sentences passed pre-filter for article %s",
@@ -228,20 +231,22 @@ class SeoContextualLinker:
 
         if not all_suggestions:
             logger.info("[ContextualLinker] AI returned 0 suggestions for article %s", article_id)
-            return 0
+            return [] if is_dry_run else 0
 
         # Step 4: Validate + Persist
         valid_pillar_ids = {p["id"] for p in pillars}
         persisted = 0
+        dry_run_results = []
 
-        # Clear previous pending/rejected suggestions for this article (re-analysis)
-        await db.execute(
-            delete(SeoContextualLink).where(
-                SeoContextualLink.source_article_id == article_id,
-                SeoContextualLink.tenant_id == tenant,
-                SeoContextualLink.status.in_(["pending", "rejected"]),
+        if not is_dry_run:
+            # Clear previous pending/rejected suggestions for this article (re-analysis)
+            await db.execute(
+                delete(SeoContextualLink).where(
+                    SeoContextualLink.source_article_id == article_id,
+                    SeoContextualLink.tenant_id == tenant,
+                    SeoContextualLink.status.in_(["pending", "rejected"]),
+                )
             )
-        )
 
         # Track links per pillar for density constraint
         pillar_link_count: dict[str, int] = {}
@@ -313,8 +318,33 @@ class SeoContextualLinker:
                 content_hash=content_hash,
                 tenant_id=tenant,
             )
-            db.add(link)
-            persisted += 1
+            if is_dry_run:
+                dry_run_results.append({
+                    "id": link.id,
+                    "source_article_id": link.source_article_id,
+                    "target_node_id": link.target_node_id,
+                    "target_url": link.target_url,
+                    "original_sentence": link.original_sentence,
+                    "linked_sentence": link.linked_sentence,
+                    "anchor_text": link.anchor_text,
+                    "matched_entity_type": link.matched_entity_type.value if hasattr(link.matched_entity_type, 'value') else link.matched_entity_type,
+                    "matched_entity_name": link.matched_entity_name,
+                    "ai_confidence": link.ai_confidence,
+                    "ai_reasoning": link.ai_reasoning,
+                    "sentence_index": link.sentence_index,
+                    "status": link.status.value if hasattr(link.status, 'value') else link.status,
+                    "content_hash": link.content_hash,
+                })
+            else:
+                db.add(link)
+                persisted += 1
+
+        if is_dry_run:
+            logger.info(
+                "[ContextualLinker] [DRY RUN] Generated %d suggestions for article %s (no DB writes)",
+                len(dry_run_results), article_id
+            )
+            return dry_run_results
 
         logger.info(
             "[ContextualLinker] Persisted %d/%d suggestions for article %s",
@@ -631,10 +661,11 @@ class SeoContextualLinker:
         self,
         db: AsyncSession,
         article_id: str,
+        reviewer_id: Optional[str] = None,
     ) -> dict:
         """
-        Apply tất cả approved links vào article.content.
-        Replace từ cuối bài lên đầu để tránh lệch index.
+        Apply tất cả approved links vào article.content (JIT frontend rendering).
+        Cập nhật trạng thái link đề xuất thành APPLIED, ghi nhận người duyệt, nhưng giữ nguyên nội dung gốc bài viết.
         """
         from backend.database.models.content import Article
 
@@ -688,14 +719,17 @@ class SeoContextualLinker:
             if success:
                 content = new_content
                 link.status = SeoContextualLinkStatus.APPLIED
+                if reviewer_id:
+                    link.reviewed_by = reviewer_id
                 applied += 1
             else:
                 skipped_stale += 1
 
-        if applied > 0:
-            article.content = content
-            from sqlalchemy.orm.attributes import flag_modified
-            flag_modified(article, "content")
+        # JIT: Tránh ghi đè thô bạo vào nội dung database để bảo tồn nội dung HTML nguyên bản.
+        # if applied > 0:
+        #     article.content = content
+        #     from sqlalchemy.orm.attributes import flag_modified
+        #     flag_modified(article, "content")
 
         return {"applied_count": applied, "article_id": article_id, "skipped_stale": skipped_stale}
 

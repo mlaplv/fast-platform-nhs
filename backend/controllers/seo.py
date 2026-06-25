@@ -3,7 +3,7 @@ SEO Pillar & Cluster — Litestar Controller
 """
 import logging
 from typing import Optional
-from litestar import Controller, get, post, patch, delete
+from litestar import Controller, get, post, patch, delete, Request
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -667,12 +667,18 @@ class SeoController(Controller):
     async def apply_contextual_links(
         self,
         db_session: AsyncSession,
+        request: Request,
         article_id: str,
     ) -> SuccessResponse:
         """Apply tất cả approved contextual links vào nội dung bài viết."""
         from backend.services.seo_contextual_linker import seo_contextual_linker
 
-        result = await seo_contextual_linker.apply_approved_links(db_session, article_id)
+        user = request.scope.get("state", {}).get("user")
+        reviewer_id = user.get("id") if user else None
+
+        result = await seo_contextual_linker.apply_approved_links(
+            db_session, article_id, reviewer_id=reviewer_id
+        )
         await db_session.commit()
 
         if result["applied_count"] == 0 and result["skipped_stale"] > 0:
@@ -694,6 +700,7 @@ class SeoController(Controller):
     async def apply_pillar_contextual_links(
         self,
         db_session: AsyncSession,
+        request: Request,
         pillar_node_id: str,
     ) -> SuccessResponse:
         """Apply hàng loạt tất cả approved links trỏ về Pillar node hiện tại từ các Cluster articles."""
@@ -703,6 +710,8 @@ class SeoController(Controller):
         from backend.database import current_tenant_id
 
         tenant_id = current_tenant_id.get() or "default"
+        user = request.scope.get("state", {}).get("user")
+        reviewer_id = user.get("id") if user else None
 
         # 1. Tìm các unique source articles có approved links trỏ về pillar này
         res = await db_session.execute(
@@ -725,7 +734,9 @@ class SeoController(Controller):
 
         # 2. Xử lý apply cho từng article trong 1 session duy nhất
         for src_id in unique_src_ids:
-            res_apply = await seo_contextual_linker.apply_approved_links(db_session, src_id)
+            res_apply = await seo_contextual_linker.apply_approved_links(
+                db_session, src_id, reviewer_id=reviewer_id
+            )
             total_applied += res_apply["applied_count"]
             total_skipped += res_apply["skipped_stale"]
 

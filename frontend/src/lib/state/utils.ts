@@ -204,3 +204,89 @@ export function processContentImages(html: string | null | undefined, assets: (M
 
     return purifyAIContent(base);
 }
+
+interface ContextualLinkInfo {
+  original_sentence: string;
+  anchor_text: string;
+  target_url: string;
+  link_rel?: string;
+  link_title?: string;
+  link_target?: string;
+}
+
+/**
+ * JIT Client-Side link injector.
+ * Replaces approved original sentences with anchor-wrapped HTML.
+ */
+export function injectContextualLinks(htmlContent: string | null | undefined, links: ContextualLinkInfo[]): string {
+  let content = htmlContent || "";
+  if (!content || !links || links.length === 0) return content;
+
+  // Sort links by original_sentence length DESC to prevent nested substring conflicts
+  const sortedLinks = [...links].sort((a, b) => b.original_sentence.length - a.original_sentence.length);
+
+  for (const link of sortedLinks) {
+    const attrs: string[] = [];
+    if (link.link_rel && link.link_rel.trim().toLowerCase() !== "dofollow") {
+      attrs.push(`rel="${link.link_rel.trim()}"`);
+    }
+    if (link.link_title) {
+      attrs.push(`title="${link.link_title.trim()}"`);
+    }
+    if (link.link_target) {
+      attrs.push(`target="${link.link_target.trim()}"`);
+    }
+
+    const extraAttrs = attrs.length > 0 ? " " + attrs.join(" ") : "";
+    const aTag = `<a href="${link.target_url}" class="sge-contextual-link" data-sge-source="ai"${extraAttrs}>${link.anchor_text}</a>`;
+
+    // ── Fast path ──
+    if (content.includes(link.original_sentence)) {
+      const newSentence = link.original_sentence.replace(link.anchor_text, aTag);
+      content = content.replace(link.original_sentence, newSentence);
+      continue;
+    }
+
+    // ── Slow path: regex tolerant of inline HTML tags ──
+    const SEP = '(?:<[^>]*>|\\s)+';
+    const escapeRegex = (str: string) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+    
+    const sentWords = link.original_sentence.trim().split(/\s+/).filter(Boolean);
+    if (sentWords.length === 0) continue;
+
+    const sentPatternStr = sentWords.map(escapeRegex).join(SEP);
+    let sentRegex;
+    try {
+      sentRegex = new RegExp(sentPatternStr, 'i');
+    } catch (e) {
+      continue;
+    }
+    
+    const sentMatch = content.match(sentRegex);
+    if (!sentMatch) continue;
+
+    const matchedHtml = sentMatch[0];
+
+    const anchorWords = link.anchor_text.trim().split(/\s+/).filter(Boolean);
+    if (anchorWords.length === 0) continue;
+
+    const anchorPatternStr = anchorWords.map(escapeRegex).join(SEP);
+    let anchorRegex;
+    try {
+      anchorRegex = new RegExp(anchorPatternStr, 'i');
+    } catch (e) {
+      continue;
+    }
+    
+    const anchorMatch = matchedHtml.match(anchorRegex);
+    if (!anchorMatch) continue;
+
+    const anchorStart = anchorMatch.index ?? 0;
+    const anchorEnd = anchorStart + anchorMatch[0].length;
+
+    const newHtml = matchedHtml.slice(0, anchorStart) + aTag + matchedHtml.slice(anchorEnd);
+    content = content.replace(matchedHtml, newHtml);
+  }
+
+  return content;
+}

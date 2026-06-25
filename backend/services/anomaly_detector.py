@@ -158,6 +158,26 @@ class AnomalyDetector:
 
             pct = (rss_mb / limit_mb * 100) if limit_mb > 0 else 0
 
+            # Aggressive memory mitigation buffer (Goal 2)
+            if pct >= 80:
+                try:
+                    from backend.services.ai_engine.core.encoder_singleton import release_shared_encoder
+                    release_shared_encoder()
+                    import gc
+                    import ctypes
+                    gc.collect(generation=2)
+                    try:
+                        ctypes.CDLL("libc.so.6").malloc_trim(0)
+                        logger.warning(f"[OOM Guard] RAM threshold reached {pct:.1f}%. Triggered aggressive mitigation (released encoder & malloc_trim).")
+                    except Exception:
+                        pass
+                    # Recalculate RSS after mitigation
+                    rss_bytes = process.memory_info().rss
+                    rss_mb = rss_bytes / (1024 * 1024)
+                    pct = (rss_mb / limit_mb * 100) if limit_mb > 0 else 0
+                except Exception as mitigation_err:
+                    logger.error(f"[OOM Guard] Mitigation failed: {mitigation_err}")
+
             if pct >= 90:
                 return AnomalyAlert(
                     type="memory_critical",

@@ -1,0 +1,127 @@
+import pytest
+import uuid
+import os
+import hashlib
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from litestar.testing import AsyncTestClient
+
+from backend.main import app
+from backend.database.models.content import Article
+from backend.database.models.seo import SeoContextualLink, SeoContextualLinkStatus, SeoNode, SeoEntityType
+from backend.database.models import User
+from backend.services.seo_contextual_linker import seo_contextual_linker
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@db:5432/fast_platform")
+
+@pytest.mark.asyncio
+async def test_seo_contextual_linker_dry_run_and_non_destructive():
+    engine = create_async_engine(DATABASE_URL)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    
+    async with async_session() as session:
+        # 1. Create test article
+        article_id = str(uuid.uuid4())
+        original_content = "<p>Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.</p>"
+        article = Article(
+            id=article_id,
+            title="Bài viết về sữa rửa mặt",
+            slug=f"sua-rua-mat-{article_id[:8]}",
+            content=original_content,
+            status="PUBLISHED",
+            tenant_id="default"
+        )
+        session.add(article)
+        
+        # 2. Create target SeoNode first to satisfy foreign key constraint on target_node_id
+        node_id = str(uuid.uuid4())
+        node = SeoNode(
+            id=node_id,
+            entity_type=SeoEntityType.PRODUCT,
+            entity_id=str(uuid.uuid4()),
+            node_label="Sữa rửa mặt Miccosmo",
+            node_slug="sua-rua-mat-miccosmo",
+            tenant_id="default"
+        )
+        session.add(node)
+        
+        # 3. Fetch or create a user for reviewed_by FK constraint
+        stmt_user = select(User).limit(1)
+        res_user = await session.execute(stmt_user)
+        db_user = res_user.scalar_one_or_none()
+        
+        created_user = False
+        if not db_user:
+            db_user = User(
+                id=str(uuid.uuid4()),
+                email="test_seo_reviewer@osmo.vn",
+                status="ACTIVE",
+                security_stamp="VALID_STAMP_2026",
+                tenant_id="default"
+            )
+            session.add(db_user)
+            created_user = True
+            
+        await session.commit()
+        reviewer_id = db_user.id
+
+        # 4. Add approved link recommendation with all non-nullable fields populated
+        link_id = str(uuid.uuid4())
+        content_hash = hashlib.md5(original_content.encode()).hexdigest()
+        link = SeoContextualLink(
+            id=link_id,
+            tenant_id="default",
+            source_article_id=article_id,
+            target_node_id=node_id,
+            target_url="https://osmo.vn/sua-rua-mat",
+            original_sentence="Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.",
+            linked_sentence="Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.", # Non-nullable field
+            anchor_text="Sữa rửa mặt",
+            matched_entity_type="ingredient",
+            matched_entity_name="sữa rửa mặt",
+            ai_confidence=0.95, # Non-nullable field
+            content_hash=content_hash, # Non-nullable field
+            sentence_index=0,
+            status=SeoContextualLinkStatus.APPROVED,
+        )
+        session.add(link)
+        await session.commit()
+
+        # Call apply_approved_links with reviewer_id
+        result = await seo_contextual_linker.apply_approved_links(session, article_id, reviewer_id=reviewer_id)
+        
+        assert result["applied_count"] == 1
+        
+        # Verify the database records:
+        # 1. The article content MUST remain unchanged (Non-destructive JIT)
+        session.expire(article)
+        db_article = await session.get(Article, article_id)
+        assert db_article.content == original_content
+
+        # 2. The link status must be APPLIED and reviewed_by should equal reviewer_id
+        session.expire(link)
+        db_link = await session.get(SeoContextualLink, link_id)
+        assert db_link.status == SeoContextualLinkStatus.APPLIED
+        assert db_link.reviewed_by == reviewer_id
+
+        # Cleanup
+        await session.delete(db_link)
+        if created_user:
+            await session.delete(db_user)
+        await session.delete(node)
+        await session.delete(db_article)
+        await session.commit()
+        
+    await engine.dispose()
+
+@pytest.mark.asyncio
+async def test_client_get_contextual_links_api():
+    async with AsyncTestClient(app=app) as client:
+        # We can call the client-side API endpoint for contextual-links
+        # For a non-existent or dummy article, it should return 200 with empty list
+        response = await client.get(f"/api/v1/client/news/{str(uuid.uuid4())}/contextual-links")
+        assert response.status_code == 200
+        data = response.json()
+        assert "links" in data
+        assert isinstance(data["links"], list)

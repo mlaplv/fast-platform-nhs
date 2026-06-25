@@ -574,3 +574,75 @@ async def seo_pillar_auto_link_job(
     finally:
         current_tenant_id.reset(token)
 
+
+async def generate_article_embed_and_kg_job(
+    ctx: Dict[str, object],
+    article_id: str,
+    title: str,
+    content: str,
+    tenant_id: str,
+) -> None:
+    """
+    Elite V2.2: Asynchronous Article Embedding and Knowledge Graph Generation.
+    Offloads heavy fastembed/LLM operations from API container to background worker.
+    """
+    import asyncio as _asyncio
+    import gc
+    import ctypes
+    from backend.database.alchemy_config import alchemy_config
+    from backend.database import current_tenant_id as _ctx_tenant
+    from backend.services.article_vector_service import article_vector_service
+    from backend.database.models.content import Article
+    
+    logger.info(f"🧬 [Article Embed & KG Job] Starting for article {article_id} in background.")
+    
+    _token = _ctx_tenant.set(tenant_id)
+    try:
+        # Phase 1: Embedding
+        try:
+            await article_vector_service.upsert_article_embedding(
+                db_session=None,
+                article_id=article_id,
+                title=title,
+                content=content
+            )
+            logger.info(f"[Background Worker] Embedding completed for article {article_id}")
+        except Exception as e:
+            logger.error(f"[Background Worker] Embedding failed for {article_id}: {e}")
+
+        # Phase 2: Knowledge Graph
+        try:
+            from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+            from sqlalchemy.orm.attributes import flag_modified
+            from sqlalchemy import select
+            
+            async with _asyncio.timeout(25):
+                kg_data = await generate_knowledge_graph(content=content, topic=title)
+            
+            async with alchemy_config.create_session_maker()() as kg_session:
+                res = await kg_session.execute(select(Article).where(Article.id == article_id))
+                article = res.scalar_one_or_none()
+                if article:
+                    if not article.article_metadata:
+                        article.article_metadata = {}
+                    article.article_metadata["knowledge_graph"] = kg_data
+                    flag_modified(article, "article_metadata")
+                    await kg_session.commit()
+            logger.info(f"[Background Worker] KG completed for article {article_id}")
+        except _asyncio.TimeoutError:
+            logger.error(f"[Background Worker] KG timed out (>25s) for {article_id}")
+        except Exception as e:
+            logger.error(f"[Background Worker] KG failed for {article_id}: {e}")
+
+        # Phase 3: Release model from memory
+        from backend.services.ai_engine.core.encoder_singleton import release_shared_encoder
+        release_shared_encoder()
+        gc.collect(generation=2)
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
+    finally:
+        _ctx_tenant.reset(_token)
+
+

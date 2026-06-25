@@ -144,3 +144,43 @@ class PublicNewsController(Controller):
             return article
         except NotFoundException:
             raise NotFoundException(f"Article with slug '{slug}' not found")
+
+    @get("/{article_id:str}/contextual-links")
+    async def get_article_contextual_links(
+        self,
+        db_session: AsyncSession,
+        article_id: str,
+    ) -> dict:
+        """PUBLIC: Get approved/applied SEO contextual links for a given article."""
+        from backend.database.models.seo import SeoContextualLink, SeoContextualLinkStatus
+        from sqlalchemy import select
+        from backend.database import current_tenant_id
+
+        tenant_id = current_tenant_id.get() or "default"
+        # Return both APPROVED and APPLIED contextual links
+        stmt = select(SeoContextualLink).where(
+            SeoContextualLink.source_article_id == article_id,
+            SeoContextualLink.status.in_([SeoContextualLinkStatus.APPROVED, SeoContextualLinkStatus.APPLIED]),
+            SeoContextualLink.tenant_id == tenant_id,
+        )
+        res = await db_session.execute(stmt)
+        links = res.scalars().all()
+        return {
+            "links": [
+                {
+                    "id": l.id,
+                    "target_node_id": l.target_node_id,
+                    "target_url": l.target_url,
+                    "original_sentence": l.original_sentence,
+                    "anchor_text": l.anchor_text,
+                    "matched_entity_type": l.matched_entity_type.value if hasattr(l.matched_entity_type, 'value') else l.matched_entity_type,
+                    "matched_entity_name": l.matched_entity_name,
+                    "link_rel": l.link_rel,
+                    "link_title": l.link_title,
+                    "link_target": l.link_target,
+                    "sentence_index": l.sentence_index,
+                    "status": l.status.value if hasattr(l.status, 'value') else l.status,
+                }
+                for l in links
+            ]
+        }
