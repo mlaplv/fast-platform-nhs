@@ -147,7 +147,7 @@ async def lifespan(app: Litestar):
             # SGE Shield V1.0: Warmup entropy config cache on startup from DB
             try:
                 from backend.database.models import SystemSetting
-                from backend.services.commerce.seo_service import update_entropy_cache
+                from backend.services.commerce.seo_service import update_entropy_cache, update_outbound_links_cache
                 stmt_settings = select(SystemSetting).where(SystemSetting.key == "primary_config")
                 res_settings = await session.execute(stmt_settings)
                 setting_row = res_settings.scalar_one_or_none()
@@ -156,8 +156,12 @@ async def lifespan(app: Litestar):
                     if isinstance(entropy_dict, dict):
                         update_entropy_cache(entropy_dict)
                         logger.info(f"✓ [Lifespan] Loaded entropy config cache on boot: {entropy_dict}")
+                    outbound_dict = setting_row.value.get("outbound_links")
+                    if isinstance(outbound_dict, dict):
+                        update_outbound_links_cache(outbound_dict)
+                        logger.info(f"✓ [Lifespan] Loaded outbound links config cache on boot: {outbound_dict}")
             except Exception as se_ex:
-                logger.warning(f"⚠️ [Lifespan] Failed to load entropy config on boot: {se_ex}")
+                logger.warning(f"⚠️ [Lifespan] Failed to load entropy/outbound config on boot: {se_ex}")
 
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(

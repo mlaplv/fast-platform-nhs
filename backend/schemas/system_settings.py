@@ -76,6 +76,27 @@ class AutopilotSettings(BaseModel):
     scan_start_hour: int = Field(default=2, ge=0, le=23)
     scan_end_hour: int = Field(default=4, ge=0, le=23)
 
+class OutboundLinkItem(BaseModel):
+    keyword: str
+    url: str
+
+class OutboundLinksSettings(BaseModel):
+    max_links_per_article: int = 2
+    authority_map: List[OutboundLinkItem] = Field(default_factory=lambda: [
+        OutboundLinkItem(keyword="Tiến sĩ Kenneth K. Hansraj", url="https://pubmed.ncbi.nlm.nih.gov/25393825/"),
+        OutboundLinkItem(keyword="Hiệp hội Placenta Nhật Bản", url="https://www.jpla.jp/english/"),
+        OutboundLinkItem(keyword="Miccosmo Japan Laboratory", url="https://www.miccosmo.co.jp/english/"),
+        OutboundLinkItem(keyword="chiết xuất nhau thai cừu", url="https://www.jpla.jp/english/"),
+        OutboundLinkItem(keyword="nhau thai cừu", url="https://www.jpla.jp/english/"),
+        OutboundLinkItem(keyword="ceramide tinh khiết", url="https://pubmed.ncbi.nlm.nih.gov/31840425/"),
+        OutboundLinkItem(keyword="dầu hạt jojoba", url="https://pubmed.ncbi.nlm.nih.gov/24442110/"),
+        OutboundLinkItem(keyword="Harvard Health Publishing", url="https://www.health.harvard.edu"),
+        OutboundLinkItem(keyword="Đại học Y Harvard", url="https://www.health.harvard.edu"),
+        OutboundLinkItem(keyword="PubMed", url="https://pubmed.ncbi.nlm.nih.gov/"),
+        OutboundLinkItem(keyword="ceramide", url="https://pubmed.ncbi.nlm.nih.gov/31840425/"),
+        OutboundLinkItem(keyword="collagen", url="https://pubmed.ncbi.nlm.nih.gov/30681787/"),
+    ])
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -88,6 +109,7 @@ class SystemSettingsPayload(BaseModel):
     conversions: ConversionSettings = Field(default_factory=ConversionSettings)
     entropy: EntropySettings = Field(default_factory=EntropySettings)
     autopilot: AutopilotSettings = Field(default_factory=AutopilotSettings)
+    outbound_links: OutboundLinksSettings = Field(default_factory=OutboundLinksSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

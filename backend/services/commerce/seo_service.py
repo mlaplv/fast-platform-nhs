@@ -53,12 +53,37 @@ _entropy_cfg_cache: dict[str, object] = {
     "lexical_sanitizer_enabled": True,
 }
 
+_outbound_links_cache: dict[str, object] = {
+    "max_links_per_article": 2,
+    "authority_map": [
+        {"keyword": "Tiến sĩ Kenneth K. Hansraj", "url": "https://pubmed.ncbi.nlm.nih.gov/25393825/"},
+        {"keyword": "Hiệp hội Placenta Nhật Bản", "url": "https://www.jpla.jp/english/"},
+        {"keyword": "Miccosmo Japan Laboratory", "url": "https://www.miccosmo.co.jp/english/"},
+        {"keyword": "chiết xuất nhau thai cừu", "url": "https://www.jpla.jp/english/"},
+        {"keyword": "nhau thai cừu", "url": "https://www.jpla.jp/english/"},
+        {"keyword": "ceramide tinh khiết", "url": "https://pubmed.ncbi.nlm.nih.gov/31840425/"},
+        {"keyword": "dầu hạt jojoba", "url": "https://pubmed.ncbi.nlm.nih.gov/24442110/"},
+        {"keyword": "Harvard Health Publishing", "url": "https://www.health.harvard.edu"},
+        {"keyword": "Đại học Y Harvard", "url": "https://www.health.harvard.edu"},
+        {"keyword": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/"},
+        {"keyword": "ceramide", "url": "https://pubmed.ncbi.nlm.nih.gov/31840425/"},
+        {"keyword": "collagen", "url": "https://pubmed.ncbi.nlm.nih.gov/30681787/"}
+    ]
+}
+
 
 def update_entropy_cache(cfg: dict[str, object]) -> None:
     """SGE Shield: Update in-process cache khi Admin lưu settings. Called by SettingsService."""
     _entropy_cfg_cache.clear()
     _entropy_cfg_cache.update(cfg)
     logger.info("[SGE Shield] Entropy cache updated: enabled=%s", cfg.get("enabled"))
+
+
+def update_outbound_links_cache(cfg: dict[str, object]) -> None:
+    """Update in-process cache for outbound authority links. Called by SettingsService."""
+    _outbound_links_cache.clear()
+    _outbound_links_cache.update(cfg)
+    logger.info("[SEO] Outbound links cache updated: max_links=%s", cfg.get("max_links_per_article"))
 
 
 class SeoService:
@@ -1047,25 +1072,22 @@ class SeoService:
         if not html_content:
             return html_content
 
-        # Keyword to authority URL mapping
-        authority_map = {
-            "Tiến sĩ Kenneth K. Hansraj": "https://pubmed.ncbi.nlm.nih.gov/25393825/",
-            "Hiệp hội Placenta Nhật Bản": "https://www.jpla.jp/english/",
-            "Miccosmo Japan Laboratory": "https://www.miccosmo.co.jp/english/",
-            "chiết xuất nhau thai cừu": "https://www.jpla.jp/english/",
-            "nhau thai cừu": "https://www.jpla.jp/english/",
-            "ceramide tinh khiết": "https://pubmed.ncbi.nlm.nih.gov/31840425/",
-            "dầu hạt jojoba": "https://pubmed.ncbi.nlm.nih.gov/24442110/",
-            "Harvard Health Publishing": "https://www.health.harvard.edu",
-            "Đại học Y Harvard": "https://www.health.harvard.edu",
-            "PubMed": "https://pubmed.ncbi.nlm.nih.gov/",
-            "ceramide": "https://pubmed.ncbi.nlm.nih.gov/31840425/",
-            "collagen": "https://pubmed.ncbi.nlm.nih.gov/30681787/",
-        }
+        max_links = _outbound_links_cache.get("max_links_per_article", 2)
+        authority_list = _outbound_links_cache.get("authority_map", [])
 
         injected_count = 0
-        for keyword, url in authority_map.items():
-            if injected_count >= 2:
+        for item in authority_list:
+            if isinstance(item, dict):
+                keyword = item.get("keyword")
+                url = item.get("url")
+            else:
+                keyword = getattr(item, "keyword", None)
+                url = getattr(item, "url", None)
+
+            if not keyword or not url:
+                continue
+
+            if injected_count >= max_links:
                 break
             if keyword in html_content:
                 # Split content by existing <a> tags to prevent nested links

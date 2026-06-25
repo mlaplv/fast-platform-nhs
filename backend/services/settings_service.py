@@ -285,13 +285,21 @@ class SettingsService:
 
         # SGE Shield V1.0: Sync Entropy Settings vào Redis + in-process cache
         import json as _json
-        from backend.services.commerce.seo_service import update_entropy_cache
+        from backend.services.commerce.seo_service import update_entropy_cache, update_outbound_links_cache
         entropy_dict = data.entropy.model_dump()
         await xohi_memory.client.set(
             "system:entropy_config",
             _json.dumps(entropy_dict),
         )
         update_entropy_cache(entropy_dict)
+
+        # Sync Outbound Links Settings vào Redis + in-process cache
+        outbound_dict = data.outbound_links.model_dump()
+        await xohi_memory.client.set(
+            "system:outbound_links_config",
+            _json.dumps(outbound_dict),
+        )
+        update_outbound_links_cache(outbound_dict)
         
         # Elite V2.2: Sync Media
         await SettingsService._sync_media_links(data_dict)
