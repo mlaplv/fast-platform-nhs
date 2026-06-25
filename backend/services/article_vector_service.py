@@ -18,10 +18,8 @@ class ArticleVectorService:
     @property
     def embedding_model(self):
         """Lazy loader (V76.2: Trinity Boot)"""
-        if self._embedding_model is None:
-            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
-            self._embedding_model = get_shared_encoder()
-        return self._embedding_model
+        from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+        return get_shared_encoder()
 
     async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: Optional[str] = None, limit: int = 5) -> List[Dict[str, object]]:
         try:
@@ -79,7 +77,7 @@ class ArticleVectorService:
             logger.error(f"[VECTOR-SEARCH] Article RAG Query Failed: {e}", exc_info=True)
             return []
 
-    async def upsert_article_embedding(self, db_session, article_id: str, title: str, content: Optional[str]) -> None:
+    async def upsert_article_embedding(self, db_session: Optional[AsyncSession], article_id: str, title: str, content: Optional[str] = None) -> None:
         """Helper to generate and store pgvector embedding (Service-Centric)."""
         import uuid
         import asyncio
@@ -116,11 +114,21 @@ class ArticleVectorService:
                 ON CONFLICT (article_id)
                 DO UPDATE SET embedding = CAST(:vector AS vector), updated_at = NOW();
             """)
-            await db_session.execute(sql, {
-                "id": str(uuid.uuid4()),
-                "article_id": article_id,
-                "vector": vector_str
-            })
+            if db_session:
+                await db_session.execute(sql, {
+                    "id": str(uuid.uuid4()),
+                    "article_id": article_id,
+                    "vector": vector_str
+                })
+            else:
+                from backend.database.alchemy_config import alchemy_config
+                async with alchemy_config.create_session_maker()() as write_session:
+                    await write_session.execute(sql, {
+                        "id": str(uuid.uuid4()),
+                        "article_id": article_id,
+                        "vector": vector_str
+                    })
+                    await write_session.commit()
         except Exception as e:
             logger.error(f"[RAG] Article embedding failed for {article_id}: {e}")
 
@@ -133,4 +141,3 @@ async def provide_article_vector_service() -> ArticleVectorService:
     return ArticleVectorService()
 
 article_vector_service = ArticleVectorService()
-

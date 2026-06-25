@@ -31,7 +31,9 @@ fi
 
 # R90: Sync Python dependencies from uv.lock (ensures new packages survive container restarts)
 echo "📦 [Trinity Boot] Syncing Python dependencies from uv.lock..."
+export UV_CACHE_DIR=/tmp/uv_cache
 cd /app && uv sync --frozen --no-dev 2>&1 | tail -5 || echo "⚠️ uv sync warning (non-fatal)"
+rm -rf /tmp/uv_cache
 
 
 # R82: Start Litestar Application via Uvicorn (CTO Elite Mode)

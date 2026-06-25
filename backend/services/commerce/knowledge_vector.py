@@ -24,10 +24,8 @@ class KnowledgeVectorService:
 
     @property
     def encoder(self):
-        if self._encoder is None:
-            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
-            self._encoder = get_shared_encoder()
-        return self._encoder
+        from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+        return get_shared_encoder()
 
     async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: str = "default", limit: int = 5) -> List[KnowledgeSearchResult]:
         """Layered Hybrid Search: pgvector (<=>) + Semantic Match Score."""

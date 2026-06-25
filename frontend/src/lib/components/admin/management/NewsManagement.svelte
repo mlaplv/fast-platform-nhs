@@ -52,6 +52,7 @@
   let formRelatedProductId = $state<string | null>(null);
   let formRelatedProductName = $state("");
   let formRelatedProductImage = $state<string | null>(null);
+  let formSkipEmbedKg = $state(false);
   let showDraftForm = $state(false);
   let isHeaderCollapsed = $state(false);
 
@@ -238,6 +239,7 @@
     formRelatedProductId = null;
     formRelatedProductName = "";
     formRelatedProductImage = null;
+    formSkipEmbedKg = false;
     showDraftForm = true;
   }
 
@@ -266,6 +268,7 @@
       formRelatedProductName = (meta as Record<string, unknown>).related_product_name as string || "";
       formRelatedProductImage = (meta as Record<string, unknown>).related_product_image as string || null;
       formStatus = fullArticle.status;
+      formSkipEmbedKg = false;
       showDraftForm = true;
     } catch {
       nanobot.showToast("Dạ sếp, không lấy được chi tiết bài viết.", "error");
@@ -292,6 +295,7 @@
         seo_og_image: formSeoOgImage,
         featured_image: formFeaturedImage,
         analysis_report: formAnalysisReport || {},
+        skip_embed_kg: formSkipEmbedKg,
         // CNS V86.5: Persist analysis cache để highlights không bị mất sau F5
         metadata: { 
           faqs: formFaqs,
@@ -427,6 +431,7 @@
   bind:formRelatedProductId
   bind:formRelatedProductName
   bind:formRelatedProductImage
+  bind:formSkipEmbedKg
   onSave={saveArticle}
   onClose={() => { showDraftForm = false; nanobot.toggleExpand(false); }}
   {generateSlug}

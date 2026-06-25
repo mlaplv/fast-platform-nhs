@@ -83,7 +83,7 @@ class ReviewService:
         )
         return reviews, total
 
-    async def _sync_product_rating(self, entity_type: str, entity_id: str) -> None:
+    async def _sync_product_rating(self, entity_type: str, entity_id: str, session: Optional[AsyncSession] = None) -> None:
         """Write-through: Recompute avg rating từ APPROVED reviews và ghi vào product_metadata.
         Đảm bảo product listing API luôn trả đúng reviews_trust_score mà không cần N+1 join.
         """
@@ -98,6 +98,8 @@ class ReviewService:
 
         if entity_type != "PRODUCT":
             return
+        
+        s = session or self.review_repo.session
         try:
             from sqlalchemy import select, func, and_, update
             from sqlalchemy.orm.attributes import flag_modified
@@ -112,14 +114,14 @@ class ReviewService:
                 SystemReview.entity_id == entity_id,
                 SystemReview.status == "APPROVED"
             ))
-            result = await self.review_repo.session.execute(stmt)
+            result = await s.execute(stmt)
             row = result.fetchone()
             total_count: int = row.total if row else 0
             avg_rating: float = round(float(row.avg), 1) if (row and row.avg) else 0.0
 
             # 2. Load product
             p_stmt = select(ProductBase).where(ProductBase.id == entity_id)
-            product = (await self.review_repo.session.execute(p_stmt)).scalar_one_or_none()
+            product = (await s.execute(p_stmt)).scalar_one_or_none()
             if not product:
                 return
 
@@ -135,7 +137,7 @@ class ReviewService:
                 product.product_metadata.pop("review_count", None)
 
             flag_modified(product, "product_metadata")
-            await self.review_repo.session.flush()
+            await s.flush()
         except Exception as exc:
             import logging
             logging.getLogger("api-gateway").warning(
@@ -429,7 +431,7 @@ class ReviewService:
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
 
-    async def ai_seed_one(self, entity_type: str, entity_id: str) -> SystemReview:
+    async def ai_seed_one(self, entity_type: str, entity_id: str, db_session: Optional[AsyncSession] = None) -> SystemReview:
         """
         Xohi Review Lab: Tạo 1 đánh giá chất lượng cao bằng AI.
         - Phong cách: ngẫu nhiên (tiktok / shopee / lazada / authentic)
@@ -454,6 +456,8 @@ class ReviewService:
         entity_name = ""
         entity_desc = ""
         entity_attrs: dict[str, object] = {}
+        
+        from backend.database.alchemy_config import alchemy_config
 
         if entity_type == "PRODUCT":
             from sqlalchemy import select
@@ -463,7 +467,11 @@ class ReviewService:
                 ProductBase.short_description,
                 ProductBase.product_metadata
             ).where(ProductBase.id == entity_id)
-            row = (await self.review_repo.session.execute(stmt)).fetchone()
+            if db_session:
+                row = (await db_session.execute(stmt)).fetchone()
+            else:
+                async with alchemy_config.create_session_maker()() as s:
+                    row = (await s.execute(stmt)).fetchone()
             if not row:
                 raise ValueError(f"Product {entity_id} not found")
             # Đọc giá trị ra biến Python ngay — không giữ tham chiếu ORM
@@ -477,17 +485,23 @@ class ReviewService:
                 Article.title,
                 Article.excerpt
             ).where(Article.id == entity_id)
-            row = (await self.review_repo.session.execute(stmt)).fetchone()
+            if db_session:
+                row = (await db_session.execute(stmt)).fetchone()
+            else:
+                async with alchemy_config.create_session_maker()() as s:
+                    row = (await s.execute(stmt)).fetchone()
             if not row:
                 raise ValueError(f"News article {entity_id} not found")
             entity_name = str(row.title or "")
             entity_desc = str(row.excerpt or "")
         elif entity_type == "CATEGORY":
             from sqlalchemy import select, text
-            row = (await self.review_repo.session.execute(
-                text("SELECT name, description FROM categories WHERE id = :id"),
-                {"id": entity_id}
-            )).fetchone()
+            stmt = text("SELECT name, description FROM categories WHERE id = :id")
+            if db_session:
+                row = (await db_session.execute(stmt, {"id": entity_id})).fetchone()
+            else:
+                async with alchemy_config.create_session_maker()() as s:
+                    row = (await s.execute(stmt, {"id": entity_id})).fetchone()
             if not row:
                 raise ValueError(f"Category {entity_id} not found")
             entity_name = str(row.name or "")
@@ -497,8 +511,9 @@ class ReviewService:
 
         # Chủ động expire session để SQLAlchemy trả connection về pool ngay
         # trước khi bước vào AI call (phase 2) kéo dài hàng chục giây
-        await self.review_repo.session.flush()
-        self.review_repo.session.expire_all()
+        if db_session:
+            await db_session.flush()
+            db_session.expire_all()
 
         # ─────────────────────────────────────────────────────────────
         # PHASE 2: AI CALL — không còn giữ bất kỳ DB connection nào
@@ -695,10 +710,18 @@ CHỈ THỊ QUAN TRỌNG:
             status="APPROVED",
             attributes={"style": style, "ai_seeded": True},
         )
-        result = await self.review_repo.add(review)
-
-        # Write-Through: AI seed tạo review APPROVED → cập nhật product_metadata
-        await self._sync_product_rating(entity_type, entity_id)
+        if db_session:
+            result = await self.review_repo.add(review)
+            # Write-Through: AI seed tạo review APPROVED → cập nhật product_metadata
+            await self._sync_product_rating(entity_type, entity_id, session=db_session)
+        else:
+            async with alchemy_config.create_session_maker()() as write_session:
+                from backend.database.repositories import SystemReviewRepository
+                temp_repo = SystemReviewRepository(session=write_session)
+                result = await temp_repo.add(review)
+                # Write-Through: AI seed tạo review APPROVED → cập nhật product_metadata
+                await self._sync_product_rating(entity_type, entity_id, session=write_session)
+                await write_session.commit()
 
         return result
 

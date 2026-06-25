@@ -89,16 +89,21 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     addCommands() {
       return {
         ...this.parent?.(),
-        unsetAllLinks: () => ({ tr, dispatch }) => {
+        unsetAllLinks: () => ({ state, tr, dispatch }) => {
           if (dispatch) {
-            const { from, to } = tr.selection;
-            const hasSelection = from !== to;
-            const start = hasSelection ? from : 0;
-            const end = hasSelection ? to : tr.doc.content.size;
+            const { selection } = tr;
+            const { empty } = selection;
             
-            const linkType = tr.doc.type.schema.marks.link;
+            const linkType = state.schema.marks.link;
             if (linkType) {
-              tr.removeMark(start, end, linkType);
+              if (!empty) {
+                selection.ranges.forEach(range => {
+                  tr.removeMark(range.$from.pos, range.$to.pos, linkType);
+                });
+              } else {
+                tr.removeMark(0, tr.doc.content.size, linkType);
+              }
+              tr.removeStoredMark(linkType);
             }
           }
           return true;

@@ -27,10 +27,8 @@ class ProductVectorService:
     @property
     def embedding_model(self):
         """Lazy loader for the embedding model."""
-        if self._embedding_model is None:
-            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
-            self._embedding_model = get_shared_encoder()
-        return self._embedding_model
+        from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+        return get_shared_encoder()
 
     async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: Optional[str] = None, limit: int = 5) -> List[SemanticSearchResult]:
         try:

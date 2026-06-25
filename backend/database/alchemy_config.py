@@ -141,11 +141,13 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, execmany)
             _DB_STATS["last_slow_query_time"] = datetime.now(timezone.utc).isoformat()
 
 from sqlalchemy.pool import Pool
+import traceback
 
 @event.listens_for(Pool, "checkout")
 def receive_checkout(dbapi_connection, connection_record, connection_proxy):
     """Ghi nhận thời điểm connection được lấy ra khỏi pool để phục vụ phát hiện rò rỉ (leak)."""
     connection_record.info["checkout_time"] = time.perf_counter()
+    connection_record.info["checkout_traceback"] = "".join(traceback.format_stack())
 
 @event.listens_for(Pool, "checkin")
 def receive_checkin(dbapi_connection, connection_record):
@@ -154,9 +156,10 @@ def receive_checkin(dbapi_connection, connection_record):
     if checkout_time:
         duration = time.perf_counter() - checkout_time
         if duration > 10.0:
+            tb = connection_record.info.get("checkout_traceback", "No traceback captured.")
             logger.warning(
-                f"⚠️ [CONNECTION_LEAK_WARNING] Connection checkout duration: {duration:.4f}s! "
-                f"Phát hiện ngưy cơ rò rỉ kết nối (leak) hoặc transaction bị treo lâu."
+                f"⚠️ [CONNECTION_LEAK_WARNING] Connection checkout duration: {duration:.4f}s!\n"
+                f"Checkout Traceback:\n{tb}"
             )
             # [SOC Monitor] Tích lũy để expose qua /health/db
             _DB_STATS["leak_count"] += 1

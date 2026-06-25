@@ -81,6 +81,20 @@ class ArticleService:
         
         return "", ""
 
+    async def _read_product_context_isolated(self, product_id: str) -> tuple[str, str]:
+        """
+        [ARCH FIX] Đọc product context bằng session riêng, đóng ngay sau khi đọc.
+        Dùng cho các hàm suggest_* — đảm bảo ZERO connection held khi gọi AI.
+        """
+        if not product_id:
+            return "", ""
+        product_id = product_id.strip()
+        if product_id.lower() in ("null", "undefined", ""):
+            return "", ""
+        from backend.database.alchemy_config import alchemy_config
+        async with alchemy_config.create_session_maker()() as short_session:
+            return await self._get_product_context(short_session, product_id)
+
     async def list_articles(
         self,
         db_session: AsyncSession,
@@ -399,35 +413,6 @@ class ArticleService:
         db_session.add(article)
         await db_session.flush() # Elite V2.2: Force flush to DB so raw SQL FK check passes
 
-        # RAG Upsert
-        await self.vector_service.upsert_article_embedding(
-            db_session, new_id_val, data.title, cleaned_content
-        )
-
-        # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
-        # [LEAK FIX] flush+expire_all trước khi gọi AI — trả connection về pool
-        # trong suốt thời gian AI xử lý, tránh checkout leak.
-        await db_session.flush()
-        db_session.expire_all()
-        from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
-        import asyncio as _asyncio
-        try:
-            async with _asyncio.timeout(25):
-                kg_data = await generate_knowledge_graph(
-                    content=cleaned_content,
-                    topic=data.title
-                )
-            # Reload article để set field sau khi expire_all
-            res_after_kg = await db_session.execute(select(Article).where(Article.id == new_id_val))
-            article = res_after_kg.scalar_one()
-            article.article_metadata["knowledge_graph"] = kg_data
-            from sqlalchemy.orm.attributes import flag_modified
-            flag_modified(article, "article_metadata")
-        except _asyncio.TimeoutError:
-            logger.error(f"[ArticleService] KG Generation timed out (>25s) for {new_id_val} — skipping to protect DB pool.")
-        except Exception as e:
-            logger.error(f"[ArticleService] KG Generation failed for {new_id_val}: {e}")
-
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         
@@ -445,8 +430,85 @@ class ArticleService:
                 "tenant_id": current_tenant_id.get() or "default",
             })
             logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED on creation for SEO matching: {new_id_val}")
-            
+
+        if not data.skip_embed_kg:
+            import asyncio as _asyncio
+            _asyncio.create_task(self._background_embed_and_kg(
+                article_id=new_id_val,
+                title=data.title,
+                content=cleaned_content,
+                tenant_id=current_tenant_id.get() or "default",
+            ))
+        else:
+            logger.info(f"[ArticleService] Skipping Embed+KG for article {new_id_val} per admin request.")
+
         return SuccessResponse(ok=True, id=new_id_val)
+
+    async def _background_embed_and_kg(self, article_id: str, title: str, content: str, tenant_id: str) -> None:
+        """
+        [ARCH FIX] Background task: Embedding + Knowledge Graph generation.
+        Chạy hoàn toàn ngoài request lifecycle với session DB riêng.
+
+        Nguyên tắc:
+        - Session riêng → connection chỉ bị giữ vài trăm ms cho INSERT/UPDATE
+        - Model nạp ở background → không gây OOM spike cho response đang trả
+        - Nếu fail → log error, article vẫn đã được lưu thành công
+        """
+        import asyncio as _asyncio
+        import gc
+        import ctypes
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database import current_tenant_id as _ctx_tenant
+
+        # Set tenant context cho background task (không kế thừa từ request)
+        _token = _ctx_tenant.set(tenant_id)
+        try:
+            # --- Phase 1: Embedding (có thể nạp model ~200MB nếu chưa có) ---
+            try:
+                # [ARCH FIX] Không truyền session để việc tính toán vector và nạp model không chiếm giữ kết nối DB
+                await self.vector_service.upsert_article_embedding(
+                    None, article_id, title, content
+                )
+                logger.info(f"[Background] Embedding completed for article {article_id}")
+            except Exception as e:
+                logger.error(f"[Background] Embedding failed for {article_id}: {e}")
+
+            # --- Phase 2: Knowledge Graph (gọi AI, tối đa 25s) ---
+            try:
+                from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+                async with _asyncio.timeout(25):
+                    kg_data = await generate_knowledge_graph(content=content, topic=title)
+                # Ghi KG vào article với session riêng
+                async with alchemy_config.create_session_maker()() as kg_session:
+                    from sqlalchemy.orm.attributes import flag_modified
+                    res = await kg_session.execute(select(Article).where(Article.id == article_id))
+                    article = res.scalar_one_or_none()
+                    if article:
+                        if not article.article_metadata:
+                            article.article_metadata = {}
+                        article.article_metadata["knowledge_graph"] = kg_data
+                        flag_modified(article, "article_metadata")
+                        await kg_session.commit()
+                logger.info(f"[Background] KG completed for article {article_id}")
+            except _asyncio.TimeoutError:
+                logger.error(f"[Background] KG timed out (>25s) for {article_id}")
+            except Exception as e:
+                logger.error(f"[Background] KG failed for {article_id}: {e}")
+
+            # --- Phase 3: Giải phóng fastembed model (~200MB) khỏi RAM ---
+            # Model chỉ cần cho embedding — giữ vĩnh viễn sẽ gây OOM trên VPS 1.2GB.
+            # Lần embed tiếp theo sẽ warmup lại (~3-4s) — chấp nhận được cho background task.
+            from backend.services.ai_engine.core.encoder_singleton import release_shared_encoder
+            release_shared_encoder()
+
+            gc.collect(generation=2)
+            try:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            except Exception:
+                pass
+
+        finally:
+            _ctx_tenant.reset(_token)
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
         """Update an article and its embedding."""
@@ -498,39 +560,17 @@ class ArticleService:
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(article, "analysis_report")
 
-        if data.title is not None or data.content is not None:
-            await self.vector_service.upsert_article_embedding(
-                db_session, article_id, article.title, article.content
-            )
-
-            # Elite V2.2: Re-generate Knowledge Graph on content change
-            # [LEAK FIX] flush+expire_all để trả connection trước AI call,
-            # rồi reload article sau khi AI xong để tiếp tục.
-            _kg_content = article.content  # capture trước khi expire
-            _kg_title = article.title
-            await db_session.flush()
-            db_session.expire_all()
-
-            from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+        if (data.title is not None or data.content is not None) and not data.skip_embed_kg:
+            # [ARCH FIX] Embedding + KG chạy ở background, không block request.
             import asyncio as _asyncio
-            try:
-                async with _asyncio.timeout(25):
-                    kg_data = await generate_knowledge_graph(
-                        content=_kg_content,
-                        topic=_kg_title
-                    )
-                # Reload sau khi AI xong để merge kết quả
-                res_kg = await db_session.execute(select(Article).where(Article.id == article_id))
-                article = res_kg.scalar_one()
-                if not article.article_metadata:
-                    article.article_metadata = {}
-                article.article_metadata["knowledge_graph"] = kg_data
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(article, "article_metadata")
-            except _asyncio.TimeoutError:
-                logger.error(f"[ArticleService] KG Refresh timed out (>25s) for {article_id} — skipping to protect DB pool.")
-            except Exception as e:
-                logger.error(f"[ArticleService] KG Refresh failed for {article_id}: {e}")
+            _asyncio.create_task(self._background_embed_and_kg(
+                article_id=article_id,
+                title=article.title,
+                content=article.content,
+                tenant_id=current_tenant_id.get() or "default",
+            ))
+        elif data.skip_embed_kg:
+            logger.info(f"[ArticleService] Skipping Embed+KG update for article {article_id} per admin request.")
 
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
@@ -712,7 +752,7 @@ class ArticleService:
             
         return BulkActionResponse(ok=True, count=len(ids))
 
-    async def suggest_seo(self, db_session: AsyncSession, title: str, content: str, product_id: str = "") -> Dict[str, str]:
+    async def suggest_seo(self, db_session: Optional[AsyncSession], title: str, content: str, product_id: str = "") -> Dict[str, str]:
         """GEO 2026: XOHI Auto SEO Suggestion for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -738,7 +778,8 @@ class ArticleService:
         agent = Agent(system_prompt=system_prompt)
         content_excerpt = (content or "")[:2000]
 
-        _, product_context = await self._get_product_context(db_session, product_id)
+        # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
+        _, product_context = await self._read_product_context_isolated(product_id)
 
         prompt_parts = []
         if product_context:
@@ -788,7 +829,7 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI SEO Suggestion Failed: {e}")
             return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
 
-    async def suggest_faqs(self, db_session: AsyncSession, title: str, content: str, product_id: str = "") -> List[Dict[str, str]]:
+    async def suggest_faqs(self, db_session: Optional[AsyncSession], title: str, content: str, product_id: str = "") -> List[Dict[str, str]]:
         """GEO 2026: XOHI Auto FAQ Generator for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -817,7 +858,8 @@ class ArticleService:
         # Truncate content to first 2000 chars for prompt efficiency
         content_excerpt = (content or "")[:2000]
 
-        _, product_context = await self._get_product_context(db_session, product_id)
+        # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
+        _, product_context = await self._read_product_context_isolated(product_id)
 
         prompt_parts = []
         if product_context:
@@ -864,7 +906,7 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
             return []
 
-    async def suggest_excerpt(self, db_session: AsyncSession, title: str, category: str, content: str = "", product_id: str = "") -> str:
+    async def suggest_excerpt(self, db_session: Optional[AsyncSession], title: str, category: str, content: str = "", product_id: str = "") -> str:
         """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề và nội dung."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -889,7 +931,8 @@ class ArticleService:
 
         agent = Agent(system_prompt=system_prompt)
         
-        _, product_context = await self._get_product_context(db_session, product_id)
+        # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
+        _, product_context = await self._read_product_context_isolated(product_id)
         
         prompt_parts = []
         if product_context:
@@ -933,7 +976,7 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI Excerpt Suggestion Failed: {e}")
             return ""
 
-    async def suggest_content(self, db_session: AsyncSession, title: str, category: str, excerpt: str, product_id: str = "") -> str:
+    async def suggest_content(self, db_session: Optional[AsyncSession], title: str, category: str, excerpt: str, product_id: str = "") -> str:
         """GEO 2026: XOHI Auto Content Generator — sinh HTML bài viết hoàn chỉnh EEAT."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -959,7 +1002,8 @@ class ArticleService:
 
         agent = Agent(system_prompt=system_prompt, output_type=str, retries=2)
         
-        _, product_context = await self._get_product_context(db_session, product_id)
+        # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
+        _, product_context = await self._read_product_context_isolated(product_id)
         
         prompt_parts = []
         if product_context:
@@ -992,7 +1036,7 @@ class ArticleService:
 
     async def suggest_titles(
         self,
-        db_session: AsyncSession,
+        db_session: Optional[AsyncSession],
         category: str,
         keywords: str,
         product_id: str,
@@ -1003,33 +1047,50 @@ class ArticleService:
         from backend.services.xohi.google_search import google_search_service
         from backend.database.models import ProductBase
 
-        # 1. Fetch product context nếu có
+        # [ARCH FIX] Tất cả DB queries dùng session riêng, đóng ngay trước khi gọi AI.
+        # Đảm bảo ZERO connection held trong suốt quá trình AI generate (~3-10s).
         product_context = ""
         product_name = ""
-        
+        db_context = ""
+
         # Chuẩn hóa và làm sạch product_id đầu vào
         if product_id:
             product_id = product_id.strip()
             if product_id.lower() in ("null", "undefined", ""):
                 product_id = ""
 
-        if product_id:
-            try:
-                prod_stmt = select(
-                    ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
-                ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
-                prod_row = (await db_session.execute(prod_stmt)).first()
-                if prod_row:
-                    product_name = prod_row.name
-                    product_context = (
-                        f"Sản phẩm liên quan: {prod_row.name}\n"
-                        f"Từ khóa SP: {prod_row.seo_keywords or ''}\n"
-                        f"Mô tả SP: {(prod_row.short_description or '')[:200]}"
-                    )
-            except Exception as e:
-                logger.exception(f"[ArticleService] Lỗi khi truy vấn thông tin sản phẩm {product_id}: {e}")
+        from backend.database.alchemy_config import alchemy_config
+        async with alchemy_config.create_session_maker()() as short_session:
+            # 1. Fetch product context
+            if product_id:
+                try:
+                    prod_stmt = select(
+                        ProductBase.name, ProductBase.seo_keywords, ProductBase.short_description
+                    ).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
+                    prod_row = (await short_session.execute(prod_stmt)).first()
+                    if prod_row:
+                        product_name = prod_row.name
+                        product_context = (
+                            f"Sản phẩm liên quan: {prod_row.name}\n"
+                            f"Từ khóa SP: {prod_row.seo_keywords or ''}\n"
+                            f"Mô tả SP: {(prod_row.short_description or '')[:200]}"
+                        )
+                except Exception as e:
+                    logger.exception(f"[ArticleService] Lỗi khi truy vấn thông tin sản phẩm {product_id}: {e}")
 
-        # 2. Google Search top 10 — tìm trend và tiêu đề đang rank
+            # 2.5. Fetch existing article titles
+            try:
+                db_stmt = select(Article.title).where(
+                    Article.deleted_at == None
+                ).order_by(Article.created_at.desc()).limit(30)
+                db_rows = (await short_session.execute(db_stmt)).scalars().all()
+                if db_rows:
+                    db_context = "DANH SÁCH TIÊU ĐỀ ĐÃ TỒN TẠI TRONG CƠ SỞ DỮ LIỆU HỆ THỐNG (BẮT BUỘC TRÁNH TRÙNG LẶP):\n" + "\n".join(f"- {title}" for title in db_rows)
+            except Exception as e:
+                logger.warning(f"[ArticleService] Fetching DB titles for suggestion failed: {e}")
+        # Session đã đóng — connection trả về pool trước khi gọi Google Search + AI
+
+        # 2. Google Search top 10 — tìm trend và tiêu đề đang rank (ZERO DB conn held)
         search_query = f"{category} {keywords}".strip() or category or "bài viết"
         if product_name:
             search_query = f"{product_name} {search_query}"
@@ -1044,18 +1105,6 @@ class ArticleService:
                 top10_context = "TOP 10 TIÊU ĐỀ ĐANG RANK TRÊN GOOGLE (TRÁNH TRÙNG LẶP HOÀN TOÀN):\n" + "\n".join(titles_snippets)
         except Exception as e:
             logger.warning(f"[ArticleService] Google Search for title-suggest failed: {e}")
-
-        # 2.5. Fetch existing articles in database to prevent internal duplicates
-        db_context = ""
-        try:
-            db_stmt = select(Article.title).where(
-                Article.deleted_at == None
-            ).order_by(Article.created_at.desc()).limit(30)
-            db_rows = (await db_session.execute(db_stmt)).scalars().all()
-            if db_rows:
-                db_context = "DANH SÁCH TIÊU ĐỀ ĐÃ TỒN TẠI TRONG CƠ SỞ DỮ LIỆU HỆ THỐNG (BẮT BUỘC TRÁNH TRÙNG LẶP):\n" + "\n".join(f"- {title}" for title in db_rows)
-        except Exception as e:
-            logger.warning(f"[ArticleService] Fetching DB titles for suggestion failed: {e}")
 
         # 3. Build prompt
         base_prompt = (

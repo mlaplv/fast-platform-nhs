@@ -19,6 +19,8 @@ os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 _shared_encoder: Optional[TextEmbedding] = None
 _lock: Optional[asyncio.Lock] = None
 _init_in_progress = False
+_last_used_time = 0.0
+_unload_task: Optional[asyncio.Task] = None
 
 def _check_model_health() -> bool:
     """Verifies if the model exists and seems complete in the cache.
@@ -121,6 +123,9 @@ async def warmup_encoder(max_retries: int = 5):
                     loop = asyncio.get_running_loop()
                     _shared_encoder = await loop.run_in_executor(None, _init)
                     logger.info("[Encoder] fastembed initialized successfully.")
+                    global _last_used_time
+                    _last_used_time = time.time()
+                    _ensure_watchdog()
                     break # Success!
                 except Exception as e:
                     error_msg = str(e)
@@ -138,12 +143,64 @@ async def warmup_encoder(max_retries: int = 5):
         finally:
             _init_in_progress = False
 
+def _ensure_watchdog() -> None:
+    """Ensures the auto-unload watchdog background task is active."""
+    global _unload_task
+    if _unload_task is None or _unload_task.done():
+        try:
+            _unload_task = asyncio.create_task(_auto_unload_loop())
+        except RuntimeError:
+            # Event loop not running yet (e.g. during startup lifecycle registration)
+            pass
+
+async def _auto_unload_loop() -> None:
+    """
+    Background loop that checks for encoder idle duration and unloads it.
+    If no queries happen for 2 minutes (120s), we release the model.
+    """
+    global _shared_encoder, _unload_task
+    import gc
+    import ctypes
+    logger.info("[Encoder] Auto-unload loop started. Idle limit: 120s.")
+    try:
+        while True:
+            await asyncio.sleep(30)
+            if _shared_encoder is None:
+                break
+            idle_duration = time.time() - _last_used_time
+            if idle_duration > 120.0:
+                logger.info(f"[Encoder] Model idle for {idle_duration:.1f}s (>120s). Auto-unloading from memory...")
+                release_shared_encoder()
+                gc.collect(generation=2)
+                try:
+                    ctypes.CDLL("libc.so.6").malloc_trim(0)
+                except Exception:
+                    pass
+                break
+    except asyncio.CancelledError:
+        pass
+    finally:
+        _unload_task = None
+        logger.info("[Encoder] Auto-unload loop exited.")
+
 def get_shared_encoder() -> Optional[TextEmbedding]:
     """
-    Returns the pre-loaded encoder. 
-    (Elite V2.2: Note - if None, service should trigger warmup or handle 503)
+    Returns the pre-loaded encoder and updates the idle timer.
     """
+    global _last_used_time
+    if _shared_encoder is not None:
+        _last_used_time = time.time()
+        _ensure_watchdog()
     return _shared_encoder
+
+def release_shared_encoder() -> None:
+    """
+    [ARCH FIX] Giải phóng model fastembed khỏi RAM sau khi dùng xong.
+    Model ONNX chiếm ~200MB — trên VPS 1.2GB limit, giữ vĩnh viễn sẽ gây OOM.
+    """
+    global _shared_encoder
+    _shared_encoder = None
+    logger.info("[Encoder] Model released from memory.")
 
 # REMOVED: get_encoder() synchronous blocking helper to prevent startup hangs.
 # Services should use get_shared_encoder() and handle None or use a lazy property.

@@ -49,6 +49,7 @@
     formRelatedProductId = $bindable(),
     formRelatedProductName = $bindable(),
     formRelatedProductImage = $bindable(),
+    formSkipEmbedKg = $bindable(false),
     dbCategories,
     onSave,
     onClose,
@@ -72,6 +73,7 @@
     formRelatedProductId: string | null;
     formRelatedProductName: string;
     formRelatedProductImage: string | null;
+    formSkipEmbedKg?: boolean;
     dbCategories: readonly string[];
     onSave: () => void;
     onClose: () => void;
@@ -950,6 +952,27 @@
       class="{isEditorFullScreen ? 'fixed bottom-0 left-0 right-0 z-[950000]' : 'relative mt-auto'} px-8 py-10 flex justify-end items-center pointer-events-none" 
     >
       <div class="flex items-center gap-4 pointer-events-auto">
+        <!-- Embed+KG Toggle -->
+        <div class="flex items-center gap-3 bg-zinc-950/60 border border-white/5 px-4 py-2.5 rounded-xl mr-2">
+          <div class="flex flex-col items-start gap-0.5">
+            <span class="text-[9px] font-black tracking-widest text-white/50">COMPILING EMBED & KG</span>
+            <span class="text-[7px] font-mono tracking-wider {!formSkipEmbedKg ? 'text-cyan-400' : 'text-red-400'}">
+              {!formSkipEmbedKg ? 'AUTO-GENERATE ACTIVE' : 'SKIPPED TO SAVE RAM'}
+            </span>
+          </div>
+          <button 
+            type="button"
+            onclick={() => formSkipEmbedKg = !formSkipEmbedKg}
+            aria-label="Toggle Embed and KG compilation"
+            class="relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none 
+              {!formSkipEmbedKg ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-zinc-800'}"
+          >
+            <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300
+              {!formSkipEmbedKg ? 'translate-x-5' : 'translate-x-0'}">
+            </div>
+          </button>
+        </div>
+
         <button
           onclick={onClose}
           class="px-8 py-3 bg-[#1a1a1a] text-white/60 hover:text-white rounded-xl text-[10px] font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(0,0,0,0.5)] cursor-pointer active:scale-95 transition-all"

@@ -42,6 +42,7 @@ class CreateArticleRequest(BaseModel):
     metadata: Optional[ArticleMetadata] = None
     authorId: Optional[str] = None
     analysis_report: Optional[dict] = Field(None, alias="analysis_report")
+    skip_embed_kg: Optional[bool] = Field(False, alias="skip_embed_kg")
 
     @field_validator("category", mode="before")
     @classmethod
@@ -70,6 +71,7 @@ class UpdateArticleRequest(BaseModel):
     featured_image: Optional[str] = Field(None, alias="featured_image")
     metadata: Optional[ArticleMetadata] = None
     analysis_report: Optional[dict] = Field(None, alias="analysis_report")
+    skip_embed_kg: Optional[bool] = Field(False, alias="skip_embed_kg")
 
     @field_validator("category", mode="before")
     @classmethod
