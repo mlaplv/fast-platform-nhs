@@ -84,10 +84,10 @@ class OutboundLinksSettings(BaseModel):
     max_links_per_article: int = 2
     authority_map: List[OutboundLinkItem] = Field(default_factory=lambda: [
         OutboundLinkItem(keyword="Tiến sĩ Kenneth K. Hansraj", url="https://pubmed.ncbi.nlm.nih.gov/25393825/"),
-        OutboundLinkItem(keyword="Hiệp hội Placenta Nhật Bản", url="https://www.jpla.jp/english/"),
+        OutboundLinkItem(keyword="Hiệp hội Placenta Nhật Bản", url="https://jplaa.jp/"),
         OutboundLinkItem(keyword="Miccosmo Japan Laboratory", url="https://www.miccosmo.co.jp/english/"),
-        OutboundLinkItem(keyword="chiết xuất nhau thai cừu", url="https://www.jpla.jp/english/"),
-        OutboundLinkItem(keyword="nhau thai cừu", url="https://www.jpla.jp/english/"),
+        OutboundLinkItem(keyword="chiết xuất nhau thai cừu", url="https://jplaa.jp/"),
+        OutboundLinkItem(keyword="nhau thai cừu", url="https://jplaa.jp/"),
         OutboundLinkItem(keyword="ceramide tinh khiết", url="https://pubmed.ncbi.nlm.nih.gov/31840425/"),
         OutboundLinkItem(keyword="dầu hạt jojoba", url="https://pubmed.ncbi.nlm.nih.gov/24442110/"),
         OutboundLinkItem(keyword="Harvard Health Publishing", url="https://www.health.harvard.edu"),

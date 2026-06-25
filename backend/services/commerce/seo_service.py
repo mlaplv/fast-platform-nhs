@@ -57,10 +57,10 @@ _outbound_links_cache: dict[str, object] = {
     "max_links_per_article": 2,
     "authority_map": [
         {"keyword": "Tiến sĩ Kenneth K. Hansraj", "url": "https://pubmed.ncbi.nlm.nih.gov/25393825/"},
-        {"keyword": "Hiệp hội Placenta Nhật Bản", "url": "https://www.jpla.jp/english/"},
+        {"keyword": "Hiệp hội Placenta Nhật Bản", "url": "https://jplaa.jp/"},
         {"keyword": "Miccosmo Japan Laboratory", "url": "https://www.miccosmo.co.jp/english/"},
-        {"keyword": "chiết xuất nhau thai cừu", "url": "https://www.jpla.jp/english/"},
-        {"keyword": "nhau thai cừu", "url": "https://www.jpla.jp/english/"},
+        {"keyword": "chiết xuất nhau thai cừu", "url": "https://jplaa.jp/"},
+        {"keyword": "nhau thai cừu", "url": "https://jplaa.jp/"},
         {"keyword": "ceramide tinh khiết", "url": "https://pubmed.ncbi.nlm.nih.gov/31840425/"},
         {"keyword": "dầu hạt jojoba", "url": "https://pubmed.ncbi.nlm.nih.gov/24442110/"},
         {"keyword": "Harvard Health Publishing", "url": "https://www.health.harvard.edu"},

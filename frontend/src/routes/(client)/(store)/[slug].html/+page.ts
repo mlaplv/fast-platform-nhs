@@ -49,8 +49,8 @@ export const load: PageLoad = async ({ params, fetch }) => {
   const { slug } = params;
 
   const [artRes, newsRes] = await Promise.all([
-    fetch(`/api/v1/client/news/slug/${slug}`, { signal: AbortSignal.timeout(3000) }),
-    fetch(`/api/v1/client/news`, { signal: AbortSignal.timeout(3000) }).catch(() => null)
+    fetch(`/api/v1/client/news/slug/${slug}`, { signal: AbortSignal.timeout(6000) }),
+    fetch(`/api/v1/client/news`, { signal: AbortSignal.timeout(6000) }).catch(() => null)
   ]);
 
   if (!artRes.ok) {

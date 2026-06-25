@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from typing import List, Optional
-from litestar import Controller, get, Request
+from litestar import Controller, get, Request, route
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -102,7 +102,7 @@ class PublicNewsController(Controller):
         except NotFoundException:
             raise NotFoundException(f"Article {article_id} not found")
 
-    @get("/slug/{slug:str}")
+    @route("/slug/{slug:str}", http_method=["GET", "HEAD"])
     async def get_news_by_slug(
         self,
         db_session: AsyncSession,

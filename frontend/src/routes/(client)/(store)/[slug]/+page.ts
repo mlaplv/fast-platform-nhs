@@ -74,10 +74,10 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     const [prodRes, catRes] = await Promise.all([
       fetch(`/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`, {
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(6000)
       }),
       fetch(`/api/v1/client/categories/slug/${slug}`, {
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(6000)
       }).catch(e => {
         console.error(`[CATEGORY DETAIL FETCH FAILED] ${slug}`, e);
         return null;
@@ -113,7 +113,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
   // ── 2. News list ─────────────────────────────────────────────────────────
   if (slug === 'bai-viet') {
     const newsRes = await fetch(`/api/v1/client/news?limit=25`, {
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(6000)
     }).catch(e => { console.error('[NEWS FETCH FAILED]', e); return null; });
 
     if (!newsRes?.ok) throw error(404, { message: 'Hiện tại chưa có bài viết nào.' });
@@ -132,7 +132,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
   // ── 3. Product ────────────────────────────────────────────────────────────
   const prodRes = await fetch(`/api/v1/client/products/slug/${slug}`, {
-    signal: AbortSignal.timeout(3000)
+    signal: AbortSignal.timeout(6000)
   }).catch(e => { console.error(`[PRODUCT FETCH FAILED] ${slug}`, e); return null; });
 
   if (prodRes?.ok) {
@@ -166,7 +166,7 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
           signal: AbortSignal.timeout(2000)
         }).catch(() => null),
         fetch(`/api/v1/client/settings/primary`, {
-          signal: AbortSignal.timeout(3000)
+          signal: AbortSignal.timeout(6000)
         }).catch(() => null)
       );
     }
