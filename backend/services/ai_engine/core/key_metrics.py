@@ -1,7 +1,7 @@
 import logging
 import time
 import random
-from typing import Optional, Dict
+from typing import Optional, Dict, cast
 
 logger = logging.getLogger("key-metrics")
 
