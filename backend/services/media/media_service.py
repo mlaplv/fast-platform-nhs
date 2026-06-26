@@ -28,6 +28,10 @@ class MediaService(
     Modularized to comply with Martial Law (<300 lines).
     """
 
+    def __init__(self) -> None:
+        import asyncio
+        self._background_tasks: set[asyncio.Task[object]] = set()
+
     async def delete_asset(self, repo: MediaRegistryRepository, asset_id: str, permanent: bool = False, owner_id: Optional[str] = None) -> bool:
         """Xóa tài nguyên (Soft-delete mặc định)."""
         try:

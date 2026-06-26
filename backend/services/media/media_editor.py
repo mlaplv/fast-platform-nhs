@@ -70,9 +70,13 @@ class MediaEditorMixin:
             ai_vision = flag.decode() if isinstance(flag, bytes) else str(flag)
             
             if ai_vision == "1":
-                asyncio.create_task(analyst.process_registry_entry(str(asset.id)))
+                task = asyncio.create_task(analyst.process_registry_entry(str(asset.id)))
             else:
-                asyncio.create_task(analyst.heuristic_analysis(str(asset.id)))
+                task = asyncio.create_task(analyst.heuristic_analysis(str(asset.id)))
+            
+            if hasattr(self, "_background_tasks"):
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
             return asset
 
         is_remote = asset.file_path.startswith("http")

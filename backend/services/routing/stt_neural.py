@@ -23,6 +23,7 @@ class NeuralLocalCorrector:
         self._norm_key_cache = {} # { "raw_key": "norm_key" }
         self._cache_access_count = 0
         self._sorted_keys_cache = ([], 0) # (keys, hash_of_dict)
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def _ensure_encoder(self) -> None:
         if self.encoder is None:
@@ -97,5 +98,8 @@ class NeuralLocalCorrector:
                         max_total_score = max(max_total_score, max(score, fuzzy_score / 100.0))
 
         if applied_corrections:
-            for k in hit_keys: asyncio.create_task(xohi_memory.increment_stt_usage(k))
+            for k in hit_keys:
+                task = asyncio.create_task(xohi_memory.increment_stt_usage(k))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
         return current_text, (max_total_score if applied_corrections else 0.0)

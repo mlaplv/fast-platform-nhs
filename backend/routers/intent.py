@@ -21,6 +21,8 @@ from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
+_background_tasks: set[asyncio.Task[object]] = set()
+
 # Tên tiếng Việt của từng IntentAction — dùng trong Skill Guard thông báo lỗi
 from backend.constants.action_vi import ACTION_VI
 
@@ -186,11 +188,15 @@ class IntentController(Controller):
             ui_action = (result.data or {}).get("ui_action")
             action_val = result.action.value if hasattr(result.action, "value") else result.action
             
-            asyncio.create_task(self._save_message(chat_repo, session_id, "user", data.query, None, data.modality, user_id=user_id))
+            task_user = asyncio.create_task(self._save_message(chat_repo, session_id, "user", data.query, None, data.modality, user_id=user_id))
+            _background_tasks.add(task_user)
+            task_user.add_done_callback(_background_tasks.discard)
             
             # Rule R86: Selective Persistence — Skip assistant save if Responder handles it (e.g. Content Factory)
             if action_val != "CONTENT_CREATE":
-                asyncio.create_task(self._save_message(chat_repo, session_id, "assistant", result.message, ui_action, data.modality, tier_str, user_id=user_id, data_extra=result.data))
+                task_assistant = asyncio.create_task(self._save_message(chat_repo, session_id, "assistant", result.message, ui_action, data.modality, tier_str, user_id=user_id, data_extra=result.data))
+                _background_tasks.add(task_assistant)
+                task_assistant.add_done_callback(_background_tasks.discard)
 
             return result
 

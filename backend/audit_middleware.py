@@ -19,6 +19,9 @@ SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "osmo_Elite_Standard_Salt_2026")
 
 logger = logging.getLogger("audit-trail")
 
+import asyncio
+_background_tasks: set[asyncio.Task[object]] = set()
+
 # Patterns tấn công phổ biến (Elite Security Layer)
 ATTACK_PATTERNS = [
     r"(?i)(union\s+select|drop\s+table|truncate\s+table|delete\s+from|--|#)", # SQL Injection
@@ -42,7 +45,9 @@ async def auto_block_task(ip_address: str, log_entry: dict):
             f"<b>Yêu cầu:</b> <code>{action}</code>\n"
             f"<b>Lý do:</b> {reason}"
         )
-        asyncio.create_task(telegram_service.send_alert(alert_msg))
+        task = asyncio.create_task(telegram_service.send_alert(alert_msg))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
         
         analysis = await security_guard.analyze_log_entry(json.dumps(log_entry))
         if analysis.risk_level == "CRITICAL" and analysis.is_attack:
@@ -67,7 +72,9 @@ async def auto_block_task(ip_address: str, log_entry: dict):
                         f"<b>IP:</b> <code>{ip_address}</code>\n"
                         f"<b>Lý do:</b> <i>{analysis.reason}</i>"
                     )
-                    asyncio.create_task(telegram_service.send_alert(ban_msg))
+                    task = asyncio.create_task(telegram_service.send_alert(ban_msg))
+                    _background_tasks.add(task)
+                    task.add_done_callback(_background_tasks.discard)
     except Exception as e:
         logger.error(f"Failed to auto-block IP {ip_address}: {e}")
 
@@ -163,7 +170,9 @@ class AuditMiddleware:
                     logger.warning(json.dumps(audit_event))
                     # Elite V2.2: Kích hoạt Auto-Ban Task (Chạy ngầm để không block request)
                     import asyncio
-                    asyncio.create_task(auto_block_task(ip_address, audit_event))
+                    task = asyncio.create_task(auto_block_task(ip_address, audit_event))
+                    _background_tasks.add(task)
+                    task.add_done_callback(_background_tasks.discard)
                 else:
                     logger.info(json.dumps(audit_event))
         else:

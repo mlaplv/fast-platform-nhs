@@ -188,9 +188,11 @@ class VoiceHandler:
                 await campaign_repo.session.commit()
 
             # Phase 16.1: Zero-Latency Trigger
-            asyncio.create_task(self._run_background_analysis(
+            task = asyncio.create_task(self._run_background_analysis(
                 c_id, clean_transcript, u_id_str, tenant_id, gold_meta.get("style", "viral").lower(), campaign_repo
             ))
+            self.orchestrator._background_tasks.add(task)
+            task.add_done_callback(self.orchestrator._background_tasks.discard)
 
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,

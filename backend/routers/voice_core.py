@@ -17,6 +17,8 @@ from backend.middleware import UserPayload
 
 logger = logging.getLogger("api-gateway")
 
+_background_tasks: set[asyncio.Task[object]] = set()
+
 def get_user_info(socket: WebSocket) -> Optional[UserPayload]:
     """Helper to safely extract user from socket scope with V2.2 hierarchy."""
     return socket.scope.get("state", {}).get("user") or getattr(socket.state, "user", None)
@@ -105,8 +107,8 @@ async def stt_websocket(socket: WebSocket) -> None:
                                             duration_ms=duration_ms,
                                             intent_hash=hashlib.sha256(transcript.encode()).hexdigest()[:16] if transcript else "empty"
                                         ))
-                                        background_tasks.add(task)
-                                        task.add_done_callback(background_tasks.discard)
+                                        _background_tasks.add(task)
+                                        task.add_done_callback(_background_tasks.discard)
 
                                         await socket.send_json({
                                             "event": "final",

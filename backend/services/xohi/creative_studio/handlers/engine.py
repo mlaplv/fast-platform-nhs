@@ -182,53 +182,63 @@ class ExecutionEngine:
 
                 response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
 
-            # Phase 76: Zero-Latency Heartbeat (V76)
-            # Replaces busy-wait sleep(10) with instant completion detection
-            pulse_count = 0
-            while not response_task.done():
-                # Wait for task completion OR 10s timeout for next pulse
-                try:
-                    done, pending = await asyncio.wait([response_task], timeout=10.0)
-                except Exception:
-                    # Defensive: in case of rare cancellation issues
-                    if response_task.done(): break
-                    raise
+            try:
+                # Phase 76: Zero-Latency Heartbeat (V76)
+                # Replaces busy-wait sleep(10) with instant completion detection
+                pulse_count = 0
+                while not response_task.done():
+                    # Wait for task completion OR 10s timeout for next pulse
+                    try:
+                        done, pending = await asyncio.wait([response_task], timeout=10.0)
+                    except Exception:
+                        # Defensive: in case of rare cancellation issues
+                        if response_task.done(): break
+                        raise
 
-                if not response_task.done():
-                    pulse_count += 1
-                    logger.debug(f"[Content Factory] Pulse {pulse_count}: Step {step} still working for {campaign_id}")
+                    if not response_task.done():
+                        pulse_count += 1
+                        logger.debug(f"[Content Factory] Pulse {pulse_count}: Step {step} still working for {campaign_id}")
 
-                    msg = messages.get(step, "Đang xử lý...")
-                    if step == 4:
-                        sub_msgs = [
-                            "Đang phân tích và nhào nặn tiêu đề...",
-                            "Đang xây dựng nội dung chi tiết theo dàn ý...",
-                            "Đang căn chỉnh mật độ từ khóa chuẩn SEO...",
-                            "Đang tối ưu hóa hình ảnh và thẻ figure...",
-                            "Đang kiểm tra tính nhất quán của văn phong...",
-                            "Đang hoàn thiện những bước cuối cùng..."
-                        ]
-                        idx = min(pulse_count - 1, len(sub_msgs) - 1)
-                        msg = sub_msgs[idx]
+                        msg = messages.get(step, "Đang xử lý...")
+                        if step == 4:
+                            sub_msgs = [
+                                "Đang phân tích và nhào nặn tiêu đề...",
+                                "Đang xây dựng nội dung chi tiết theo dàn ý...",
+                                "Đang căn chỉnh mật độ từ khóa chuẩn SEO...",
+                                "Đang tối ưu hóa hình ảnh và thẻ figure...",
+                                "Đang kiểm tra tính nhất quán của văn phong...",
+                                "Đang hoàn thiện những bước cuối cùng..."
+                            ]
+                            idx = min(pulse_count - 1, len(sub_msgs) - 1)
+                            msg = sub_msgs[idx]
 
-                    await self._emit_progress(campaign_id, step, msg, user_id=campaign.user_id)
+                        await self._emit_progress(campaign_id, step, msg, user_id=campaign.user_id)
 
-                    # CNS V82.10: Reactive Cancellation Support
-                    # Re-fetch campaign to check for user-triggered REJECTED (Hard Kill)
-                    from backend.database.alchemy_config import alchemy_config
-                    async with alchemy_config.create_session_maker()() as check_session:
-                        check_repo = ContentCampaignRepository(session=check_session)
-                        check_stmt = select(ContentCampaign).where(
-                            ContentCampaign.id == campaign_id,
-                            ContentCampaign.deleted_at == None
-                        )
-                        check_campaign = (await check_session.execute(check_stmt)).scalar_one_or_none()
-                        if check_campaign and check_campaign.status == "REJECTED":
-                            logger.warning(f"[Content Factory] Task {campaign_id} CANCELLED via Hard Kill. Aborting.")
-                            response_task.cancel()
-                            return
+                        # CNS V82.10: Reactive Cancellation Support
+                        # Re-fetch campaign to check for user-triggered REJECTED (Hard Kill)
+                        from backend.database.alchemy_config import alchemy_config
+                        async with alchemy_config.create_session_maker()() as check_session:
+                            check_repo = ContentCampaignRepository(session=check_session)
+                            check_stmt = select(ContentCampaign).where(
+                                ContentCampaign.id == campaign_id,
+                                ContentCampaign.deleted_at == None
+                            )
+                            check_campaign = (await check_session.execute(check_stmt)).scalar_one_or_none()
+                            if check_campaign and check_campaign.status == "REJECTED":
+                                logger.warning(f"[Content Factory] Task {campaign_id} CANCELLED via Hard Kill. Aborting.")
+                                response_task.cancel()
+                                return
 
-            response = await response_task
+                response = await response_task
+            finally:
+                if response_task and not response_task.done():
+                    response_task.cancel()
+                    try:
+                        await response_task
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        logger.error(f"[Content Factory] Error cancelling response_task: {e}")
             if not isinstance(response, AgentResponse):
                 response = AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Legacy success", data={"raw": response})
 
@@ -367,7 +377,9 @@ class ExecutionEngine:
             campaign.current_step = max(1, step - 1)
             campaign.status = "PROCESSING"
             await repo.update(campaign)
-            asyncio.create_task(self.trigger_step(campaign.id, force_step=campaign.current_step))
+            task = asyncio.create_task(self.trigger_step(campaign.id, force_step=campaign.current_step))
+            self.orchestrator._background_tasks.add(task)
+            task.add_done_callback(self.orchestrator._background_tasks.discard)
             return True
         return False
 

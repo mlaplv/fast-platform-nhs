@@ -210,7 +210,9 @@ class AdsProtectionController(Controller):
                     # Async block in Google Ads if customer_id is configured
                     if _fraud_mgr._has_credentials():
                         # Lệnh block IP thật trên Google Ads
-                        asyncio.create_task(_fraud_mgr.block_ip(campaign_resource_name="", ip_address=result.ip_address, is_global=True))
+                        task = asyncio.create_task(_fraud_mgr.block_ip(campaign_resource_name="", ip_address=result.ip_address, is_global=True))
+                        _fraud_mgr._background_tasks.add(task)
+                        task.add_done_callback(_fraud_mgr._background_tasks.discard)
             except Exception as ex:
                 logger.error("Auto-block IP failed for %s: %s", result.ip_address, ex)
 

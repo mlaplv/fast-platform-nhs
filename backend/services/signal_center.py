@@ -36,6 +36,7 @@ class SignalCenter:
     def __init__(self):
         # Elite V2.2: Isolated Session Maker for non-blocking background persistence
         self.session_maker = alchemy_config.create_session_maker()
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def dispatch(
         self,
@@ -49,9 +50,11 @@ class SignalCenter:
         to prevent Blocking Event Loop and keep client response latency under 200ms.
         """
         # Offload immediately to clean background task, decoupling from request db_session
-        asyncio.create_task(
+        task = asyncio.create_task(
             self._dispatch_background(user_id, signal, tenant_id)
         )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def _dispatch_background(
         self,

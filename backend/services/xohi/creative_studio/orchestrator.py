@@ -101,6 +101,7 @@ class ContentOrchestrator:
         self.management = ManagementHandler(self)
         
         logger.info("🔥 [Content Factory] Neural Prompt Orchestration (NPO) V2.2 ACTIVE — The Vault is locked.")
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def resume_all(self):
         """R104: Self-Healing Resume logic. R1.5: Zero-Hydration — only select needed columns."""
@@ -113,7 +114,9 @@ class ContentOrchestrator:
             result = await session.execute(stmt)
             rows = result.all()
             for row in rows:
-                asyncio.create_task(self.engine.trigger_step(row.id, force_step=row.current_step))
+                task = asyncio.create_task(self.engine.trigger_step(row.id, force_step=row.current_step))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
 
     # --- Delegated API Surface ---
 

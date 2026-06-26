@@ -33,6 +33,7 @@ class MediaCompressor:
         # Phase 76: Enforce serial processing for heavy media tasks
         self.semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
         self.analyst = MediaAnalyst()
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: Optional[MediaRegistryRepository] = None, **kwargs: object) -> AgentResponse:
         """Entry point for standard agentic flow."""
@@ -140,9 +141,10 @@ class MediaCompressor:
                     )
                     await media_repo.add(registry_entry)
 
-                    # --- AI AUTO-TAGGING & VISUAL INTELLIGENCE (Giai đoạn 5) ---
                     # Chạy phân tích background để không block quá trình localization chính
-                    asyncio.create_task(self.analyst.process_registry_entry(registry_entry.id))
+                    task = asyncio.create_task(self.analyst.process_registry_entry(registry_entry.id))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
 
                 return local_path
             finally:

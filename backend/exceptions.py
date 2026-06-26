@@ -5,6 +5,9 @@ from backend.utils.uid import new_short_id
 
 logger = logging.getLogger("api-gateway")
 
+import asyncio
+_background_tasks: set[asyncio.Task[object]] = set()
+
 def global_exception_handler(request: Request, exc: Exception) -> Response:
     """
     Catches ALL unhandled exceptions and returns a sanitized JSON response.
@@ -67,7 +70,9 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
         )
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(telegram_service.send_alert(telegram_msg))
+            task = loop.create_task(telegram_service.send_alert(telegram_msg))
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
         except RuntimeError:
             asyncio.run(telegram_service.send_alert(telegram_msg))
     except Exception as telegram_err:

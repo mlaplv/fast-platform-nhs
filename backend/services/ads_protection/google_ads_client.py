@@ -28,6 +28,7 @@ class GoogleAdsClient:
         self._OAUTH_CLIENT_ID = os.environ.get("GOOGLE_ADS_OAUTH_CLIENT_ID", "").strip()
         self._OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "").strip()
         self._REFRESH_TOKEN = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN", "").strip()
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     def get_last_mutate_error(self) -> Optional[str]:
         """Lấy chi tiết lỗi từ API mutate gần nhất trong context hiện tại."""

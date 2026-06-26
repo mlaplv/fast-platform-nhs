@@ -78,13 +78,18 @@ class ActionHandler:
         c.current_step += 1; c.status = "PROCESSING"; await campaign_repo.update(c)
         if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
         await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "user_id": c.user_id, "step": c.current_step, "message": f"✅ Phase {step} Done.", "status": "PROCESSING", "timestamp": datetime.now(timezone.utc).isoformat()})
-        if c.current_step <= 6: asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=c.current_step))
+        if c.current_step <= 6:
+            task = asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=c.current_step))
+            self.orchestrator._background_tasks.add(task)
+            task.add_done_callback(self.orchestrator._background_tasks.discard)
         return GenericResponse(status="success", message=f"Bắt đầu bước {c.current_step}...", data={"campaign_id": campaign_id, "next_step": c.current_step})
 
     async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         # Phase 82.50: Zero-Blocking Trigger. Let the engine handle cancellation and status flip.
         # This prevents deadlocks when the background task holds a row lock.
-        asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id))
+        task = asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id))
+        self.orchestrator._background_tasks.add(task)
+        task.add_done_callback(self.orchestrator._background_tasks.discard)
         return GenericResponse(status="success", message="Yêu cầu chạy lại đã được gửi.")
 
     async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
