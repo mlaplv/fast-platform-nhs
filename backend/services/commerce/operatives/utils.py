@@ -68,7 +68,7 @@ class SupportAgentDeps(BaseModel):
 from backend.services.xohi.prompts import composer
 
 _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
-    "gemini-2.5-flash",  # explicitly specify default engine matching stack
+    os.environ["AI_PRIMARY_MODEL"],
     output_type=AgenticSupportResponse,
     retries=1
 )
@@ -83,7 +83,7 @@ class FastIntentDeps(BaseModel):
     product_name: Optional[str] = None
 
 _fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
-    "gemini-2.5-flash",
+    os.environ["AI_PRIMARY_MODEL"],
     output_type=FastIntentResponse
 )
 

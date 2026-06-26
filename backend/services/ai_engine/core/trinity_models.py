@@ -20,7 +20,7 @@ HARD_BLACKLIST = [
     "exp", "-001", "-002", 
     "flash-latest", "lite-latest", "gemini-1.5",
     "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash",
-    "gemini-2.0-flash-lite"
+    "gemini-2.0-flash-lite", "gemini-3.1-flash-lite"
 ]
 
 DEFAULT_AI_CONFIG = {
@@ -28,7 +28,7 @@ DEFAULT_AI_CONFIG = {
         "fast": ["flash", "8b", "lite"],
         "brain": ["pro", "ultra", "brain"]
     },
-    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002"],
+    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002", "gemini-3.1-flash-lite"],
     "whitelist": [],  # Elite V2.2: Dynamic Fusion whitelist overrides for HARD_BLACKLIST
     "lockdown": ["early-access", "alpha", "customtools"],
     "penalties": {
@@ -91,15 +91,14 @@ class TrinityModels:
             # Fallback: Get ANY healthy key just for discovery purposes
             logger.debug(f"[TrinityModels] Specific key discovery failed: {e}. Trying fallback model.")
             try:
-                # Elite V2.2: Use 2.0 Flash for discovery as it has the widest quota
-                key = await self.rotator.get_key(model_name="gemini-2.0-flash")
+                key = await self.rotator.get_key(model_name=self.fallback_model)
             except Exception as e_inner:
                 logger.warning(f"[TrinityModels] Full key discovery failed: {e_inner}")
         
         if not key:
-            # Elite V2.2: Emergency fallback to 2.0-flash-lite for discovery
+            # Emergency fallback: try any available key without model constraint
             try:
-                key = await self.rotator.get_key(model_name="gemini-2.0-flash-lite")
+                key = await self.rotator.get_key(model_name=self.fallback_model)
             except:
                 logger.warning("[TrinityModels] No keys available for discovery. AI services may be degraded.")
                 return []
@@ -152,14 +151,13 @@ class TrinityModels:
 
                         models.append(short)
                     
-                    # Elite V2.2: Hard-inject CNS models if missing from Google API list
-                    cns_models = [self.default_model, self.fallback_model, "gemini-3.5-flash", "gemini-3.1-flash-lite"]
-                    for cns in cns_models:
+                    # Elite V2.2: Hard-inject env/DB models if missing from Google API list
+                    # NO hardcoded model names — only use dynamic config from .env / DB VoiceProfile
+                    for cns in dict.fromkeys([self.default_model, self.fallback_model]):
                         if cns not in [m.get("name", "").replace("models/", "") for m in all_models]:
                             if any(hbl in cns for hbl in HARD_BLACKLIST): continue
                             if cns not in models:
                                 models.append(cns)
-                            # Ensure we have some default metadata
                             await self.rotator.save_model_metadata(cns, {
                                 "inputTokenLimit": 1048576,
                                 "outputTokenLimit": 8192,
@@ -199,11 +197,8 @@ class TrinityModels:
         if "-flash" in m: score += 100
         if "-lite" in m: score -= 200
         
-        # Elite V2.2: Free Tier Prioritization (Sếp's Order - CNS V89.5)
-        # Ưu tiên các model có Quota lớn hoặc là 'Điểm ngọt' trước để tiết kiệm Pro Quota.
-        if "gemini-2.0-flash" in m: score += 7000       # "Bao la" nhất (2026 Rank 1)
-        elif "gemini-2.0-pro" in m: score += 6000      # Mạnh nhất (Rank 2)
-        elif "gemini-2.0-flash-lite" in m: score += 5000 # Tiết kiệm (Rank 3)
+        # NOTE: Model preference is driven by version patterns above and DB/env config.
+        # No hardcoded model name bonuses — all models compete on their version/tier merits.
         
         # 2. Model Grade (Brain vs Fast)
         if "pro" in m: score += 200
@@ -313,9 +308,9 @@ class TrinityModels:
             if not await self.rotator.is_model_poisoned(m):
                 healthy.append(m)
         
-        # Fail-safe: ensure we have AT LEAST the defaults (Force Hardcoded Stable)
+        # Fail-safe: ensure we have AT LEAST the env/DB defaults
         if not healthy:
-            for m in [self.default_model, self.fallback_model, "gemini-3.5-flash", "gemini-3.1-flash-lite"]:
+            for m in dict.fromkeys([self.default_model, self.fallback_model]):
                 if not await self.rotator.is_model_poisoned(m) and not self.is_blacklisted(m):
                     healthy.append(m)
 

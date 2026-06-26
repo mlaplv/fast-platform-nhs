@@ -172,6 +172,7 @@
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing} {isRewriting}
         {runNeuralRewrite}
         bind:userPlanNote={userPlanNote}
+        isCopyrightLoading={isCopyrightLoading}
       />
     {:else}
       <button 
@@ -199,6 +200,7 @@
         {seoResult} {runSeoAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
+        isSeoLoading={isSeoLoading}
       />
     {:else}
       <button 
@@ -226,6 +228,7 @@
         {aiReadyResult} {runAiAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
+        isAiLoading={isAiLoading}
       />
     {:else}
       <button 

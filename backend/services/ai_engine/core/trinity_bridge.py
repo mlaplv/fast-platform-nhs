@@ -37,8 +37,8 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-3.5-flash")
-        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-3.1-flash-lite")
+        self.primary_model: str = os.environ["AI_PRIMARY_MODEL"]
+        self.fallback_model: str = os.environ["AI_FALLBACK_MODEL"]
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
         self.db_waterfall: list[str] = []
@@ -81,7 +81,7 @@ class TrinityBridge:
         from backend.constants.tenants import APP_DOMAIN
         
         # Elite V2.2: Dynamic resolution to strictly avoid rule R00 hardcoding
-        super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@micsmo.com")
+        super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@osmo.vn")
         
         maker = alchemy_config.create_session_maker()
         try:

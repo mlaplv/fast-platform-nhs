@@ -20,6 +20,14 @@ import type {
     ClinicalDataTable  // CNS V93.0
 } from "$lib/state/types";
 
+function computeSimpleHash(str: string): string {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash * 33) ^ str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(36);
+}
+
 export function createAnalysisController(config: {
     campaign_id?: string | null | (() => string | null | undefined);
     contentType?: string | (() => string);
@@ -68,13 +76,13 @@ export function createAnalysisController(config: {
         const data = nanobot.currentData as CampaignData;
         const campaignId = resolve(config.campaign_id);
         const msg = data?.progress_msg ?? '';
-        
+
         // Ad-hoc progress routing: If no campaignId, we listen for 'adhoc' signals
         const isMatch = campaignId ? (data?.campaign_id === campaignId || data?.id === campaignId) : (data?.campaign_id === 'adhoc');
         if (!data || !isMatch) return;
 
         // Auto-close loading state if campaign reaches terminal status (Sync with HUD)
-        const isTerminal = campaignId 
+        const isTerminal = campaignId
             ? (data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'ERROR')
             : (data.status === 'SUCCESS' || data.status === 'ERROR'); // Adhoc signals
 
@@ -82,22 +90,22 @@ export function createAnalysisController(config: {
             untrack(() => {
                 const isSuccess = data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'SUCCESS';
                 const isError = data.status === 'ERROR';
-                
+
                 // [CNS V92.2] Worker-Result Auto-Fetch: Khi worker xong, pull kết quả mới từ DB cache
                 // (skipSave=true vì worker đã lưu sẵn, force=false để lấy từ cache không tốn thêm AI token)
                 if (isSuccess) {
                     const wasLoadingCopyright = isCopyrightLoading;
-                    const wasLoadingSeo       = isSeoLoading;
-                    const wasLoadingAi        = isAiLoading;
+                    const wasLoadingSeo = isSeoLoading;
+                    const wasLoadingAi = isAiLoading;
                     if (wasLoadingCopyright) {
                         addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả mới từ Neural Vault...");
-                        runCopyrightCheck(false, true).catch(() => {});
+                        runCopyrightCheck(false, true).catch(() => { });
                     } else if (wasLoadingSeo) {
                         addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả SEO mới...");
-                        runSeoAnalysis(false, true).catch(() => {});
+                        runSeoAnalysis(false, true).catch(() => { });
                     } else if (wasLoadingAi) {
                         addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả AI mới...");
-                        runAiAnalysis(false, true).catch(() => {});
+                        runAiAnalysis(false, true).catch(() => { });
                     }
                 }
 
@@ -134,11 +142,11 @@ export function createAnalysisController(config: {
                 // CNS V90.5: Internal log helper to prevent duplicate messages and maintain order
                 const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 const fullMsg = `[${timestamp}] ${msg}`;
-                
+
                 if (!bulkFixLogs.some(l => l.includes(msg))) {
                     bulkFixLogs = [...bulkFixLogs, fullMsg];
                 }
-                
+
                 // Always update status to reflect current step, ensuring HUD doesn't feel 'stuck'
                 bulkFixStatus = msg;
                 if (typeof data.step === 'number') {
@@ -162,7 +170,7 @@ export function createAnalysisController(config: {
     let copyrightScore = $derived(copyrightResult ? Math.round(copyrightResult.uniqueness_score * 100) : null);
     let seoScore = $derived(seoResult ? seoResult.total_score : null);
     let aiScore = $derived(aiReadyResult ? aiReadyResult.geo_score : null);
-    
+
     // CNS V91.0: Professional Hierarchical Locks (Elite V2.2)
     let seoLocked = $derived(copyrightScore === null || copyrightScore < 60);
     let aiLocked = $derived(seoScore === null || seoScore < 60);
@@ -181,10 +189,10 @@ export function createAnalysisController(config: {
 
         return source.map((s: AnalysisAnnotation) => {
             const annotationType = s.type || (
-                tab === 'seo' ? 'seo-info' : 
-                tab === 'ai' ? 'geo-info' : 
-                tab === 'enrich' ? 'enrich' : 
-                'copyright'
+                tab === 'seo' ? 'seo-info' :
+                    tab === 'ai' ? 'geo-info' :
+                        tab === 'enrich' ? 'enrich' :
+                            'copyright'
             );
             return {
                 text: s.text || '',
@@ -195,19 +203,21 @@ export function createAnalysisController(config: {
             };
         });
     });
-    
+
     // R110: Sync results back to parent for persistence (Product/Adhoc mode)
     $effect(() => {
         if (!config.onUpdate) return;
         // Trigger on any result change
         // CNS V87.5: Trigger reactivity for persistent sync
         const _trigger = [copyrightResult, seoResult, aiReadyResult, boosterAnnotations];
-        
+
         untrack(() => {
             const cache: AnalysisCache = { ...resolve(config.analysis_cache) };
             const metrics: CampaignMetrics = { ...resolve(config.analysis_metrics) };
             const now = new Date().toISOString();
-            const contentHash = 'adhoc';
+            const content = (config.getContent ?? config.getEditedDraft)();
+            const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
+            const contentHash = computeSimpleHash(cleanContent);
 
             if (copyrightResult) {
                 cache.copyright = { hash: contentHash, at: now, data: $state.snapshot(copyrightResult) };
@@ -224,7 +234,7 @@ export function createAnalysisController(config: {
             if (boosterAnnotations && boosterAnnotations.length > 0) {
                 cache.enrich = { hash: contentHash, at: now, data: $state.snapshot(boosterAnnotations) };
             }
-            
+
             config.onUpdate?.(cache, metrics);
         });
     });
@@ -249,10 +259,10 @@ export function createAnalysisController(config: {
             const score = category === 'copyright'
                 ? (dataObj.uniqueness_score as number || 0)
                 : category === 'seo'
-                ? (dataObj.total_score as number || 0)
-                : category === 'ai_inspect'
-                ? (dataObj.geo_score as number || 0)
-                : 0;
+                    ? (dataObj.total_score as number || 0)
+                    : category === 'ai_inspect'
+                        ? (dataObj.geo_score as number || 0)
+                        : 0;
 
             const reportKey = category as 'copyright' | 'seo' | 'ai_inspect' | 'enrich' | 'rewrite';
             await xohiActions.batchSave(
@@ -286,7 +296,7 @@ export function createAnalysisController(config: {
             }
             return 'success';
         }
-        
+
         // Handle Error status
         const errorMsg = (res as unknown as Record<string, unknown>)?.message || "Lỗi phản hồi từ Neural Engine";
         logger.error(`[Neural Engine] ${category} Error:`, res);
@@ -304,12 +314,21 @@ export function createAnalysisController(config: {
     }
 
     async function runCopyrightCheck(force = false, skipSave = false) {
-        if (isCopyrightLoading) return;
-        
+        if (isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing) return;
+
         const content = (config.getContent ?? config.getEditedDraft)();
         const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
         if (!cleanContent) {
             nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
+        const cache = resolve(config.analysis_cache);
+        const currentHash = computeSimpleHash(cleanContent);
+        if (!force && cache?.copyright?.hash === currentHash && cache?.copyright?.data) {
+            copyrightResult = cache.copyright.data;
+            activeTab = 'copyright';
+            nanobot.showToast("Nội dung chưa thay đổi. Báo cáo bản quyền được giữ nguyên.", "info");
             return;
         }
 
@@ -326,10 +345,11 @@ export function createAnalysisController(config: {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/copyright?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/copyright?force=${force}`;
-            const body = isAdhoc ? { 
+            const body = isAdhoc ? {
                 content: (config.getContent ?? config.getEditedDraft)(),
                 topic: resolve(config.topic) || '',
-                content_type: resolve(config.contentType)
+                content_type: resolve(config.contentType),
+                force: force
             } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
             status = await handleApiResponse<CopyrightResult>(res, (v) => { copyrightResult = v; }, 'copyright');
@@ -354,7 +374,7 @@ export function createAnalysisController(config: {
     }
 
     async function runSeoAnalysis(force = false, skipSave = false) {
-        if (isSeoLoading) return;
+        if (isSeoLoading || isCopyrightLoading || isAiLoading || isBulkFixing) return;
         if (seoLocked) {
             nanobot.showToast(`[LOCK] Cấp độ tác chiến chưa đạt: Cần Uniqueness > 60% để mở khóa SEO Scan. (Hiện tại: ${copyrightScore ?? 0}%)`, "warning");
             return;
@@ -364,6 +384,15 @@ export function createAnalysisController(config: {
         const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
         if (!cleanContent) {
             nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
+        const cache = resolve(config.analysis_cache);
+        const currentHash = computeSimpleHash(cleanContent);
+        if (!force && cache?.seo?.hash === currentHash && cache?.seo?.data) {
+            seoResult = cache.seo.data;
+            activeTab = 'seo';
+            nanobot.showToast("Nội dung chưa thay đổi. Báo cáo SEO được giữ nguyên.", "info");
             return;
         }
 
@@ -380,11 +409,12 @@ export function createAnalysisController(config: {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/seo?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/seo?force=${force}`;
-            const body = isAdhoc ? { 
-                content: (config.getContent ?? config.getEditedDraft)(), 
+            const body = isAdhoc ? {
+                content: (config.getContent ?? config.getEditedDraft)(),
                 topic: resolve(config.topic) || '',
                 content_type: resolve(config.contentType),
-                analysis_cache: $state.snapshot(resolve(config.analysis_cache))
+                analysis_cache: $state.snapshot(resolve(config.analysis_cache)),
+                force: force
             } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             status = await handleApiResponse<SEOResult>(res, (v) => { seoResult = v; }, 'seo');
@@ -409,7 +439,7 @@ export function createAnalysisController(config: {
     }
 
     async function runAiAnalysis(force = false, skipSave = false) {
-        if (isAiLoading) return;
+        if (isAiLoading || isCopyrightLoading || isSeoLoading || isBulkFixing) return;
         if (aiLocked) {
             nanobot.showToast(`[LOCK] Tín hiệu SEO chưa đủ mạnh: Cần SEO Score > 60 để kích hoạt AI Mod. (Hiện tại: ${seoScore ?? 0})`, "warning");
             return;
@@ -419,6 +449,15 @@ export function createAnalysisController(config: {
         const cleanContent = content ? content.replace(/&nbsp;/g, '').replace(/<[^>]*>/g, '').trim() : '';
         if (!cleanContent) {
             nanobot.showToast("Chưa có nội dung để phân tích. Sếp vui lòng nhập nội dung trước nhé!", "warning");
+            return;
+        }
+
+        const cache = resolve(config.analysis_cache);
+        const currentHash = computeSimpleHash(cleanContent);
+        if (!force && cache?.ai_inspect?.hash === currentHash && cache?.ai_inspect?.data) {
+            aiReadyResult = cache.ai_inspect.data;
+            activeTab = 'ai';
+            nanobot.showToast("Nội dung chưa thay đổi. Kết quả Viral Edge được giữ nguyên.", "info");
             return;
         }
 
@@ -435,13 +474,14 @@ export function createAnalysisController(config: {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/ai-inspect?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/ai-inspect?force=${force}`;
-            const body = isAdhoc ? { 
+            const body = isAdhoc ? {
                 content: (config.getContent ?? config.getEditedDraft)(),
                 topic: resolve(config.topic) || '',
-                content_type: resolve(config.contentType)
+                content_type: resolve(config.contentType),
+                force: force
             } : undefined;
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
-            status = await handleApiResponse<AIInspectResult>(res, (v) => { 
+            status = await handleApiResponse<AIInspectResult>(res, (v) => {
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter(a => a.type === 'fixed-area');
                 v.ai_annotations = [...oldFixed, ...(v.ai_annotations || [])];
                 aiReadyResult = v;
@@ -479,7 +519,7 @@ export function createAnalysisController(config: {
             // Prefer rawContent (from editor) over editBuffer to avoid stale state
             const content = rawContent ?? (config.getContent ?? config.getEditedDraft)?.() ?? '';
             const cleaned = await xohiActions.runClean(content, options);
-            
+
             if (cleaned && cleaned !== content) {
                 // Always sync editBuffer/content for persistence — TiptapEditor applies to editor separately
                 if (resolve(config.isEditing)) config.setEditedDraft(cleaned);
@@ -500,7 +540,7 @@ export function createAnalysisController(config: {
             return null;
         } finally {
             _bulkFixRunning = false;
-            setTimeout(() => { 
+            setTimeout(() => {
                 if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
                     isBulkFixing = false;
                     bulkFixStatus = "";
@@ -532,11 +572,11 @@ export function createAnalysisController(config: {
                     // CNS V88.2: Surgical apply với Neural Stitching (HTML-Aware)
                     const currentContent = (config.getContent ?? config.getEditedDraft)?.() ?? '';
                     const updated = refinementStitch(currentContent, target, newText);
-                    
+
                     if (updated !== currentContent) {
                         if (resolve(config.isEditing)) config.setEditedDraft(updated);
                         else config.setDraftContent(updated);
-                        
+
                         // [CRITICAL] Đồng bộ ngay lên DB để tránh F5 bị mất
                         if (cid && cid !== 'adhoc') {
                             apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: updated }).catch(e => {
@@ -551,7 +591,7 @@ export function createAnalysisController(config: {
                         const na = robustNormalize(a.text || '');
                         const nm = (a.message || a.reason || '').toLowerCase().trim();
                         const targetM = (msg || '').toLowerCase().trim();
-                        
+
                         const textMatch = (na.includes(nt) || nt.includes(na)) && nt.length > 5;
                         const msgMatch = nm.includes(targetM) || targetM.includes(nm);
                         const typeMatch = a.type?.split('-')[0] === type?.split('-')[0]; // Allow seo-warning to match seo
@@ -576,9 +616,9 @@ export function createAnalysisController(config: {
                     if (boosterAnnotations.length > 0) {
                         boosterAnnotations = boosterAnnotations.map(a => {
                             if (match(a)) {
-                                return { 
-                                    ...a, 
-                                    is_applied: true, 
+                                return {
+                                    ...a,
+                                    is_applied: true,
                                     // CNS V96.5: Surgical Highlight — only highlight the NEW part
                                     text: extractBoostedText(a.replacement_string || a.text)
                                 };
@@ -607,7 +647,11 @@ export function createAnalysisController(config: {
 
     let _bulkFixRunning = false; // CNS V88.3: Dedicated guard — tách khỏi isBulkFixing (HUD indicator)
     async function runBulkFix() {
-        if (_bulkFixRunning || !activeTab) return;
+        if (_bulkFixRunning) return;
+        if (!activeTab) {
+            nanobot.showToast("Vui lòng chọn tab phân tích trước khi phẫu thuật sếp ơi", "warning");
+            return;
+        }
         const cid = resolve(config.campaign_id);
         const category = activeTab === 'copyright' ? 'copyright' : activeTab === 'seo' ? 'seo' : 'ai';
         const annotations = ((activeTab === 'copyright' ? copyrightResult?.annotations : activeTab === 'seo' ? seoResult?.seo_annotations : aiReadyResult?.ai_annotations) || []).filter(a => a.type !== 'fixed-area');
@@ -625,23 +669,23 @@ export function createAnalysisController(config: {
         logger.log(`[Neural Engine] Starting Bulk Fix for category: ${category}, Ad-hoc: ${isAdhoc}`);
 
         try {
-            const payload = isAdhoc 
-                ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic), category, annotations } 
+            const payload = isAdhoc
+                ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic), category, annotations }
                 : { category, annotations };
-            
+
             const res = await xohiActions.runBulkFix(cid || null, isAdhoc, payload);
-            
+
             if (res?.status === 'success' && res.data?.new_content) {
                 logger.log("[Neural Engine] Bulk Fix successful, applying patches...");
                 if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
                 const newHtml = res.data.new_content;
                 const replacements = res.data.replacements || [];
-                
+
                 if (!isAdhoc && cid) await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: newHtml });
-                
+
                 if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
-                
+
                 await tick();
                 const fixed: AnalysisAnnotation[] = [];
                 const remaining: AnalysisAnnotation[] = [];
@@ -655,7 +699,7 @@ export function createAnalysisController(config: {
                     // Update annotations temporarily to show "Đã sửa" status
                     copyrightResult = { ...copyrightResult!, annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('copyright', $state.snapshot(copyrightResult));
-                    
+
                     // CNS V96: Auto-trigger Copyright Check to update the score and verdict
                     bulkFixLogs = [...bulkFixLogs, "⏳ Đang chạy lại kiểm định bản quyền để cập nhật báo cáo..."];
                     setTimeout(() => {
@@ -691,10 +735,10 @@ export function createAnalysisController(config: {
         } finally {
             _bulkFixRunning = false; // CNS V88.3: Mở khóa guard
             // CNS V87.4: 'Treo' (Persist) the HUD for 4s after completion so user can read logs
-            setTimeout(() => { 
+            setTimeout(() => {
                 isBulkFixing = false;
                 if (bulkFixStatus === "Hoàn tất ✅" || bulkFixStatus === "Thất bại ❌") {
-                    bulkFixStatus = ""; 
+                    bulkFixStatus = "";
                 }
             }, 4000);
         }
@@ -725,7 +769,7 @@ export function createAnalysisController(config: {
                 const res = await xohiActions.runEnrich(cid);
                 if (res?.status === 'success' && res.data?.new_content) {
                     if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
-                    
+
                     // CNS V96.5: Strip surgical tags from the final content before setting to editor
                     const cleanHtml = stripBoostTags(res.data.new_content);
                     config.setEditedDraft(cleanHtml);
@@ -776,10 +820,10 @@ export function createAnalysisController(config: {
                     } else {
                         dataTables = [];
                     }
-                    
+
                     // CNS V96.0: Stop auto-apply. Just store patches for user review ("Duyệt nới thêm vào")
                     const newAnnotations: AnalysisAnnotation[] = [];
-                    
+
                     for (const patch of res.data.patches) {
                         // Always add to annotations so user can see what AI suggested, 
                         // but only highlight if it still exists in content
@@ -796,7 +840,7 @@ export function createAnalysisController(config: {
                     if (newAnnotations.length > 0) {
                         boosterAnnotations = newAnnotations;
                         activeTab = 'enrich';
-                        
+
                         bulkFixStatus = "Hoàn tất ✅";
                         await saveAnalysisEvidence('enrich', boosterAnnotations);
                         nanobot.showToast(`Phát hiện ${newAnnotations.length} cơ hội bổ sung dữ liệu`, 'success');
@@ -819,10 +863,10 @@ export function createAnalysisController(config: {
             nanobot.showToast(`Lỗi Booster: ${errorObj.message || String(e)}`, 'error');
         } finally {
             isBoosting = false;
-            setTimeout(() => { 
-                isBulkFixing = false; 
+            setTimeout(() => {
+                isBulkFixing = false;
                 if (bulkFixStatus === "Hoàn tất ✅") {
-                    bulkFixStatus = ""; 
+                    bulkFixStatus = "";
                 }
             }, 3500);
         }
@@ -838,7 +882,7 @@ export function createAnalysisController(config: {
 
         isBulkFixing = true;
         bulkFixStatus = "Đang phẫu thuật tổng thể...";
-        bulkFixLogs = [...bulkFixLogs, `🚀 Khởi động quy trình duyệt hàng loạt (${pending.length} điểm)...` ];
+        bulkFixLogs = [...bulkFixLogs, `🚀 Khởi động quy trình duyệt hàng loạt (${pending.length} điểm)...`];
 
         try {
             let content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
@@ -852,12 +896,12 @@ export function createAnalysisController(config: {
 
                 const target = ann.search_string || ann.text;
                 const replacement = ann.replacement_string || '';
-                
+
                 if (content.includes(target) || robustNormalize(content).includes(robustNormalize(target))) {
                     content = refinementStitch(content, target, replacement);
                     ann.is_applied = true;
                     // CNS V96.5: Surgical Highlight — only highlight the NEW part
-                    ann.text = extractBoostedText(replacement); 
+                    ann.text = extractBoostedText(replacement);
                     appliedCount++;
                     addTerminalLog(`✅ Đã phẫu thuật: ${ann.message?.slice(0, 30)}...`);
                 }
@@ -869,7 +913,7 @@ export function createAnalysisController(config: {
 
                 boosterAnnotations = updatedAnnotations;
                 await saveAnalysisEvidence('enrich', boosterAnnotations);
-                
+
                 // Persistence
                 const cid = resolve(config.campaign_id);
                 if (cid && cid !== 'adhoc') {
@@ -891,7 +935,7 @@ export function createAnalysisController(config: {
 
     async function runNeuralRewrite(overrideContent?: string) {
         if (isBulkFixing || !copyrightResult) return;
-        
+
         const cid = resolve(config.campaign_id);
         const topic = resolve(config.topic) ?? '';
         const content = overrideContent ?? (config.getContent ?? config.getEditedDraft)?.() ?? '';
@@ -908,9 +952,9 @@ export function createAnalysisController(config: {
         addTerminalLog("🖋️ Đang tái cấu trúc nội dung sáng tạo...");
 
         try {
-            const payload = { 
-                content, 
-                topic, 
+            const payload = {
+                content,
+                topic,
                 feedback,
                 content_type: contentType,
                 metadata,
@@ -920,11 +964,11 @@ export function createAnalysisController(config: {
 
             if (res?.status === 'success' && res.data?.new_content) {
                 const newHtml = res.data.new_content;
-                
+
                 if (!isAdhoc && cid) {
                     await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: newHtml });
                 }
-                
+
                 if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
@@ -933,7 +977,7 @@ export function createAnalysisController(config: {
 
                 // [CNS V91.2] Save rewrite evidence so dashboard knows this content was AI-rewritten
                 await saveAnalysisEvidence('rewrite', { rewritten_at: new Date().toISOString(), topic });
-                
+
                 // CNS V91.0: Invalidate stale results after rewrite
                 copyrightResult = null;
                 seoResult = null;
@@ -952,11 +996,11 @@ export function createAnalysisController(config: {
             bulkFixStatus = "Thất bại ❌";
             nanobot.showToast(`Lỗi Rewrite: ${msg}`, 'error');
         } finally {
-            setTimeout(() => { 
+            setTimeout(() => {
                 isRewriting = false;
-                isBulkFixing = false; 
+                isBulkFixing = false;
                 if (bulkFixStatus === "Hoàn tất ✅" || bulkFixStatus === "Thất bại ❌") {
-                    bulkFixStatus = ""; 
+                    bulkFixStatus = "";
                 }
             }, 4000);
         }
@@ -968,7 +1012,7 @@ export function createAnalysisController(config: {
     $effect(() => {
         const cache = resolve(config.analysis_cache);
         const dbReport = (resolve(config.campaign_id) ? resolve(config.analysis_report) : null) as Record<string, Record<string, unknown>> | null;
-        
+
         untrack(() => {
             // Guard: Nếu đã hydrate rồi hoặc đang có analysis chạy, KHÔNG đè
             if (_hydrated) return;
@@ -1021,18 +1065,18 @@ export function createAnalysisController(config: {
     $effect(() => {
         if (bulkFixLogs.length > 0) {
             const lastLog = bulkFixLogs[bulkFixLogs.length - 1];
-            const isDone = lastLog.includes("ĐÃ XỬ LÝ XONG") || 
-                           lastLog.includes("ĐANG ĐỒNG BỘ GIAO DIỆN") || 
-                           lastLog.includes("Đã dọn dẹp xong") ||
-                           lastLog.includes("hoàn tất!") ||
-                           lastLog.includes("sẵn sàng.");
+            const isDone = lastLog.includes("ĐÃ XỬ LÝ XONG") ||
+                lastLog.includes("ĐANG ĐỒNG BỘ GIAO DIỆN") ||
+                lastLog.includes("Đã dọn dẹp xong") ||
+                lastLog.includes("hoàn tất!") ||
+                lastLog.includes("sẵn sàng.");
 
             if (isDone) {
                 untrack(() => {
                     if (isCopyrightLoading) isCopyrightLoading = false;
                     if (isSeoLoading) isSeoLoading = false;
                     if (isAiLoading) isAiLoading = false;
-                    
+
                     if (isBulkFixing) {
                         bulkFixStatus = "Hoàn tất ✅";
                         setTimeout(() => {

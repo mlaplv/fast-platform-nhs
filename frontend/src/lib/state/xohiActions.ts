@@ -51,6 +51,8 @@ export const xohiActions = {
     // CNS V87.0: SSE streaming auto-fix — dùng fetch + ReadableStream (hỗ trợ header auth)
     // onChunk: callback nhận từng text delta; onDone: callback nhận full text
     // Trả về AbortController để caller có thể cancel (CLAUDE.md: dispose resources)
+    // [FIX] V97.0: Thêm đầy đủ Authorization + x-tenant + x-device-fingerprint headers
+    // như apiClient.request() để tránh lỗi 401 silent trên production (Caddy gateway).
     streamAutoFix(
         content: string,
         targetSnippet: string,
@@ -63,17 +65,57 @@ export const xohiActions = {
         const controller = new AbortController();
         const url = `/api/v1/content/analyze/auto-fix-stream`;
 
+        // Helper: lấy token theo territory (đồng bộ với apiClient.getAuthToken)
+        function _getToken(): string | null {
+            if (typeof document === 'undefined') return null;
+            const getCk = (name: string) => {
+                const v = `; ${document.cookie}`;
+                const parts = v.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+                return null;
+            };
+            const isAdmin = typeof window !== 'undefined' && window.location.hostname.split('.')[0] === 'admin';
+            if (isAdmin) return getCk('admin_token') || sessionStorage.getItem('admin_token') || null;
+            return getCk('access_token') || null;
+        }
+
+        // Helper: lấy tenant id
+        function _getTenant(): string {
+            if (typeof window === 'undefined') return 'osmo.vn';
+            const host = window.location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') return 'osmo.vn';
+            const parts = host.split('.');
+            const skip = new Set(['admin', 'api', 'www', 'portal']);
+            const relevant = parts.filter(p => !skip.has(p));
+            return relevant.length > 0 ? relevant.join('.') : 'osmo.vn';
+        }
+
+        // Helper: lấy device fingerprint
+        function _getFingerprint(): string {
+            if (typeof localStorage === 'undefined') return 'server-node';
+            let fp = localStorage.getItem('osmo:system:device_fingerprint');
+            if (!fp) {
+                fp = localStorage.getItem('xohi_device_fingerprint') ?? `fp_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
+                localStorage.setItem('osmo:system:device_fingerprint', fp);
+            }
+            return fp;
+        }
+
         (async () => {
             try {
+                const token = _getToken();
                 const res = await fetch(url, {
                     method: 'POST',
                     signal: controller.signal,
-                    headers: { 
+                    headers: {
                         'Accept': 'text/event-stream',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'x-tenant': _getTenant(),
+                        'x-device-fingerprint': _getFingerprint(),
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                     },
                     body: JSON.stringify({
-                        content: content, // Không slice nữa, POST cân được hết
+                        content: content,
                         target_snippet: targetSnippet,
                         error_message: errorMessage,
                         topic,

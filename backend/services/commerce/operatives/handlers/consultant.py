@@ -42,13 +42,13 @@ class ConsultantResponse(BaseModel):
 
 # Elite V2.2: Module-level Singleton Agents (GC & RAM Optimization)
 _consultant_agent: Agent[ConsultantDeps, ConsultantResponse] = Agent(
-    "gemini-2.5-flash",
+    os.environ["AI_PRIMARY_MODEL"],
     output_type=ConsultantResponse,
     deps_type=ConsultantDeps
 )
 
 _consultant_no_tool_agent: Agent[ConsultantDeps, ConsultantResponse] = Agent(
-    "gemini-2.5-flash",
+    os.environ["AI_PRIMARY_MODEL"],
     output_type=ConsultantResponse,
     deps_type=ConsultantDeps
 )

@@ -51,6 +51,8 @@
     isRewriting = false,
     runBulkFix = null,
     bulkFixLogs = [],
+    streamingText = '',
+    streamingTarget = null,
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -81,6 +83,8 @@
     isRewriting?: boolean;
     runBulkFix?: () => void;
     bulkFixLogs?: string[];
+    streamingText?: string;
+    streamingTarget?: string | null;
   } = $props();
 
   // Full screen state is now driven directly by the bindable fullScreen prop.
@@ -507,8 +511,8 @@
     
     // [CRITICAL] If editor is focused, it IS the master. 
     // Do NOT sync back from props to avoid scroll/cursor resets during active editing.
-    // EXCEPTION: If we are in 'isRewriting' mode, the AI is the master.
-    if (isFocused && !isRewriting) return;
+    // EXCEPTION: If we are in AI processing/refinement modes, the AI is the master.
+    if (isFocused && !isRewriting && !isBulkFixing && !streamingTarget) return;
 
     const normalizedContent = content || "<p></p>";
 
@@ -691,6 +695,8 @@
       bulkFixLogs={bulkFixLogs}
       onAutoLeach={runAutoLeach}
       isLeaching={isLeaching}
+      {streamingText}
+      {streamingTarget}
     />
   {/if}
 

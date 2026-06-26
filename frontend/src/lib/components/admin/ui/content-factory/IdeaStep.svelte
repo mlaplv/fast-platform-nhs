@@ -92,7 +92,12 @@
       // CNS V86.5: Recursive Flattening (Phase 102.3 Elite Hierarchy)
       if (res && res.data) {
         const flattened: {id: string, name: string, depth: number}[] = [];
-        const process = (cats: {id: string, name: string, children?: any[]}[], depth = 0) => {
+        interface CategoryInput {
+          id: string;
+          name: string;
+          children?: CategoryInput[];
+        }
+        const process = (cats: CategoryInput[], depth = 0) => {
           cats.forEach(c => {
             flattened.push({ id: c.id, name: c.name, depth });
             if (c.children && c.children.length > 0) {
@@ -100,7 +105,7 @@
             }
           });
         };
-        process(res.data);
+        process(res.data as CategoryInput[]);
         dbCategories = flattened;
       }
     } catch (e) {

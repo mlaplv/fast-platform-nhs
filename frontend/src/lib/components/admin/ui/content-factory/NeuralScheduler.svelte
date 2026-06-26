@@ -36,7 +36,7 @@
 
   const sch = $derived(config.scheduling as SchedulingConfig);
 
-  const frequencies = [
+  const frequencies: { id: SchedulingConfig['frequency']; label: string; icon: string }[] = [
     { id: 'once', label: 'Một lần', icon: '🎯' },
     { id: 'daily', label: 'Hàng ngày', icon: '🌅' },
     { id: 'weekly', label: 'Hàng tuần', icon: '📅' },
@@ -122,7 +122,7 @@
       <div class="p-1.5 rounded-2xl bg-black/40 border border-white/5 flex gap-1 shadow-inner">
         {#each frequencies as freq}
           <button
-            onclick={() => sch.frequency = freq.id as any}
+            onclick={() => sch.frequency = freq.id}
             class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-500 {sch.frequency === freq.id ? 'bg-white/10 text-white shadow-lg' : 'text-white/30 hover:text-white/60'}"
           >
             <span class="text-xs">{freq.icon}</span>

@@ -435,8 +435,7 @@ async def _model_health_sync_loop():
             
             # Extract key for probing
             try:
-                # Use gemini-2.0-flash to get key
-                key = await key_rotator.get_key(model_name="gemini-2.0-flash")
+                key = await key_rotator.get_key(model_name=trinity_bridge.primary_model)
             except Exception:
                 logger.warning("[ModelWatchdog] No valid keys available for testing models.")
                 await _aio.sleep(3600) # Thử lại sau 1 tiếng

@@ -232,7 +232,7 @@ DRAFT:
             
             # 🛡️ [SEO SCORE GUARD] Enforce monotonically non-decreasing score (>= previous score)
             # This protects the total score and signals from dropping during revisions
-            if campaign and hasattr(campaign, "gold_metadata") and campaign.gold_metadata:
+            if not force and campaign and hasattr(campaign, "gold_metadata") and campaign.gold_metadata:
                 gold = campaign.gold_metadata
                 if isinstance(gold, dict):
                     cache = gold.get("analysis_cache", {})

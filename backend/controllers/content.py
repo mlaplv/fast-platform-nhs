@@ -123,14 +123,14 @@ class ContentController(Controller):
             return GenericResponse(status="error", message=str(e))
 
     @post("/analyze/copyright")
-    async def analyze_copyright_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
-        return await content_factory.analyst.analyze_copyright(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
+    async def analyze_copyright_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
+        return await content_factory.analyst.analyze_copyright(None, None, force=force or data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
 
     @post("/analyze/seo")
-    async def analyze_seo_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
+    async def analyze_seo_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
         return await content_factory.analyst.analyze_seo(
             None, None,
-            force=data.force,
+            force=force or data.force,
             raw_content=data.content,
             raw_topic=data.topic,
             content_type=data.content_type,
@@ -138,8 +138,8 @@ class ContentController(Controller):
         )
 
     @post("/analyze/ai-inspect")
-    async def analyze_ai_inspect_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
-        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
+    async def analyze_ai_inspect_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
+        return await content_factory.analyst.analyze_ai_inspect(None, None, force=force or data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
 
     @post("/analyze/bulk-fix")
     async def analyze_bulk_fix_adhoc(self, data: BulkFixRequest) -> GenericResponse:

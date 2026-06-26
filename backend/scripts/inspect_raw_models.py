@@ -8,7 +8,7 @@ os.environ["REDIS_URL"] = "redis://127.0.0.1:6379/0"
 async def main():
     from backend.services.ai_engine.core.key_rotator import key_rotator
     await key_rotator.load_keys()
-    key = await key_rotator.get_key()
+    key = await key_rotator.get_key(model_name="gemini-2.5-flash")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
     async with httpx.AsyncClient() as client:

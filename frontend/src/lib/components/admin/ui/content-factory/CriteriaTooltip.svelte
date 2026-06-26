@@ -7,10 +7,9 @@
     type: 'copyright' | 'seo' | 'ai';
     score?: number | null;
     locked?: boolean;
-    seoResult?: any;
   }
 
-  let { type, score, locked, seoResult }: Props = $props();
+  let { type, score, locked }: Props = $props();
 </script>
 
 {#if type === 'copyright'}

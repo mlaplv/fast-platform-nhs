@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, List, Optional, Union
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 from backend.database.alchemy_config import alchemy_config
 from backend.database.models.system import UnifiedAgentTask
 
@@ -175,7 +175,6 @@ async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
                         await xohi_memory.client.set("system:notification_retention", json.dumps(setting.value))
             except Exception as e:
                 logger.warning(f"[Cleanup Notifications] Failed to read settings from Redis, falling back to DB/Defaults: {e}")
-                from sqlalchemy import select
                 stmt = select(SystemSetting).where(SystemSetting.key == "notification_retention")
                 setting = (await db.execute(stmt)).scalar_one_or_none()
                 if setting and isinstance(setting.value, dict):
@@ -199,7 +198,6 @@ async def cleanup_old_notifications(ctx: Dict[str, object]) -> None:
             await db.commit()
             
             # Step 2: Hard Delete (Purge soft-deleted notifications older than hard_cutoff in chunks to release locks)
-            from sqlalchemy import select
             total_hard_deleted = 0
             while True:
                 subq = (

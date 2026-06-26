@@ -46,7 +46,7 @@ class SmartKeyRotator(KeyMetricsMixin, KeyLoaderMixin):
             self._use_redis = True
         except Exception as e: logger.warning(f"[KeyRotator] Redis unavailable: {e}")
 
-    async def get_key(self, model_name: str = "gemini-2.0-flash", session_id: Optional[str] = None) -> str:
+    async def get_key(self, model_name: str, session_id: Optional[str] = None) -> str:
         """Model-Aware Key Selection with Weighted Random Choice (Pipeline Optimized)."""
         if not self.keys: return ""
         if not self._use_redis or not self.client: return self.get_next_key()

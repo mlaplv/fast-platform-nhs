@@ -197,9 +197,16 @@ class AnalystHandler:
                     yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
             clean_full = AiInspector().clean_ai_html(full_text)
             yield f"data: {json.dumps({'done': True, 'full': clean_full}, ensure_ascii=False)}\n\n"
+        except (GeneratorExit, asyncio.CancelledError):
+            # Client disconnected mid-stream or task was cancelled — exit silently
+            logger.info("[AnalystHandler] stream_auto_fix: client disconnected or cancelled")
+            return
         except Exception as exc:
             logger.error(f"[AnalystHandler] stream_auto_fix error: {exc}", exc_info=True)
-            yield f"data: {json.dumps({'error': str(exc)[:100]})}\n\n"
+            try:
+                yield f"data: {json.dumps({'error': str(exc)[:100]})}\n\n"
+            except (GeneratorExit, asyncio.CancelledError):
+                return
 
     async def neural_boost(
         self, content: str, topic: str = "", campaign_id: Optional[str] = None,
@@ -324,7 +331,8 @@ class AnalystHandler:
         if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
         
         try:
-            fix_req = BulkFixRequest(**data)
+            clean_data = {k: v for k, v in data.items() if k in ["category", "annotations"]}
+            fix_req = BulkFixRequest(**clean_data)
             if fix_req.category == "copyright":
                 op = PlagiarismCop()
             elif fix_req.category == "seo":

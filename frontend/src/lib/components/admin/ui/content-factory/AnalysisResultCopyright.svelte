@@ -15,9 +15,10 @@
     streamingText?: string;
     streamingTarget?: string | null;
     userPlanNote?: string;
+    isCopyrightLoading?: boolean;
   }
 
-  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, isRewriting = false, runNeuralRewrite, streamingText = '', streamingTarget = null, userPlanNote = $bindable() }: Props = $props();
+  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, isRewriting = false, runNeuralRewrite, streamingText = '', streamingTarget = null, userPlanNote = $bindable(), isCopyrightLoading = false }: Props = $props();
 
   $effect.pre(() => {
     if (userPlanNote === undefined) {
@@ -146,11 +147,16 @@
 
       <button 
         onclick={() => runCopyrightCheck(true)} 
-        class="mr-3 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
+        disabled={isCopyrightLoading || isBulkFixing || isRewriting || !!isFixing}
+        class="mr-3 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         title="Làm mới báo cáo trắc nghiệm bản quyền"
         aria-label="Làm mới báo cáo"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        {#if isCopyrightLoading}
+          <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+        {:else}
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        {/if}
       </button>
     </div>
 
@@ -292,7 +298,7 @@
               if (runNeuralRewrite) runNeuralRewrite();
             }, 50);
           }}
-          disabled={isBulkFixing || isRewriting}
+          disabled={isCopyrightLoading || isBulkFixing || isRewriting || !!isFixing}
           class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-[1px] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
         >
           <div class="relative z-10 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 py-2.5 rounded-[11px] transition-all group-hover:bg-transparent h-full">
@@ -318,7 +324,7 @@
         {#if runBulkFix && copyrightResult.annotations?.filter(a => a.type !== 'fixed-area').length > 0}
           <button 
             onclick={() => runBulkFix?.()}
-            disabled={isBulkFixing || isRewriting}
+            disabled={isCopyrightLoading || isBulkFixing || isRewriting || !!isFixing}
             class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 p-[1px] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] disabled:opacity-50"
           >
             <div class="relative z-10 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 py-2.5 rounded-[11px] transition-all group-hover:bg-emerald-500 group-hover:text-black h-full">
@@ -360,7 +366,7 @@
           <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: {annHex}15">
             <div class="flex items-start justify-between gap-2">
               <span class="text-[7px] font-black px-1 py-0.5 rounded " style="background: {annHex}20; color: {annHex}">{isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}</span>
-              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer hover:bg-white/5 active:scale-95" style="border-color: {annHex}40; color: {annHex}; background: {annHex}10">
+              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={isCopyrightLoading || isBulkFixing || isRewriting || !!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer hover:bg-white/5 active:scale-95" style="border-color: {annHex}40; color: {annHex}; background: {annHex}10">
                 {#if streamingTarget === ann.text}
                   <span class="text-[8px] text-white/80 font-mono leading-relaxed">{streamingText}<span class="inline-block w-1 h-2.5 bg-orange-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                 {:else if isFixing === ann.text}

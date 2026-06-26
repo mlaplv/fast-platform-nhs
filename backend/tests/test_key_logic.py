@@ -22,14 +22,14 @@ async def test_key_rotation_logic():
     key_rotator.index = 0
     
     # 3. Get first key
-    k1 = await key_rotator.get_key()
+    k1 = await key_rotator.get_key(model_name="gemini-2.5-flash")
     assert k1 in mock_keys
     
     # 4. Mock a failure for k1 and verify it gets blacklisted/cooldown
     await key_rotator.mark_unhealthy(k1, reason="auth_soft") 
     
     # 5. Get next key - should NOT be k1
-    k2 = await key_rotator.get_key()
+    k2 = await key_rotator.get_key(model_name="gemini-2.5-flash")
     assert k2 != k1
     assert k2 in mock_keys
     

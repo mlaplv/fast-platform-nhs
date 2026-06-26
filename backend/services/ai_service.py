@@ -213,8 +213,8 @@ class AIService:
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             for idx, key in enumerate(all_keys):
-                # We use gemini-1.5-flash for the ping as it's the most available
-                model = "gemini-1.5-flash"
+                # Use the configured primary model for the ping
+                model = trinity_bridge.primary_model
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                 
                 try:
