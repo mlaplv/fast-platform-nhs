@@ -215,12 +215,15 @@ class SeoController(Controller):
                 
                 tenant_id = current_tenant_id.get() or "default"
                 redis = await create_pool(get_redis_settings())
-                await redis.enqueue_job(
-                    "seo_contextual_link_job",
-                    article_id=data.entity_id,
-                    tenant_id=tenant_id,
-                    _queue_name="high",
-                )
+                try:
+                    await redis.enqueue_job(
+                        "seo_contextual_link_job",
+                        article_id=data.entity_id,
+                        tenant_id=tenant_id,
+                        _queue_name="high",
+                    )
+                finally:
+                    await redis.aclose()
                 logger.info(f"[SEO] Queued seo_contextual_link_job (high queue) for article:{data.entity_id} via manual trigger")
             except Exception as e:
                 logger.warning(f"[SEO] Failed to queue seo_contextual_link_job after manual match: {e}")
@@ -244,7 +247,10 @@ class SeoController(Controller):
         tenant_id = current_tenant_id.get() or "osmo.vn"
         try:
             redis_pool = await create_pool(get_redis_settings())
-            await redis_pool.enqueue_job("seo_bulk_match_job", tenant_id, _queue_name="high")
+            try:
+                await redis_pool.enqueue_job("seo_bulk_match_job", tenant_id, _queue_name="high")
+            finally:
+                await redis_pool.aclose()
             logger.info(f"🧬 [SeoController] Enqueued bulk matching background job for tenant {tenant_id}")
             return SuccessResponse(
                 message="Hệ thống đã kích hoạt chạy AI Matching hàng loạt trong nền. Tiến trình sẽ tự động hoàn tất trong vài phút.",
@@ -386,17 +392,20 @@ class SeoController(Controller):
         enqueued_count = 0
         try:
             redis_pool = await create_pool(get_redis_settings())
-            for art in articles:
-                if not art.content:
-                    continue
-                
-                await redis_pool.enqueue_job(
-                    "seo_contextual_link_job",
-                    article_id=art.id,
-                    tenant_id=tenant_id,
-                    _queue_name="high",
-                )
-                enqueued_count += 1
+            try:
+                for art in articles:
+                    if not art.content:
+                        continue
+                    
+                    await redis_pool.enqueue_job(
+                        "seo_contextual_link_job",
+                        article_id=art.id,
+                        tenant_id=tenant_id,
+                        _queue_name="high",
+                    )
+                    enqueued_count += 1
+            finally:
+                await redis_pool.aclose()
 
             logger.info(f"🧬 [SeoController] Enqueued bulk contextual link analysis for {enqueued_count} articles, tenant={tenant_id}")
             return SuccessResponse(
@@ -824,14 +833,17 @@ class SeoController(Controller):
         enqueued_count = 0
         try:
             redis_pool = await create_pool(get_redis_settings())
-            for art_id in article_ids:
-                await redis_pool.enqueue_job(
-                    "seo_contextual_link_job",
-                    article_id=art_id,
-                    tenant_id=tenant_id,
-                    _queue_name="high",
-                )
-                enqueued_count += 1
+            try:
+                for art_id in article_ids:
+                    await redis_pool.enqueue_job(
+                        "seo_contextual_link_job",
+                        article_id=art_id,
+                        tenant_id=tenant_id,
+                        _queue_name="high",
+                    )
+                    enqueued_count += 1
+            finally:
+                await redis_pool.aclose()
 
             logger.info(f"🧬 [SeoController] Enqueued contextual link analysis for {enqueued_count} cluster articles of pillar {pillar_node_id}")
             return SuccessResponse(
@@ -878,12 +890,15 @@ class SeoController(Controller):
 
         try:
             redis_pool = await create_pool(get_redis_settings())
-            await redis_pool.enqueue_job(
-                "seo_pillar_auto_link_job",
-                pillar_id=pillar_node_id,
-                tenant_id=tenant_id,
-                _queue_name="high",
-            )
+            try:
+                await redis_pool.enqueue_job(
+                    "seo_pillar_auto_link_job",
+                    pillar_id=pillar_node_id,
+                    tenant_id=tenant_id,
+                    _queue_name="high",
+                )
+            finally:
+                await redis_pool.aclose()
             logger.info(f"🧬 [SeoController] Enqueued seo_pillar_auto_link_job for pillar {pillar_node_id}, tenant={tenant_id}")
             return SuccessResponse(
                 message="Đã bắt đầu quét tìm đề xuất link từ các Cluster con dưới nền. Gợi ý mới sẽ xuất hiện ở bảng Chờ duyệt sau vài phút.",

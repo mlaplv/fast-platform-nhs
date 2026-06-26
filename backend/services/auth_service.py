@@ -246,7 +246,10 @@ class AuthService:
             from arq import create_pool
             
             redis_pool = await create_pool(get_redis_settings())
-            await redis_pool.enqueue_job("send_otp_email", identifier, code, request_id, _queue_name="high")
+            try:
+                await redis_pool.enqueue_job("send_otp_email", identifier, code, request_id, _queue_name="high")
+            finally:
+                await redis_pool.aclose()
             logger.info(f"📧 [AuthService] OTP task enqueued for {identifier} (ID: {request_id})")
         except Exception as e:
             logger.error(f"❌ [AuthService] Failed to enqueue OTP task: {e}")

@@ -15,6 +15,7 @@ logger = logging.getLogger("api-gateway")
 class XoHiResponder:
     def __init__(self):
         self.session_maker = alchemy_config.create_session_maker()
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def handle_order_created(self, payload: Dict[str, object]):
         """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
@@ -353,7 +354,9 @@ class XoHiResponder:
                 logger.debug(f"[XoHiResponder] AI Vision is OFF — using heuristic analysis for asset {asset_id}")
                 from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
                 analyst = MediaAnalyst()
-                asyncio.create_task(analyst.heuristic_analysis(asset_id))
+                task = asyncio.create_task(analyst.heuristic_analysis(asset_id))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
                 return
         except Exception as e:
             logger.warning(f"[XoHiResponder] Could not check AI Vision flag: {e}. Skipping analysis.")
@@ -377,7 +380,9 @@ class XoHiResponder:
         from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
         analyst = MediaAnalyst()
         # Chạy phân tích trong background (Non-blocking)
-        asyncio.create_task(analyst.process_registry_entry(asset_id))
+        task = asyncio.create_task(analyst.process_registry_entry(asset_id))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
         logger.info(f"[XoHiResponder] Triggered AI Analysis for asset: {asset_id}")
 
     async def handle_system_signal(self, payload: Dict[str, object]):
@@ -420,7 +425,9 @@ class XoHiResponder:
             
             from backend.services.telegram_service import telegram_service
             # Offload Telegram dispatch entirely into background task
-            asyncio.create_task(telegram_service.send_alert(telegram_msg))
+            task = asyncio.create_task(telegram_service.send_alert(telegram_msg))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
         except Exception as e:
             logger.error(f"❌ [XoHiResponder] Telegram alert forwarding failed: {e}")
 

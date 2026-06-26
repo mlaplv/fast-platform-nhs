@@ -41,6 +41,7 @@ class SeoMatchingService:
         self._graph_svc = SeoGraphService()
         from backend.services.seo_entity_extractor import SeoEntityExtractor
         self._entity_extractor = SeoEntityExtractor()
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     def _get_encoder(self):
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
@@ -191,11 +192,13 @@ class SeoMatchingService:
         if node.is_pillar:
             logger.info(f"[SeoMatch] Node {node.id} is already a Pillar. Skip matching.")
             # Still run entity extraction for pillar nodes (async, non-blocking for response)
-            asyncio.create_task(
+            task = asyncio.create_task(
                 self._entity_extractor.extract_and_persist(
                     db, node.id, title, content_excerpt, entity_type
                 )
             )
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
             return MatchResultResponse(
                 node_id=node.id,
                 matched_pillar_id=None,

@@ -41,32 +41,35 @@ def _setup_seo_subscriptions() -> None:
             from arq import create_pool
             entity_type = payload.get("entity_type", "article")
             redis = await create_pool(get_redis_settings())
-            tenant_id = str(payload.get("tenant_id") or current_tenant_id.get() or "default")
-            entity_id = str(payload.get("entity_id", ""))
+            try:
+                tenant_id = str(payload.get("tenant_id") or current_tenant_id.get() or "default")
+                entity_id = str(payload.get("entity_id", ""))
 
-            await redis.enqueue_job(
-                "seo_match_entity_job",
-                entity_type=entity_type,
-                entity_id=entity_id,
-                title=str(payload.get("title", "")),
-                excerpt=str(payload.get("excerpt", ""))[:400],
-                slug=str(payload.get("slug", "")),
-                tenant_id=tenant_id,
-                _queue_name="high",
-            )
-            logger.info(f"[SEO] Queued seo_match_entity_job (high queue) for {entity_type}:{entity_id}")
-
-            # Auto-trigger contextual link analysis for articles (deferred 30s to allow match job to complete)
-            if entity_type.lower() == "article":
-                from datetime import timedelta
                 await redis.enqueue_job(
-                    "seo_contextual_link_job",
-                    article_id=entity_id,
+                    "seo_match_entity_job",
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    title=str(payload.get("title", "")),
+                    excerpt=str(payload.get("excerpt", ""))[:400],
+                    slug=str(payload.get("slug", "")),
                     tenant_id=tenant_id,
                     _queue_name="high",
-                    _defer_by=timedelta(seconds=30),
                 )
-                logger.info(f"[SEO] Queued seo_contextual_link_job (high queue, deferred 30s) for article:{entity_id}")
+                logger.info(f"[SEO] Queued seo_match_entity_job (high queue) for {entity_type}:{entity_id}")
+
+                # Auto-trigger contextual link analysis for articles (deferred 30s to allow match job to complete)
+                if entity_type.lower() == "article":
+                    from datetime import timedelta
+                    await redis.enqueue_job(
+                        "seo_contextual_link_job",
+                        article_id=entity_id,
+                        tenant_id=tenant_id,
+                        _queue_name="high",
+                        _defer_by=timedelta(seconds=30),
+                    )
+                    logger.info(f"[SEO] Queued seo_contextual_link_job (high queue, deferred 30s) for article:{entity_id}")
+            finally:
+                await redis.aclose()
         except Exception as e:
             logger.warning(f"[SEO] Failed to queue seo jobs: {e}")
 
@@ -76,14 +79,17 @@ def _setup_seo_subscriptions() -> None:
             from arq import create_pool
             entity_type = payload.get("entity_type", "article")
             redis = await create_pool(get_redis_settings())
-            await redis.enqueue_job(
-                "seo_unmatch_entity_job",
-                entity_type=entity_type,
-                entity_id=str(payload.get("entity_id", "")),
-                tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
-                _queue_name="high",
-            )
-            logger.info(f"[SEO] Queued seo_unmatch_entity_job (high queue) for {entity_type}:{payload.get('entity_id')}")
+            try:
+                await redis.enqueue_job(
+                    "seo_unmatch_entity_job",
+                    entity_type=entity_type,
+                    entity_id=str(payload.get("entity_id", "")),
+                    tenant_id=str(payload.get("tenant_id") or current_tenant_id.get() or "default"),
+                    _queue_name="high",
+                )
+                logger.info(f"[SEO] Queued seo_unmatch_entity_job (high queue) for {entity_type}:{payload.get('entity_id')}")
+            finally:
+                await redis.aclose()
         except Exception as e:
             logger.warning(f"[SEO] Failed to queue seo_unmatch_entity_job: {e}")
 
@@ -294,17 +300,17 @@ async def _gc_watchdog_loop():
             await _aio.sleep(300)
 
             ram_mb = process.memory_info().rss / (1024 * 1024)
-            if ram_mb > 1000:
+            if ram_mb > 800:
                 logger.warning(f"[GhostMode] RAM usage high ({ram_mb:.1f}MB). Forcing aggressive GC...")
                 gc.collect(generation=2)
                 if _libc:
                     _libc.malloc_trim(0)  # Trả fragmented pages về OS
-            elif ram_mb > 600:
-                logger.info(f"[GhostMode] RAM {ram_mb:.1f}MB > 600MB threshold. Running standard GC + trim.")
+            elif ram_mb > 500:
+                logger.info(f"[GhostMode] RAM {ram_mb:.1f}MB > 500MB threshold. Running standard GC + trim.")
                 gc.collect()
                 if _libc:
                     _libc.malloc_trim(0)
-            elif ram_mb > 400:
+            elif ram_mb > 300:
                 # Dọn nhẹ gen0 để giữ heap sạch
                 gc.collect(generation=0)
 

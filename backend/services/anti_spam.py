@@ -28,6 +28,8 @@ class AntiSpamService:
     def __init__(self, redis_client: Optional[_redis.Redis] = None):
         self.redis = redis_client
         self.client = redis_client
+        import asyncio
+        self._background_tasks: set[asyncio.Task[object]] = set()
         
         self.BLOCK_THRESHOLD_SCORE = 90.0      # Tier 3: Block — từ chối ngay
         self.CHALLENGE_THRESHOLD_SCORE = 70.0   # Tier 2: Challenge — yêu cầu xác nhận thêm
@@ -290,15 +292,13 @@ class AntiSpamService:
         # Result Evaluation
         # 4. Viral 2026: Final Agentic Review — Fire-and-Forget để không block checkout <200ms
         # [P-01] AI review chạy background, không await trực tiếp trong hot path
-        import asyncio as _asyncio
-
         if self.CHALLENGE_THRESHOLD_SCORE > score >= 40.0:
-            # Chỉ trigger background review — không block
-            # Caller (checkout) đã lưu đơn với spam_score hiện tại
-            # Background task sẽ update score nếu AI confirm spam
-            _asyncio.create_task(
+            import asyncio
+            task = asyncio.create_task(
                 self._background_ai_flag(name, address, score, reasons)
             )
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
             logger.debug(f"[AntiSpam] Background AI review dispatched for score={score:.1f}")
 
         # [H-05] 3-Tier Response:

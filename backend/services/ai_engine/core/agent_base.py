@@ -181,14 +181,17 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
             queue_name = "high"
             
             redis = await create_pool(get_redis_settings())
-            await redis.enqueue_job(
-                "run_agent_task",
-                agent_id=self.agent_id,
-                task_id=task_id,
-                session_id=session_id,
-                payload=request_data,
-                _queue_name=queue_name
-            )
+            try:
+                await redis.enqueue_job(
+                    "run_agent_task",
+                    agent_id=self.agent_id,
+                    task_id=task_id,
+                    session_id=session_id,
+                    payload=request_data,
+                    _queue_name=queue_name
+                )
+            finally:
+                await redis.aclose()
             
             self.logger.info(f"[{self.agent_id}] Task enqueued: {task_id} (Queue: {queue_name})")
             return task_id

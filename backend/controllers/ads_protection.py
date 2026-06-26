@@ -104,6 +104,7 @@ class LiveStreamHub:
             logger.error(f"[LiveStreamHub] Listener Error: {e}")
         finally:
             await pubsub.unsubscribe(self._channel)
+            await pubsub.close()
 
     def subscribe(self) -> asyncio.Queue:
         q = asyncio.Queue()
@@ -165,17 +166,20 @@ class AdsProtectionController(Controller):
                 from backend.infra.arq_config import get_redis_settings
                 from arq import create_pool
                 redis_pool = await create_pool(get_redis_settings())
-                await redis_pool.enqueue_job(
-                    "run_fraud_forensic",
-                    {
-                        "gclid": result.gclid,
-                        "ip": result.ip_address,
-                        "score": result.fraud_score,
-                        "verdict": result.verdict,
-                        "fingerprint": result.session_fingerprint
-                    },
-                    _queue_name="high"
-                )
+                try:
+                    await redis_pool.enqueue_job(
+                        "run_fraud_forensic",
+                        {
+                            "gclid": result.gclid,
+                            "ip": result.ip_address,
+                            "score": result.fraud_score,
+                            "verdict": result.verdict,
+                            "fingerprint": result.session_fingerprint
+                        },
+                        _queue_name="high"
+                    )
+                finally:
+                    await redis_pool.aclose()
                 logger.info(f"🕵️ [AdsProtection] Enqueued on-demand fraud forensic task for IP: {result.ip_address}")
             except Exception as eq:
                 logger.error(f"❌ [AdsProtection] Failed to enqueue on-demand fraud forensic: {eq}")

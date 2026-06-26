@@ -34,8 +34,9 @@ class InternalBus:
             cls._instance.subscribers: Dict[str, List[Callable]] = {}
             cls._instance.broadcast_subscribers: List[asyncio.Queue] = []
             cls._instance.queue: Optional[asyncio.Queue] = None
-            cls._instance._worker_task: Union[asyncio.Task, None] = None
-            cls._instance._redis_task: Union[asyncio.Task, None] = None
+            cls._instance._worker_task = None
+            cls._instance._redis_task = None
+            cls._instance._background_tasks = set()
             import uuid
             cls._instance.bus_id = str(uuid.uuid4())
         return cls._instance
@@ -124,7 +125,9 @@ class InternalBus:
                 except Exception as e:
                     logger.error(f"❌ [EventBus] Session bridge failed: {e}")
 
-            asyncio.create_task(_bg_bridge_session(payload, event_name))
+            task = asyncio.create_task(_bg_bridge_session(payload, event_name))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
 
         # ─── INDEPENDENT block: always publish to admin:pulse regardless of above ───
         # CRITICAL FIX: was `elif` before — meaning admin never got SUPPORT_INBOX_UPDATE
@@ -146,7 +149,9 @@ class InternalBus:
                     # CNS V90.5: Log to warning so it shows in Sếp's filtered terminal
                     logger.warning(f"⚠️ [EventBus] Admin bridge failed: {e}")
 
-            asyncio.create_task(_bg_bridge_admin(payload, event_name))
+            task = asyncio.create_task(_bg_bridge_admin(payload, event_name))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
 
         # Local distribution
         try:

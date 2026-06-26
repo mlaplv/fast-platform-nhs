@@ -1,6 +1,7 @@
 import re
 import json
 import time
+import asyncio
 from backend.utils.uid import new_id
 import logging
 from datetime import datetime, timezone
@@ -48,6 +49,7 @@ async def _get_sge_config_async() -> dict[str, object]:
 
 class ArticleService:
     """Business Logic for Articles/News (Elite V2.2)."""
+    _background_tasks: set[asyncio.Task[object]] = set()
     
     def __init__(self, vector_service: ArticleVectorService):
         self.vector_service = vector_service
@@ -432,13 +434,14 @@ class ArticleService:
             logger.info(f"[ArticleService] Emitted ARTICLE_PUBLISHED on creation for SEO matching: {new_id_val}")
 
         if not data.skip_embed_kg:
-            import asyncio as _asyncio
-            _asyncio.create_task(self._background_embed_and_kg(
+            task = asyncio.create_task(self._background_embed_and_kg(
                 article_id=new_id_val,
                 title=data.title,
                 content=cleaned_content,
                 tenant_id=current_tenant_id.get() or "default",
             ))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
         else:
             logger.info(f"[ArticleService] Skipping Embed+KG for article {new_id_val} per admin request.")
 
@@ -520,13 +523,14 @@ class ArticleService:
 
         if (data.title is not None or data.content is not None) and not data.skip_embed_kg:
             # [ARCH FIX] Embedding + KG chạy ở background, không block request.
-            import asyncio as _asyncio
-            _asyncio.create_task(self._background_embed_and_kg(
+            task = asyncio.create_task(self._background_embed_and_kg(
                 article_id=article_id,
                 title=article.title,
                 content=article.content,
                 tenant_id=current_tenant_id.get() or "default",
             ))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
         elif data.skip_embed_kg:
             logger.info(f"[ArticleService] Skipping Embed+KG update for article {article_id} per admin request.")
 

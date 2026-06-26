@@ -251,9 +251,9 @@ class TrinityBridge:
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name):
                         continue
 
-                    logger.warning(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
-
-                    model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
+                    from backend.utils.http_client import SharedHttpClient
+                    shared_http_client = await SharedHttpClient.get_client()
+                    model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key, http_client=shared_http_client))
                     ms = dict(model_settings_base)
                     if safety_none:
                         ms["google_safety_settings"] = _G_SAFETY_NONE
