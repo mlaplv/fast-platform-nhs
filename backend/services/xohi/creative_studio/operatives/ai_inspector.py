@@ -61,14 +61,14 @@ class AiInspector(BaseAgentOperative):
     def get_schema(self) -> Optional[Type[BaseModel]]:
         return AiInspectorTaskRequest
 
-    async def process_brain_logic(self, request: AiInspectorTaskRequest, db: AsyncSession) -> AiReadyReport:
+    async def process_brain_logic(self, request: AiInspectorTaskRequest, db: AsyncSession, job_try: int = 1) -> AiReadyReport:
         """Elite V2.2: Async worker execution for AI-Ready analysis."""
         repo = ContentCampaignRepository(session=db)
         campaign = await repo.get(request.campaign_id)
         if not campaign:
             raise ValueError(f"Campaign {request.campaign_id} not found")
 
-        result = await self.analyze(campaign, force=request.force)
+        result = await self.analyze(campaign, force=request.force, job_try=job_try)
 
         # Persist to gold_metadata
         gold = dict(campaign.gold_metadata or {})
@@ -84,7 +84,7 @@ class AiInspector(BaseAgentOperative):
         return result
 
 
-    async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
+    async def analyze(self, campaign: ContentCampaign, force: bool = False, job_try: int = 1) -> AiReadyReport:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         self.current_step = 0
         logs = [f"🚀 [{now_str}] [GEO] Initializing Neural AI-Ready Engine (XoHi 2026)..."]
@@ -145,6 +145,11 @@ class AiInspector(BaseAgentOperative):
             return raw
         except Exception as e:
             logger.error(f"[AiInspector] Analysis failed: {e}")
+            is_transient = any(trigger in str(e).lower() for trigger in ["429", "timeout", "overloaded", "limiter", "quota", "cooldown"])
+            is_worker = getattr(campaign, "id", "adhoc") != "adhoc"
+            if is_worker and is_transient and job_try < 3:
+                logger.warning(f"🔄 [AiInspector] Transient error on try {job_try}. Raising error to trigger Worker retry.")
+                raise e
             return AiReadyReport(geo_score=75, summary="AI bận, thử lại sau.", logs=logs)
 
     async def auto_fix(self, campaign: ContentCampaign, annotation: AiAnnotation) -> AutoFixResponse:

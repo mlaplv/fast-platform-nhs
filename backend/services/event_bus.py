@@ -221,44 +221,49 @@ class InternalBus:
         # Give xohi_memory a bit of time to initialize
         await asyncio.sleep(2)
         
-        # Explicit type check for client
-        if not xohi_memory._use_redis or getattr(xohi_memory, "client", None) is None:
-            return
-            
-        try:
-            pubsub = xohi_memory.client.pubsub()
-            await pubsub.subscribe("admin:pulse")
-            logger.info("[EventBus] Subscribed to Redis admin:pulse cross-container bridge.")
-            
-            while True:
-                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
-                if message and message.get('type') == 'message':
-                    try:
-                        data: Dict[str, object] = json.loads(message['data'])
-                        event_name: str = str(data.get("event", ""))
-                        origin: str = str(data.get("_origin", ""))
+        while True:
+            try:
+                # Explicit type check for client; if not ready, wait and retry
+                if not xohi_memory._use_redis or getattr(xohi_memory, "client", None) is None:
+                    await asyncio.sleep(5.0)
+                    continue
+                
+                pubsub = xohi_memory.client.pubsub()
+                await pubsub.subscribe("admin:pulse")
+                logger.info("[EventBus] Subscribed to Redis admin:pulse cross-container bridge.")
+                
+                while True:
+                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                    if message and message.get('type') == 'message':
+                        try:
+                            data: Dict[str, object] = json.loads(message['data'])
+                            event_name: str = str(data.get("event", ""))
+                            origin: str = str(data.get("_origin", ""))
 
-                        # V91: Skip events that originated from THIS container (already in local queue)
-                        # Only process events from OTHER containers (arq workers, etc.)
-                        if origin == self.bus_id:
-                            logger.debug(f"[EventBus] Skipping self-origin Redis event: {event_name}")
-                            continue
+                            # V91: Skip events that originated from THIS container (already in local queue)
+                            # Only process events from OTHER containers (arq workers, etc.)
+                            if origin == self.bus_id:
+                                logger.debug(f"[EventBus] Skipping self-origin Redis event: {event_name}")
+                                continue
 
-                        # Elite V2.2: Safe payload extraction without type: ignore
-                        raw_payload = data.get("payload")
-                        if event_name and isinstance(raw_payload, dict):
-                            payload: Dict[str, object] = raw_payload
-                            local_event = SystemEvent(name=event_name, payload=payload)
-                            try:
-                                self.queue.put_nowait(local_event)
-                            except asyncio.QueueFull:
-                                logger.warning(f"[EventBus] Local Queue Full, dropped Redis event: {event_name}")
-                    except Exception as parse_e:
-                        logger.error(f"[EventBus] Failed to parse Redis message: {parse_e}")
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            logger.error(f"[EventBus] Redis listener error: {e}")
+                            # Elite V2.2: Safe payload extraction without type: ignore
+                            raw_payload = data.get("payload")
+                            if event_name and isinstance(raw_payload, dict):
+                                payload: Dict[str, object] = raw_payload
+                                local_event = SystemEvent(name=event_name, payload=payload)
+                                try:
+                                    self.queue.put_nowait(local_event)
+                                except asyncio.QueueFull:
+                                    logger.warning(f"[EventBus] Local Queue Full, dropped Redis event: {event_name}")
+                        except Exception as parse_e:
+                            logger.error(f"[EventBus] Failed to parse Redis message: {parse_e}")
+                    await asyncio.sleep(0.01)
+            except asyncio.CancelledError:
+                logger.info("[EventBus] Redis listener cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"[EventBus] Redis listener error: {e}. Reconnecting in 5s...")
+                await asyncio.sleep(5.0)
 
     async def _worker(self):
         _cycle = 0

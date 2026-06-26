@@ -124,10 +124,14 @@ class ContentController(Controller):
 
     @post("/analyze/copyright")
     async def analyze_copyright_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để phân tích đồng bộ (tối đa 100.000 ký tự). Vui lòng sử dụng tính năng Chiến Dịch.")
         return await content_factory.analyst.analyze_copyright(None, None, force=force or data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
 
     @post("/analyze/seo")
     async def analyze_seo_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để phân tích đồng bộ (tối đa 100.000 ký tự). Vui lòng sử dụng tính năng Chiến Dịch.")
         return await content_factory.analyst.analyze_seo(
             None, None,
             force=force or data.force,
@@ -139,10 +143,14 @@ class ContentController(Controller):
 
     @post("/analyze/ai-inspect")
     async def analyze_ai_inspect_adhoc(self, data: AdhocAnalysisRequest, force: bool = False) -> GenericResponse:
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để phân tích đồng bộ (tối đa 100.000 ký tự). Vui lòng sử dụng tính năng Chiến Dịch.")
         return await content_factory.analyst.analyze_ai_inspect(None, None, force=force or data.force, raw_content=data.content, raw_topic=data.topic, content_type=data.content_type)
 
     @post("/analyze/bulk-fix")
     async def analyze_bulk_fix_adhoc(self, data: BulkFixRequest) -> GenericResponse:
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để sửa đồng bộ (tối đa 100.000 ký tự).")
         fix_payload = {"category": data.category, "annotations": data.annotations}
         return await content_factory.analyst.bulk_fix(None, fix_payload, None, raw_content=data.content)
 
@@ -154,6 +162,8 @@ class ContentController(Controller):
     @post("/analyze/auto-fix", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def analyze_auto_fix_adhoc(self, data: AdhocAutoFixRequest) -> GenericResponse:
         """CNS V86.5: Ad-hoc auto-fix — sửa từng annotation không cần campaign_id."""
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để sửa đồng bộ (tối đa 100.000 ký tự).")
         return await content_factory.analyst.auto_fix_adhoc(
             content=data.content,
             target_snippet=data.target_snippet,
@@ -172,6 +182,12 @@ class ContentController(Controller):
         target_snippet = data.get("target_snippet", "")
         error_message = data.get("error_message", "")
         topic = data.get("topic", "")
+
+        if content and len(content) > 100000:
+            async def _error_gen():
+                import json
+                yield f"data: {json.dumps({'error': 'Nội dung quá dài để sửa đồng bộ (tối đa 100.000 ký tự).'})}\n\n"
+            return Stream(content=_error_gen(), media_type="text/event-stream")
 
         async def _gen() -> AsyncGenerator[str, None]:
             async for line in content_factory.analyst.stream_auto_fix(
@@ -195,6 +211,8 @@ class ContentController(Controller):
     @post("/analyze/neural-boost", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def analyze_neural_boost(self, data: SurgeonBoostRequest, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         """CNS V87.0: Neural Boost (Refinement)"""
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để tăng cường đồng bộ (tối đa 100.000 ký tự).")
         return await content_factory.analyst.neural_boost(
             content=data.content,
             topic=data.topic,
@@ -206,6 +224,8 @@ class ContentController(Controller):
     @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def analyze_neural_rewrite(self, data: NeuralRewriteRequest, campaign_id: Optional[UUID] = None) -> GenericResponse:
         """CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện."""
+        if data.content and len(data.content) > 100000:
+            return GenericResponse(status="error", message="Nội dung quá dài để viết lại đồng bộ (tối đa 100.000 ký tự).")
         return await content_factory.analyst.neural_rewrite(
             content=data.content,
             topic=data.topic,

@@ -51,6 +51,8 @@ class StallDetectorMiddleware:
             # Category AI Generation
             "/api/v1/categories/seo-suggest",
             "/api/v1/categories/faq-suggest",
+            # Review AI Generation
+            "/api/v1/reviews/ai-seed",
             # Ads Protection AI (Elite V3.0)
             "/api/v1/ads-protection/ai-suggest",
             "/api/v1/ads-protection/generate-investigation-report",

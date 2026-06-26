@@ -126,7 +126,12 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
 
             # 4. Execute the heavy AI logic
             if hasattr(agent, "process_brain_logic"):
-                result = await agent.process_brain_logic(request=request, db=db)
+                import inspect
+                sig = inspect.signature(agent.process_brain_logic)
+                if "job_try" in sig.parameters:
+                    result = await agent.process_brain_logic(request=request, db=db, job_try=job_try)
+                else:
+                    result = await agent.process_brain_logic(request=request, db=db)
             else:
                 result = await agent.chat(request=request, db=db)
 
@@ -277,7 +282,7 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
         
         # [Elite V2.2] Exponential Backoff for transient Network/API errors
         error_str = str(e).lower()
-        if any(trigger in error_str for trigger in ["429", "timeout", "overloaded", "limiter"]):
+        if any(trigger in error_str for trigger in ["429", "timeout", "overloaded", "limiter", "quota", "cooldown"]):
             # Calc exponential backoff: 30s, 60s, 120s...
             defer_time = 15 * (2 ** (job_try - 1))
             logger.warning(f"🔄 [Worker] Retrying task {task_id} in {defer_time}s due to transient error: {e}")

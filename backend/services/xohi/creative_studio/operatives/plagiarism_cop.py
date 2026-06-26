@@ -73,7 +73,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
     def get_schema(self) -> Optional[Type[BaseModel]]:
         return PlagiarismTaskRequest
 
-    async def process_brain_logic(self, request: PlagiarismTaskRequest, db: AsyncSession) -> PlagiarismResult:
+    async def process_brain_logic(self, request: PlagiarismTaskRequest, db: AsyncSession, job_try: int = 1) -> PlagiarismResult:
         """
         Elite V2.2: Async Execution logic for arq Worker.
         Fetches campaign from DB and runs full analysis.
@@ -84,7 +84,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
             raise ValueError(f"Campaign {request.campaign_id} not found")
             
         # Run the heavy analysis
-        result = await self.analyze(campaign, force=request.force)
+        result = await self.analyze(campaign, force=request.force, job_try=job_try)
         
         # Elite V2.2 Persistence: Strategy 6 - Persistent results in DB
         gold = dict(campaign.gold_metadata or {})
@@ -137,7 +137,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
 
     # Heritage Mixin handles _emit_progress
 
-    async def analyze(self, campaign: ContentCampaign, force: bool = False) -> PlagiarismResult:
+    async def analyze(self, campaign: ContentCampaign, force: bool = False, job_try: int = 1) -> PlagiarismResult:
         logger.info(f"💓 [PlagiarismCop] Diving into copyright analysis for campaign {getattr(campaign, 'id', 'adhoc')}")
         async with self._plagiarism_semaphore:
             start_time = time.perf_counter()
@@ -312,6 +312,12 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 return raw
             except Exception as e:
                 logger.warning(f"❌ [PlagiarismCop] Neural Engine Error: {str(e)}")
+                
+                is_transient = any(trigger in str(e).lower() for trigger in ["429", "timeout", "overloaded", "limiter", "quota", "cooldown"])
+                is_worker = getattr(campaign, "id", "adhoc") != "adhoc"
+                if is_worker and is_transient and job_try < 3:
+                    logger.warning(f"🔄 [PlagiarismCop] Transient error on try {job_try}. Raising error to trigger Worker retry.")
+                    raise e
                 
                 # CNS V90.5: Emit feedback even in failure to avoid UI hang
                 err_msg = "⚠️ [BRAIN] Neural Engine bận. Chuyển sang chế độ trinh sát cục bộ (Heuristic)..."

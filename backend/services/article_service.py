@@ -755,7 +755,8 @@ class ArticleService:
                 agent=agent,
                 prompt=prompt,
                 role="fast",
-                timeout=90.0
+                timeout=90.0,
+                per_model_timeout=20.0,
             )
 
             if result:
@@ -835,7 +836,8 @@ class ArticleService:
                 agent=agent,
                 prompt=prompt,
                 role="fast",
-                timeout=90.0
+                timeout=90.0,
+                per_model_timeout=20.0,
             )
 
             if result:
@@ -907,7 +909,7 @@ class ArticleService:
         prompt = "\n\n".join(prompt_parts)
 
         try:
-            result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0)
+            result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=60.0, per_model_timeout=20.0)
             if result:
                 text = str(getattr(result, "data", getattr(result, "output", result))).strip()
                 
@@ -979,6 +981,7 @@ class ArticleService:
         try:
             result = await trinity_bridge.run(
                 agent=agent, prompt=prompt, role="fast", timeout=120.0,
+                per_model_timeout=30.0,
                 model_settings={"max_tokens": 8192}
             )
             if result:
@@ -1121,7 +1124,8 @@ class ArticleService:
 
         try:
             result = await trinity_bridge.run(
-                agent=agent, prompt=prompt, role="fast", timeout=90.0
+                agent=agent, prompt=prompt, role="fast", timeout=90.0,
+                per_model_timeout=20.0,
             )
             if result:
                 raw = str(getattr(result, "data", getattr(result, "output", result))).strip()

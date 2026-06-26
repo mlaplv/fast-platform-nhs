@@ -31,9 +31,12 @@ class KeyMetricsMixin:
              await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", f"DAILY: {reason}", ex=self.MAX_COOLDOWN)
              logger.warning(f"[KeyRotator] Key {kid[:8]} hit DAILY QUOTA."); return
 
-        if reason_lower == "rate_limit" or "429" in reason_lower:
+        if reason_lower == "rate_limit" or any(p in reason_lower for p in ["429", "timeout", "503", "500", "unavailable"]):
             await self.track_tokens(key, 500)
-            # Falling through to increment fail_count and trigger backoff.
+            # Elite V2.2: Do NOT increment fail_count for transient model-level rate limits/timeouts/503s.
+            # Simply update last_used and return to keep the key healthy for other models in the waterfall.
+            await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "last_used", now)
+            return
 
         fail = await self.client.hincrby(f"{self.METADATA_PREFIX}{kid}", "fail_count", 1)
         await self.client.hset(f"{self.METADATA_PREFIX}{kid}", mapping={"health_score": max(0, 100 - (fail * 20)), "last_used": now})
@@ -76,15 +79,20 @@ class KeyMetricsMixin:
         m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
         key = f"ai:model:fail_count:{m_slug}"
         try:
-            # Timeout and 503 are severe failures. Increment by 2 to trigger fast circuit breaker.
-            increment = 2 if reason in ["timeout", "503_unavailable"] else 1
-            fails = await self.client.incrby(key, increment)
+            # Elite V2.2: Severe failures (timeout, 503) poison the model immediately on first occurrence
+            if reason in ["timeout", "503_unavailable"]:
+                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=3600)
+                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 1h due to severe failure ({reason}).")
+                await self.client.delete(key)
+                return
+
+            fails = await self.client.incrby(key, 1)
             if fails <= 2:
                 await self.client.expire(key, 60) # 60s failure window
             if fails >= 3:
-                # Temporarily poison/blacklist model for 5 minutes (300s) to preserve storefront performance
-                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=300)
-                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 5m due to consecutive failures ({fails}).")
+                # Temporarily poison/blacklist model for 1 hour (3600s) to preserve storefront performance
+                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=3600)
+                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 1h due to consecutive failures ({fails}).")
                 await self.client.delete(key)
         except Exception as ce:
             logger.warning(f"[KeyRotator] Failed to track model failure: {ce}")
@@ -114,18 +122,18 @@ class KeyMetricsMixin:
         val = await self.client.get(f"{self.MODEL_CAPABILITY_PREFIX}{m_slug}")
         return val if val else "LEGACY"
 
-    async def save_model_metadata(self, model_name: str, metadata: dict) -> None:
+    async def save_model_metadata(self, model_name: str, metadata: dict[str, object]) -> None:
         if not self._use_redis or not self.client: return
         m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
         import json
         await self.client.set(f"{self.MODEL_METADATA_PREFIX}{m_slug}", json.dumps(metadata), ex=self.MAX_COOLDOWN)
 
-    async def get_model_metadata(self, model_name: str) -> dict:
+    async def get_model_metadata(self, model_name: str) -> dict[str, object]:
         if not self._use_redis or not self.client: return {}
         m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
         import json
         val = await self.client.get(f"{self.MODEL_METADATA_PREFIX}{m_slug}")
-        return json.loads(val) if val else {}
+        return cast(dict[str, object], json.loads(val)) if val else {}
 
     async def reset_health(self, preserve_daily: bool = False) -> int:
         if not self._use_redis or not self.client: return 0

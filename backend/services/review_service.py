@@ -658,16 +658,17 @@ CHỈ THỊ QUAN TRỌNG:
         # --- 7. Call LLM qua trinity_bridge (PHASE 2 — không giữ DB connection) ---
         agent = Agent(output_type=str, retries=2)
         try:
-            # [LEAK FIX] asyncio.timeout(30) làm application-level guard.
-            # Nếu AI call vượt 30s, raise TimeoutError ngay tại đây thay vì để
+            # [LEAK FIX] asyncio.timeout(60) làm application-level guard.
+            # Nếu AI call vượt 60s, raise TimeoutError ngay tại đây thay vì để
             # Caddy (60s) cut → CancelledError → connection bị invalidate.
-            async with asyncio.timeout(30):
+            async with asyncio.timeout(60):
                 response = await trinity_bridge.run(
                     agent,
                     prompt,
                     system_prompt=system_prompt,
                     role="lite",
-                    timeout=30.0,
+                    timeout=60.0,
+                    per_model_timeout=15.0,
                     safety_none=True,
                     model_settings={"max_tokens": 300, "thinking": False},
                 )
@@ -686,8 +687,8 @@ CHỈ THỊ QUAN TRỌNG:
                 except Exception as ve2:
                     logger.warning(f"[ReviewService.ai_seed_one] AI Review validation light failed: {ve2}")
         except asyncio.TimeoutError:
-            logger.error("[ReviewService.ai_seed_one] LLM call exceeded 30s application timeout — aborting to protect DB pool.")
-            raise ValueError("AI generation timed out after 30s. Vui lòng thử lại.")
+            logger.error("[ReviewService.ai_seed_one] LLM call exceeded 60s application timeout — aborting to protect DB pool.")
+            raise ValueError("AI generation timed out after 60s. Vui lòng thử lại.")
         except Exception as exc:
             logger.error(f"[ReviewService.ai_seed_one] LLM failed: {exc}")
             raise ValueError(f"AI không thể tạo nội dung: {exc}")
