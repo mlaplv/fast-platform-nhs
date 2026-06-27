@@ -26,7 +26,7 @@ async def test_key_rotation_logic():
     assert k1 in mock_keys
     
     # 4. Mock a failure for k1 and verify it gets blacklisted/cooldown
-    await key_rotator.mark_unhealthy(k1, reason="auth_soft") 
+    await key_rotator.mark_unhealthy(k1, reason="auth_hard") 
     
     # 5. Get next key - should NOT be k1
     k2 = await key_rotator.get_key(model_name="gemini-2.5-flash")
@@ -72,7 +72,8 @@ async def test_soft_auth_cooldown_recovery():
     # 2. Mock state
     key_rotator.keys = [test_key]
     
-    # 3. Mark as SOFT_AUTH
+    # 3. Mark as SOFT_AUTH (Requires 2 strikes to blacklist)
+    await key_rotator.mark_unhealthy(test_key, reason="auth_soft")
     await key_rotator.mark_unhealthy(test_key, reason="auth_soft")
     
     # 4. Verify it is blacklisted in Redis

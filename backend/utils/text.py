@@ -192,6 +192,18 @@ def sanitize_sentence_linebreaks(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
+def _is_worker_process() -> bool:
+    """
+    Kiểm tra xem process hiện tại có phải là background worker (arq) hay không.
+    Chỉ chạy các tác vụ nặng (như PyTorch dependency parsing) trên worker.
+    """
+    import sys
+    import os
+    cmd = sys.argv[0] if sys.argv else ""
+    if "arq" in cmd or os.environ.get("SKIP_MIGRATE") == "true":
+        return True
+    return False
+
 def validate_vietnamese_sentence(text: str, mode: str = "standard") -> str:
     """
     TRÙM CUỐI: Vietnamese Elite NLP Guard.
@@ -202,6 +214,10 @@ def validate_vietnamese_sentence(text: str, mode: str = "standard") -> str:
     - "standard": Tầng 1 + 2 (Structural + Linguistic) — mặc định
     - "full": Tầng 1 + 2 + 3 (+ Neural Spell) — dùng cho final publish
     """
+    # [MEM-FIX] Tự động hạ xuống light mode trên API gateway để bảo vệ RAM
+    if mode in ("standard", "full") and not _is_worker_process():
+        mode = "light"
+
     if not text:
         return text
 

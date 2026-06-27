@@ -272,6 +272,14 @@ class SeoContextualLinker:
             len(candidates), len(sentences), article_id
         )
 
+        # Close the active database session before starting heavy AI/network tasks
+        try:
+            await db.commit()
+            await db.close()
+            logger.info(f"[ContextualLinker] Released active DB connection to pool before AI calls for article {article_id}.")
+        except Exception as db_err:
+            logger.warning(f"[ContextualLinker] Failed to release DB connection: {db_err}")
+
         # Step 3: PydanticAI batch analysis
         all_suggestions: list[SentenceLinkSuggestion] = []
         for i in range(0, len(candidates), _BATCH_SIZE):
@@ -292,106 +300,137 @@ class SeoContextualLinker:
         persisted = 0
         dry_run_results = []
 
-        if not is_dry_run:
-            # Clear previous pending/rejected suggestions for this article (re-analysis)
-            await db.execute(
-                delete(SeoContextualLink).where(
-                    SeoContextualLink.source_article_id == article_id,
-                    SeoContextualLink.tenant_id == tenant,
-                    SeoContextualLink.status.in_(["pending", "rejected"]),
-                )
-            )
-
-        # Track links per pillar for density constraint
-        pillar_link_count: dict[str, int] = {}
-
-        for suggestion in all_suggestions:
-            if not suggestion.should_link:
-                continue
-
-            # Validate
-            errors = self._validate_suggestion(suggestion, valid_pillar_ids)
-            if errors:
-                logger.debug("[ContextualLinker] Rejected suggestion idx=%d: %s", suggestion.sentence_index, errors)
-                continue
-
-            # Confidence gate
-            if suggestion.confidence < _MIN_CONFIDENCE:
-                continue
-
-            # Density constraint: Giới hạn số lượng link trỏ đến 1 pillar, và giới hạn tổng số link cho cả bài viết
-            if persisted >= effective_max:
-                logger.info("[ContextualLinker] Reached effective max contextual links (%d) for article %s (existing: %d)", effective_max, article_id, existing_link_count)
-                break
-
-            pid = suggestion.target_pillar_id
-            count = pillar_link_count.get(pid, 0)
-            if count >= _MAX_LINKS_PER_PILLAR:
-                continue
-            pillar_link_count[pid] = count + 1
-
-            # Resolve target URL (entity_type-aware: products use /{slug}, articles use /{slug}.html)
-            target_url = ""
-            for p in pillars:
-                if p["id"] == pid:
-                    entity_type = p.get("entity_type", "ARTICLE")
-                    slug = p.get("slug", "")
-                    
-                    if entity_type == "PRODUCT":
-                        url_val = p.get("url") or f"/{slug}"
-                        if url_val.endswith(".html"):
-                            url_val = url_val[:-5]
-                        target_url = url_val
-                    else:
-                        url_val = p.get("url") or f"/{slug}"
-                        if not url_val.endswith(".html"):
-                            url_val = f"{url_val}.html"
-                        target_url = url_val
+        if is_dry_run:
+            # Track links per pillar for density constraint
+            pillar_link_count: dict[str, int] = {}
+            for suggestion in all_suggestions:
+                if not suggestion.should_link:
+                    continue
+                errors = self._validate_suggestion(suggestion, valid_pillar_ids)
+                if errors:
+                    continue
+                if suggestion.confidence < _MIN_CONFIDENCE:
+                    continue
+                if persisted >= effective_max:
                     break
+                pid = suggestion.target_pillar_id
+                count = pillar_link_count.get(pid, 0)
+                if count >= _MAX_LINKS_PER_PILLAR:
+                    continue
+                pillar_link_count[pid] = count + 1
 
-            # Build linked_sentence with resolved URL
-            final_linked = suggestion.linked_sentence
-            # Replace placeholder href with actual URL if AI used pillar ID
-            if pid in final_linked:
-                final_linked = final_linked.replace(pid, target_url)
+                target_url = ""
+                for p in pillars:
+                    if p["id"] == pid:
+                        entity_type = p.get("entity_type", "ARTICLE")
+                        slug = p.get("slug", "")
+                        if entity_type == "PRODUCT":
+                            url_val = p.get("url") or f"/{slug}"
+                            if url_val.endswith(".html"):
+                                url_val = url_val[:-5]
+                            target_url = url_val
+                        else:
+                            url_val = p.get("url") or f"/{slug}"
+                            if not url_val.endswith(".html"):
+                                url_val = f"{url_val}.html"
+                            target_url = url_val
+                        break
 
-            link = SeoContextualLink(
-                id=new_id_default(),
-                source_article_id=article_id,
-                target_node_id=pid,
-                target_url=target_url,
-                original_sentence=suggestion.original_sentence,
-                linked_sentence=final_linked,
-                anchor_text=suggestion.anchor_text,
-                matched_entity_type=suggestion.matched_entity_type,
-                matched_entity_name=suggestion.matched_entity_name,
-                ai_confidence=suggestion.confidence,
-                ai_reasoning=suggestion.reasoning,
-                sentence_index=suggestion.sentence_index,
-                status=SeoContextualLinkStatus.PENDING,
-                content_hash=content_hash,
-                tenant_id=tenant,
-            )
-            if is_dry_run:
+                final_linked = suggestion.linked_sentence
+                if pid in final_linked:
+                    final_linked = final_linked.replace(pid, target_url)
+
                 dry_run_results.append({
-                    "id": link.id,
-                    "source_article_id": link.source_article_id,
-                    "target_node_id": link.target_node_id,
-                    "target_url": link.target_url,
-                    "original_sentence": link.original_sentence,
-                    "linked_sentence": link.linked_sentence,
-                    "anchor_text": link.anchor_text,
-                    "matched_entity_type": link.matched_entity_type.value if hasattr(link.matched_entity_type, 'value') else link.matched_entity_type,
-                    "matched_entity_name": link.matched_entity_name,
-                    "ai_confidence": link.ai_confidence,
-                    "ai_reasoning": link.ai_reasoning,
-                    "sentence_index": link.sentence_index,
-                    "status": link.status.value if hasattr(link.status, 'value') else link.status,
-                    "content_hash": link.content_hash,
+                    "id": new_id_default(),
+                    "source_article_id": article_id,
+                    "target_node_id": pid,
+                    "target_url": target_url,
+                    "original_sentence": suggestion.original_sentence,
+                    "linked_sentence": final_linked,
+                    "anchor_text": suggestion.anchor_text,
+                    "matched_entity_type": suggestion.matched_entity_type.value if hasattr(suggestion.matched_entity_type, 'value') else suggestion.matched_entity_type,
+                    "matched_entity_name": suggestion.matched_entity_name,
+                    "ai_confidence": suggestion.confidence,
+                    "ai_reasoning": suggestion.reasoning,
+                    "sentence_index": suggestion.sentence_index,
+                    "status": "pending",
+                    "content_hash": content_hash,
                 })
-            else:
-                db.add(link)
                 persisted += 1
+            return dry_run_results
+        else:
+            # Persistent mode: Open a fresh short-lived session just for the write operations
+            from backend.database.alchemy_config import alchemy_config
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as new_db:
+                # Clear previous pending/rejected suggestions for this article (re-analysis)
+                await new_db.execute(
+                    delete(SeoContextualLink).where(
+                        SeoContextualLink.source_article_id == article_id,
+                        SeoContextualLink.tenant_id == tenant,
+                        SeoContextualLink.status.in_(["pending", "rejected"]),
+                    )
+                )
+
+                # Track links per pillar for density constraint
+                pillar_link_count: dict[str, int] = {}
+                for suggestion in all_suggestions:
+                    if not suggestion.should_link:
+                        continue
+                    errors = self._validate_suggestion(suggestion, valid_pillar_ids)
+                    if errors:
+                        continue
+                    if suggestion.confidence < _MIN_CONFIDENCE:
+                        continue
+                    if persisted >= effective_max:
+                        break
+                    pid = suggestion.target_pillar_id
+                    count = pillar_link_count.get(pid, 0)
+                    if count >= _MAX_LINKS_PER_PILLAR:
+                        continue
+                    pillar_link_count[pid] = count + 1
+
+                    target_url = ""
+                    for p in pillars:
+                        if p["id"] == pid:
+                            entity_type = p.get("entity_type", "ARTICLE")
+                            slug = p.get("slug", "")
+                            if entity_type == "PRODUCT":
+                                url_val = p.get("url") or f"/{slug}"
+                                if url_val.endswith(".html"):
+                                    url_val = url_val[:-5]
+                                target_url = url_val
+                            else:
+                                url_val = p.get("url") or f"/{slug}"
+                                if not url_val.endswith(".html"):
+                                    url_val = f"{url_val}.html"
+                                target_url = url_val
+                            break
+
+                    final_linked = suggestion.linked_sentence
+                    if pid in final_linked:
+                        final_linked = final_linked.replace(pid, target_url)
+
+                    link = SeoContextualLink(
+                        id=new_id_default(),
+                        source_article_id=article_id,
+                        target_node_id=pid,
+                        target_url=target_url,
+                        original_sentence=suggestion.original_sentence,
+                        linked_sentence=final_linked,
+                        anchor_text=suggestion.anchor_text,
+                        matched_entity_type=suggestion.matched_entity_type,
+                        matched_entity_name=suggestion.matched_entity_name,
+                        ai_confidence=suggestion.confidence,
+                        ai_reasoning=suggestion.reasoning,
+                        sentence_index=suggestion.sentence_index,
+                        status=SeoContextualLinkStatus.PENDING,
+                        content_hash=content_hash,
+                        tenant_id=tenant,
+                    )
+                    new_db.add(link)
+                    persisted += 1
+                await new_db.commit()
 
         if is_dry_run:
             logger.info(

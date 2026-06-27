@@ -38,8 +38,8 @@ DEFAULT_AI_CONFIG = {
         "8b": 30
     },
     "error_mapping": {
-        "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"],
-        "auth_soft": ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"],
+        "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted", "denied access", "permission_denied"],
+        "auth_soft": ["401", "403", "unauthorized", "forbidden", "user_location_not_supported"],
         "rate_limit": ["429", "quota", "rate limit", "limit reached", "resource_exhausted", "503", "unavailable", "500", "reset by peer", "deadline_exceeded", "interactions api"],
         "fail_fast": ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"],
         "model_not_found": ["model not found", "404"]

@@ -136,7 +136,8 @@
     stripAlign: true,
     stripRedundantWrappers: true,
     stripEmpty: true,
-    deduplicateContent: true
+    deduplicateContent: true,
+    stripLinks: true
   });
 
   function updatePopupPositions() {

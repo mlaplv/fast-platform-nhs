@@ -36,7 +36,6 @@ async def test_helen_connectivity() -> None:
     
     # 2. Xây dựng Agent test
     test_agent: Agent[None, TestResponse] = Agent(
-        primary,
         output_type=TestResponse,
         system_prompt=(
             "Bạn là Helen Support Agent. Hãy trả lời câu hỏi của khách một cách tự nhiên. "

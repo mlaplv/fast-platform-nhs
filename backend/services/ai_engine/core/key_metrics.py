@@ -12,7 +12,7 @@ class KeyMetricsMixin:
         kid: str = self._get_key_id(key); reason_lower: str = reason.lower(); now: float = time.time()
         
         # Elite V2.2: Hard Auth failure - Immediate long blacklist
-        if any(p in reason_lower for p in ["auth_hard", "invalid", "disabled", "expired"]):
+        if any(p in reason_lower for p in ["auth_hard", "invalid", "disabled", "expired", "denied access", "permission_denied"]):
             await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", reason, ex=self.MAX_COOLDOWN * 30)
             logger.error(f"[KeyRotator] Key {kid[:8]} PERMANENTLY BLACKLISTED: {reason}"); return
             
@@ -31,15 +31,13 @@ class KeyMetricsMixin:
              await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", f"DAILY: {reason}", ex=self.MAX_COOLDOWN)
              logger.warning(f"[KeyRotator] Key {kid[:8]} hit DAILY QUOTA."); return
 
-        if reason_lower == "rate_limit" or any(p in reason_lower for p in ["429", "timeout", "503", "500", "unavailable"]):
+        if reason_lower == "rate_limit" or "429" in reason_lower:
             await self.track_tokens(key, 500)
-            # Elite V2.2: Do NOT increment fail_count for transient model-level rate limits/timeouts/503s.
-            # Simply update last_used and return to keep the key healthy for other models in the waterfall.
-            await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "last_used", now)
+            # Elite V2.2: Do not increment fail_count to avoid global backoff lockouts on other models
             return
 
         fail = await self.client.hincrby(f"{self.METADATA_PREFIX}{kid}", "fail_count", 1)
-        await self.client.hset(f"{self.METADATA_PREFIX}{kid}", mapping={"health_score": max(0, 100 - (fail * 20)), "last_used": now})
+        await self.client.hset(f"{self.METADATA_PREFIX}{kid}", mapping={"fail_count": fail, "health_score": max(0, 100 - (fail * 20)), "last_used": now})
 
     async def set_success(self, key: str, session_id: Optional[str] = None) -> None:
         if not self._use_redis: return
@@ -79,20 +77,15 @@ class KeyMetricsMixin:
         m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
         key = f"ai:model:fail_count:{m_slug}"
         try:
-            # Elite V2.2: Severe failures (timeout, 503) poison the model immediately on first occurrence
-            if reason in ["timeout", "503_unavailable"]:
-                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=3600)
-                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 1h due to severe failure ({reason}).")
-                await self.client.delete(key)
-                return
-
-            fails = await self.client.incrby(key, 1)
+            # Timeout and 503 are severe failures. Increment by 2 to trigger fast circuit breaker.
+            increment = 2 if reason in ["timeout", "503_unavailable"] else 1
+            fails = await self.client.incrby(key, increment)
             if fails <= 2:
                 await self.client.expire(key, 60) # 60s failure window
             if fails >= 3:
-                # Temporarily poison/blacklist model for 1 hour (3600s) to preserve storefront performance
-                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=3600)
-                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 1h due to consecutive failures ({fails}).")
+                # Temporarily poison/blacklist model for 5 minutes (300s) to preserve storefront performance
+                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=300)
+                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 5m due to consecutive failures ({fails}).")
                 await self.client.delete(key)
         except Exception as ce:
             logger.warning(f"[KeyRotator] Failed to track model failure: {ce}")

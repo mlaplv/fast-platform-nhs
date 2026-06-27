@@ -21,21 +21,57 @@ _dep_parse_fn: Optional[object] = None
 _word_tokenize_fn: Optional[object] = None
 
 
-def _ensure_underthesea() -> None:
-    """Lazy-load underthesea functions lần đầu sử dụng."""
-    global _pos_tag_fn, _dep_parse_fn, _word_tokenize_fn
+def _is_worker_process() -> bool:
+    """
+    Kiểm tra xem process hiện tại có phải là background worker (arq) hay không.
+    Chỉ chạy các tác vụ nặng (như PyTorch dependency parsing) trên worker.
+    """
+    import sys
+    import os
+    # arq worker chạy qua binary arq, hoặc có env SKIP_MIGRATE=true
+    cmd = sys.argv[0] if sys.argv else ""
+    if "arq" in cmd or os.environ.get("SKIP_MIGRATE") == "true":
+        return True
+    return False
+
+
+def _ensure_pos_tag() -> None:
+    """Lazy-load pos_tag function."""
+    global _pos_tag_fn
     if _pos_tag_fn is not None:
         return
     try:
-        from underthesea import pos_tag, dependency_parse, word_tokenize
+        from underthesea import pos_tag
         _pos_tag_fn = pos_tag
-        _dep_parse_fn = dependency_parse
-        _word_tokenize_fn = word_tokenize
-        logger.info("[NLP Guard] underthesea loaded successfully.")
-    except ImportError:
-        logger.warning("[NLP Guard] underthesea not installed. Tầng 2 disabled.")
+        logger.info("[NLP Guard] underthesea pos_tag loaded.")
     except Exception as e:
-        logger.warning(f"[NLP Guard] underthesea load error: {e}. Tầng 2 disabled.")
+        logger.warning(f"[NLP Guard] underthesea pos_tag load error: {e}.")
+
+
+def _ensure_word_tokenize() -> None:
+    """Lazy-load word_tokenize function."""
+    global _word_tokenize_fn
+    if _word_tokenize_fn is not None:
+        return
+    try:
+        from underthesea import word_tokenize
+        _word_tokenize_fn = word_tokenize
+        logger.info("[NLP Guard] underthesea word_tokenize loaded.")
+    except Exception as e:
+        logger.warning(f"[NLP Guard] underthesea word_tokenize load error: {e}.")
+
+
+def _ensure_dep_parse() -> None:
+    """Lazy-load dependency_parse function (đòi hỏi PyTorch/Deep Learning)."""
+    global _dep_parse_fn
+    if _dep_parse_fn is not None:
+        return
+    try:
+        from underthesea import dependency_parse
+        _dep_parse_fn = dependency_parse
+        logger.info("[NLP Guard] underthesea dependency_parse loaded.")
+    except Exception as e:
+        logger.warning(f"[NLP Guard] underthesea dependency_parse load error: {e}.")
 
 
 # ── POS Tag Sets ────────────────────────────────────────────────────────
@@ -72,7 +108,12 @@ def check_sentence_completeness(sentence: str) -> tuple[bool, str]:
     
     Returns: (is_valid, error_message)
     """
-    _ensure_underthesea()
+    # [MEM-FIX] Bypass dependency_parse (PyTorch) trên API gateway để tránh phình RAM
+    if not _is_worker_process():
+        return True, ""
+
+    _ensure_dep_parse()
+    _ensure_pos_tag()
     if _dep_parse_fn is None or _pos_tag_fn is None:
         return True, ""  # Graceful fallback: bỏ qua nếu underthesea không khả dụng
     
@@ -143,7 +184,7 @@ def calculate_content_density(sentence: str) -> float:
     
     Returns: float từ 0.0 đến 1.0
     """
-    _ensure_underthesea()
+    _ensure_pos_tag()
     if _pos_tag_fn is None:
         return 1.0  # Graceful fallback: không block
     
@@ -178,7 +219,7 @@ def detect_word_repetition(text: str, threshold: int = 3) -> list[str]:
     
     Returns: Danh sách các từ/cụm từ lặp quá nhiều
     """
-    _ensure_underthesea()
+    _ensure_word_tokenize()
     if _word_tokenize_fn is None:
         return []
     

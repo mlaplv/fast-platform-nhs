@@ -214,10 +214,6 @@ class TrinityBridge:
             db_primary, db_waterfall = await self.get_tenant_profile()
             models = await self.models_helper.build_chain(role, db_primary, db_waterfall, self.discovered)
 
-        # Dynamic default per-model timeout calculation
-        if pmt is None:
-            num_models = max(len(models), 1)
-            pmt = max(10.0, min(t / num_models, 30.0))
 
         max_k, last_err = max(1, self.rotator.get_count()), None
 
@@ -270,22 +266,38 @@ class TrinityBridge:
                         logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) across all models. Bailing out.")
                         return None
 
-                    attempt_timeout = min(remaining_t, pmt) if pmt is not None else remaining_t
-
-                    # [R.C.3 FIX] Wrap BOTH semaphore acquisition and execution within asyncio.wait_for
-                    # to prevent queue starvation from holding up requests past their timeout.
                     guard = self.concurrency_guard
                     assert guard is not None, "Concurrency guard is not initialized"
 
-                    async def _execute_under_guard():
-                        async with guard:
-                            if system_prompt:
-                                with agent.override(instructions=str(system_prompt)):
-                                    return await agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs)
-                            else:
-                                return await agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs)
+                    # 1. Acquire semaphore with timeout based on remaining_t.
+                    # System overloaded timeout should not be treated as a model failure.
+                    try:
+                        await asyncio.wait_for(guard.acquire(), timeout=remaining_t)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"⏳ [TrinityBridge] Concurrency queue full. Semaphore acquisition timed out after {remaining_t:.1f}s.")
+                        raise AIConfigurationError("System overloaded: Concurrency queue timeout.")
 
-                    res = await asyncio.wait_for(_execute_under_guard(), timeout=attempt_timeout)
+                    try:
+                        # 2. Re-calculate execution timeout and call model
+                        remaining_t = t - (time.time() - start_time)
+                        if remaining_t <= 0:
+                            logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) during execution prep. Bailing out.")
+                            return None
+                        run_timeout = min(remaining_t, pmt) if pmt is not None else remaining_t
+
+                        if system_prompt:
+                            with agent.override(instructions=str(system_prompt)):
+                                res = await asyncio.wait_for(
+                                    agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
+                                    timeout=run_timeout
+                                )
+                        else:
+                            res = await asyncio.wait_for(
+                                agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
+                                timeout=run_timeout
+                            )
+                    finally:
+                        guard.release()
 
                     if hasattr(res, 'usage'):
                         await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
@@ -310,7 +322,7 @@ class TrinityBridge:
 
                 except (asyncio.TimeoutError, TimeoutError, httpx.TimeoutException):
                     last_err = "Timeout"
-                    logger.warning(f"[TrinityBridge] Model '{m_name}' timed out after {attempt_timeout:.1f}s. Breaking to next model waterfall.")
+                    logger.warning(f"[TrinityBridge] Model '{m_name}' timed out during execution. Breaking to next model waterfall.")
                     # Timeout is a model-level capacity/slowness issue, NOT an API key issue.
                     # We do not penalize the key (avoiding premature cooldowns).
                     await self.rotator.track_model_failure(m_name, reason="timeout")
@@ -340,9 +352,11 @@ class TrinityBridge:
                                 rpm_fail_count += 1
                                 continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name}. Breaking to next model waterfall.")
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name}. Rotating key...")
+                            await self.rotator.mark_unhealthy(key, reason="503_unavailable", session_id=s_id)
                             await self.rotator.track_model_failure(m_name, reason="503_unavailable")
-                            break
+                            rpm_fail_count += 1
+                            continue
 
                     if cat == "fail_fast":
                         logger.error(f"🚫 [TrinityBridge] Fail-Fast: {m_name} | {str(e)[:100]}...")
@@ -370,11 +384,11 @@ class TrinityBridge:
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
                         continue
                     if cat == "auth_soft":
-                        # Project-level denial affects ALL keys — break to next model immediately
+                        # Project-level denial affects only this key — blacklist and try next key
                         if "denied access" in err_msg or "project disabled" in err_msg:
-                            logger.error(f"🚫 [TrinityBridge] Project-level 403 on {m_name}. Breaking to next model.")
-                            await self.rotator.track_model_failure(m_name, reason="project_denied")
-                            break
+                            logger.error(f"🚫 [TrinityBridge] Project-level 403 on key (hash: {self.rotator._get_key_id(key)}). Blacklisting key.")
+                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                            continue
                         await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
                         continue
                         
@@ -421,10 +435,7 @@ class TrinityBridge:
             await self.reload_models()
             models = await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
 
-        # Dynamic default per-model timeout calculation
-        if pmt is None:
-            num_models = max(len(models), 1)
-            pmt = max(10.0, min(t / num_models, 30.0))
+
 
         max_k, last_err = max(1, self.rotator.get_count()), None
 
@@ -457,19 +468,26 @@ class TrinityBridge:
                     if remaining_t <= 0:
                         logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) across all models (Stream). Bailing out.")
                         break
-                    attempt_timeout = min(remaining_t, pmt) if pmt is not None else remaining_t
 
                     guard = self.concurrency_guard
                     assert guard is not None, "Concurrency guard is not initialized"
 
+                    # 1. Acquire semaphore with timeout based on remaining_t.
+                    # System overloaded timeout should not be treated as a model failure.
                     try:
-                        await asyncio.wait_for(guard.acquire(), timeout=attempt_timeout)
+                        await asyncio.wait_for(guard.acquire(), timeout=remaining_t)
                     except asyncio.TimeoutError:
-                        logger.warning(f"[TrinityBridge] Semaphore acquisition timed out for stream {m_name} after {attempt_timeout:.1f}s.")
-                        await self.rotator.track_model_failure(m_name, reason="timeout")
-                        break
+                        logger.warning(f"⏳ [TrinityBridge] Concurrency queue full. Semaphore acquisition timed out for stream after {remaining_t:.1f}s.")
+                        raise AIConfigurationError("System overloaded: Concurrency queue timeout.")
 
                     try:
+                        # 2. Re-calculate attempt timeout and execute stream
+                        remaining_t = t - (time.time() - start_time)
+                        if remaining_t <= 0:
+                            logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) during execution prep (Stream). Bailing out.")
+                            break
+                        attempt_timeout = min(remaining_t, pmt) if pmt is not None else remaining_t
+
                         model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key, http_client=shared_http_client))
                         ms = dict(model_settings_base)
                         if safety_none: ms["google_safety_settings"] = _G_SAFETY_NONE
@@ -480,7 +498,7 @@ class TrinityBridge:
                                     yield stream
                         else:
                             async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs) as stream:
-                                yield stream
+                                    yield stream
                     finally:
                         guard.release()
                     
@@ -511,18 +529,20 @@ class TrinityBridge:
                             await self.rotator.mark_model_daily(key, m_name)
                             continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name} (Stream). Breaking to next model waterfall.")
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name} (Stream). Rotating key...")
+                            await self.rotator.mark_unhealthy(key, reason="503_unavailable", session_id=s_id)
                             await self.rotator.track_model_failure(m_name, reason="stream_error")
-                            break
+                            rpm_fail_count += 1
+                            continue
 
                     if cat == "auth_hard": 
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
                         continue
                     if cat == "auth_soft":
                         if "denied access" in err_msg or "project disabled" in err_msg:
-                            logger.error(f"🚫 [TrinityBridge] Project-level 403 on {m_name} (Stream). Breaking to next model.")
-                            await self.rotator.track_model_failure(m_name, reason="project_denied")
-                            break
+                            logger.error(f"🚫 [TrinityBridge] Project-level 403 on key (hash: {self.rotator._get_key_id(key)}) (Stream). Blacklisting key.")
+                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                            continue
                         await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
                         continue
                     
