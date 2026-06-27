@@ -9,6 +9,7 @@
 		allPillars
 	} from '$lib/stores/seoGraph.svelte';
 	import type { GraphNode } from '$lib/stores/seoGraph.svelte';
+	import { apiClient } from '$lib/utils/apiClient';
 
 	let { apiBase }: { apiBase: string } = $props();
 
@@ -53,11 +54,12 @@
 	}
 
 	async function handleReconcile() {
-		const res = await fetch(`${apiBase}/api/v1/seo/reconcile`, {
-			method: 'POST',
-			credentials: 'include'
-		});
-		if (res.ok) await fetchGraph(apiBase);
+		try {
+			await apiClient.post<any>('/seo/reconcile', {});
+			await fetchGraph(apiBase);
+		} catch (err) {
+			console.error('Failed to reconcile:', err);
+		}
 	}
 </script>
 

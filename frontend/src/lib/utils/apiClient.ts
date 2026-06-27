@@ -173,6 +173,20 @@ export const apiClient = {
       // 4. Handle HTTP Status Errors
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          // Robust diagnostic logging to capture specific cause of 401/403 responses
+          const sentHeaders = {
+            "x-tenant": config.headers ? (config.headers as Record<string, string>)["x-tenant"] : undefined,
+            "x-device-fingerprint": config.headers ? (config.headers as Record<string, string>)["x-device-fingerprint"] : undefined,
+            "Authorization": config.headers && (config.headers as Record<string, string>)["Authorization"] ? "Bearer [REDACTED]" : "None"
+          };
+          logger.error(
+            `[SafeFetch Diagnostic] Auth error ${response.status} on endpoint: ${endpoint}\n` +
+            `URL: ${url.toString()}\n` +
+            `Sent Headers: ${JSON.stringify(sentHeaders)}\n` +
+            `Response Data: ${JSON.stringify(data)}\n` +
+            `Active Token: ${token ? "Yes" : "No"}`
+          );
+
           // Elite V2.2 Domain Guard: Chỉ purge session và redirect /login khi đang ở Admin domain.
           // Tuyệt đối không redirect storefront user sang /login của admin.
           const isAdminDomain = typeof window !== "undefined" &&

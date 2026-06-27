@@ -12,6 +12,7 @@
 		deleteNode,
 		type GraphNode
 	} from '$lib/stores/seoGraph.svelte';
+	import { apiClient } from '$lib/utils/apiClient';
 
 	let { apiBase }: { apiBase: string } = $props();
 
@@ -39,13 +40,8 @@
 		isAutoLinking = true;
 		notification = null;
 		try {
-			const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${getActiveNode()!.id}/auto-link`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' }
-			});
-			const data = await res.json();
-			if (res.ok && !data.error) {
+			const data = await apiClient.post<any>(`/seo/contextual-links/pillar/${getActiveNode()!.id}/auto-link`, {});
+			if (data && !data.error) {
 				notification = {
 					message: data.message || 'Đã kích hoạt chạy Auto Link thành công.',
 					type: 'success'
@@ -56,10 +52,10 @@
 					type: 'error'
 				};
 			}
-		} catch (err) {
+		} catch (err: any) {
 			console.error('[AutoLink] Error:', err);
 			notification = {
-				message: 'Không thể kết nối đến máy chủ API.',
+				message: err.message || 'Không thể kết nối đến máy chủ API.',
 				type: 'error'
 			};
 		} finally {

@@ -165,8 +165,9 @@ def normalize_vietnamese_encoding(text: str) -> str:
     text = re.sub(r'(\d+(?:\.\d+)?%)(\w)', r'\1 \2', text)
     
     # 5. Thêm dấu cách sau số nếu viết liền với chữ tiếng Việt (ví dụ: 4tuần -> 4 tuần)
+    # Loại trừ các đơn vị đo lường thông dụng (g, gr, kg, ml, l, mg, oz, s, min, h) viết liền sau số
     text = re.sub(
-        r'(\d+)([a-zA-ZâăêơưđÂĂÊƠƯĐàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])',
+        r'(\d+)(?!(?i:g|gr|kg|ml|l|mg|oz|s|min|h)\b)([a-zA-ZâăêơưđÂĂÊƠƯĐàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])',
         r'\1 \2',
         text
     )

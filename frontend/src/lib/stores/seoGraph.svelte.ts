@@ -5,6 +5,8 @@
  * Pattern: Optimistic update → API confirm → rollback on fail.
  */
 
+import { apiClient } from '$lib/utils/apiClient';
+
 export interface GraphNode {
 	id: string;
 	entity_type: 'article' | 'product' | 'ARTICLE' | 'PRODUCT' | string;
@@ -93,10 +95,8 @@ export async function fetchGraph(apiBase: string, pillarId?: string | null): Pro
 	errorMsg.value = null;
 	try {
 		const targetPillarId = pillarId !== undefined ? pillarId : selectedPillarId.value;
-		const pillarQuery = targetPillarId ? `&pillar_id=${targetPillarId}` : '';
-		const res = await fetch(`${apiBase}/api/v1/seo/graph?t=${Date.now()}${pillarQuery}`, { credentials: 'include' });
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		const data: GraphData = await res.json();
+		const pillarQuery = targetPillarId ? `?pillar_id=${targetPillarId}` : '';
+		const data = await apiClient.get<GraphData>(`/seo/graph${pillarQuery}`);
 		graphData.meta = data.meta;
 		graphData.nodes = data.nodes;
 		graphData.links = data.links;
@@ -105,8 +105,8 @@ export async function fetchGraph(apiBase: string, pillarId?: string | null): Pro
 		if (!targetPillarId) {
 			allPillars.value = data.nodes.filter((n) => n.is_pillar);
 		}
-	} catch (e) {
-		errorMsg.value = e instanceof Error ? e.message : 'Không thể tải graph.';
+	} catch (e: any) {
+		errorMsg.value = e.message || 'Không thể tải graph.';
 	} finally {
 		isLoading.value = false;
 	}
@@ -137,18 +137,12 @@ export async function overrideEdge(
 	}
 
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/edges/${edgeId}`, {
-			method: 'PATCH',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				source_node_id: newSourceNodeId,
-				target_node_id: newTargetNodeId,
-				link_type: 'manual',
-				is_confirmed: true
-			})
+		await apiClient.patch(`/seo/edges/${edgeId}`, {
+			source_node_id: newSourceNodeId,
+			target_node_id: newTargetNodeId,
+			link_type: 'manual',
+			is_confirmed: true
 		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 	} catch (e) {
 		// 3. Rollback on failure
 		graphData.links = snapshot;
@@ -177,13 +171,7 @@ export async function togglePillar(
 	}
 
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/nodes/${nodeId}`, {
-			method: 'PATCH',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ is_pillar: isPillar, pillar_topic: pillarTopic })
-		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await apiClient.patch(`/seo/nodes/${nodeId}`, { is_pillar: isPillar, pillar_topic: pillarTopic });
 		await fetchGraph(apiBase);
 	} catch {
 		graphData.nodes = snapshot;
@@ -200,14 +188,7 @@ export async function triggerMatch(
 	entityId: string
 ): Promise<{ match_tier: string; ai_confidence: number | null } | null> {
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/match`, {
-			method: 'POST',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ entity_type: entityType, entity_id: entityId })
-		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		const result = await res.json();
+		const result = await apiClient.post<any>('/seo/match', { entity_type: entityType, entity_id: entityId });
 		// Refresh graph sau khi match
 		await fetchGraph(apiBase);
 		return result;
@@ -223,18 +204,12 @@ export async function triggerBulkMatch(
 	apiBase: string
 ): Promise<{ success: number; failed: number; total_nodes_processed: number } | null> {
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/match/bulk`, {
-			method: 'POST',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' }
-		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		const result = await res.json();
+		const result = await apiClient.post<any>('/seo/match/bulk', {});
 		// Refresh graph sau khi match bulk
 		await fetchGraph(apiBase);
 		return result.data;
-	} catch (e) {
-		errorMsg.value = e instanceof Error ? e.message : 'Chạy AI Matching hàng loạt thất bại.';
+	} catch (e: any) {
+		errorMsg.value = e.message || 'Chạy AI Matching hàng loạt thất bại.';
 		return null;
 	}
 }
@@ -265,20 +240,12 @@ export async function batchAssignPillar(
 	}
 
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/edges/bulk`, {
-			method: 'POST',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				source_node_id: pillarNodeId,
-				target_node_ids: nodeIds,
-				link_type: 'manual',
-				is_confirmed: true
-			})
+		const result = await apiClient.post<any>('/seo/edges/bulk', {
+			source_node_id: pillarNodeId,
+			target_node_ids: nodeIds,
+			link_type: 'manual',
+			is_confirmed: true
 		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		
-		const result = await res.json();
 		const added = Number(result.data?.added || 0);
 		const updated = Number(result.data?.updated || 0);
 		
@@ -286,11 +253,11 @@ export async function batchAssignPillar(
 		batchSelectedIds.value = new Set();
 		await fetchGraph(apiBase);
 		return { success: added + updated, failed: 0 };
-	} catch (e) {
+	} catch (e: any) {
 		// Rollback on failure
 		graphData.nodes = snapshot;
 		graphData.links = snapshotLinks;
-		errorMsg.value = e instanceof Error ? `Bulk assign thất bại: ${e.message}` : 'Bulk assign thất bại.';
+		errorMsg.value = e.message || 'Bulk assign thất bại.';
 		return { success: 0, failed: nodeIds.length };
 	}
 }
@@ -308,11 +275,7 @@ export async function deleteEdge(apiBase: string, edgeId: string): Promise<boole
 	graphData.links = graphData.links.filter((l) => l.id !== edgeId);
 
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/edges/${edgeId}`, {
-			method: 'DELETE',
-			credentials: 'include'
-		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await apiClient.delete(`/seo/edges/${edgeId}`);
 		await fetchGraph(apiBase);
 		return true;
 	} catch (e) {
@@ -342,17 +305,13 @@ export async function deleteNode(apiBase: string, nodeId: string): Promise<boole
 	});
 
 	try {
-		const res = await fetch(`${apiBase}/api/v1/seo/nodes/${nodeId}`, {
-			method: 'DELETE',
-			credentials: 'include'
-		});
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		await apiClient.delete(`/seo/nodes/${nodeId}`);
 		await fetchGraph(apiBase);
 		return true;
 	} catch (e) {
 		// Rollback on failure
-		graphData.nodes = snapshotNodes;
-		graphData.links = snapshotLinks;
+		snapshotNodes;
+		snapshotLinks;
 		errorMsg.value = 'Xóa node khỏi đồ thị thất bại. Đã rollback.';
 		return false;
 	}

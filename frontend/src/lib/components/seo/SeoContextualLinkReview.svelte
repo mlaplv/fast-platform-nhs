@@ -10,6 +10,7 @@
 	import type { Article } from '$lib/types';
 	import { useNanobot } from '$lib/state/nanobot.svelte';
 	import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
+	import { apiClient } from '$lib/utils/apiClient';
 
 	export interface SeoContextualLink {
 		id: string;
@@ -169,11 +170,7 @@
 				queryParams.append('search', searchQuery.trim());
 			}
 
-			const res = await fetch(`${apiBase}/api/v1/articles?${queryParams.toString()}`, {
-				credentials: 'include'
-			});
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const result = await res.json();
+			const result = await apiClient.get<any>(`/articles?${queryParams.toString()}`);
 			const fetched = (result.data || []) as Article[];
 
 			if (append) {
@@ -213,11 +210,7 @@
 		try {
 			if (reviewMode === 'article') {
 				if (activeArticleId) {
-					const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/${activeArticleId}`, {
-						credentials: 'include'
-					});
-					if (!res.ok) throw new Error(`HTTP ${res.status}`);
-					const resData = await res.json();
+					const resData = await apiClient.get<any>(`/seo/contextual-links/${activeArticleId}`);
 					articleTitle = resData.article_title as string;
 					isStale = resData.is_stale as boolean;
 					links = (resData.links || []) as SeoContextualLink[];
@@ -225,11 +218,7 @@
 					hasMore = false;
 				} else {
 					const statusParam = statusFilter === 'all' ? '' : `&status=${statusFilter}`;
-					const res = await fetch(`${apiBase}/api/v1/seo/contextual-links?limit=${limit}&offset=${offset}${statusParam}`, {
-						credentials: 'include'
-					});
-					if (!res.ok) throw new Error(`HTTP ${res.status}`);
-					const resData = await res.json();
+					const resData = await apiClient.get<any>(`/seo/contextual-links?limit=${limit}&offset=${offset}${statusParam}`);
 					articleTitle = 'Tất cả bài viết SGE';
 					isStale = false;
 					
@@ -245,11 +234,7 @@
 				}
 			} else {
 				if (!activePillarId) return;
-				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${activePillarId}`, {
-					credentials: 'include'
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const resData = await res.json();
+				const resData = await apiClient.get<any>(`/seo/contextual-links/pillar/${activePillarId}`);
 				articleTitle = `Pillar: ${resData.pillar_title as string}`;
 				isStale = false;
 				links = (resData.links || []) as SeoContextualLink[];
@@ -275,14 +260,7 @@
 		errorMessage = null;
 		successMessage = null;
 		try {
-			const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/${linkId}`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ status })
-			});
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const result = await res.json();
+			const result = await apiClient.patch<any>(`/seo/contextual-links/${linkId}`, { status });
 			if (result.data?.error) {
 				errorMessage = result.message as string;
 				nanobot.showToast(errorMessage, 'error');
@@ -327,20 +305,13 @@
 		errorMessage = null;
 		successMessage = null;
 		try {
-			const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/${linkId}`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					anchor_text: editingAnchorText,
-					target_url: editingTargetUrl,
-					link_rel: editingRel || null,
-					link_title: editingTitle || null,
-					link_target: editingTarget || null
-				})
+			const result = await apiClient.patch<any>(`/seo/contextual-links/${linkId}`, {
+				anchor_text: editingAnchorText,
+				target_url: editingTargetUrl,
+				link_rel: editingRel || null,
+				link_title: editingTitle || null,
+				link_target: editingTarget || null
 			});
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const result = await res.json();
 			
 			if (result.data?.error) {
 				errorMessage = result.message as string;
@@ -400,12 +371,7 @@
 			if (!confirm('Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?')) return;
 			isActioning = true;
 			try {
-				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/${activeArticleId}/apply`, {
-					method: 'POST',
-					credentials: 'include'
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const result = await res.json();
+				const result = await apiClient.post<any>(`/seo/contextual-links/${activeArticleId}/apply`, {});
 				if (Number(result.data?.applied_count) > 0) {
 					successMessage = `Đã cập nhật bài viết thành công! Đã chèn ${result.data.applied_count} liên kết.`;
 					nanobot.showToast(successMessage, 'success');
@@ -435,12 +401,7 @@
 
 			isActioning = true;
 			try {
-				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${activePillarId}/apply`, {
-					method: 'POST',
-					credentials: 'include'
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const result = await res.json();
+				const result = await apiClient.post<any>(`/seo/contextual-links/pillar/${activePillarId}/apply`, {});
 				
 				const applied = Number(result.data?.applied_count || 0);
 				const skipped = Number(result.data?.skipped_stale || 0);
@@ -484,13 +445,7 @@
 			errorMessage = null;
 			successMessage = null;
 			try {
-				const res = await fetch(`${apiBase}/api/v1/seo/match`, {
-					method: 'POST',
-					credentials: 'include',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ entity_type: 'article', entity_id: activeArticleId })
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				await apiClient.post<any>(`/seo/match`, { entity_type: 'article', entity_id: activeArticleId });
 				successMessage = 'Hệ thống đã nhận lệnh và đang phân tích lại bài viết trong nền. Vui lòng làm mới sau 15-30 giây.';
 				nanobot.showToast(successMessage, 'success');
 			} catch (e) {
@@ -506,12 +461,7 @@
 			errorMessage = null;
 			successMessage = null;
 			try {
-				const res = await fetch(`${apiBase}/api/v1/seo/contextual-links/pillar/${activePillarId}/auto-link`, {
-					method: 'POST',
-					credentials: 'include'
-				});
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				const result = await res.json();
+				const result = await apiClient.post<any>(`/seo/contextual-links/pillar/${activePillarId}/auto-link`, {});
 				successMessage = result.message || 'Đã kích hoạt quét & tự động phân tích link ngữ cảnh cho các Cluster. Bạn sẽ nhận được thông báo chuông khi hoàn tất.';
 				nanobot.showToast(successMessage, 'success');
 			} catch (e) {
