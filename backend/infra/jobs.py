@@ -456,7 +456,7 @@ async def seo_pillar_auto_link_job(
             from backend.database.models.seo import SeoNode, SeoEdge, SeoContextualLink, SeoContextualLinkStatus
             from backend.database.models.content import Article
             from backend.services.seo_contextual_linker import seo_contextual_linker
-            from sqlalchemy import select, func
+            from sqlalchemy import select, func, delete
 
             # Lấy thông tin Pillar Node
             pillar = await db.scalar(
@@ -468,6 +468,17 @@ async def seo_pillar_auto_link_job(
             )
             if pillar:
                 pillar_label = pillar.node_label
+
+            # Clear all existing pending/rejected suggestions pointing to this target pillar
+            await db.execute(
+                delete(SeoContextualLink).where(
+                    SeoContextualLink.target_node_id == pillar_id,
+                    SeoContextualLink.tenant_id == tenant_id,
+                    SeoContextualLink.status.in_(["pending", "rejected"])
+                )
+            )
+            await db.commit()
+            logger.info(f"[Pillar Auto Link] Cleared all existing pending/rejected suggestions pointing to pillar {pillar_id}")
 
             # 1. Tìm tất cả các Cluster con liên kết với Pillar này (source_node_id == pillar_id)
             edges = (await db.execute(

@@ -123,7 +123,7 @@ class TrinityBridge:
                 if p: 
                     self.db_primary_model = p.primary_model
                     self.db_waterfall = p.ai_models or []
-                    logger.warning(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration from DB (User: {p.id}): {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
+                    logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration from DB (User: {p.id}): {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
         except Exception as e: 
             logger.warning(f"⚠️ [TrinityBridge] Failed to load VoiceProfile: {e}")
         
@@ -307,7 +307,7 @@ class TrinityBridge:
 
                     # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
                     if hasattr(res, 'data'):
-                        logger.warning(f"📦 [TrinityBridge] Extraction (data): {type(res.data).__name__}")
+                        logger.info(f"📦 [TrinityBridge] Extraction (data): {type(res.data).__name__}")
                         # Debug: Check for annotations in the data
                         if hasattr(res.data, 'annotations') and not getattr(res.data, 'annotations'):
                             logger.warning(f"⚠️ [TrinityBridge] Model {m_name} returned EMPTY annotations!")
@@ -316,7 +316,7 @@ class TrinityBridge:
                         
                         return res.data
                     if hasattr(res, 'output'):
-                        logger.warning(f"📦 [TrinityBridge] Extraction (output): {type(res.output).__name__}")
+                        logger.info(f"📦 [TrinityBridge] Extraction (output): {type(res.output).__name__}")
                         return res.output
                     return res
 

@@ -267,6 +267,30 @@ DRAFT:
             
             report.logs = logs
             
+            # ══════════════════════════════════════════════════════════════
+            # 2026 DETERMINISTIC SEO AUDIT — 7 Pillars Post-Processing
+            # Runs AFTER LLM scoring to enforce hard structural rules.
+            # ══════════════════════════════════════════════════════════════
+            audit_annotations = self._audit_structure_2026(original_draft, pure_text)
+            if audit_annotations:
+                if hasattr(report, 'seo_annotations'):
+                    report.seo_annotations.extend(audit_annotations)
+
+            # Hard score cap: if no H2 or H3 heading tags at all → max 45, grade F
+            has_h2_h3 = bool(re.search(r'<h[23][^>]*>', original_draft, re.IGNORECASE))
+            if not has_h2_h3:
+                if hasattr(report, 'total_score') and report.total_score > 45:
+                    report.total_score = 45
+                    report.grade = "F"
+            else:
+                # If they have H2/H3 but they only have 1 or 2 headings in total (under-structured), cap at 70
+                h2_count = len(re.findall(r'<h2[^>]*>', original_draft, re.IGNORECASE))
+                h3_count = len(re.findall(r'<h3[^>]*>', original_draft, re.IGNORECASE))
+                if (h2_count + h3_count) < 3:
+                    if hasattr(report, 'total_score') and report.total_score > 70:
+                        report.total_score = 70
+                        report.grade = "C"
+
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
             primary_kw = campaign.get_gold_val("topic")
             enrich_annotations = self.detect_enrichment_annotations(draft)
@@ -297,6 +321,128 @@ DRAFT:
                 report['summary'] = time_badge + (report.get('summary', "") or "")
 
             return report
+
+    def _audit_structure_2026(self, html: str, plain: str) -> List[SeoAnnotation]:
+        """
+        2026 Deterministic SEO Audit — 7 Pillars.
+        Returns annotations for structural issues that the LLM might miss.
+        """
+        annotations: List[SeoAnnotation] = []
+        if not html or len(plain) < 50:
+            return annotations
+
+        # ── P1: HEADING HIERARCHY ────────────────────────────────────────
+        h2_tags = re.findall(r'<h2[^>]*>(.*?)</h2>', html, re.IGNORECASE | re.DOTALL)
+        h3_tags = re.findall(r'<h3[^>]*>(.*?)</h3>', html, re.IGNORECASE | re.DOTALL)
+        has_h2_h3 = bool(h2_tags) or bool(h3_tags)
+
+        if not has_h2_h3:
+            annotations.append(SeoAnnotation(
+                type="missing_headings",
+                text=html[:150],
+                message="❌ [P1: Heading] Bài viết hoàn toàn không có thẻ tiêu đề chính (<h2> hoặc <h3>). Google không thể xếp hạng và trích xuất nội dung SGE/AIO nếu không có cấu trúc heading rõ ràng.",
+                severity="error"
+            ))
+        elif (len(h2_tags) + len(h3_tags)) < 3:
+            annotations.append(SeoAnnotation(
+                type="insufficient_h2",
+                text=re.sub(r'<[^>]+>', '', h2_tags[0] if h2_tags else h3_tags[0]).strip()[:80],
+                message="⚠️ [P1: Heading] Số lượng thẻ tiêu đề (<h2>, <h3>) quá ít (dưới 3 thẻ). Cần bổ sung để phân chia các phần chính rõ ràng hơn — tối ưu cho Featured Snippets và SGE.",
+                severity="warning"
+            ))
+
+        # Detect <p> faking as heading (capitalized short text without period)
+        p_tags = re.findall(r'<p[^>]*>(.*?)</p>', html, re.IGNORECASE | re.DOTALL)
+        for p_content in p_tags:
+            clean_p = re.sub(r'<[^>]+>', '', p_content).strip()
+            if 5 < len(clean_p) < 80 and not clean_p.endswith(('.', '!', '?', ':', ';')):
+                # Check if most words are capitalized (Title Case = heading pretender)
+                words = clean_p.split()
+                if len(words) >= 3:
+                    cap_count = sum(1 for w in words if w[0].isupper())
+                    if cap_count / len(words) > 0.6:
+                        annotations.append(SeoAnnotation(
+                            type="fake_heading",
+                            text=clean_p[:80],
+                            message=f"⚠️ [P1: Heading] Đoạn \"{clean_p[:50]}...\" có dấu hiệu là tiêu đề nhưng dùng thẻ <p> thay vì <h2>/<h3>. Google không nhận diện đây là heading — mất tín hiệu cấu trúc SEO.",
+                            severity="warning"
+                        ))
+                        break  # Only flag first occurrence to avoid noise
+
+        # ── P3: SGE/AIO READINESS ────────────────────────────────────────
+        # Check data points: numbers with units (e.g. "5-10 năm", "30%", "2.5 triệu")
+        data_points = re.findall(r'\d+(?:[.,]\d+)?(?:\s*(?:%|triệu|tỷ|năm|tháng|ngày|mg|ml|g|kg|lần|giờ|phút))', plain, re.IGNORECASE)
+        if len(data_points) < 3:
+            annotations.append(SeoAnnotation(
+                type="low_data_points",
+                text=f"Tìm thấy {len(data_points)} data points",
+                message=f"⚠️ [P3: SGE/AIO] Bài viết chỉ có {len(data_points)} số liệu cụ thể. Google SGE/AIO ưu tiên trích xuất nội dung có ≥5 data points (số liệu nghiên cứu, thống kê, kết quả thực nghiệm).",
+                severity="warning"
+            ))
+
+        # Check structured lists
+        list_count = len(re.findall(r'<(?:ul|ol)[^>]*>', html, re.IGNORECASE))
+        if list_count == 0:
+            annotations.append(SeoAnnotation(
+                type="no_structured_lists",
+                text="",
+                message="⚠️ [P3: SGE/AIO] Không có danh sách có cấu trúc (<ul>/<ol>). SGE ưu tiên trích xuất bullet points và numbered lists vào AI Overviews.",
+                severity="warning"
+            ))
+
+        # ── P5: E-E-A-T SIGNALS ──────────────────────────────────────────
+        # Check for citation/source patterns
+        eeat_patterns = [
+            r'(?:theo|nghiên cứu|báo cáo|thống kê|số liệu)\s+(?:của|từ|trên|tại)',
+            r'(?:PubMed|WHO|FDA|PMDA|J-STAGE|Lancet|NEJM|clinical\s+trial)',
+            r'(?:năm\s+\d{4}|published|xuất bản)',
+            r'(?:GS\.|TS\.|PGS\.|BS\.|ThS\.)',
+        ]
+        eeat_count = sum(1 for p in eeat_patterns if re.search(p, plain, re.IGNORECASE))
+        if eeat_count == 0:
+            annotations.append(SeoAnnotation(
+                type="weak_eeat",
+                text="",
+                message="⚠️ [P5: E-E-A-T] Không tìm thấy tín hiệu chuyên gia/uy tín (trích dẫn nghiên cứu, nguồn khoa học, chuyên gia). Google 2026 đặt E-E-A-T là yếu tố xếp hạng trọng yếu cho YMYL content.",
+                severity="warning"
+            ))
+
+        # Check for external links (authority signals)
+        ext_links = re.findall(r'<a[^>]+href=["\']https?://', html, re.IGNORECASE)
+        int_links = re.findall(r'<a[^>]+href=["\']/', html, re.IGNORECASE)
+        if len(ext_links) == 0 and len(int_links) == 0:
+            annotations.append(SeoAnnotation(
+                type="no_links",
+                text="",
+                message="⚠️ [P5: E-E-A-T + P7: TechSEO] Bài viết không có link nội bộ lẫn link ngoài. Internal links giúp phân phối PageRank, external links đến nguồn uy tín tăng Trust signal.",
+                severity="warning"
+            ))
+
+        # ── P7: TECHNICAL SEO & UX ───────────────────────────────────────
+        # Check for overly long paragraphs
+        for p_content in p_tags:
+            clean_p = re.sub(r'<[^>]+>', '', p_content).strip()
+            word_count_p = len(clean_p.split())
+            if word_count_p > 150:
+                annotations.append(SeoAnnotation(
+                    type="long_paragraph",
+                    text=clean_p[:80] + "...",
+                    message=f"⚠️ [P7: TechSEO/UX] Đoạn văn có {word_count_p} từ — quá dài. Mobile UX chuẩn 2026 khuyến nghị tối đa 100 từ/đoạn. Chia nhỏ bằng subheading hoặc bullet list.",
+                    severity="warning"
+                ))
+                break  # Only flag worst case
+
+        # Check images missing alt
+        imgs_no_alt = re.findall(r'<img(?![^>]*alt\s*=)[^>]*>', html, re.IGNORECASE)
+        if imgs_no_alt:
+            annotations.append(SeoAnnotation(
+                type="img_missing_alt",
+                text=imgs_no_alt[0][:80],
+                message=f"⚠️ [P7: TechSEO] Phát hiện {len(imgs_no_alt)} ảnh thiếu thuộc tính alt. Alt text là tín hiệu SEO quan trọng cho Google Image Search và accessibility.",
+                severity="warning"
+            ))
+
+        return annotations
 
     def _audit_keyword_density(self, plain_text: str, primary: str, draft: Optional[str] = None) -> List[SeoAnnotation]:
         """Deterministic safety check for keyword density (Rule R73.25)."""
@@ -378,7 +524,7 @@ DRAFT:
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         self.current_step = 0
-        logs = [f"🚀 [{now_str}] [SEO REFINER] Initializing Neural SEO Refiner (Elite V2.2)..."]
+        logs = [f"🚀 [{now_str}] [SEO REFINER 2026] Initializing Neural SEO Refiner (SGE/AIO/GEO/E-E-A-T)..."]
         await self._emit_progress(campaign, logs[-1])
         logger.warning(f"🚀 [SeoAnalyzer] Initializing [SEO REFINER] Phase 0...")
         
@@ -387,16 +533,75 @@ DRAFT:
             draft = await noise_cleaner.clean(original_draft, mode="light", strip_html=False)
         else:
             draft = original_draft
+        
+        # ── DETERMINISTIC HEADING FIX ────────────────────────────────────
+        # Auto-convert <p> tags containing flagged heading texts into <h2>/<h3>
+        # This runs BEFORE AI refinement to ensure structural integrity.
+        annots_raw = req.annotations if isinstance(req.annotations, list) else []
+        heading_types = {"missing_headings", "fake_heading", "missing_h2"}
+        has_heading_issue = any(
+            a.get("type", "") in heading_types for a in annots_raw
+        )
+        
+        if has_heading_issue:
+            heading_fixes = 0
+            h2_assigned = 0
             
-        annots = req.annotations if isinstance(req.annotations, list) else []
+            # Extract flagged heading texts from annotations
+            heading_texts_to_fix = []
+            for a in annots_raw:
+                if a.get("type", "") in heading_types:
+                    txt = str(a.get("text", "")).strip()
+                    if len(txt) >= 5 and txt not in heading_texts_to_fix:
+                        heading_texts_to_fix.append(txt)
+            
+            if heading_texts_to_fix:
+                # Find all <p> tags in draft
+                p_matches = list(re.finditer(r'<p[^>]*>(.*?)</p>', draft, re.IGNORECASE | re.DOTALL))
+                for m in p_matches:
+                    p_html = m.group(0)
+                    p_content = m.group(1)
+                    # Strip HTML from content to compare plain text
+                    plain_p = re.sub(r'<[^>]+>', '', p_content).strip()
+                    
+                    # Check if this paragraph matches any flagged heading text
+                    for txt in heading_texts_to_fix:
+                        clean_txt = re.sub(r'[?.\s\-\:]+', '', txt).lower()
+                        clean_p_text = re.sub(r'[?.\s\-\:]+', '', plain_p).lower()
+                        
+                        # Match if they are identical or nearly identical in length
+                        is_match = (clean_txt == clean_p_text or 
+                                    (clean_txt in clean_p_text and len(plain_p) < len(txt) + 15) or
+                                    (clean_p_text in clean_txt and len(txt) < len(plain_p) + 15))
+                        
+                        if is_match and len(plain_p) < 120:
+                            tag = "h2" if h2_assigned < 4 else "h3"
+                            clean_text_inside = re.sub(r'<[^>]+>', '', p_content).strip()
+                            new_heading = f"<{tag}>{clean_text_inside}</{tag}>"
+                            draft = draft.replace(p_html, new_heading)
+                            heading_fixes += 1
+                            h2_assigned += 1
+                            break
+                            
+            if heading_fixes > 0:
+                logs.append(f"📐 [HEADING FIX] Tự động chuyển đổi {heading_fixes} thẻ <p> → <h2>/<h3> dựa trên danh sách lỗi cấu trúc.")
+                await self._emit_progress(campaign, logs[-1])
+                logger.warning(f"📐 [SeoAnalyzer] Auto-promoted {heading_fixes} <p> tags to heading tags.")
+        
+        # Build annotation items for AI refiner (exclude heading-type — already fixed above)
+        annots = annots_raw
         valid_items = []
         snippet_list = ""
 
         for i, a in enumerate(annots[:40]):
+            ann_type = a.get('type', '')
+            # Skip heading annotations (already handled deterministically)
+            if ann_type in heading_types:
+                continue
             txt_raw = str(a.get('text', '')).strip()
             if len(txt_raw) < 5: continue
             txt = await noise_cleaner.clean(txt_raw, mode="light", strip_html=False)
-            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi SEO: {a.get('message','')}\n"
+            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi SEO: {a.get('message','')}\n- Pillar: {ann_type}\n"
             valid_items.append({"id": i+1, "old_text": txt})
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
@@ -431,6 +636,18 @@ DRAFT:
                     orig = next((v for v in valid_items if v["id"] == fix.id), None)
                     if orig and fix.new_text:
                         old, new = orig["old_text"], await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
+                        
+                        # 🚫 Programmatically strip newly introduced <a> tags to enforce "Không tự ý gắn link"
+                        old_links = set(re.findall(r'<a[^>]*>(.*?)</a>', old, re.IGNORECASE | re.DOTALL))
+                        def _replace_new_link(match):
+                            link_html = match.group(0)
+                            inner_text = match.group(1)
+                            if link_html not in old_links:
+                                logger.info(f"[SeoAnalyzer] Programmatically stripped newly introduced link: {link_html}")
+                                return inner_text
+                            return link_html
+                        new = re.sub(r'<a[^>]*>(.*?)</a>', _replace_new_link, new, flags=re.IGNORECASE | re.DOTALL)
+
                         new_c = refinement_stitch(final_content, old, new, label="SeoAnalyzer")
                         if new_c != final_content:
                             final_content, replacements_made = new_c, replacements_made + 1

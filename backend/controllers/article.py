@@ -92,6 +92,15 @@ class ArticleController(Controller):
         """Update an article (Service-Centric RAG)."""
         res = await article_service.update_article(db_session, article_id, data)
         await db_session.commit()
+
+        # Invalidate news cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                await xohi_memory.client.delete(f"news:content:{article_id}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         return res
 
     @delete("/{article_id:str}", status_code=200, guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
@@ -104,6 +113,15 @@ class ArticleController(Controller):
         """R18: Soft delete."""
         res = await article_service.delete_article(db_session, article_id)
         await db_session.commit()
+
+        # Invalidate news cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                await xohi_memory.client.delete(f"news:content:{article_id}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         return res
 
     @post("/bulk-delete", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
@@ -116,6 +134,16 @@ class ArticleController(Controller):
         """R18: Soft delete multiple articles."""
         res = await article_service.bulk_delete(db_session, data.ids)
         await db_session.commit()
+
+        # Invalidate news cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                for aid in data.ids:
+                    await xohi_memory.client.delete(f"news:content:{aid}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         return res
 
     @post("/bulk-publish", guards=[PermissionGuard(PermissionEnum.CONTENT_PUBLISH)])
@@ -128,6 +156,16 @@ class ArticleController(Controller):
         """Publish multiple articles."""
         res = await article_service.bulk_publish(db_session, data.ids)
         await db_session.commit()
+
+        # Invalidate news cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                for aid in data.ids:
+                    await xohi_memory.client.delete(f"news:content:{aid}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         return res
 
     @patch("/bulk-update", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
@@ -140,6 +178,16 @@ class ArticleController(Controller):
         """Bulk update status or category."""
         res = await article_service.bulk_patch(db_session, data.ids, data.status, data.category)
         await db_session.commit()
+
+        # Invalidate news cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                for aid in data.ids:
+                    await xohi_memory.client.delete(f"news:content:{aid}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         return res
 
     @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)

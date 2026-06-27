@@ -20,6 +20,7 @@ from typing import AsyncGenerator, Union
 from litestar import Controller, get, Request
 from litestar.response import Stream
 from backend.services.event_bus import event_bus
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 

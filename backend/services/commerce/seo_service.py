@@ -52,38 +52,11 @@ _entropy_cfg_cache: dict[str, object] = {
     "schema_drop_probability": 0.2,
     "lexical_sanitizer_enabled": True,
 }
-
-_outbound_links_cache: dict[str, object] = {
-    "max_links_per_article": 2,
-    "authority_map": [
-        {"keyword": "Tiến sĩ Kenneth K. Hansraj", "url": "https://pubmed.ncbi.nlm.nih.gov/25393825/"},
-        {"keyword": "Hiệp hội Placenta Nhật Bản", "url": "https://jplaa.jp/"},
-        {"keyword": "Miccosmo Japan Laboratory", "url": "https://www.miccosmo.co.jp/english/"},
-        {"keyword": "chiết xuất nhau thai cừu", "url": "https://jplaa.jp/"},
-        {"keyword": "nhau thai cừu", "url": "https://jplaa.jp/"},
-        {"keyword": "ceramide tinh khiết", "url": "https://pubmed.ncbi.nlm.nih.gov/31840425/"},
-        {"keyword": "dầu hạt jojoba", "url": "https://pubmed.ncbi.nlm.nih.gov/24442110/"},
-        {"keyword": "Harvard Health Publishing", "url": "https://www.health.harvard.edu"},
-        {"keyword": "Đại học Y Harvard", "url": "https://www.health.harvard.edu"},
-        {"keyword": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/"},
-        {"keyword": "ceramide", "url": "https://pubmed.ncbi.nlm.nih.gov/31840425/"},
-        {"keyword": "collagen", "url": "https://pubmed.ncbi.nlm.nih.gov/30681787/"}
-    ]
-}
-
-
 def update_entropy_cache(cfg: dict[str, object]) -> None:
     """SGE Shield: Update in-process cache khi Admin lưu settings. Called by SettingsService."""
     _entropy_cfg_cache.clear()
     _entropy_cfg_cache.update(cfg)
     logger.info("[SGE Shield] Entropy cache updated: enabled=%s", cfg.get("enabled"))
-
-
-def update_outbound_links_cache(cfg: dict[str, object]) -> None:
-    """Update in-process cache for outbound authority links. Called by SettingsService."""
-    _outbound_links_cache.clear()
-    _outbound_links_cache.update(cfg)
-    logger.info("[SEO] Outbound links cache updated: max_links=%s", cfg.get("max_links_per_article"))
 
 
 class SeoService:
@@ -1072,42 +1045,6 @@ class SeoService:
         if not html_content:
             return html_content
 
-        max_links = _outbound_links_cache.get("max_links_per_article", 2)
-        authority_list = _outbound_links_cache.get("authority_map", [])
-
-        injected_count = 0
-        for item in authority_list:
-            if isinstance(item, dict):
-                keyword = item.get("keyword")
-                url = item.get("url")
-            else:
-                keyword = getattr(item, "keyword", None)
-                url = getattr(item, "url", None)
-
-            if not keyword or not url:
-                continue
-
-            if injected_count >= max_links:
-                break
-            if keyword in html_content:
-                # Split content by existing <a> tags to prevent nested links
-                parts = re.split(r'(<a[^>]*>.*?</a>)', html_content, flags=re.IGNORECASE | re.DOTALL)
-                changed = False
-                for i in range(len(parts)):
-                    if i % 2 == 0:  # Text outside <a> tags
-                        pattern = re.compile(re.escape(keyword))
-                        if pattern.search(parts[i]):
-                            parts[i] = pattern.sub(
-                                f'<a href="{url}" target="_blank" rel="nofollow noopener noreferrer" class="seo-authority-link">{keyword}</a>',
-                                parts[i],
-                                count=1
-                            )
-                            changed = True
-                            injected_count += 1
-                            break  # Move to next keyword
-                if changed:
-                    html_content = "".join(parts)
-
         # Elite V2.2: Hardening existing external links to ensure E-E-A-T rel authority compliance
         def _harden_external_link(match: re.Match) -> str:
             tag = match.group(0)
@@ -1123,5 +1060,48 @@ class SeoService:
             return tag
 
         html_content = re.sub(r'<a\b[^>]*>', _harden_external_link, html_content, flags=re.IGNORECASE)
+
+        return html_content
+
+    @staticmethod
+    async def inject_contextual_links(db: AsyncSession, article_id: str, html_content: str) -> str:
+        """Inject applied SGE contextual links into HTML content dynamically at runtime."""
+        if not html_content:
+            return html_content
+
+        try:
+            from backend.database.models.seo import SeoContextualLink, SeoContextualLinkStatus
+            from backend.services.seo_contextual_linker import seo_contextual_linker
+
+            stmt = select(SeoContextualLink).where(
+                SeoContextualLink.source_article_id == article_id,
+                SeoContextualLink.status == SeoContextualLinkStatus.APPLIED,
+            ).order_by(SeoContextualLink.sentence_index.desc())
+
+            res = await db.execute(stmt)
+            links = res.scalars().all()
+
+            for link in links:
+                attrs = []
+                if link.link_rel and link.link_rel.strip().lower() not in ["", "dofollow"]:
+                    attrs.append(f'rel="{link.link_rel.strip()}"')
+                if link.link_title:
+                    attrs.append(f'title="{link.link_title.strip()}"')
+                if link.link_target:
+                    attrs.append(f'target="{link.link_target.strip()}"')
+
+                valid_attrs = " " + " ".join(attrs) if attrs else ""
+
+                new_content, success = seo_contextual_linker._inject_link_into_html(
+                    html_content,
+                    link.original_sentence,
+                    link.anchor_text,
+                    link.target_url,
+                    valid_attrs,
+                )
+                if success:
+                    html_content = new_content
+        except Exception as e:
+            logger.error("[SeoService] Dynamic contextual link injection failed: %s", e)
 
         return html_content

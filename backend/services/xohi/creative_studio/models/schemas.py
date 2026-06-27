@@ -326,15 +326,15 @@ class EnrichResponse(EnrichAIPayload):
 
 class SeoSignal(BaseModel):
     model_config = ConfigDict(strict=True)
-    label: str
-    score: int
-    status: str # "good", "warning", "error"
+    label: str = Field(description="Tên signal theo 7 trụ cột 2026: 'Cấu trúc HTML & Heading', 'Mật độ & Phân bổ từ khóa', 'SGE & AI Overviews Readiness', 'GEO — Generative Engine Optimization', 'E-E-A-T Signals', 'Information Gain & Content Depth', 'Technical SEO & UX'")
+    score: int = Field(description="Điểm 0-100 cho signal này")
+    status: str = Field(description="'good' nếu score ≥80, 'warning' nếu 50-79, 'error' nếu <50")
 
 class SeoReport(BaseModel):
     model_config = ConfigDict(strict=True)
-    total_score: int
-    grade: str
-    signals: List[SeoSignal]
+    total_score: int = Field(description="Điểm tổng 0-100 — trung bình có trọng số 7 signals: Heading(15%) + Keyword(10%) + SGE/AIO(20%) + GEO(15%) + EEAT(20%) + InfoGain(10%) + TechSEO(10%)")
+    grade: str = Field(description="A (≥85), B (70-84), C (55-69), D (40-54), F (<40). Nếu không có heading → F bắt buộc.")
+    signals: List[SeoSignal] = Field(description="BẮT BUỘC 7 signals theo đúng 7 trụ cột 2026")
     summary: str
     quick_wins: List[str]
     seo_annotations: List[SeoAnnotation]

@@ -143,6 +143,19 @@ def normalize_vietnamese_encoding(text: str) -> str:
     # 1. Chuẩn hóa sang NFC
     text = unicodedata.normalize("NFC", text)
     
+    # 1.5. Nếu chứa thẻ HTML, phân tách để tránh thêm dấu cách vào bên trong thẻ (ví dụ: <h2 -> <h 2)
+    if '<' in text and '>' in text:
+        parts = re.split(r'(<[^>]+>)', text)
+        for i in range(len(parts)):
+            if i % 2 == 0:  # Chỉ xử lý phần text, giữ nguyên tag HTML ở chỉ số lẻ
+                parts[i] = _normalize_spacing_rules(parts[i])
+        return "".join(parts)
+    else:
+        return _normalize_spacing_rules(text)
+
+def _normalize_spacing_rules(text: str) -> str:
+    if not text:
+        return text
     # 2. Thêm khoảng trắng giữa chữ thường và chữ hoa (ví dụ: bìThấp -> bì Thấp)
     text = re.sub(
         r'([a-zâăêơưđàáảãạằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ])([A-ZÂĂÊƠƯĐÀÁẢÃẠẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ])',

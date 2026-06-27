@@ -158,23 +158,47 @@ class AnomalyDetector:
 
             pct = (rss_mb / limit_mb * 100) if limit_mb > 0 else 0
 
-            # Aggressive memory mitigation buffer (Goal 2)
+            # Aggressive memory mitigation buffer (Goal 2) — V2.4 Enhanced
             if pct >= 80:
+                rss_before = rss_mb
                 try:
+                    # 1. Release fastembed encoder (~200MB if loaded)
                     from backend.services.ai_engine.core.encoder_singleton import release_shared_encoder
                     release_shared_encoder()
+
+                    # 2. Clear Python internal caches that accumulate over time
+                    import linecache
+                    linecache.clearcache()  # Traceback/inspect line cache
+
+                    # 3. Clear functools.lru_cache instances in hot paths
+                    try:
+                        from backend.utils.text import normalize_vn
+                        if hasattr(normalize_vn, 'cache_clear'):
+                            normalize_vn.cache_clear()
+                    except Exception:
+                        pass
+
+                    # 4. Full 3-generation GC sweep + return pages to OS
                     import gc
                     import ctypes
                     gc.collect(generation=2)
+                    gc.collect(generation=1)
+                    gc.collect(generation=0)
                     try:
                         ctypes.CDLL("libc.so.6").malloc_trim(0)
-                        logger.warning(f"[OOM Guard] RAM threshold reached {pct:.1f}%. Triggered aggressive mitigation (released encoder & malloc_trim).")
                     except Exception:
                         pass
+
                     # Recalculate RSS after mitigation
                     rss_bytes = process.memory_info().rss
                     rss_mb = rss_bytes / (1024 * 1024)
+                    freed_mb = rss_before - rss_mb
                     pct = (rss_mb / limit_mb * 100) if limit_mb > 0 else 0
+                    logger.warning(
+                        f"[OOM Guard] RAM was {rss_before:.0f}MB ({rss_before/limit_mb*100:.1f}%). "
+                        f"After mitigation: {rss_mb:.0f}MB ({pct:.1f}%). "
+                        f"Freed: {freed_mb:.1f}MB."
+                    )
                 except Exception as mitigation_err:
                     logger.error(f"[OOM Guard] Mitigation failed: {mitigation_err}")
 

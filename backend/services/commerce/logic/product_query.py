@@ -11,8 +11,15 @@ from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
-def _get_base_query(include_description: bool = True):
-    """Elite V2.2: Centralized projection to prevent MissingGreenlet errors."""
+def _get_base_query(include_description: bool = True, lightweight: bool = False):
+    """Elite V2.3: Centralized projection to prevent MissingGreenlet errors.
+    
+    Args:
+        include_description: Include full description column (heavy text).
+        lightweight: If True, skip heavy JSONB columns (market_data, tier_variations,
+                     mobile_images) to reduce data transfer for list views.
+                     Missing fields will be filled with defaults during serialization.
+    """
     cols = [
         ProductBase.id, ProductBase.name, ProductBase.sku,
         ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
@@ -23,11 +30,17 @@ def _get_base_query(include_description: bool = True):
     cols.extend([
         ProductBase.type,
         ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-        ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-        ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
+        ProductBase.images, ProductBase.attributes,
+        ProductBase.product_metadata.label("metadata"),
         ProductBase.created_at, ProductBase.updated_at, ProductBase.order_count, ProductBase.is_ai_featured, ProductBase.ctv_rate_override_bps,
         Category.name.label("category_name"), Category.slug.label("category_slug")
     ])
+    # Heavy JSONB columns — only load for detail views
+    if not lightweight:
+        cols.extend([
+            ProductBase.mobile_images, ProductBase.tier_variations,
+            ProductBase.market_data, ProductBase.last_market_sync,
+        ])
     return select(*cols).outerjoin(Category, ProductBase.category_id == Category.id)
 
 async def list_products_logic(
@@ -49,7 +62,7 @@ async def list_products_logic(
     cursor: Optional[str] = None
 ) -> ProductListResponse:
     """Elite V2.2: Advanced Product Query & Filtering (Isolated & Hardened) with Keyset Cursor Pagination."""
-    stmt = _get_base_query(include_description=False).where(ProductBase.deleted_at == None)
+    stmt = _get_base_query(include_description=False, lightweight=True).where(ProductBase.deleted_at == None)
 
     # 1. Filters
     if category_slug:
@@ -121,9 +134,50 @@ async def list_products_logic(
                     )
                 )
 
-    # 3. Total Count (Only do total count if offset-based is used, otherwise return a dummy total to protect high-concurrency)
+    # 3. Total Count — Direct count on product_bases (avoids expensive subquery wrapping)
+    # Only do total count if offset-based is used, otherwise return 0 to protect high-concurrency
     if not cursor:
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        count_stmt = select(func.count(ProductBase.id)).where(ProductBase.deleted_at == None)
+        # Re-apply same filters for accurate count (without JOIN overhead when possible)
+        if category_slug:
+            count_stmt = count_stmt.where(ProductBase.category_id.in_(
+                select(Category.id).where(Category.slug == category_slug, Category.deleted_at == None)
+            ))
+        if category_id:
+            count_stmt = count_stmt.where(ProductBase.category_id == category_id)
+        if product_ids:
+            count_stmt = count_stmt.where(ProductBase.id.in_(product_ids))
+        if featured_only:
+            count_stmt = count_stmt.where(ProductBase.is_ai_featured == True)
+        if search:
+            clean_search = await noise_cleaner.clean(search)
+            search_pattern = f"%{escape_like(clean_search)}%"
+            count_stmt = count_stmt.where(
+                or_(
+                    ProductBase.name.ilike(search_pattern),
+                    ProductBase.sku.ilike(search_pattern)
+                )
+            )
+        if brand:
+            count_stmt = count_stmt.where(
+                or_(
+                    ProductBase.attributes["brand"].astext == brand,
+                    ProductBase.attributes["Thương hiệu"].astext == brand
+                )
+            )
+        if origin:
+            count_stmt = count_stmt.where(
+                or_(
+                    ProductBase.attributes["origin"].astext == origin,
+                    ProductBase.attributes["Xuất xứ"].astext == origin
+                )
+            )
+        if min_price is not None:
+            count_stmt = count_stmt.where(ProductBase.price >= min_price)
+        if max_price is not None:
+            count_stmt = count_stmt.where(ProductBase.price <= max_price)
+        if status:
+            count_stmt = count_stmt.where(ProductBase.status == status.upper())
         total = (await db_session.execute(count_stmt)).scalar_one()
     else:
         total = 0

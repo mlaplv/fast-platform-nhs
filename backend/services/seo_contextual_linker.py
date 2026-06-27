@@ -18,6 +18,7 @@ import asyncio
 import hashlib
 import logging
 import re
+import string
 from html.parser import HTMLParser
 from typing import Optional
 
@@ -154,6 +155,19 @@ class SeoContextualLinker:
         is_dry_run = dry_run or os.getenv("SEO_LINKER_DRY_RUN", "false").lower() == "true"
         tenant = current_tenant_id.get() or "default"
         content_hash = hashlib.md5(article_content.encode()).hexdigest()
+
+        if not is_dry_run:
+            # Clear previous pending/rejected suggestions for this article immediately to prevent stale data
+            stmt = delete(SeoContextualLink).where(
+                SeoContextualLink.source_article_id == article_id,
+                SeoContextualLink.tenant_id == tenant,
+                SeoContextualLink.status.in_(["pending", "rejected"]),
+            )
+            if target_pillar_id:
+                stmt = stmt.where(SeoContextualLink.target_node_id == target_pillar_id)
+            await db.execute(stmt)
+            await db.commit()
+            logger.info("[ContextualLinker] Cleared previous pending/rejected suggestions for article %s (pillar: %s)", article_id, target_pillar_id)
 
         # Step 0: Load Pillar nodes with their entities
         pillars = await self._load_pillars_with_entities(db, tenant)
@@ -297,6 +311,21 @@ class SeoContextualLinker:
 
         # Step 4: Validate + Persist
         valid_pillar_ids = {p["id"] for p in pillars}
+
+        # Normalize entity type for all suggestions to prevent misclassification
+        for suggestion in all_suggestions:
+            pid = suggestion.target_pillar_id
+            pillar_label = ""
+            for p in pillars:
+                if p["id"] == pid:
+                    pillar_label = p.get("label") or ""
+                    break
+            suggestion.matched_entity_type = self._normalize_entity_type(
+                suggestion.matched_entity_type,
+                suggestion.matched_entity_name,
+                pillar_label
+            )
+
         persisted = 0
         dry_run_results = []
 
@@ -310,6 +339,10 @@ class SeoContextualLinker:
                 if errors:
                     continue
                 if suggestion.confidence < _MIN_CONFIDENCE:
+                    continue
+                eas_score = self._calculate_eas(suggestion, pillars, article_content)
+                if eas_score < 0.6:
+                    logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                     continue
                 if persisted >= effective_max:
                     break
@@ -363,15 +396,6 @@ class SeoContextualLinker:
             from backend.database.alchemy_config import alchemy_config
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as new_db:
-                # Clear previous pending/rejected suggestions for this article (re-analysis)
-                await new_db.execute(
-                    delete(SeoContextualLink).where(
-                        SeoContextualLink.source_article_id == article_id,
-                        SeoContextualLink.tenant_id == tenant,
-                        SeoContextualLink.status.in_(["pending", "rejected"]),
-                    )
-                )
-
                 # Track links per pillar for density constraint
                 pillar_link_count: dict[str, int] = {}
                 for suggestion in all_suggestions:
@@ -381,6 +405,10 @@ class SeoContextualLinker:
                     if errors:
                         continue
                     if suggestion.confidence < _MIN_CONFIDENCE:
+                        continue
+                    eas_score = self._calculate_eas(suggestion, pillars, article_content)
+                    if eas_score < 0.6:
+                        logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                         continue
                     if persisted >= effective_max:
                         break
@@ -695,6 +723,110 @@ class SeoContextualLinker:
 
         return errors
 
+    def _calculate_eas(
+        self,
+        suggestion: SentenceLinkSuggestion,
+        pillars: list[dict[str, object]],
+        article_content: Optional[str] = None,
+    ) -> float:
+        """
+        Calculate Entity Alignment Score (EAS V2) under Google CTO-level strictness.
+        """
+        pid = suggestion.target_pillar_id
+        target_pillar = None
+        for p in pillars:
+            if p["id"] == pid:
+                target_pillar = p
+                break
+
+        if not target_pillar:
+            return 0.0
+
+        entity_type = target_pillar.get("entity_type", "ARTICLE")
+
+        # 1. Gate_brand
+        gate_brand = 1.0
+        if entity_type == "PRODUCT":
+            # Check if anchor text contains brand keywords or product name parts
+            brand_keywords = ["miccosmo", "beppin", "white label", "placenta", "virgin", "essence", "cream", "serum", "gel", "soap"]
+            # Also extract lowercase tokens from target product label (excluding common words)
+            label_lower = (target_pillar.get("label") or "").lower()
+            label_clean = label_lower.translate(str.maketrans("", "", string.punctuation))
+            label_tokens = [t for t in label_clean.split() if len(t) >= 3 and t not in ["kem", "cho", "tro", "duong", "sang", "ngua", "lao", "hoa", "nhap", "khau", "chinh", "hang"]]
+            
+            anchor_lower = (suggestion.anchor_text or "").lower()
+            has_brand_token = any(kw in anchor_lower for kw in brand_keywords) or any(t in anchor_lower for t in label_tokens)
+            if not has_brand_token:
+                gate_brand = 0.0
+
+        # 2. Gate_intent
+        gate_intent = 1.0
+        sentence_lower = (suggestion.original_sentence or "").lower()
+        solution_keywords = ["dùng", "sử dụng", "thoa", "bôi", "uống", "khắc phục", "điều trị", "chữa", "cải thiện", "chăm sóc", "phục hồi", "tái tạo", "ngăn ngừa", "bảo vệ", "giảm", "trị"]
+        if not any(kw in sentence_lower for kw in solution_keywords):
+            gate_intent = 0.5
+
+        # 3. Base Score
+        ent_type = suggestion.matched_entity_type
+        if hasattr(ent_type, "value"):
+            ent_type = ent_type.value
+        elif isinstance(ent_type, str):
+            ent_type = ent_type.lower()
+        else:
+            ent_type = str(ent_type).lower()
+
+        s_type = 0.2
+        if ent_type in ["brand", "ingredient", "feature", "product"]:
+            s_type = 1.0
+
+        s_context = suggestion.confidence
+
+        base_score = 0.6 * s_type + 0.4 * s_context
+        eas = gate_brand * gate_intent * base_score
+
+        # 4. Paragraph-Level Density Gate
+        if article_content:
+            paragraphs = []
+            if "<p>" in article_content:
+                paragraphs = re.split(r'</?p>', article_content)
+            else:
+                paragraphs = article_content.split("\n")
+            
+            for p_text in paragraphs:
+                if suggestion.original_sentence in p_text:
+                    existing_a_tags = len(re.findall(r'<a\b[^>]*>', p_text))
+                    if existing_a_tags > 0:
+                        word_count = len(p_text.split())
+                        if word_count < 100:
+                            eas *= 0.5
+                    break
+
+        return eas
+
+    def _normalize_entity_type(self, entity_type: str, entity_name: str, target_pillar_label: str) -> str:
+        """
+        Normalize entity type based on entity name to prevent obvious classification mismatches.
+        """
+        e_type = entity_type.lower().strip()
+        e_name = entity_name.lower().strip()
+        p_label = target_pillar_label.lower().strip()
+        
+        # Brand and product keywords
+        brand_keywords = {"miccosmo", "beppin", "white label", "hurry harry", "virgin white", "virgin"}
+        
+        # If the matched entity name contains any brand names, or is highly similar to the pillar label:
+        is_brand_or_product = (
+            any(brand in e_name for brand in brand_keywords) or
+            e_name in p_label or
+            p_label in e_name
+        )
+        
+        if is_brand_or_product:
+            if e_type in ["symptom", "pain_point"]:
+                return "brand"
+                
+        return entity_type
+
     # ─── HTML-Tolerant Link Injection ───────────────────────────────────────
 
     @staticmethod
@@ -819,11 +951,6 @@ class SeoContextualLinker:
         skipped_inject_fail = 0
 
         for link in links:
-            # Check content_hash trước — nếu hash không khớp → nội dung bài viết thực sự đã thay đổi
-            if link.content_hash and link.content_hash != current_hash:
-                skipped_stale += 1
-                continue
-
             attrs = []
             if link.link_rel and link.link_rel.strip().lower() not in ["", "dofollow"]:
                 attrs.append(f'rel="{link.link_rel.strip()}"')
@@ -844,22 +971,23 @@ class SeoContextualLinker:
             if success:
                 content = new_content
                 link.status = SeoContextualLinkStatus.APPLIED
+                link.content_hash = current_hash  # Auto-heal the hash in registry!
                 if reviewer_id:
                     link.reviewed_by = reviewer_id
                 applied += 1
             else:
-                skipped_inject_fail += 1
+                if link.content_hash and link.content_hash != current_hash:
+                    skipped_stale += 1
+                else:
+                    skipped_inject_fail += 1
                 logger.warning(
                     "[ContextualLinker] Inject fail for link %s in article %s: sentence not found in HTML",
                     link.id, article_id,
                 )
 
         if applied > 0:
-            article.content = content
-            from sqlalchemy.orm.attributes import flag_modified
-            flag_modified(article, "content")
             logger.info(
-                "[ContextualLinker] Wrote %d injected links into article %s content",
+                "[ContextualLinker] Marked %d links as APPLIED in database registry for article %s",
                 applied, article_id,
             )
 

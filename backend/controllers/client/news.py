@@ -71,7 +71,25 @@ class PublicNewsController(Controller):
         try:
             article = await article_service.get_article(db_session, article_id)
             if article.content:
-                article.content = SeoService.inject_outbound_authority_links(article.content)
+                from backend.services.xohi_memory import xohi_memory
+                cache_key = f"news:content:{article.id}"
+                cached_content = None
+                try:
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        cached_content = await xohi_memory.client.get(cache_key)
+                except Exception as ce:
+                    logger.warning(f"Failed to fetch cached news content: {ce}")
+
+                if cached_content:
+                    article.content = cached_content
+                else:
+                    article.content = SeoService.inject_outbound_authority_links(article.content)
+                    article.content = await SeoService.inject_contextual_links(db_session, article.id, article.content)
+                    try:
+                        if xohi_memory._use_redis and xohi_memory.client:
+                            await xohi_memory.client.set(cache_key, article.content, ex=3600)
+                    except Exception as ce:
+                        logger.warning(f"Failed to cache news content: {ce}")
             if article.status != "PUBLISHED":
                 user = request.scope.get("state", {}).get("user")
                 is_admin = False
@@ -114,7 +132,25 @@ class PublicNewsController(Controller):
         try:
             article = await article_service.get_article_by_slug(db_session, slug)
             if article.content:
-                article.content = SeoService.inject_outbound_authority_links(article.content)
+                from backend.services.xohi_memory import xohi_memory
+                cache_key = f"news:content:{article.id}"
+                cached_content = None
+                try:
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        cached_content = await xohi_memory.client.get(cache_key)
+                except Exception as ce:
+                    logger.warning(f"Failed to fetch cached news content: {ce}")
+
+                if cached_content:
+                    article.content = cached_content
+                else:
+                    article.content = SeoService.inject_outbound_authority_links(article.content)
+                    article.content = await SeoService.inject_contextual_links(db_session, article.id, article.content)
+                    try:
+                        if xohi_memory._use_redis and xohi_memory.client:
+                            await xohi_memory.client.set(cache_key, article.content, ex=3600)
+                    except Exception as ce:
+                        logger.warning(f"Failed to cache news content: {ce}")
             if article.status != "PUBLISHED":
                 user = request.scope.get("state", {}).get("user")
                 is_admin = False

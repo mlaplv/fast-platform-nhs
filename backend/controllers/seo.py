@@ -666,6 +666,16 @@ class SeoController(Controller):
         link.linked_sentence = link.original_sentence.replace(link.anchor_text, a_tag, 1)
 
         await db_session.commit()
+
+        # Invalidate news content cache
+        if link.source_article_id:
+            from backend.services.xohi_memory import xohi_memory
+            try:
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.delete(f"news:content:{link.source_article_id}")
+            except Exception as ce:
+                logger.warning(f"Failed to clear news cache: {ce}")
+
         return SuccessResponse(message="Cập nhật contextual link thành công.")
 
     @post(
@@ -690,6 +700,14 @@ class SeoController(Controller):
         )
         await db_session.commit()
 
+        # Invalidate news content cache
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                await xohi_memory.client.delete(f"news:content:{article_id}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
         if result["applied_count"] == 0 and result["skipped_stale"] > 0:
             return SuccessResponse(
                 message=f"Không thể apply. {result['skipped_stale']} link bị skip vì nội dung bài viết đã thay đổi. Cần re-analyze.",
@@ -706,6 +724,52 @@ class SeoController(Controller):
             message=f"Đã apply {result['applied_count']} link vào nội dung bài viết.",
             data=result,
         )
+
+    @post(
+        "/contextual-links/{link_id:str}/revert",
+        guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)],
+        status_code=200,
+    )
+    async def revert_contextual_link(
+        self,
+        db_session: AsyncSession,
+        link_id: str,
+    ) -> SuccessResponse:
+        """Gỡ bỏ link đã chèn khỏi registry bằng cách đổi status về APPROVED."""
+        from sqlalchemy import select
+        from backend.database.models.seo import SeoContextualLink, SeoContextualLinkStatus
+        from backend.database import current_tenant_id
+
+        tenant = current_tenant_id.get() or "default"
+
+        link = await db_session.scalar(
+            select(SeoContextualLink).where(
+                SeoContextualLink.id == link_id,
+                SeoContextualLink.tenant_id == tenant,
+            )
+        )
+        if not link:
+            raise NotFoundException(f"Contextual link {link_id} không tồn tại.")
+
+        if link.status != SeoContextualLinkStatus.APPLIED:
+            return SuccessResponse(
+                message="Liên kết này chưa được áp dụng (APPLIED).",
+                data={"error": True}
+            )
+
+        link.status = SeoContextualLinkStatus.APPROVED
+        await db_session.commit()
+
+        # Invalidate news content cache
+        if link.source_article_id:
+            from backend.services.xohi_memory import xohi_memory
+            try:
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.delete(f"news:content:{link.source_article_id}")
+            except Exception as ce:
+                logger.warning(f"Failed to clear news cache: {ce}")
+
+        return SuccessResponse(message="Đã loại bỏ cập nhật liên kết thành công.")
 
     @post(
         "/contextual-links/pillar/{pillar_node_id:str}/apply",
@@ -758,6 +822,15 @@ class SeoController(Controller):
             total_inject_fail += res_apply.get("skipped_inject_fail", 0)
 
         await db_session.commit()
+
+        # Invalidate news content cache for all processed source articles
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                for src_id in unique_src_ids:
+                    await xohi_memory.client.delete(f"news:content:{src_id}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
 
         return SuccessResponse(
             message=f"Đã chèn thành công {total_applied} liên kết vào {len(unique_src_ids)} bài viết. (Bỏ qua {total_skipped} link hết hạn, {total_inject_fail} link không khớp HTML).",

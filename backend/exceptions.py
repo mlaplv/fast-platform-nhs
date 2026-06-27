@@ -30,7 +30,9 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
         )
 
     if isinstance(exc, HTTPException) and exc.status_code < 500:
-        if exc.status_code == 401 or (exc.status_code == 400 and "Invalid article ID format" in exc.detail):
+        if exc.status_code in (401, 403, 404, 405):
+            logger.info(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")
+        elif exc.status_code == 400 and "Invalid article ID format" in exc.detail:
             logger.debug(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")
         else:
             logger.warning(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")

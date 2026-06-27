@@ -1,20 +1,21 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import Check from '@lucide/svelte/icons/check';
-	import X from '@lucide/svelte/icons/x';
-	import Edit2 from '@lucide/svelte/icons/edit-2';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-	import HelpCircle from '@lucide/svelte/icons/help-circle';
-	import Link2 from '@lucide/svelte/icons/link-2';
-	import type { Article } from '$lib/types';
-	import { useNanobot } from '$lib/state/nanobot.svelte';
-	import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
-	import { apiClient } from '$lib/utils/apiClient';
+	import { onMount } from "svelte";
+	import Check from "@lucide/svelte/icons/check";
+	import X from "@lucide/svelte/icons/x";
+	import Edit2 from "@lucide/svelte/icons/edit-2";
+	import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+	import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+	import HelpCircle from "@lucide/svelte/icons/help-circle";
+	import Link2 from "@lucide/svelte/icons/link-2";
+	import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+	import type { Article } from "$lib/types";
+	import { useNanobot } from "$lib/state/nanobot.svelte";
+	import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+	import { apiClient } from "$lib/utils/apiClient";
 
 	export interface SeoContextualLink {
 		id: string;
-		status: 'pending' | 'approved' | 'rejected' | 'applied';
+		status: "pending" | "approved" | "rejected" | "applied";
 		matched_entity_type: string;
 		matched_entity_name: string;
 		target_url: string;
@@ -39,18 +40,18 @@
 	}
 
 	let {
-		apiBase = import.meta.env.VITE_API_BASE ?? '',
-		articleId = '',
-		pillarId = '',
-		reviewMode = 'article', // 'article' | 'pillar'
+		apiBase = import.meta.env.VITE_API_BASE ?? "",
+		articleId = "",
+		pillarId = "",
+		reviewMode = "article", // 'article' | 'pillar'
 		data = null,
 		isWidget = false,
-		onClose = () => {}
+		onClose = () => {},
 	}: {
 		apiBase?: string;
 		articleId?: string;
 		pillarId?: string;
-		reviewMode?: 'article' | 'pillar';
+		reviewMode?: "article" | "pillar";
 		data?: ReviewWidgetData | null;
 		isWidget?: boolean;
 		onClose?: () => void;
@@ -61,34 +62,41 @@
 	// Component states
 	let isLoading = $state(false);
 	let isActioning = $state(false);
-	let articleTitle = $state('');
+	let articleTitle = $state("");
 	let isStale = $state(false);
 	let links = $state<SeoContextualLink[]>([]);
-	let stats = $state<LinkStats>({ pending: 0, approved: 0, rejected: 0, applied: 0 });
+	let stats = $state<LinkStats>({
+		pending: 0,
+		approved: 0,
+		rejected: 0,
+		applied: 0,
+	});
 	let errorMessage = $state<string | null>(null);
 	let successMessage = $state<string | null>(null);
 	let articlesList = $state<Article[]>([]);
 
 	// Filtering / sorting
-	let statusFilter = $state<'all' | 'pending' | 'approved' | 'rejected' | 'applied'>('all');
+	let statusFilter = $state<
+		"all" | "pending" | "approved" | "rejected" | "applied"
+	>("all");
 	let offset = $state(0);
 	const limit = 20;
 	let hasMore = $state(true);
-	
+
 	// Link editing state
 	let editingLinkId = $state<string | null>(null);
-	let editingAnchorText = $state('');
-	let editingTargetUrl = $state('');
-	let editingRel = $state('');
-	let editingTitle = $state('');
-	let editingTarget = $state('');
+	let editingAnchorText = $state("");
+	let editingTargetUrl = $state("");
+	let editingRel = $state("");
+	let editingTitle = $state("");
+	let editingTarget = $state("");
 
 	// Active targets
 	let activeArticleId = $state<string>(articleId);
 	let activePillarId = $state<string>(pillarId);
 
 	// Custom Autocomplete Dropdown States
-	let searchQuery = $state('');
+	let searchQuery = $state("");
 	let showDropdown = $state(false);
 	let articleLimit = 20;
 	let articleOffset = $state(0);
@@ -97,18 +105,21 @@
 	let debounceTimeout: ReturnType<typeof setTimeout>;
 
 	const selectedArticleTitle = $derived(
-		articlesList.find((a) => a.id === activeArticleId)?.title || '-- Chọn bài viết cần duyệt link SGE --'
+		articlesList.find((a) => a.id === activeArticleId)?.title ||
+			"-- Chọn bài viết cần duyệt link SGE --",
 	);
 
 	const filteredLinks = $derived<SeoContextualLink[]>(
-		(reviewMode === 'article' && !activeArticleId)
+		reviewMode === "article" && !activeArticleId
 			? links
-			: (statusFilter === 'all' ? links : links.filter((l) => l.status === statusFilter))
+			: statusFilter === "all"
+				? links
+				: links.filter((l) => l.status === statusFilter),
 	);
 
 	// Sync active targets with props
 	$effect(() => {
-		if (reviewMode === 'article') {
+		if (reviewMode === "article") {
 			if (data && data.article_id) {
 				activeArticleId = data.article_id;
 			} else if (articleId) {
@@ -124,14 +135,14 @@
 	});
 
 	$effect(() => {
-		if (reviewMode === 'article') {
+		if (reviewMode === "article") {
 			if (activeArticleId) {
 				fetchContextualLinks();
 			} else {
 				links = [];
 				stats = { pending: 0, approved: 0, rejected: 0, applied: 0 };
 				isStale = false;
-				articleTitle = '';
+				articleTitle = "";
 			}
 		} else {
 			if (activePillarId) {
@@ -140,13 +151,13 @@
 				links = [];
 				stats = { pending: 0, approved: 0, rejected: 0, applied: 0 };
 				isStale = false;
-				articleTitle = '';
+				articleTitle = "";
 			}
 		}
 	});
 
 	onMount(async () => {
-		if (reviewMode === 'article') {
+		if (reviewMode === "article") {
 			await fetchArticles();
 		}
 	});
@@ -154,7 +165,7 @@
 	async function fetchArticles(append = false) {
 		if (isFetchingArticles) return;
 		isFetchingArticles = true;
-		
+
 		if (!append) {
 			articleOffset = 0;
 			hasMoreArticles = true;
@@ -164,25 +175,30 @@
 			const queryParams = new URLSearchParams({
 				limit: String(articleLimit),
 				offset: String(articleOffset),
-				category: 'Bài viết'
+				category: "Bài viết",
 			});
 			if (searchQuery.trim()) {
-				queryParams.append('search', searchQuery.trim());
+				queryParams.append("search", searchQuery.trim());
 			}
 
-			const result = await apiClient.get<any>(`/articles?${queryParams.toString()}`);
+			const result = await apiClient.get<any>(
+				`/articles?${queryParams.toString()}`,
+			);
 			const fetched = (result.data || []) as Article[];
 
 			if (append) {
-				const existingIds = new Set(articlesList.map(a => a.id));
-				articlesList = [...articlesList, ...fetched.filter(a => !existingIds.has(a.id))];
+				const existingIds = new Set(articlesList.map((a) => a.id));
+				articlesList = [
+					...articlesList,
+					...fetched.filter((a) => !existingIds.has(a.id)),
+				];
 			} else {
 				articlesList = fetched;
 			}
 
 			hasMoreArticles = fetched.length >= articleLimit;
 		} catch (e) {
-			console.error('Error fetching articles:', e);
+			console.error("Error fetching articles:", e);
 		} finally {
 			isFetchingArticles = false;
 		}
@@ -191,7 +207,7 @@
 	function handleSearchInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
-		
+
 		clearTimeout(debounceTimeout);
 		debounceTimeout = setTimeout(() => {
 			fetchArticles(false);
@@ -208,42 +224,68 @@
 		isLoading = true;
 		errorMessage = null;
 		try {
-			if (reviewMode === 'article') {
+			if (reviewMode === "article") {
 				if (activeArticleId) {
-					const resData = await apiClient.get<any>(`/seo/contextual-links/${activeArticleId}`);
+					const resData = await apiClient.get<any>(
+						`/seo/contextual-links/${activeArticleId}`,
+					);
 					articleTitle = resData.article_title as string;
 					isStale = resData.is_stale as boolean;
 					links = (resData.links || []) as SeoContextualLink[];
-					stats = (resData.stats || { pending: 0, approved: 0, rejected: 0, applied: 0 }) as LinkStats;
+					stats = (resData.stats || {
+						pending: 0,
+						approved: 0,
+						rejected: 0,
+						applied: 0,
+					}) as LinkStats;
 					hasMore = false;
 				} else {
-					const statusParam = statusFilter === 'all' ? '' : `&status=${statusFilter}`;
-					const resData = await apiClient.get<any>(`/seo/contextual-links?limit=${limit}&offset=${offset}${statusParam}`);
-					articleTitle = 'Tất cả bài viết SGE';
+					const statusParam =
+						statusFilter === "all" ? "" : `&status=${statusFilter}`;
+					const resData = await apiClient.get<any>(
+						`/seo/contextual-links?limit=${limit}&offset=${offset}${statusParam}`,
+					);
+					articleTitle = "Tất cả bài viết SGE";
 					isStale = false;
-					
-					const newLinks = (resData.links || []) as SeoContextualLink[];
+
+					const newLinks = (resData.links ||
+						[]) as SeoContextualLink[];
 					if (append) {
 						links = [...links, ...newLinks];
 					} else {
 						links = newLinks;
 					}
-					
-					stats = (resData.stats || { pending: 0, approved: 0, rejected: 0, applied: 0 }) as LinkStats;
+
+					stats = (resData.stats || {
+						pending: 0,
+						approved: 0,
+						rejected: 0,
+						applied: 0,
+					}) as LinkStats;
 					hasMore = newLinks.length === limit;
 				}
 			} else {
 				if (!activePillarId) return;
-				const resData = await apiClient.get<any>(`/seo/contextual-links/pillar/${activePillarId}`);
+				const resData = await apiClient.get<any>(
+					`/seo/contextual-links/pillar/${activePillarId}`,
+				);
 				articleTitle = `Pillar: ${resData.pillar_title as string}`;
 				isStale = false;
 				links = (resData.links || []) as SeoContextualLink[];
-				stats = (resData.stats || { pending: 0, approved: 0, rejected: 0, applied: 0 }) as LinkStats;
+				stats = (resData.stats || {
+					pending: 0,
+					approved: 0,
+					rejected: 0,
+					applied: 0,
+				}) as LinkStats;
 				hasMore = false;
 			}
 		} catch (e) {
-			errorMessage = e instanceof Error ? e.message : 'Không thể tải đề xuất liên kết.';
-			nanobot.showToast(errorMessage, 'error');
+			errorMessage =
+				e instanceof Error
+					? e.message
+					: "Không thể tải đề xuất liên kết.";
+			nanobot.showToast(errorMessage, "error");
 		} finally {
 			isLoading = false;
 		}
@@ -255,15 +297,21 @@
 		fetchContextualLinks(true);
 	}
 
-	async function handleUpdateStatus(linkId: string, status: 'approved' | 'rejected') {
+	async function handleUpdateStatus(
+		linkId: string,
+		status: "approved" | "rejected",
+	) {
 		isActioning = true;
 		errorMessage = null;
 		successMessage = null;
 		try {
-			const result = await apiClient.patch<any>(`/seo/contextual-links/${linkId}`, { status });
+			const result = await apiClient.patch<any>(
+				`/seo/contextual-links/${linkId}`,
+				{ status },
+			);
 			if (result.data?.error) {
 				errorMessage = result.message as string;
-				nanobot.showToast(errorMessage, 'error');
+				nanobot.showToast(errorMessage, "error");
 			} else {
 				// Fast local update with Svelte 5 deep state re-assignment
 				const index = links.findIndex((l) => l.id === linkId);
@@ -279,12 +327,65 @@
 						stats = { ...stats };
 					}
 				}
-				const actionText = status === 'approved' ? 'duyệt' : 'từ chối';
-				nanobot.showToast(`Đã ${actionText} liên kết thành công!`, 'success');
+				const actionText = status === "approved" ? "duyệt" : "từ chối";
+				nanobot.showToast(
+					`Đã ${actionText} liên kết thành công!`,
+					"success",
+				);
 			}
 		} catch (e) {
-			errorMessage = e instanceof Error ? e.message : 'Không thể cập nhật trạng thái.';
-			nanobot.showToast(errorMessage, 'error');
+			errorMessage =
+				e instanceof Error
+					? e.message
+					: "Không thể cập nhật trạng thái.";
+			nanobot.showToast(errorMessage, "error");
+		} finally {
+			isActioning = false;
+		}
+	}
+
+	async function handleRevertLink(linkId: string) {
+		if (
+			!confirm(
+				"Bạn có chắc chắn muốn loại bỏ cập nhật và gỡ liên kết này khỏi bài viết?",
+			)
+		) {
+			return;
+		}
+		isActioning = true;
+		errorMessage = null;
+		successMessage = null;
+		try {
+			const result = await apiClient.post<any>(
+				`/seo/contextual-links/${linkId}/revert`,
+				{},
+			);
+			if (result.data?.error) {
+				errorMessage = result.message as string;
+				nanobot.showToast(errorMessage, "error");
+			} else {
+				// Fast local update with Svelte 5 deep state re-assignment
+				const index = links.findIndex((l) => l.id === linkId);
+				if (index !== -1) {
+					const oldStatus = links[index].status;
+					const newStatus = "approved";
+					stats[oldStatus as keyof LinkStats]--;
+					stats[newStatus]++;
+					// Re-assign object to trigger deep reactivity
+					links[index] = { ...links[index], status: newStatus };
+					// Re-assign array and stats to force re-render
+					links = [...links];
+					stats = { ...stats };
+				}
+				nanobot.showToast(
+					"Đã loại bỏ cập nhật liên kết thành công!",
+					"success",
+				);
+			}
+		} catch (e) {
+			errorMessage =
+				e instanceof Error ? e.message : "Không thể loại bỏ cập nhật.";
+			nanobot.showToast(errorMessage, "error");
 		} finally {
 			isActioning = false;
 		}
@@ -294,9 +395,9 @@
 		editingLinkId = link.id;
 		editingAnchorText = link.anchor_text;
 		editingTargetUrl = link.target_url;
-		editingRel = link.link_rel || '';
-		editingTitle = link.link_title || '';
-		editingTarget = link.link_target || '';
+		editingRel = link.link_rel || "";
+		editingTitle = link.link_title || "";
+		editingTarget = link.link_target || "";
 	}
 
 	async function handleSaveEdit(linkId: string) {
@@ -305,17 +406,20 @@
 		errorMessage = null;
 		successMessage = null;
 		try {
-			const result = await apiClient.patch<any>(`/seo/contextual-links/${linkId}`, {
-				anchor_text: editingAnchorText,
-				target_url: editingTargetUrl,
-				link_rel: editingRel || null,
-				link_title: editingTitle || null,
-				link_target: editingTarget || null
-			});
-			
+			const result = await apiClient.patch<any>(
+				`/seo/contextual-links/${linkId}`,
+				{
+					anchor_text: editingAnchorText,
+					target_url: editingTargetUrl,
+					link_rel: editingRel || null,
+					link_title: editingTitle || null,
+					link_target: editingTarget || null,
+				},
+			);
+
 			if (result.data?.error) {
 				errorMessage = result.message as string;
-				nanobot.showToast(errorMessage, 'error');
+				nanobot.showToast(errorMessage, "error");
 			} else {
 				// Update locally with Svelte 5 deep state re-assignment
 				const index = links.findIndex((l) => l.id === linkId);
@@ -326,10 +430,13 @@
 					updatedLink.link_rel = editingRel || null;
 					updatedLink.link_title = editingTitle || null;
 					updatedLink.link_target = editingTarget || null;
-					
+
 					// Rebuild linked sentence for UI
 					const attrs = [];
-					if (updatedLink.link_rel && updatedLink.link_rel !== 'dofollow') {
+					if (
+						updatedLink.link_rel &&
+						updatedLink.link_rel !== "dofollow"
+					) {
 						attrs.push(`rel="${updatedLink.link_rel}"`);
 					}
 					if (updatedLink.link_title) {
@@ -338,25 +445,28 @@
 					if (updatedLink.link_target) {
 						attrs.push(`target="${updatedLink.link_target}"`);
 					}
-					const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
-					updatedLink.linked_sentence = updatedLink.original_sentence.replace(
-						editingAnchorText,
-						`<a href="${updatedLink.target_url}" class="sge-contextual-link" data-sge-source="ai"${attrStr} style="color:#6366f1; text-decoration:underline;">${editingAnchorText}</a>`,
-						1
-					);
-					
+					const attrStr = attrs.length ? " " + attrs.join(" ") : "";
+					updatedLink.linked_sentence =
+						updatedLink.original_sentence.replace(
+							editingAnchorText,
+							`<a href="${updatedLink.target_url}" class="sge-contextual-link" data-sge-source="ai"${attrStr} style="color:#6366f1; text-decoration:underline;">${editingAnchorText}</a>`,
+							1,
+						);
+
 					// Re-assign object to trigger deep reactivity
 					links[index] = updatedLink;
 					// Re-assign array to force re-render
 					links = [...links];
 				}
 				editingLinkId = null;
-				successMessage = 'Đã cập nhật các thuộc tính SEO / SGE của link.';
-				nanobot.showToast(successMessage, 'success');
+				successMessage =
+					"Đã cập nhật các thuộc tính SEO / SGE của link.";
+				nanobot.showToast(successMessage, "success");
 			}
 		} catch (e) {
-			errorMessage = e instanceof Error ? e.message : 'Không thể lưu thay đổi.';
-			nanobot.showToast(errorMessage, 'error');
+			errorMessage =
+				e instanceof Error ? e.message : "Không thể lưu thay đổi.";
+			nanobot.showToast(errorMessage, "error");
 		} finally {
 			isActioning = false;
 		}
@@ -366,72 +476,100 @@
 		errorMessage = null;
 		successMessage = null;
 
-		if (reviewMode === 'article') {
+		if (reviewMode === "article") {
 			if (!activeArticleId) return;
-			if (!confirm('Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?')) return;
+			if (
+				!confirm(
+					"Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?",
+				)
+			)
+				return;
 			isActioning = true;
 			try {
-				const result = await apiClient.post<any>(`/seo/contextual-links/${activeArticleId}/apply`, {});
+				const result = await apiClient.post<any>(
+					`/seo/contextual-links/${activeArticleId}/apply`,
+					{},
+				);
 				if (Number(result.data?.applied_count) > 0) {
 					successMessage = `Đã cập nhật bài viết thành công! Đã chèn ${result.data.applied_count} liên kết.`;
-					nanobot.showToast(successMessage, 'success');
+					nanobot.showToast(successMessage, "success");
 					await fetchContextualLinks();
 				} else if (Number(result.data?.skipped_stale) > 0) {
 					errorMessage = `Không thể apply. Bài viết đã bị sửa đổi nội dung. Cần chạy lại phân tích.`;
-					nanobot.showToast(errorMessage, 'error');
+					nanobot.showToast(errorMessage, "error");
 				} else if (Number(result.data?.skipped_inject_fail) > 0) {
 					errorMessage = `Không thể chèn ${result.data.skipped_inject_fail} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.`;
-					nanobot.showToast(errorMessage, 'warning');
+					nanobot.showToast(errorMessage, "warning");
 				} else {
-					successMessage = 'Không có liên kết Approved nào được chèn.';
-					nanobot.showToast(successMessage, 'info');
+					successMessage =
+						"Không có liên kết Approved nào được chèn.";
+					nanobot.showToast(successMessage, "info");
 				}
 			} catch (e) {
-				errorMessage = e instanceof Error ? e.message : 'Không thể thực thi chèn liên kết.';
-				nanobot.showToast(errorMessage, 'error');
+				errorMessage =
+					e instanceof Error
+						? e.message
+						: "Không thể thực thi chèn liên kết.";
+				nanobot.showToast(errorMessage, "error");
 			} finally {
 				isActioning = false;
 			}
 		} else {
 			// Pillar mode: apply all approved contextual links from all source cluster articles in a single bulk backend request
-			const approvedLinks = links.filter((l) => l.status === 'approved');
+			const approvedLinks = links.filter((l) => l.status === "approved");
 			if (approvedLinks.length === 0) return;
 
-			if (!confirm(`Bạn có chắc muốn chèn liên kết đã duyệt vào các bài viết Cluster gốc liên quan?`)) return;
+			if (
+				!confirm(
+					`Bạn có chắc muốn chèn liên kết đã duyệt vào các bài viết Cluster gốc liên quan?`,
+				)
+			)
+				return;
 
 			isActioning = true;
 			try {
-				const result = await apiClient.post<any>(`/seo/contextual-links/pillar/${activePillarId}/apply`, {});
-				
+				const result = await apiClient.post<any>(
+					`/seo/contextual-links/pillar/${activePillarId}/apply`,
+					{},
+				);
+
 				const applied = Number(result.data?.applied_count || 0);
 				const skipped = Number(result.data?.skipped_stale || 0);
-				const injectFail = Number(result.data?.skipped_inject_fail || 0);
+				const injectFail = Number(
+					result.data?.skipped_inject_fail || 0,
+				);
 				const processed = Number(result.data?.processed_articles || 0);
 
 				if (applied > 0) {
 					successMessage = `Đã chèn thành công ${applied} liên kết vào ${processed} bài viết Cluster.`;
-					nanobot.showToast(successMessage, 'success');
+					nanobot.showToast(successMessage, "success");
 					if (skipped > 0) {
 						errorMessage = `Bỏ qua ${skipped} liên kết vì nội dung bài viết gốc đã bị thay đổi bên ngoài.`;
-						nanobot.showToast(errorMessage, 'warning');
+						nanobot.showToast(errorMessage, "warning");
 					}
 					if (injectFail > 0) {
-						nanobot.showToast(`${injectFail} link không khớp cấu trúc HTML, cần Phân tích lại.`, 'warning');
+						nanobot.showToast(
+							`${injectFail} link không khớp cấu trúc HTML, cần Phân tích lại.`,
+							"warning",
+						);
 					}
 					await fetchContextualLinks();
 				} else if (skipped > 0) {
 					errorMessage = `Không thể chèn liên kết. Toàn bộ ${skipped} liên kết đã bị hết hạn (do nội dung bài viết gốc đã thay đổi).`;
-					nanobot.showToast(errorMessage, 'error');
+					nanobot.showToast(errorMessage, "error");
 				} else if (injectFail > 0) {
 					errorMessage = `Không thể chèn ${injectFail} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.`;
-					nanobot.showToast(errorMessage, 'warning');
+					nanobot.showToast(errorMessage, "warning");
 				} else {
-					successMessage = 'Không có liên kết nào được chèn.';
-					nanobot.showToast(successMessage, 'info');
+					successMessage = "Không có liên kết nào được chèn.";
+					nanobot.showToast(successMessage, "info");
 				}
 			} catch (e) {
-				errorMessage = e instanceof Error ? e.message : 'Không thể thực thi chèn liên kết hàng loạt.';
-				nanobot.showToast(errorMessage, 'error');
+				errorMessage =
+					e instanceof Error
+						? e.message
+						: "Không thể thực thi chèn liên kết hàng loạt.";
+				nanobot.showToast(errorMessage, "error");
 			} finally {
 				isActioning = false;
 			}
@@ -439,18 +577,25 @@
 	}
 
 	async function handleTriggerReanalysis() {
-		if (reviewMode === 'article') {
+		if (reviewMode === "article") {
 			if (!activeArticleId) return;
 			isActioning = true;
 			errorMessage = null;
 			successMessage = null;
 			try {
-				await apiClient.post<any>(`/seo/match`, { entity_type: 'article', entity_id: activeArticleId });
-				successMessage = 'Hệ thống đã nhận lệnh và đang phân tích lại bài viết trong nền. Vui lòng làm mới sau 15-30 giây.';
-				nanobot.showToast(successMessage, 'success');
+				await apiClient.post<any>(`/seo/match`, {
+					entity_type: "article",
+					entity_id: activeArticleId,
+				});
+				successMessage =
+					"Hệ thống đã nhận lệnh và đang phân tích lại bài viết trong nền. Vui lòng làm mới sau 15-30 giây.";
+				nanobot.showToast(successMessage, "success");
 			} catch (e) {
-				errorMessage = e instanceof Error ? e.message : 'Không thể trigger phân tích lại.';
-				nanobot.showToast(errorMessage, 'error');
+				errorMessage =
+					e instanceof Error
+						? e.message
+						: "Không thể trigger phân tích lại.";
+				nanobot.showToast(errorMessage, "error");
 			} finally {
 				isActioning = false;
 			}
@@ -461,12 +606,20 @@
 			errorMessage = null;
 			successMessage = null;
 			try {
-				const result = await apiClient.post<any>(`/seo/contextual-links/pillar/${activePillarId}/auto-link`, {});
-				successMessage = result.message || 'Đã kích hoạt quét & tự động phân tích link ngữ cảnh cho các Cluster. Bạn sẽ nhận được thông báo chuông khi hoàn tất.';
-				nanobot.showToast(successMessage, 'success');
+				const result = await apiClient.post<any>(
+					`/seo/contextual-links/pillar/${activePillarId}/auto-link`,
+					{},
+				);
+				successMessage =
+					result.message ||
+					"Đã kích hoạt quét & tự động phân tích link ngữ cảnh cho các Cluster. Bạn sẽ nhận được thông báo chuông khi hoàn tất.";
+				nanobot.showToast(successMessage, "success");
 			} catch (e) {
-				errorMessage = e instanceof Error ? e.message : 'Không thể kích hoạt quét phân tích Pillar.';
-				nanobot.showToast(errorMessage, 'error');
+				errorMessage =
+					e instanceof Error
+						? e.message
+						: "Không thể kích hoạt quét phân tích Pillar.";
+				nanobot.showToast(errorMessage, "error");
 			} finally {
 				isActioning = false;
 			}
@@ -479,31 +632,47 @@
 	<div class="widget-layout flex flex-col h-full w-full">
 		<!-- Article selector bar -->
 		<div class="selector-bar shrink-0">
-			{#if reviewMode === 'article'}
+			{#if reviewMode === "article"}
 				<div class="selector-container relative">
 					<label class="selector-label">Chọn Bài viết:</label>
-					
+
 					<div class="custom-dropdown-wrapper">
-						<button 
+						<button
 							type="button"
-							class="custom-dropdown-trigger" 
-							onclick={() => { showDropdown = !showDropdown; if (showDropdown && articlesList.length === 0) fetchArticles(false); }}
+							class="custom-dropdown-trigger"
+							onclick={() => {
+								showDropdown = !showDropdown;
+								if (showDropdown && articlesList.length === 0)
+									fetchArticles(false);
+							}}
 						>
-							<span class="trigger-text" class:placeholder={!activeArticleId}>
+							<span
+								class="trigger-text"
+								class:placeholder={!activeArticleId}
+							>
 								{selectedArticleTitle}
 							</span>
-							<span class="trigger-arrow" style="transform: {showDropdown ? 'rotate(180deg)' : 'rotate(0deg)'}">▼</span>
+							<span
+								class="trigger-arrow"
+								style="transform: {showDropdown
+									? 'rotate(180deg)'
+									: 'rotate(0deg)'}">▼</span
+							>
 						</button>
 
 						{#if showDropdown}
-							<div class="dropdown-backdrop" onclick={() => showDropdown = false} role="none"></div>
-							
+							<div
+								class="dropdown-backdrop"
+								onclick={() => (showDropdown = false)}
+								role="none"
+							></div>
+
 							<div class="dropdown-panel">
 								<div class="dropdown-search-container">
-									<input 
-										type="text" 
-										class="dropdown-search-input" 
-										placeholder="Gõ tên bài viết để tìm..." 
+									<input
+										type="text"
+										class="dropdown-search-input"
+										placeholder="Gõ tên bài viết để tìm..."
 										value={searchQuery}
 										oninput={handleSearchInput}
 										autofocus
@@ -513,43 +682,69 @@
 									{/if}
 								</div>
 
-								<div 
-									class="dropdown-list" 
+								<div
+									class="dropdown-list"
 									onscroll={(e) => {
 										const el = e.currentTarget;
-										if (el.scrollHeight - el.scrollTop - el.clientHeight < 20) {
+										if (
+											el.scrollHeight -
+												el.scrollTop -
+												el.clientHeight <
+											20
+										) {
 											loadMoreArticles();
 										}
 									}}
 								>
 									{#if articlesList.length === 0 && !isFetchingArticles}
-										<div class="dropdown-empty">Không tìm thấy bài viết</div>
+										<div class="dropdown-empty">
+											Không tìm thấy bài viết
+										</div>
 									{:else}
-										<button 
+										<button
 											type="button"
-											class="dropdown-item" 
-											class:selected={activeArticleId === ''} 
-											onclick={() => { activeArticleId = ''; showDropdown = false; }}
+											class="dropdown-item"
+											class:selected={activeArticleId ===
+												""}
+											onclick={() => {
+												activeArticleId = "";
+												showDropdown = false;
+											}}
 										>
-											-- Chọn bài viết cần duyệt link SGE --
+											-- Chọn bài viết cần duyệt link SGE
+											--
 										</button>
-										
+
 										{#each articlesList as art (art.id)}
-											<button 
+											<button
 												type="button"
-												class="dropdown-item" 
-												class:selected={activeArticleId === art.id} 
-												onclick={() => { activeArticleId = art.id; showDropdown = false; }}
+												class="dropdown-item"
+												class:selected={activeArticleId ===
+													art.id}
+												onclick={() => {
+													activeArticleId = art.id;
+													showDropdown = false;
+												}}
 											>
-												<span class="item-title">{art.title}</span>
-												<span class="item-status" class:live={art.status === 'PUBLISHED'}>
-													{art.status === 'PUBLISHED' ? 'Live' : 'Nháp'}
+												<span class="item-title"
+													>{art.title}</span
+												>
+												<span
+													class="item-status"
+													class:live={art.status ===
+														"PUBLISHED"}
+												>
+													{art.status === "PUBLISHED"
+														? "Live"
+														: "Nháp"}
 												</span>
 											</button>
 										{/each}
 
 										{#if isFetchingArticles && articleOffset > 0}
-											<div class="dropdown-loading-more">Đang tải thêm...</div>
+											<div class="dropdown-loading-more">
+												Đang tải thêm...
+											</div>
 										{/if}
 									{/if}
 								</div>
@@ -557,31 +752,48 @@
 						{/if}
 					</div>
 				</div>
-				
+
 				{#if activeArticleId}
-					<button class="reanalysis-btn" onclick={handleTriggerReanalysis} disabled={isActioning}>
-						<RefreshCw class="w-3 h-3 {isActioning ? 'animate-spin' : ''}" />
+					<button
+						class="reanalysis-btn"
+						onclick={handleTriggerReanalysis}
+						disabled={isActioning}
+					>
+						<RefreshCw
+							class="w-3 h-3 {isActioning ? 'animate-spin' : ''}"
+						/>
 						Phân tích lại bài viết
 					</button>
 				{/if}
 			{:else}
 				<div class="selector-container">
-					<label class="selector-label">Duyệt Link Về Pillar Node:</label>
-					<span class="text-sm font-semibold text-white ml-2">{articleTitle || 'Đang tải...'}</span>
+					<label class="selector-label"
+						>Duyệt Link Về Pillar Node:</label
+					>
+					<span class="text-sm font-semibold text-white ml-2"
+						>{articleTitle || "Đang tải..."}</span
+					>
 				</div>
-				<button class="reanalysis-btn" onclick={handleTriggerReanalysis} disabled={isActioning}>
-					<RefreshCw class="w-3 h-3 {isActioning ? 'animate-spin' : ''}" />
+				<button
+					class="reanalysis-btn"
+					onclick={handleTriggerReanalysis}
+					disabled={isActioning}
+				>
+					<RefreshCw
+						class="w-3 h-3 {isActioning ? 'animate-spin' : ''}"
+					/>
 					Quét lại tất cả Cluster
 				</button>
 			{/if}
 		</div>
 
 		<!-- Banners -->
-		{#if isStale && reviewMode === 'article' && activeArticleId}
+		{#if isStale && reviewMode === "article" && activeArticleId}
 			<div class="alert-banner warning">
 				<AlertTriangle class="w-4 h-4" />
 				<div class="banner-text">
-					<strong>Nội dung bài viết đã thay đổi!</strong> Các đề xuất liên kết này có thể đã lỗi thời. Khuyên dùng chạy lại Phân tích.
+					<strong>Nội dung bài viết đã thay đổi!</strong> Các đề xuất liên
+					kết này có thể đã lỗi thời. Khuyên dùng chạy lại Phân tích.
 				</div>
 			</div>
 		{/if}
@@ -600,34 +812,67 @@
 			</div>
 		{/if}
 
-		{#if (reviewMode === 'article' && activeArticleId) || (reviewMode === 'pillar' && activePillarId)}
+		{#if (reviewMode === "article" && activeArticleId) || (reviewMode === "pillar" && activePillarId)}
 			<!-- Stats and Filters -->
 			<section class="stats-filter-bar">
 				<div class="status-filters">
-					<button class="filter-tab" class:active={statusFilter === 'all'} onclick={() => statusFilter = 'all'}>
+					<button
+						class="filter-tab"
+						class:active={statusFilter === "all"}
+						onclick={() => (statusFilter = "all")}
+					>
 						Tất cả ({links.length})
 					</button>
-					<button class="filter-tab pending" class:active={statusFilter === 'pending'} onclick={() => statusFilter = 'pending'}>
+					<button
+						class="filter-tab pending"
+						class:active={statusFilter === "pending"}
+						onclick={() => (statusFilter = "pending")}
+					>
 						Chờ duyệt ({stats.pending})
 					</button>
-					<button class="filter-tab approved" class:active={statusFilter === 'approved'} onclick={() => statusFilter = 'approved'}>
-						Đã duyệt ({stats.approved})
+					<button
+						class="filter-tab approved"
+						class:active={statusFilter === "approved"}
+						onclick={() => (statusFilter = "approved")}
+					>
+						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
-					<button class="filter-tab rejected" class:active={statusFilter === 'rejected'} onclick={() => statusFilter = 'rejected'}>
+					<button
+						class="filter-tab rejected"
+						class:active={statusFilter === "rejected"}
+						onclick={() => (statusFilter = "rejected")}
+					>
 						Đã từ chối ({stats.rejected})
 					</button>
-					<button class="filter-tab applied" class:active={statusFilter === 'applied'} onclick={() => statusFilter = 'applied'}>
+					<button
+						class="filter-tab applied"
+						class:active={statusFilter === "applied"}
+						onclick={() => (statusFilter = "applied")}
+					>
 						Đã chèn ({stats.applied})
 					</button>
 				</div>
 
 				<div class="action-buttons">
-					<button class="btn refresh" onclick={fetchContextualLinks} disabled={isLoading} title="Tải lại danh sách">
-						<RefreshCw class="w-3.5 h-3.5 {isLoading ? 'animate-spin' : ''}" />
+					<button
+						class="btn refresh"
+						onclick={fetchContextualLinks}
+						disabled={isLoading}
+						title="Tải lại danh sách"
+					>
+						<RefreshCw
+							class="w-3.5 h-3.5 {isLoading
+								? 'animate-spin'
+								: ''}"
+						/>
 						Làm mới
 					</button>
 					{#if stats.approved > 0}
-						<button class="btn apply" onclick={handleApplyAll} disabled={isActioning}>
+						<button
+							class="btn apply"
+							onclick={handleApplyAll}
+							disabled={isActioning}
+						>
 							<Link2 class="w-3.5 h-3.5" />
 							Chèn liên kết ({stats.approved})
 						</button>
@@ -636,7 +881,9 @@
 			</section>
 
 			<!-- Scrollable content -->
-			<div class="widget-body-scroll flex-1 overflow-y-auto p-4 bg-[#0a0a14]">
+			<div
+				class="widget-body-scroll flex-1 overflow-y-auto p-4 bg-[#0a0a14]"
+			>
 				{#if isLoading}
 					<div class="loading-state">
 						<div class="spinner"></div>
@@ -650,27 +897,58 @@
 				{:else}
 					<div class="links-list">
 						{#each filteredLinks as link (link.id)}
-							<div class="link-card" class:pending={link.status === 'pending'} class:approved={link.status === 'approved'} class:rejected={link.status === 'rejected'} class:applied={link.status === 'applied'}>
+							<div
+								class="link-card"
+								class:pending={link.status === "pending"}
+								class:approved={link.status === "approved"}
+								class:rejected={link.status === "rejected"}
+								class:applied={link.status === "applied"}
+							>
 								<!-- Card Header -->
 								<div class="card-header">
 									<div class="entity-info">
-										<span class="entity-badge" class:pain={link.matched_entity_type === 'PAIN_POINT'} class:feature={link.matched_entity_type === 'FEATURE'} class:brand={link.matched_entity_type === 'BRAND'} class:ingredient={link.matched_entity_type === 'INGREDIENT'} class:symptom={link.matched_entity_type === 'SYMPTOM'}>
+										<span
+											class="entity-badge"
+											class:pain={link.matched_entity_type ===
+												"PAIN_POINT"}
+											class:feature={link.matched_entity_type ===
+												"FEATURE"}
+											class:brand={link.matched_entity_type ===
+												"BRAND"}
+											class:ingredient={link.matched_entity_type ===
+												"INGREDIENT"}
+											class:symptom={link.matched_entity_type ===
+												"SYMPTOM"}
+										>
 											{link.matched_entity_type}
 										</span>
-										<strong class="entity-name">{link.matched_entity_name}</strong>
+										<strong class="entity-name"
+											>{link.matched_entity_name}</strong
+										>
 										<span class="target-connector">⟶</span>
-										<span class="target-node" title={link.target_url}>
-											🎯 {link.target_label || 'Pillar'}
+										<span
+											class="target-node"
+											title={link.target_url}
+										>
+											🎯 {link.target_label || "Pillar"}
 										</span>
-										{#if reviewMode === 'pillar' && link.source_article_title}
-											<span class="source-article-badge" title={link.source_article_title}>
+										{#if reviewMode === "pillar" && link.source_article_title}
+											<span
+												class="source-article-badge"
+												title={link.source_article_title}
+											>
 												📝 Từ: {link.source_article_title}
 											</span>
 										{/if}
 									</div>
 
-									<div class="confidence-badge" style="border-color: rgba(99, 102, 241, {link.ai_confidence})">
-										🤖 Độ tin cậy: {Math.round(link.ai_confidence * 100)}%
+									<div
+										class="confidence-badge"
+										style="border-color: rgba(99, 102, 241, {link.ai_confidence})"
+									>
+										🤖 Độ tin cậy: {Math.round(
+											link.ai_confidence * 100,
+										)}%
 									</div>
 								</div>
 
@@ -678,11 +956,23 @@
 								<div class="sentence-comparison">
 									<div class="sentence-box original">
 										<div class="box-label">Câu gốc:</div>
-										<p class="sentence-text">{link.original_sentence}</p>
+										<p class="sentence-text">
+											{link.original_sentence}
+										</p>
 									</div>
-									
-									<div class="sentence-box proposed">
-										<div class="box-label">Đề xuất chèn:</div>
+
+									<div
+										class="sentence-box proposed"
+										class:not-applied={link.status !==
+											"applied"}
+									>
+										<div class="box-label">
+											{#if link.status === "applied"}
+												Đề xuất chèn (Đã áp dụng):
+											{:else}
+												Đề xuất chèn (Chưa áp dụng):
+											{/if}
+										</div>
 										<p class="sentence-text linked-text">
 											{@html link.linked_sentence}
 										</p>
@@ -692,37 +982,94 @@
 								<!-- Card Footer / Actions -->
 								<div class="card-footer">
 									{#if link.ai_reasoning}
-										<div class="reasoning-text" title={link.ai_reasoning}>
-											💡 <em>Lý do:</em> {link.ai_reasoning}
+										<div
+											class="reasoning-text"
+											title={link.ai_reasoning}
+										>
+											💡 <em>Lý do:</em>
+											{link.ai_reasoning}
 										</div>
 									{/if}
 
 									<div class="footer-actions">
 										<!-- Rel metadata info -->
 										{#if link.link_rel}
-											<span class="rel-badge">rel="{link.link_rel}"</span>
+											<span class="rel-badge"
+												>rel="{link.link_rel}"</span
+											>
 										{/if}
 										{#if link.link_title}
-											<span class="rel-badge" title={link.link_title}>title="{link.link_title}"</span>
+											<span
+												class="rel-badge"
+												title={link.link_title}
+												>title="{link.link_title}"</span
+											>
 										{/if}
 										{#if link.link_target}
-											<span class="rel-badge">target="{link.link_target}"</span>
+											<span class="rel-badge"
+												>target="{link.link_target}"</span
+											>
 										{/if}
 
-										{#if link.status !== 'applied'}
-											<button class="action-btn edit" onclick={() => startEditing(link)} disabled={isActioning}>
+										{#if link.status !== "applied"}
+											<button
+												class="action-btn edit"
+												onclick={() =>
+													startEditing(link)}
+												disabled={isActioning}
+											>
 												<Edit2 class="w-3 h-3" /> Sửa
 											</button>
-											
-											<button class="action-btn approve" class:active={link.status === 'approved'} onclick={() => handleUpdateStatus(link.id, 'approved')} disabled={isActioning}>
+
+											<button
+												class="action-btn approve"
+												class:active={link.status ===
+													"approved"}
+												onclick={() =>
+													handleUpdateStatus(
+														link.id,
+														"approved",
+													)}
+												disabled={isActioning}
+											>
 												<Check class="w-3.5 h-3.5" /> Duyệt
 											</button>
-											
-											<button class="action-btn reject" class:active={link.status === 'rejected'} onclick={() => handleUpdateStatus(link.id, 'rejected')} disabled={isActioning}>
+
+											<button
+												class="action-btn reject"
+												class:active={link.status ===
+													"rejected"}
+												onclick={() =>
+													handleUpdateStatus(
+														link.id,
+														"rejected",
+													)}
+												disabled={isActioning}
+											>
 												<X class="w-3.5 h-3.5" /> Từ chối
 											</button>
 										{:else}
-											<span class="applied-status-badge">✓ Đã cập nhật vào bài viết</span>
+											<div
+												class="flex items-center gap-2"
+											>
+												<span
+													class="applied-status-badge"
+													>✓ Đã cập nhật vào bài viết</span
+												>
+												<button
+													class="action-btn revert"
+													onclick={() =>
+														handleRevertLink(
+															link.id,
+														)}
+													disabled={isActioning}
+													title="Gỡ liên kết này khỏi bài viết"
+												>
+													<RotateCcw
+														class="w-3.5 h-3.5"
+													/> Gỡ link
+												</button>
+											</div>
 										{/if}
 									</div>
 								</div>
@@ -736,29 +1083,61 @@
 			<!-- Thống kê toàn sàn -->
 			<section class="stats-filter-bar">
 				<div class="status-filters">
-					<button class="filter-tab" class:active={statusFilter === 'all'} onclick={() => statusFilter = 'all'}>
+					<button
+						class="filter-tab"
+						class:active={statusFilter === "all"}
+						onclick={() => (statusFilter = "all")}
+					>
 						Tất cả gợi ý ({links.length})
 					</button>
-					<button class="filter-tab pending" class:active={statusFilter === 'pending'} onclick={() => statusFilter = 'pending'}>
+					<button
+						class="filter-tab pending"
+						class:active={statusFilter === "pending"}
+						onclick={() => (statusFilter = "pending")}
+					>
 						Chờ duyệt ({stats.pending})
 					</button>
-					<button class="filter-tab approved" class:active={statusFilter === 'approved'} onclick={() => statusFilter = 'approved'}>
-						Đã duyệt ({stats.approved})
+					<button
+						class="filter-tab approved"
+						class:active={statusFilter === "approved"}
+						onclick={() => (statusFilter = "approved")}
+					>
+						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
-					<button class="filter-tab rejected" class:active={statusFilter === 'rejected'} onclick={() => statusFilter = 'rejected'}>
+					<button
+						class="filter-tab rejected"
+						class:active={statusFilter === "rejected"}
+						onclick={() => (statusFilter = "rejected")}
+					>
 						Đã từ chối ({stats.rejected})
 					</button>
-					<button class="filter-tab applied" class:active={statusFilter === 'applied'} onclick={() => statusFilter = 'applied'}>
+					<button
+						class="filter-tab applied"
+						class:active={statusFilter === "applied"}
+						onclick={() => (statusFilter = "applied")}
+					>
 						Đã chèn ({stats.applied})
 					</button>
 				</div>
 
 				<div class="action-buttons">
-					<button class="btn refresh" onclick={fetchContextualLinks} disabled={isLoading}>
-						<RefreshCw class="w-3.5 h-3.5 {isLoading ? 'animate-spin' : ''}" /> Tải lại
+					<button
+						class="btn refresh"
+						onclick={fetchContextualLinks}
+						disabled={isLoading}
+					>
+						<RefreshCw
+							class="w-3.5 h-3.5 {isLoading
+								? 'animate-spin'
+								: ''}"
+						/> Tải lại
 					</button>
 					{#if stats.approved > 0}
-						<button class="btn apply" onclick={handleApplyAll} disabled={isActioning}>
+						<button
+							class="btn apply"
+							onclick={handleApplyAll}
+							disabled={isActioning}
+						>
 							🚀 Áp dụng {stats.approved} link đã duyệt
 						</button>
 					{/if}
@@ -780,25 +1159,45 @@
 				{:else}
 					<div class="links-grid">
 						{#each filteredLinks as link (link.id)}
-							<div class="link-card" class:pending={link.status === 'pending'} class:approved={link.status === 'approved'} class:applied={link.status === 'applied'}>
+							<div
+								class="link-card"
+								class:pending={link.status === "pending"}
+								class:approved={link.status === "approved"}
+								class:applied={link.status === "applied"}
+							>
 								<!-- Header -->
 								<div class="card-header">
 									<div class="entity-info">
-										<span class="entity-badge {link.matched_entity_type}">
+										<span
+											class="entity-badge {link.matched_entity_type}"
+										>
 											{link.matched_entity_type}
 										</span>
-										<strong class="entity-name">{link.matched_entity_name}</strong>
+										<strong class="entity-name"
+											>{link.matched_entity_name}</strong
+										>
 										<span class="target-connector">➔</span>
-										<span class="target-node" title={link.target_url}>{link.target_label || 'Pillar'}</span>
-										
+										<span
+											class="target-node"
+											title={link.target_url}
+											>{link.target_label ||
+												"Pillar"}</span
+										>
+
 										<!-- Hiển thị bài viết nguồn trên Dashboard toàn sàn -->
-										<span class="source-article-badge" title="Bài viết nguồn">
-											📄 {link.source_article_title || 'Nguồn'}
+										<span
+											class="source-article-badge"
+											title="Bài viết nguồn"
+										>
+											📄 {link.source_article_title ||
+												"Nguồn"}
 										</span>
 									</div>
 
 									<div class="confidence-badge">
-										AI: {Math.round(link.ai_confidence * 100)}%
+										AI: {Math.round(
+											link.ai_confidence * 100,
+										)}%
 									</div>
 								</div>
 
@@ -806,11 +1205,23 @@
 								<div class="sentence-comparison">
 									<div class="sentence-box original">
 										<div class="box-label">Câu gốc:</div>
-										<p class="sentence-text">{link.original_sentence}</p>
+										<p class="sentence-text">
+											{link.original_sentence}
+										</p>
 									</div>
-									
-									<div class="sentence-box proposed">
-										<div class="box-label">Đề xuất chèn:</div>
+
+									<div
+										class="sentence-box proposed"
+										class:not-applied={link.status !==
+											"applied"}
+									>
+										<div class="box-label">
+											{#if link.status === "applied"}
+												Đề xuất chèn (Đã áp dụng):
+											{:else}
+												Đề xuất chèn (Chưa áp dụng):
+											{/if}
+										</div>
 										<p class="sentence-text linked-text">
 											{@html link.linked_sentence}
 										</p>
@@ -820,37 +1231,94 @@
 								<!-- Card Footer / Actions -->
 								<div class="card-footer">
 									{#if link.ai_reasoning}
-										<div class="reasoning-text" title={link.ai_reasoning}>
-											💡 <em>Lý do:</em> {link.ai_reasoning}
+										<div
+											class="reasoning-text"
+											title={link.ai_reasoning}
+										>
+											💡 <em>Lý do:</em>
+											{link.ai_reasoning}
 										</div>
 									{/if}
 
 									<div class="footer-actions">
-											{#if link.link_rel}
-												<span class="rel-badge">rel="{link.link_rel}"</span>
-											{/if}
-											{#if link.link_title}
-												<span class="rel-badge" title={link.link_title}>title="{link.link_title}"</span>
-											{/if}
-											{#if link.link_target}
-												<span class="rel-badge">target="{link.link_target}"</span>
-											{/if}
+										{#if link.link_rel}
+											<span class="rel-badge"
+												>rel="{link.link_rel}"</span
+											>
+										{/if}
+										{#if link.link_title}
+											<span
+												class="rel-badge"
+												title={link.link_title}
+												>title="{link.link_title}"</span
+											>
+										{/if}
+										{#if link.link_target}
+											<span class="rel-badge"
+												>target="{link.link_target}"</span
+											>
+										{/if}
 
-											{#if link.status !== 'applied'}
-												<button class="action-btn edit" onclick={() => startEditing(link)} disabled={isActioning}>
-													<Edit2 class="w-3.5 h-3.5" /> Sửa
+										{#if link.status !== "applied"}
+											<button
+												class="action-btn edit"
+												onclick={() =>
+													startEditing(link)}
+												disabled={isActioning}
+											>
+												<Edit2 class="w-3.5 h-3.5" /> Sửa
+											</button>
+
+											<button
+												class="action-btn approve"
+												class:active={link.status ===
+													"approved"}
+												onclick={() =>
+													handleUpdateStatus(
+														link.id,
+														"approved",
+													)}
+												disabled={isActioning}
+											>
+												<Check class="w-3.5 h-3.5" /> Duyệt
+											</button>
+
+											<button
+												class="action-btn reject"
+												class:active={link.status ===
+													"rejected"}
+												onclick={() =>
+													handleUpdateStatus(
+														link.id,
+														"rejected",
+													)}
+												disabled={isActioning}
+											>
+												<X class="w-3.5 h-3.5" /> Từ chối
+											</button>
+										{:else}
+											<div
+												class="flex items-center gap-2"
+											>
+												<span
+													class="applied-status-badge"
+													>✓ Đã cập nhật vào bài viết</span
+												>
+												<button
+													class="action-btn revert"
+													onclick={() =>
+														handleRevertLink(
+															link.id,
+														)}
+													disabled={isActioning}
+													title="Gỡ liên kết này khỏi bài viết"
+												>
+													<RotateCcw
+														class="w-3.5 h-3.5"
+													/> Gỡ link
 												</button>
-												
-												<button class="action-btn approve" class:active={link.status === 'approved'} onclick={() => handleUpdateStatus(link.id, 'approved')} disabled={isActioning}>
-													<Check class="w-3.5 h-3.5" /> Duyệt
-												</button>
-												
-												<button class="action-btn reject" class:active={link.status === 'rejected'} onclick={() => handleUpdateStatus(link.id, 'rejected')} disabled={isActioning}>
-													<X class="w-3.5 h-3.5" /> Từ chối
-												</button>
-											{:else}
-												<span class="applied-status-badge">✓ Đã cập nhật vào bài viết</span>
-											{/if}
+											</div>
+										{/if}
 									</div>
 								</div>
 							</div>
@@ -859,9 +1327,15 @@
 
 					{#if hasMore}
 						<div class="load-more-container">
-							<button class="load-more-btn" onclick={handleLoadMore} disabled={isLoading}>
+							<button
+								class="load-more-btn"
+								onclick={handleLoadMore}
+								disabled={isLoading}
+							>
 								{#if isLoading}
-									<RefreshCw class="w-3.5 h-3.5 animate-spin" /> Đang tải thêm...
+									<RefreshCw
+										class="w-3.5 h-3.5 animate-spin"
+									/> Đang tải thêm...
 								{:else}
 									Xem thêm đề xuất (Load More)
 								{/if}
@@ -874,24 +1348,44 @@
 	</div>
 {:else}
 	<!-- STANDALONE MODAL MODE (popup overlay) -->
-	<div class="review-modal-backdrop" onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="0">
-		<div class="review-modal-container" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="button" tabindex="0">
+	<div
+		class="review-modal-backdrop"
+		onclick={onClose}
+		onkeydown={(e) => e.key === "Escape" && onClose()}
+		role="button"
+		tabindex="0"
+	>
+		<div
+			class="review-modal-container"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="button"
+			tabindex="0"
+		>
 			<!-- Modal Header -->
 			<header class="modal-header">
 				<div class="header-details">
 					<div class="modal-badge">SGE CONTEXTUAL LINK REVIEW</div>
-					<h2 class="modal-title" title={articleTitle}>Duyệt liên kết: {articleTitle || 'Đang tải...'}</h2>
+					<h2 class="modal-title" title={articleTitle}>
+						Duyệt liên kết: {articleTitle || "Đang tải..."}
+					</h2>
 				</div>
 				<button class="close-btn" onclick={onClose}>✕</button>
 			</header>
 
 			<!-- Info / Status Banner -->
-			{#if isStale && reviewMode === 'article'}
+			{#if isStale && reviewMode === "article"}
 				<div class="alert-banner warning">
 					<AlertTriangle class="w-4 h-4" />
 					<div class="banner-text">
-						<strong>Nội dung bài viết đã thay đổi!</strong> Các đề xuất liên kết này có thể đã lỗi thời. Khuyên dùng: 
-						<button class="banner-action-btn" onclick={handleTriggerReanalysis} disabled={isActioning}>Phân tích lại bài viết</button>
+						<strong>Nội dung bài viết đã thay đổi!</strong> Các đề
+						xuất liên kết này có thể đã lỗi thời. Khuyên dùng:
+						<button
+							class="banner-action-btn"
+							onclick={handleTriggerReanalysis}
+							disabled={isActioning}
+							>Phân tích lại bài viết</button
+						>
 					</div>
 				</div>
 			{/if}
@@ -913,41 +1407,92 @@
 			<!-- Stats and Filters -->
 			<section class="stats-filter-bar">
 				<div class="status-filters">
-					<button class="filter-tab" class:active={statusFilter === 'all'} onclick={() => statusFilter = 'all'}>
+					<button
+						class="filter-tab"
+						class:active={statusFilter === "all"}
+						onclick={() => (statusFilter = "all")}
+					>
 						Tất cả ({links.length})
 					</button>
-					<button class="filter-tab pending" class:active={statusFilter === 'pending'} onclick={() => statusFilter = 'pending'}>
+					<button
+						class="filter-tab pending"
+						class:active={statusFilter === "pending"}
+						onclick={() => (statusFilter = "pending")}
+					>
 						Chờ duyệt ({stats.pending})
 					</button>
-					<button class="filter-tab approved" class:active={statusFilter === 'approved'} onclick={() => statusFilter = 'approved'}>
-						Đã duyệt ({stats.approved})
+					<button
+						class="filter-tab approved"
+						class:active={statusFilter === "approved"}
+						onclick={() => (statusFilter = "approved")}
+					>
+						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
-					<button class="filter-tab rejected" class:active={statusFilter === 'rejected'} onclick={() => statusFilter = 'rejected'}>
+					<button
+						class="filter-tab rejected"
+						class:active={statusFilter === "rejected"}
+						onclick={() => (statusFilter = "rejected")}
+					>
 						Đã từ chối ({stats.rejected})
 					</button>
-					<button class="filter-tab applied" class:active={statusFilter === 'applied'} onclick={() => statusFilter = 'applied'}>
+					<button
+						class="filter-tab applied"
+						class:active={statusFilter === "applied"}
+						onclick={() => (statusFilter = "applied")}
+					>
 						Đã chèn ({stats.applied})
 					</button>
 				</div>
 
 				<div class="action-buttons">
-					<button class="btn refresh" onclick={fetchContextualLinks} disabled={isLoading} title="Tải lại danh sách">
-						<RefreshCw class="w-3.5 h-3.5 {isLoading ? 'animate-spin' : ''}" />
+					<button
+						class="btn refresh"
+						onclick={fetchContextualLinks}
+						disabled={isLoading}
+						title="Tải lại danh sách"
+					>
+						<RefreshCw
+							class="w-3.5 h-3.5 {isLoading
+								? 'animate-spin'
+								: ''}"
+						/>
 						Làm mới
 					</button>
-					{#if reviewMode === 'pillar' && activePillarId}
-						<button class="btn refresh" onclick={handleTriggerReanalysis} disabled={isActioning} title="Quét tìm đề xuất mới từ các Cluster trỏ về Pillar hiện tại">
-							<RefreshCw class="w-3.5 h-3.5 {isActioning ? 'animate-spin' : ''}" />
+					{#if reviewMode === "pillar" && activePillarId}
+						<button
+							class="btn refresh"
+							onclick={handleTriggerReanalysis}
+							disabled={isActioning}
+							title="Quét tìm đề xuất mới từ các Cluster trỏ về Pillar hiện tại"
+						>
+							<RefreshCw
+								class="w-3.5 h-3.5 {isActioning
+									? 'animate-spin'
+									: ''}"
+							/>
 							Quét lại Cluster
 						</button>
-					{:else if reviewMode === 'article' && activeArticleId}
-						<button class="btn refresh" onclick={handleTriggerReanalysis} disabled={isActioning} title="Phân tích lại bài viết này">
-							<RefreshCw class="w-3.5 h-3.5 {isActioning ? 'animate-spin' : ''}" />
+					{:else if reviewMode === "article" && activeArticleId}
+						<button
+							class="btn refresh"
+							onclick={handleTriggerReanalysis}
+							disabled={isActioning}
+							title="Phân tích lại bài viết này"
+						>
+							<RefreshCw
+								class="w-3.5 h-3.5 {isActioning
+									? 'animate-spin'
+									: ''}"
+							/>
 							Phân tích lại
 						</button>
 					{/if}
 					{#if stats.approved > 0}
-						<button class="btn apply" onclick={handleApplyAll} disabled={isActioning}>
+						<button
+							class="btn apply"
+							onclick={handleApplyAll}
+							disabled={isActioning}
+						>
 							<Link2 class="w-3.5 h-3.5" />
 							Chèn liên kết ({stats.approved})
 						</button>
@@ -970,27 +1515,58 @@
 				{:else}
 					<div class="links-list">
 						{#each filteredLinks as link (link.id)}
-							<div class="link-card" class:pending={link.status === 'pending'} class:approved={link.status === 'approved'} class:rejected={link.status === 'rejected'} class:applied={link.status === 'applied'}>
+							<div
+								class="link-card"
+								class:pending={link.status === "pending"}
+								class:approved={link.status === "approved"}
+								class:rejected={link.status === "rejected"}
+								class:applied={link.status === "applied"}
+							>
 								<!-- Card Header -->
 								<div class="card-header">
 									<div class="entity-info">
-										<span class="entity-badge" class:pain={link.matched_entity_type === 'PAIN_POINT'} class:feature={link.matched_entity_type === 'FEATURE'} class:brand={link.matched_entity_type === 'BRAND'} class:ingredient={link.matched_entity_type === 'INGREDIENT'} class:symptom={link.matched_entity_type === 'SYMPTOM'}>
+										<span
+											class="entity-badge"
+											class:pain={link.matched_entity_type ===
+												"PAIN_POINT"}
+											class:feature={link.matched_entity_type ===
+												"FEATURE"}
+											class:brand={link.matched_entity_type ===
+												"BRAND"}
+											class:ingredient={link.matched_entity_type ===
+												"INGREDIENT"}
+											class:symptom={link.matched_entity_type ===
+												"SYMPTOM"}
+										>
 											{link.matched_entity_type}
 										</span>
-										<strong class="entity-name">{link.matched_entity_name}</strong>
+										<strong class="entity-name"
+											>{link.matched_entity_name}</strong
+										>
 										<span class="target-connector">⟶</span>
-										<span class="target-node" title={link.target_url}>
-											🎯 {link.target_label || 'Pillar'}
+										<span
+											class="target-node"
+											title={link.target_url}
+										>
+											🎯 {link.target_label || "Pillar"}
 										</span>
-										{#if reviewMode === 'pillar' && link.source_article_title}
-											<span class="source-article-badge" title={link.source_article_title}>
+										{#if reviewMode === "pillar" && link.source_article_title}
+											<span
+												class="source-article-badge"
+												title={link.source_article_title}
+											>
 												📝 Từ: {link.source_article_title}
 											</span>
 										{/if}
 									</div>
 
-									<div class="confidence-badge" style="border-color: rgba(99, 102, 241, {link.ai_confidence})">
-										🤖 Độ tin cậy: {Math.round(link.ai_confidence * 100)}%
+									<div
+										class="confidence-badge"
+										style="border-color: rgba(99, 102, 241, {link.ai_confidence})"
+									>
+										🤖 Độ tin cậy: {Math.round(
+											link.ai_confidence * 100,
+										)}%
 									</div>
 								</div>
 
@@ -998,11 +1574,23 @@
 								<div class="sentence-comparison">
 									<div class="sentence-box original">
 										<div class="box-label">Câu gốc:</div>
-										<p class="sentence-text">{link.original_sentence}</p>
+										<p class="sentence-text">
+											{link.original_sentence}
+										</p>
 									</div>
-									
-									<div class="sentence-box proposed">
-										<div class="box-label">Đề xuất chèn:</div>
+
+									<div
+										class="sentence-box proposed"
+										class:not-applied={link.status !==
+											"applied"}
+									>
+										<div class="box-label">
+											{#if link.status === "applied"}
+												Đề xuất chèn (Đã áp dụng):
+											{:else}
+												Đề xuất chèn (Chưa áp dụng):
+											{/if}
+										</div>
 										<p class="sentence-text linked-text">
 											{@html link.linked_sentence}
 										</p>
@@ -1012,37 +1600,88 @@
 								<!-- Card Footer / Actions -->
 								<div class="card-footer">
 									{#if link.ai_reasoning}
-										<div class="reasoning-text" title={link.ai_reasoning}>
-											💡 <em>Lý do:</em> {link.ai_reasoning}
+										<div
+											class="reasoning-text"
+											title={link.ai_reasoning}
+										>
+											💡 <em>Lý do:</em>
+											{link.ai_reasoning}
 										</div>
 									{/if}
 
-										<!-- Rel metadata info -->
-										{#if link.link_rel}
-											<span class="rel-badge">rel="{link.link_rel}"</span>
-										{/if}
-										{#if link.link_title}
-											<span class="rel-badge" title={link.link_title}>title="{link.link_title}"</span>
-										{/if}
-										{#if link.link_target}
-											<span class="rel-badge">target="{link.link_target}"</span>
-										{/if}
+									<!-- Rel metadata info -->
+									{#if link.link_rel}
+										<span class="rel-badge"
+											>rel="{link.link_rel}"</span
+										>
+									{/if}
+									{#if link.link_title}
+										<span
+											class="rel-badge"
+											title={link.link_title}
+											>title="{link.link_title}"</span
+										>
+									{/if}
+									{#if link.link_target}
+										<span class="rel-badge"
+											>target="{link.link_target}"</span
+										>
+									{/if}
 
-										{#if link.status !== 'applied'}
-											<button class="action-btn edit" onclick={() => startEditing(link)} disabled={isActioning}>
-												<Edit2 class="w-3 h-3" /> Sửa
+									{#if link.status !== "applied"}
+										<button
+											class="action-btn edit"
+											onclick={() => startEditing(link)}
+											disabled={isActioning}
+										>
+											<Edit2 class="w-3 h-3" /> Sửa
+										</button>
+
+										<button
+											class="action-btn approve"
+											class:active={link.status ===
+												"approved"}
+											onclick={() =>
+												handleUpdateStatus(
+													link.id,
+													"approved",
+												)}
+											disabled={isActioning}
+										>
+											<Check class="w-3.5 h-3.5" /> Duyệt
+										</button>
+
+										<button
+											class="action-btn reject"
+											class:active={link.status ===
+												"rejected"}
+											onclick={() =>
+												handleUpdateStatus(
+													link.id,
+													"rejected",
+												)}
+											disabled={isActioning}
+										>
+											<X class="w-3.5 h-3.5" /> Từ chối
+										</button>
+									{:else}
+										<div class="flex items-center gap-2">
+											<span class="applied-status-badge"
+												>✓ Đã cập nhật vào bài viết</span
+											>
+											<button
+												class="action-btn revert"
+												onclick={() =>
+													handleRevertLink(link.id)}
+												disabled={isActioning}
+												title="Gỡ liên kết này khỏi bài viết"
+											>
+												<RotateCcw
+													class="w-3.5 h-3.5"
+												/> Gỡ link
 											</button>
-											
-											<button class="action-btn approve" class:active={link.status === 'approved'} onclick={() => handleUpdateStatus(link.id, 'approved')} disabled={isActioning}>
-												<Check class="w-3.5 h-3.5" /> Duyệt
-											</button>
-											
-											<button class="action-btn reject" class:active={link.status === 'rejected'} onclick={() => handleUpdateStatus(link.id, 'rejected')} disabled={isActioning}>
-												<X class="w-3.5 h-3.5" /> Từ chối
-											</button>
-										{:else}
-											<span class="applied-status-badge">✓ Đã cập nhật vào bài viết</span>
-										{/if}
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/each}
@@ -1055,72 +1694,123 @@
 
 <!-- Floating Modal Chỉnh Sửa Link SGE Nổi Lên Chuyên Nghiệp -->
 {#if editingLinkId}
-	<div class="edit-modal-overlay" style="z-index: {Z_INDEX_ADMIN.MODAL_CONFIRM}">
-		<div class="edit-modal-backdrop" onclick={() => editingLinkId = null}></div>
+	<div
+		class="edit-modal-overlay"
+		style="z-index: {Z_INDEX_ADMIN.MODAL_CONFIRM}"
+	>
+		<div
+			class="edit-modal-backdrop"
+			onclick={() => (editingLinkId = null)}
+		></div>
 		<div class="edit-modal-card">
 			<div class="edit-modal-header">
-				<h3 class="edit-modal-title">🛠️ CHỈNH SỬA THUỘC TÍNH SGE LINK</h3>
-				<button class="close-modal-btn" onclick={() => editingLinkId = null}>✕</button>
+				<h3 class="edit-modal-title">
+					🛠️ CHỈNH SỬA THUỘC TÍNH SGE LINK
+				</h3>
+				<button
+					class="close-modal-btn"
+					onclick={() => (editingLinkId = null)}>✕</button
+				>
 			</div>
-			
+
 			<div class="edit-modal-body">
 				<div class="form-row">
-					<label class="form-label">Từ khóa mỏ neo (Anchor Text):</label>
-					<input 
-						type="text" 
-						class="edit-text-input" 
-						placeholder="Nhập Anchor text" 
+					<label class="form-label"
+						>Từ khóa mỏ neo (Anchor Text):</label
+					>
+					<input
+						type="text"
+						class="edit-text-input"
+						placeholder="Nhập Anchor text"
 						bind:value={editingAnchorText}
 					/>
-					<small class="form-help">Bắt buộc phải khớp với cụm từ trong câu gốc.</small>
+					<small class="form-help"
+						>Bắt buộc phải khớp với cụm từ trong câu gốc.</small
+					>
 				</div>
-				
+
 				<div class="form-row">
-					<label class="form-label">Đường dẫn đích (Target URL):</label>
-					<input 
-						type="text" 
-						class="edit-text-input" 
-						placeholder="https://..." 
+					<label class="form-label"
+						>Đường dẫn đích (Target URL):</label
+					>
+					<input
+						type="text"
+						class="edit-text-input"
+						placeholder="https://..."
 						bind:value={editingTargetUrl}
 					/>
-					<small class="form-help">URL đích chèn vào thẻ a (mặc định lấy theo Pillar).</small>
+					<small class="form-help"
+						>URL đích chèn vào thẻ a (mặc định lấy theo Pillar).</small
+					>
 				</div>
-				
+
 				<div class="form-row">
 					<label class="form-label">Thuộc tính SEO Rel:</label>
 					<select class="edit-select-input" bind:value={editingRel}>
-						<option value="">dofollow (Truyền sức mạnh link juice - Khuyên dùng)</option>
-						<option value="nofollow">nofollow (Không truyền sức mạnh link)</option>
-						<option value="sponsored">sponsored (Link tài trợ / Quảng cáo / Có trả phí)</option>
-						<option value="ugc">ugc (Nội dung do người dùng tự tạo / Bình luận)</option>
+						<option value=""
+							>dofollow (Truyền sức mạnh link juice - Khuyên dùng)</option
+						>
+						<option value="nofollow"
+							>nofollow (Không truyền sức mạnh link)</option
+						>
+						<option value="sponsored"
+							>sponsored (Link tài trợ / Quảng cáo / Có trả phí)</option
+						>
+						<option value="ugc"
+							>ugc (Nội dung do người dùng tự tạo / Bình luận)</option
+						>
 					</select>
-					<small class="form-help">Giúp Bot tìm kiếm hiểu rõ quan hệ giữa hai liên kết bài viết.</small>
+					<small class="form-help"
+						>Giúp Bot tìm kiếm hiểu rõ quan hệ giữa hai liên kết bài
+						viết.</small
+					>
 				</div>
 
 				<div class="form-row">
-					<label class="form-label">Tiêu đề mô tả khi hover (Title Attribute):</label>
-					<input 
-						type="text" 
-						class="edit-text-input" 
-						placeholder="Nhập tiêu đề mô tả..." 
+					<label class="form-label"
+						>Tiêu đề mô tả khi hover (Title Attribute):</label
+					>
+					<input
+						type="text"
+						class="edit-text-input"
+						placeholder="Nhập tiêu đề mô tả..."
 						bind:value={editingTitle}
 					/>
-					<small class="form-help">Hiển thị tooltip gợi ý cho người đọc và hỗ trợ bot SEO.</small>
+					<small class="form-help"
+						>Hiển thị tooltip gợi ý cho người đọc và hỗ trợ bot SEO.</small
+					>
 				</div>
 
 				<div class="form-row">
-					<label class="form-label">Cách mở liên kết (Target Attribute):</label>
-					<select class="edit-select-input" bind:value={editingTarget}>
-						<option value="">Cùng Tab (Khuyên dùng để tối ưu Session duration)</option>
-						<option value="_blank">Tab mới (target="_blank")</option>
+					<label class="form-label"
+						>Cách mở liên kết (Target Attribute):</label
+					>
+					<select
+						class="edit-select-input"
+						bind:value={editingTarget}
+					>
+						<option value=""
+							>Cùng Tab (Khuyên dùng để tối ưu Session duration)</option
+						>
+						<option value="_blank">Tab mới (target="_blank")</option
+						>
 					</select>
-					<small class="form-help">Điều hướng người dùng khi click vào liên kết.</small>
+					<small class="form-help"
+						>Điều hướng người dùng khi click vào liên kết.</small
+					>
 				</div>
 			</div>
-			
+
 			<div class="edit-modal-footer">
-				<button class="action-btn cancel" onclick={() => editingLinkId = null}>Hủy</button>
-				<button class="action-btn save" onclick={() => handleSaveEdit(editingLinkId)} disabled={isActioning}>
+				<button
+					class="action-btn cancel"
+					onclick={() => (editingLinkId = null)}>Hủy</button
+				>
+				<button
+					class="action-btn save"
+					onclick={() => handleSaveEdit(editingLinkId)}
+					disabled={isActioning}
+				>
 					✓ Lưu thay đổi
 				</button>
 			</div>
@@ -1244,7 +1934,9 @@
 		background: #0f0f1a;
 		border: 1px solid rgba(0, 243, 255, 0.25);
 		border-radius: 8px;
-		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+		box-shadow:
+			0 10px 25px -5px rgba(0, 0, 0, 0.6),
+			0 8px 10px -6px rgba(0, 0, 0, 0.6);
 		z-index: 1000;
 		display: flex;
 		flex-direction: column;
@@ -1590,7 +2282,8 @@
 		padding: 1.5rem;
 	}
 
-	.loading-state, .empty-state {
+	.loading-state,
+	.empty-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -1611,8 +2304,12 @@
 	}
 
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	.links-list {
@@ -1672,11 +2369,26 @@
 		font-size: 0.62rem;
 		font-weight: 700;
 	}
-	.entity-badge.pain { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
-	.entity-badge.feature { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
-	.entity-badge.brand { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
-	.entity-badge.ingredient { background: rgba(245, 158, 11, 0.15); color: #fbd578; }
-	.entity-badge.symptom { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; }
+	.entity-badge.pain {
+		background: rgba(239, 68, 68, 0.15);
+		color: #fca5a5;
+	}
+	.entity-badge.feature {
+		background: rgba(99, 102, 241, 0.15);
+		color: #a5b4fc;
+	}
+	.entity-badge.brand {
+		background: rgba(16, 185, 129, 0.15);
+		color: #6ee7b7;
+	}
+	.entity-badge.ingredient {
+		background: rgba(245, 158, 11, 0.15);
+		color: #fbd578;
+	}
+	.entity-badge.symptom {
+		background: rgba(168, 85, 247, 0.15);
+		color: #d8b4fe;
+	}
 
 	.entity-name {
 		font-size: 0.8rem;
@@ -1695,7 +2407,7 @@
 		padding: 0.15rem 0.4rem;
 		border-radius: 4px;
 	}
-	
+
 	.source-article-badge {
 		font-size: 0.72rem;
 		color: #a5b4fc;
@@ -1764,6 +2476,16 @@
 		font-weight: 600;
 	}
 
+	.sentence-box.proposed.not-applied :global(a) {
+		color: #64748b !important;
+		text-decoration-line: underline !important;
+		text-decoration-style: dashed !important;
+		text-decoration-color: #64748b !important;
+		text-underline-offset: 2px !important;
+		cursor: default;
+		pointer-events: none;
+	}
+
 	.card-footer {
 		display: flex;
 		align-items: center;
@@ -1809,12 +2531,13 @@
 		background: rgba(255, 255, 255, 0.05);
 		color: #ffffff;
 	}
-	
+
 	.action-btn.approve {
 		border-color: rgba(16, 185, 129, 0.15);
 		color: #10b981;
 	}
-	.action-btn.approve:hover, .action-btn.approve.active {
+	.action-btn.approve:hover,
+	.action-btn.approve.active {
 		background: rgba(16, 185, 129, 0.1);
 		border-color: #10b981;
 	}
@@ -1823,7 +2546,8 @@
 		border-color: rgba(239, 68, 68, 0.15);
 		color: #ef4444;
 	}
-	.action-btn.reject:hover, .action-btn.reject.active {
+	.action-btn.reject:hover,
+	.action-btn.reject.active {
 		background: rgba(239, 68, 68, 0.1);
 		border-color: #ef4444;
 	}
@@ -1850,6 +2574,31 @@
 		font-size: 0.72rem;
 		color: #818cf8;
 		font-weight: 600;
+	}
+
+	.action-btn.revert {
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		color: #ef4444;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+		font-size: 0.72rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.action-btn.revert:hover:not(:disabled) {
+		background: rgba(239, 68, 68, 0.25);
+		border-color: rgba(239, 68, 68, 0.4);
+		box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+	}
+
+	.action-btn.revert:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	/* Edit form styling (UI/UX Pro-Max) */
@@ -1928,7 +2677,7 @@
 	.action-btn.save:hover {
 		background: #059669;
 	}
-	
+
 	.action-btn.cancel {
 		background: rgba(255, 255, 255, 0.05);
 		border: none;
@@ -1963,7 +2712,7 @@
 		border-color: #6366f1;
 		box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
 	}
-	
+
 	.load-more-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
