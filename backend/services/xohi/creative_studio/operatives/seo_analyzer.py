@@ -54,11 +54,17 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin):
     agent_id_class = "seo_analyzer"
     # [CNS V90.0] Tăng từ Semaphore(1) → (3): cho phép 3 user phân tích SEO song song.
     _seo_semaphore = asyncio.Semaphore(3)
+    # [MEM-FIX] Lazy class-level singleton — Agent khởi tạo MỘT lần duy nhất
+    # Tránh compile Pydantic schema mỗi request → giảm ~5-10MB/burst
+    _agent: Optional["Agent"] = None
+    _atomic_surgeon_agent: Optional["Agent"] = None
 
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="seo_analyzer")
-        self._agent = Agent(output_type=SeoReport, retries=3)
-        self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, retries=2)
+        if SeoAnalyzer._agent is None:
+            SeoAnalyzer._agent = Agent(output_type=SeoReport, retries=3)
+        if SeoAnalyzer._atomic_surgeon_agent is None:
+            SeoAnalyzer._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, retries=2)
 
     # Heritage Mixin handles _emit_progress
 
@@ -158,7 +164,11 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin):
             logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [CLEAN] Đang tối ưu cấu trúc HTML & làm sạch dữ liệu nhiễu...")
             await self._emit_progress(campaign, logs[-1])
             clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
-            pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
+            # [MEM-FIX P1] Derive pure_text từ clean_draft thay vì clean lại lần 2
+            # Tránh tạo thêm 1 string copy (~10KB/bài) trong heap
+            import re as _re
+            pure_text = _re.sub(r'<[^>]+>', ' ', clean_draft)
+            pure_text = ' '.join(pure_text.split())
 
             # Topic Detection
             logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [RECON] Đang xác định chủ đề mục tiêu và thực thể SEO...")

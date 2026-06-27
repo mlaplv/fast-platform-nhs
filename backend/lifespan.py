@@ -283,8 +283,10 @@ async def _media_cleanup_loop():
 async def _gc_watchdog_loop():
     """
     [GHOST MODE] Vệ binh giải phóng RAM.
-    [OPT V2.3] Trigger sớm hơn (400MB), chạy mỗi 5 phút, và gọi malloc_trim
-    để trả RAM về OS — giúp giảm RSS thực tế thấy được trên docker stats.
+    [OPT V2.4] Adaptive interval: poll nhanh hơn khi RAM đang cao.
+    - RAM > 800MB → check mỗi 30s (proactive, trước khi spike)
+    - RAM > 500MB → check mỗi 2 phút
+    - Bình thường  → check mỗi 5 phút
     """
     import ctypes
     _libc = None
@@ -296,9 +298,19 @@ async def _gc_watchdog_loop():
     process = psutil.Process(os.getpid())
     while True:
         try:
-            # Chạy mỗi 5 phút (300s) thay vì 10 phút
-            await _aio.sleep(300)
+            ram_mb = process.memory_info().rss / (1024 * 1024)
 
+            # Adaptive sleep BEFORE action — giảm độ trễ phản ứng khi gần OOM
+            if ram_mb > 800:
+                sleep_secs = 30   # Poll dày hơn khi gần ngưỡng OOM
+            elif ram_mb > 500:
+                sleep_secs = 120  # 2 phút khi tải trung bình
+            else:
+                sleep_secs = 300  # 5 phút khi tải nhẹ
+
+            await _aio.sleep(sleep_secs)
+
+            # Re-read sau sleep (RAM có thể đã thay đổi)
             ram_mb = process.memory_info().rss / (1024 * 1024)
             if ram_mb > 800:
                 logger.warning(f"[GhostMode] RAM usage high ({ram_mb:.1f}MB). Forcing aggressive GC...")

@@ -21,6 +21,10 @@ _SCOUT_SEARCH_TIMEOUT = 8.0   # Google Search must return within 8s
 _SCOUT_AI_TIMEOUT     = 80.0  # AI synthesis hard ceiling (below Stall Detector 100s)
 _SCOUT_AGENT = None           # Lazy singleton — avoid recreating Agent on every call
 
+# [MEM-FIX P1] Global semaphore giới hạn analyst concurrent requests
+# Tối đa 5 ad-hoc analysis chạy song song — tránh excess Agent objects idle
+_ANALYST_SEMAPHORE = asyncio.Semaphore(5)
+
 class AdHocContent:
     """Shim to allow AI analyzers to process content without a full DB campaign record."""
     def __init__(self, content: str, topic: str = None, user_id: str = "system", id: str = "adhoc", category: str = "CREATIVE_CONTENT"):
@@ -102,9 +106,11 @@ class AnalystHandler:
                     data={"task_id": task_id, "category": category}
                 )
             
-            # Ad-hoc Fallback (Sync): Only for anonymous content analysis (No DB)
-            analyzer = analyzer_class()
-            result = await analyzer.analyze(campaign, force=force)
+            # [MEM-FIX P1] Ad-hoc Fallback (Sync): throttle qua _ANALYST_SEMAPHORE
+            # Đảm bảo tối đa 5 ad-hoc requests chạy song song trên API process
+            async with _ANALYST_SEMAPHORE:
+                analyzer = analyzer_class()
+                result = await analyzer.analyze(campaign, force=force)
             return GenericResponse(status="success", data=result.model_dump())
 
         except Exception as e:

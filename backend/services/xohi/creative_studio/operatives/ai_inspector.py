@@ -41,12 +41,20 @@ class AiInspector(BaseAgentOperative):
     Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     agent_id_class = "ai_inspector"
+    # [MEM-FIX] Lazy class-level singleton — 3 Agent objects khởi tạo MỘT lần
+    # Tránh compile Pydantic schema mỗi request → giảm ~8-15MB/burst
+    _agent: Optional["Agent"] = None
+    _refiner_agent: Optional["Agent"] = None
+    _atomic_refiner_agent: Optional["Agent"] = None
 
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="ai_inspector")
-        self._agent = Agent(output_type=AiReadyReport, retries=3)
-        self._refiner_agent = Agent(output_type=AutoFixResponse, retries=2)
-        self._atomic_refiner_agent = Agent(output_type=AtomicFixResponse, retries=2)
+        if AiInspector._agent is None:
+            AiInspector._agent = Agent(output_type=AiReadyReport, retries=3)
+        if AiInspector._refiner_agent is None:
+            AiInspector._refiner_agent = Agent(output_type=AutoFixResponse, retries=2)
+        if AiInspector._atomic_refiner_agent is None:
+            AiInspector._atomic_refiner_agent = Agent(output_type=AtomicFixResponse, retries=2)
 
     async def _emit_log(self, campaign: ContentCampaign, msg: str) -> None:
         """Backward-compat alias → delegates to Heritage _emit_progress."""

@@ -56,12 +56,19 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
     """
     agent_id_class = "plagiarism_cop"
     _plagiarism_semaphore = asyncio.Semaphore(4)
+    # [MEM-FIX] Lazy class-level singleton — Agent khởi tạo MỘT lần duy nhất
+    # Tránh compile Pydantic output schema mỗi request → giảm ~5MB/burst
+    _agent: Optional["Agent"] = None
+    _refiner_instance: Optional["PlagiarismRefiner"] = None
 
     def __init__(self, agent_id: str = "plagiarism_cop", threshold: float = DEFAULT_SIMILARITY_THRESHOLD, **kwargs: object):
         super().__init__(agent_id=agent_id)
         self.threshold = threshold
-        self._agent = Agent(output_type=PlagiarismResult, retries=3)
-        self._refiner = PlagiarismRefiner()
+        if PlagiarismCop._agent is None:
+            PlagiarismCop._agent = Agent(output_type=PlagiarismResult, retries=3)
+        if PlagiarismCop._refiner_instance is None:
+            PlagiarismCop._refiner_instance = PlagiarismRefiner()
+        self._refiner = PlagiarismCop._refiner_instance
 
     async def chat(self, request: object, **kwargs: object) -> Union[PlagiarismResult, AgentResponse]:
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
