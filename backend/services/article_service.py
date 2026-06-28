@@ -991,55 +991,56 @@ class ArticleService:
             "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%.\n"
             "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục, tóm tắt và sản phẩm liên kết được cung cấp.\n"
             "Yêu cầu cấu trúc:\n"
-            "- Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"
-            "- Dùng <p>, <ul>, <li>, <strong> để làm phong phú nội dung.\n"
-            "- Viết tối thiểu 600 từ, chia đều thành 3-5 phần logic.\n"
-            "- TUYỆT ĐỐI không dùng Markdown. Không JSON. Chỉ HTML thuần.\n"
-            "- Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
-            "- TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết."
+            "Quy tắc 1: Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"
+            "Quy tắc 2: Dùng <p>, <ul>, <li>, <strong> để làm phong phú nội dung.\n"
+            "Quy tắc 3: Viết tối thiểu 600 từ, chia đều thành 3-5 phần logic.\n"
+            "Quy tắc 4: TUYỆT ĐỐI không dùng Markdown. Không JSON. Chỉ HTML thuần.\n"
+            "Quy tắc 5: Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
+            "Quy tắc 6: TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết.\n"
+            "Quy tắc 7: TUYỆT ĐỐI không bắt đầu các dòng, các đoạn văn hoặc các thẻ tiêu đề (<h2>, <h3>) bằng dấu gạch ngang (-), dấu sao (*), hoặc ký tự liệt kê của Markdown. Tất cả mã HTML phải ở dạng độc lập, không được lồng trong danh sách trừ khi đó là danh sách thực sự."
         )
 
         templates_prompts = {
             "sge_definition": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 1: Khối Định nghĩa SGE):\n"
-                "- Mở đầu bài viết bằng một định nghĩa cực kỳ súc tích, trực diện về thuật ngữ/khái niệm chủ chốt.\n"
-                "- Ngay sau tiêu đề H2 đầu tiên, bạn BẮT BUỘC phải chèn một khối trích dẫn <blockquote> chứa định nghĩa in đậm (sử dụng <strong>) dài 1-2 câu làm khối định nghĩa chính để AI Overviews có thể trích xuất.\n"
-                "- Các phần tiếp theo đi vào phân tích chi tiết cơ chế tác dụng ở cấp độ tế bào và ứng dụng thực tế."
+                "Quy tắc A: Mở đầu bài viết bằng một định nghĩa cực kỳ súc tích, trực diện về thuật ngữ/khái niệm chủ chốt.\n"
+                "Quy tắc B: Ngay sau tiêu đề H2 đầu tiên, bạn BẮT BUỘC phải chèn một khối trích dẫn <blockquote> chứa định nghĩa in đậm (sử dụng <strong>) dài 1-2 câu làm khối định nghĩa chính để AI Overviews có thể trích xuất.\n"
+                "Quy tắc C: Các phần tiếp theo đi vào phân tích chi tiết cơ chế tác dụng ở cấp độ tế bào và ứng dụng thực tế."
             ),
             "step_by_step": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 2: Quy trình RAG từng bước):\n"
-                "- Trình bày nội dung dưới dạng một hướng dẫn/quy trình từng bước (Step-by-step tutorial/workflow) có hệ thống.\n"
-                "- Mỗi bước hành động phải được đánh số thứ tự rõ ràng (ví dụ: Bước 1, Bước 2...) kết hợp với tiêu đề phụ H3 và phần giải thích ngắn gọn, đi thẳng vào cách thực hiện."
+                "Quy tắc A: Trình bày nội dung dưới dạng một hướng dẫn/quy trình từng bước (Step-by-step tutorial/workflow) có hệ thống.\n"
+                "Quy tắc B: Mỗi bước hành động phải được đánh số thứ tự rõ ràng (ví dụ: Bước 1, Bước 2...) kết hợp với tiêu đề phụ H3 và phần giải thích ngắn gọn, đi thẳng vào cách thực hiện."
             ),
             "consensus_list": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 3: Danh sách Đồng thuận):\n"
-                "- Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
-                "- Sử dụng bảng HTML (<table>, <tr>, <th>, <td>) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
-                "- Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
+                "Quy tắc A: Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
+                "Quy tắc B: Sử dụng bảng HTML (<table>, <tr>, <th>, <td>) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
+                "Quy tắc C: Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
             ),
             "info_case_study": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 4: Case Study Tăng trưởng Thông tin):\n"
-                "- Cấu trúc bài viết xoay quanh một câu chuyện trải nghiệm thực tế (storytelling) của khách hàng hoặc nghiên cứu tình huống cụ thể.\n"
-                "- Mô tả chi tiết vấn đề ban đầu, quá trình áp dụng giải pháp và kết quả định lượng cụ thể bằng các con số thực tế.\n"
-                "- Đưa vào các thông tin độc nhất mang tính thực tiễn cao (Information Gain) nhằm tăng độ tin cậy."
+                "Quy tắc A: Cấu trúc bài viết xoay quanh một câu chuyện trải nghiệm thực tế (storytelling) của khách hàng hoặc nghiên cứu tình huống cụ thể.\n"
+                "Quy tắc B: Mô tả chi tiết vấn đề ban đầu, quá trình áp dụng giải pháp và kết quả định lượng cụ thể bằng các con số thực tế.\n"
+                "Quy tắc C: Đưa vào các thông tin độc nhất mang tính thực tiễn cao (Information Gain) nhằm tăng độ tin cậy."
             ),
             "versus_paradigm": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 5: Đối chiếu Song song):\n"
-                "- Viết bài dưới dạng so sánh đối chiếu trực tiếp giữa hai sản phẩm, hai hoạt chất hoặc hai phương pháp phổ biến (A vs B).\n"
-                "- Xây dựng bảng so sánh HTML chi tiết về công dụng, tính an toàn và giá cả.\n"
-                "- Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
+                "Quy tắc A: Viết bài dưới dạng so sánh đối chiếu trực tiếp giữa hai sản phẩm, hai hoạt chất hoặc hai phương pháp phổ biến (A vs B).\n"
+                "Quy tắc B: Xây dựng bảng so sánh HTML chi tiết về công dụng, tính an toàn và giá cả.\n"
+                "Quy tắc C: Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
             ),
             "expert_consensus": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 6: Ý kiến Chuyên gia Đồng thuận):\n"
-                "- Phân tích xu hướng thị trường và tổng hợp nhận định, đánh giá của các chuyên gia hoặc bác sĩ uy tín trong ngành.\n"
-                "- Sử dụng các trích dẫn ngắn (nằm trong thẻ <blockquote> hoặc định dạng nổi bật) để minh họa cho ý kiến đồng thuận.\n"
-                "- Đưa ra dự báo hoặc khuyến nghị đáng tin cậy về tương lai."
+                "Quy tắc A: Phân tích xu hướng thị trường và tổng hợp nhận định, đánh giá của các chuyên gia hoặc bác sĩ uy tín trong ngành.\n"
+                "Quy tắc B: Sử dụng các trích dẫn ngắn (nằm trong thẻ <blockquote> hoặc định dạng nổi bật) để minh họa cho ý kiến đồng thuận.\n"
+                "Quy tắc C: Đưa ra dự báo hoặc khuyến nghị đáng tin cậy về tương lai."
             ),
             "faq_hub": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 7: Trung tâm FAQ Chuyên sâu):\n"
-                "- Cấu trúc bài viết hoàn toàn dưới dạng các câu hỏi thường gặp và câu trả lời chi tiết.\n"
-                "- Mỗi tiêu đề phụ H3 bắt buộc phải viết ở dạng câu hỏi tự nhiên thường được người dùng tìm kiếm.\n"
-                "- Câu trả lời tương ứng phải súc tích, đầy đủ và đi thẳng vào trọng tâm câu hỏi."
+                "Quy tắc A: Cấu trúc bài viết hoàn toàn dưới dạng các câu hỏi thường gặp và câu trả lời chi tiết.\n"
+                "Quy tắc B: Mỗi tiêu đề phụ H3 bắt buộc phải viết ở dạng câu hỏi tự nhiên thường được người dùng tìm kiếm.\n"
+                "Quy tắc C: Câu trả lời tương ứng phải súc tích, đầy đủ và đi thẳng vào trọng tâm câu hỏi."
             )
         }
 
