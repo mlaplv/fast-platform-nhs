@@ -97,6 +97,47 @@ class OutboundLinksSettings(BaseModel):
         OutboundLinkItem(keyword="collagen", url="https://pubmed.ncbi.nlm.nih.gov/30681787/"),
     ])
 
+
+class SeoContextualLinksSettings(BaseModel):
+    """Cấu hình bộ lọc link ngữ cảnh SEO/SGE."""
+    brand_keywords: List[str] = Field(default_factory=lambda: [
+        "miccosmo", "beppin", "white label", "hurry harry", 
+        "virgin white", "oklab", "reborn", "placenta", "virgin",
+        "hurry", "harry", "formulan", "phytorise", "rose healing",
+        "apto", "meishoku", "detclear", "ceracolla", "organic rose",
+        "pintup", "limerence", "osmo", "naris"
+    ])
+    generic_exclusions: List[str] = Field(default_factory=lambda: [
+        # Vietnamese product types & generic terms (with and without diacritics)
+        "kem", "cho", "tro", "duong", "sang", "ngua", "lao", "hoa", "nhap", "khau", "chinh", "hang",
+        "tinh", "chất", "chat", "cap", "cấp", "am", "ẩm", "lam", "làm", "diu", "dịu", "da", "tri", "trị",
+        "tham", "thâm", "mun", "mụn", "chong", "chống", "nang", "nắng", "phuc", "phục", "hoi", "hồi",
+        "tai", "tái", "tao", "tạo", "se", "khit", "khít", "tay", "tẩy", "trang", "te", "tế", "bao", "bào",
+        "chet", "chết", "nhay", "nhạy", "cam", "cảm", "san", "sản", "pham", "phẩm", "hieu", "hiệu",
+        "qua", "quả", "nhat", "nhật", "ban", "bản", "sua", "sữa", "nuoc", "nước", "mat", "mặt", "na", "nạ",
+        "dau", "dầu", "bot", "bọt", "son", "phan", "phấn", "tro", "trở", "duong", "dưỡng", "sang", "sáng",
+        "ngoc", "ngọc", "trai", "nhat", "nhất", "yeu", "yêu", "thich", "thích", "ban", "bán", "chay", "chạy",
+        "danh", "đánh", "gia", "giá", "cong", "công", "dung", "dụng", "thanh", "thành", "phan", "phần",
+        "cach", "cách", "dung", "dùng", "ngay", "ngày", "dem", "đêm", "the", "thể", "toan", "toàn",
+        "than", "thân", "nach", "nách", "vung", "vùng", "kin", "kín", "ben", "bẹn", "mong", "mông",
+        "goi", "gối", "khu", "khử", "mui", "mùi", "hoi", "hôi", "seo", "sẹo", "ran", "rạn", "nut", "nứt",
+        "got", "gót", "chan", "chân", "hồng", "mịn", "màng", "tự", "nhiên", "nhạy", "cảm", "khô", "hỗn", "hợp",
+        "nám", "tàn", "nhang", "nếp", "nhăn", "chảy", "xệ", "rò", "rỉ", "móp", "méo", "bể", "vỡ", "trầy", "xước",
+        # Vietnamese multi-word generic phrases
+        "serum", "gel", "tinh chất", "sữa rửa", "nước hoa", "mặt nạ", "kem dưỡng", "dưỡng da",
+        "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão", "lão hóa", "chăm sóc", "tẩy tế", "tế bào", "nhạy cảm",
+        "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả",
+        "dưỡng ẩm", "dưỡng trắng", "chống nắng", "trị mụn", "giảm thâm", "se khít",
+        "làm sạch", "tẩy trang", "dưỡng thể", "dưỡng tóc", "chăm sóc da",
+        # English generic terms & product types
+        "essence", "cream", "soap", "lotion", "toner", "cleanser", "sunscreen",
+        "white", "label", "premium", "body", "face", "skin", "hair", "wash", "oil", "mask",
+        "natural", "perfect", "special", "rich", "gold", "clear", "clean", "scrub", "pack",
+        "moisturizer", "moisturizing", "whitening", "brightening", "antiaging", "repair", "soothing",
+        "care", "exfoliator", "exfoliating", "ml", "g", "gr"
+    ])
+
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -110,7 +151,9 @@ class SystemSettingsPayload(BaseModel):
     entropy: EntropySettings = Field(default_factory=EntropySettings)
     autopilot: AutopilotSettings = Field(default_factory=AutopilotSettings)
     outbound_links: OutboundLinksSettings = Field(default_factory=OutboundLinksSettings)
+    seo_contextual_links: SeoContextualLinksSettings = Field(default_factory=SeoContextualLinksSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     settings: SystemSettingsPayload
+

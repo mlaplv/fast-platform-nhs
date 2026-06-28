@@ -37,6 +37,11 @@
     authority_map: OutboundLinkItem[];
   }
 
+  interface SeoContextualLinksSettings {
+    brand_keywords: string[];
+    generic_exclusions: string[];
+  }
+
   interface BasicInfo {
     site_name: string;
     slogan: string;
@@ -129,6 +134,7 @@
     entropy: EntropySettings;
     autopilot: AutopilotSettings;
     outbound_links: OutboundLinksSettings;
+    seo_contextual_links: SeoContextualLinksSettings;
   }
 
   let settings = $state<SystemSettings>({
@@ -194,6 +200,10 @@
       max_links_per_article: 2,
       authority_map: [],
     },
+    seo_contextual_links: {
+      brand_keywords: [],
+      generic_exclusions: [],
+    },
   });
 
   let activeTab = $state("basic");
@@ -218,6 +228,7 @@
     | "conversion"
     | "entropy"
     | "outbound_links"
+    | "seo_contextual_links"
     | "loyalty"
     | "notification_retention"
     | "autopilot";
@@ -240,6 +251,7 @@
     { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
     { id: "entropy", label: "SGE Shield", icon: ShieldCheck },
     { id: "outbound_links", label: "Link uy tín (E-E-A-T)", icon: ExternalLink },
+    { id: "seo_contextual_links", label: "Link ngữ cảnh SEO", icon: Sparkles },
     { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins },
     { id: "notification_retention", label: "Lưu trữ thông báo", icon: Bell },
     { id: "autopilot", label: "Neural Autopilot", icon: Sparkles },
@@ -276,6 +288,10 @@
           outbound_links: res.settings.outbound_links || {
             max_links_per_article: 2,
             authority_map: [],
+          },
+          seo_contextual_links: res.settings.seo_contextual_links || {
+            brand_keywords: [],
+            generic_exclusions: [],
           },
         };
       }
@@ -355,6 +371,38 @@
       nanobot.showToast("Không thể lưu cấu hình.", "error");
     } finally {
       isSaving = false;
+    }
+  }
+
+  function removeBrandKeyword(index: number) {
+    settings.seo_contextual_links.brand_keywords = settings.seo_contextual_links.brand_keywords.filter((_, i) => i !== index);
+  }
+
+  function handleAddBrandKeyword(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const target = e.target as HTMLInputElement;
+      const val = target.value.trim().toLowerCase();
+      if (val && !settings.seo_contextual_links.brand_keywords.includes(val)) {
+        settings.seo_contextual_links.brand_keywords = [...settings.seo_contextual_links.brand_keywords, val];
+        target.value = "";
+      }
+    }
+  }
+
+  function removeGenericExclusion(index: number) {
+    settings.seo_contextual_links.generic_exclusions = settings.seo_contextual_links.generic_exclusions.filter((_, i) => i !== index);
+  }
+
+  function handleAddGenericExclusion(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const target = e.target as HTMLInputElement;
+      const val = target.value.trim().toLowerCase();
+      if (val && !settings.seo_contextual_links.generic_exclusions.includes(val)) {
+        settings.seo_contextual_links.generic_exclusions = [...settings.seo_contextual_links.generic_exclusions, val];
+        target.value = "";
+      }
     }
   }
 
@@ -1773,6 +1821,86 @@
                       {/each}
                     </div>
                   {/if}
+                </div>
+              </div>
+            </div>
+          {:else if activeTab === "seo_contextual_links"}
+            <div
+              class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <h3
+                class="text-sm font-black text-cyan-400 tracking-[0.2em] flex items-center gap-2"
+              >
+                <Sparkles size={16} /> Cấu hình Link ngữ cảnh SEO
+              </h3>
+
+              <div
+                class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8"
+              >
+                <div
+                  class="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4"
+                >
+                  <p
+                    class="text-[11px] text-zinc-300 leading-relaxed font-mono"
+                  >
+                    <span class="text-cyan-400 font-bold">INFO:</span> Cấu hình các bộ lọc từ khóa dùng để phê duyệt hoặc loại bỏ tự động các gợi ý liên kết ngữ cảnh SEO (SGE/AIO Contextual Links).
+                  </p>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 class="text-xs font-bold text-white tracking-wider">Từ khóa thương hiệu (Brand Keywords)</h4>
+                  </div>
+                  <div class="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/10 rounded-xl min-h-[60px]">
+                    {#each settings.seo_contextual_links.brand_keywords as kw, index}
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-xs font-mono text-cyan-400">
+                        {kw}
+                        <button
+                          type="button"
+                          onclick={() => removeBrandKeyword(index)}
+                          class="hover:text-red-400 transition-colors text-sm font-bold"
+                          title="Xóa từ khóa này"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    {/each}
+                    <input
+                      type="text"
+                      placeholder="+ Thêm từ khóa..."
+                      onkeydown={handleAddBrandKeyword}
+                      class="bg-transparent border-none outline-none text-xs text-zinc-300 placeholder-zinc-600 font-mono py-1 px-2 w-32 focus:ring-0"
+                    />
+                  </div>
+                  <p class="text-[9px] text-zinc-500 italic">Nhập từ khóa thương hiệu và nhấn <strong>Enter</strong> hoặc phím <strong>dấu phẩy (,)</strong> để lưu. Đề xuất link SGE chỉ được chấp nhận nếu anchor text chứa ít nhất một trong các từ khóa này.</p>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-white/5">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 class="text-xs font-bold text-white tracking-wider">Từ khóa loại bỏ (Stop Words / Exclusions)</h4>
+                  </div>
+                  <div class="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/10 rounded-xl min-h-[60px]">
+                    {#each settings.seo_contextual_links.generic_exclusions as kw, index}
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-xs font-mono text-red-300">
+                        {kw}
+                        <button
+                          type="button"
+                          onclick={() => removeGenericExclusion(index)}
+                          class="hover:text-red-400 transition-colors text-sm font-bold"
+                          title="Xóa từ khóa này"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    {/each}
+                    <input
+                      type="text"
+                      placeholder="+ Thêm từ khóa..."
+                      onkeydown={handleAddGenericExclusion}
+                      class="bg-transparent border-none outline-none text-xs text-zinc-300 placeholder-zinc-600 font-mono py-1 px-2 w-32 focus:ring-0"
+                    />
+                  </div>
+                  <p class="text-[9px] text-zinc-500 italic">Nhập từ khóa loại bỏ và nhấn <strong>Enter</strong> hoặc phím <strong>dấu phẩy (,)</strong> để lưu. Các anchor text trùng hoặc chứa các cụm từ chung chung này sẽ bị bỏ qua hoàn toàn để tránh rác SEO.</p>
                 </div>
               </div>
             </div>

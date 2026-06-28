@@ -125,3 +125,81 @@ async def test_client_get_contextual_links_api():
         data = response.json()
         assert "links" in data
         assert isinstance(data["links"], list)
+
+
+def test_calculate_eas_generic_brand_filtering():
+    from backend.services.seo_contextual_linker import SentenceLinkSuggestion
+    
+    pillars = [
+        {
+            "id": "pillar_1",
+            "label": "Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+            "slug": "miccosmo-white-label-essence",
+            "url": "https://osmo.vn/miccosmo-white-label-essence",
+            "entity_type": "PRODUCT",
+            "pillar_topic": "Essence",
+            "entities": [],
+        }
+    ]
+    
+    # Generic anchor text suggestion (should fail brand gate -> EAS = 0.0)
+    generic_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Bao bì có bị móp méo hay rò rỉ tinh chất không.",
+        anchor_text="rò rỉ tinh chất",
+        linked_sentence="Bao bì có bị móp méo hay <a href='pillar_1'>rò rỉ tinh chất</a> không.",
+        target_pillar_id="pillar_1",
+        matched_entity_type="feature",
+        matched_entity_name="Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+        confidence=0.85,
+        reasoning="Cụm từ liên quan đến tinh chất"
+    )
+    
+    score_generic = seo_contextual_linker._calculate_eas(generic_suggestion, pillars)
+    assert score_generic == 0.0
+    
+    # Specific brand-relevant anchor text suggestion (should pass brand gate -> EAS > 0.0)
+    brand_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Bạn có thể dùng tinh chất Placenta Miccosmo để dưỡng da hàng ngày.",
+        anchor_text="tinh chất Placenta Miccosmo",
+        linked_sentence="Bạn có thể dùng <a href='pillar_1'>tinh chất Placenta Miccosmo</a> để dưỡng da hàng ngày.",
+        target_pillar_id="pillar_1",
+        matched_entity_type="brand",
+        matched_entity_name="Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+        confidence=0.90,
+        reasoning="Nhắc trực tiếp tên thương hiệu và dòng sản phẩm"
+    )
+    
+    score_brand = seo_contextual_linker._calculate_eas(brand_suggestion, pillars)
+    assert score_brand > 0.0
+
+    # Test settings configurations (brand_keywords and generic_exclusions)
+    custom_brand_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Bạn nên sử dụng sản phẩm của custombrand để cải thiện.",
+        anchor_text="sản phẩm custombrand",
+        linked_sentence="Bạn nên sử dụng <a href='pillar_1'>sản phẩm custombrand</a> để cải thiện.",
+        target_pillar_id="pillar_1",
+        matched_entity_type="brand",
+        matched_entity_name="Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+        confidence=0.90,
+        reasoning="Nhắc trực tiếp"
+    )
+
+    # Without custom config, "custombrand" is generic/not a brand, so it fails brand gate
+    score_no_custom = seo_contextual_linker._calculate_eas(custom_brand_suggestion, pillars)
+    assert score_no_custom == 0.0
+
+    # With custom config, it passes
+    score_with_custom = seo_contextual_linker._calculate_eas(
+        custom_brand_suggestion, 
+        pillars, 
+        brand_keywords_config=["custombrand"],
+        generic_exclusions_config={"sản", "phẩm"}
+    )
+    assert score_with_custom > 0.0
+

@@ -24,6 +24,10 @@
 		original_sentence: string;
 		linked_sentence: string;
 		link_rel: string | null;
+		link_title: string | null;
+		link_target: string | null;
+		source_article_title?: string;
+		source_article_id?: string;
 		anchor_text: string;
 		ai_reasoning: string | null;
 	}
@@ -37,6 +41,7 @@
 
 	export interface ReviewWidgetData {
 		article_id?: string;
+		pillar_id?: string;
 	}
 
 	let {
@@ -400,8 +405,8 @@
 		editingTarget = link.link_target || "";
 	}
 
-	async function handleSaveEdit(linkId: string) {
-		if (!editingAnchorText.trim()) return;
+	async function handleSaveEdit(linkId: string | null) {
+		if (!linkId || !editingAnchorText.trim()) return;
 		isActioning = true;
 		errorMessage = null;
 		successMessage = null;
@@ -449,8 +454,7 @@
 					updatedLink.linked_sentence =
 						updatedLink.original_sentence.replace(
 							editingAnchorText,
-							`<a href="${updatedLink.target_url}" class="sge-contextual-link" data-sge-source="ai"${attrStr} style="color:#6366f1; text-decoration:underline;">${editingAnchorText}</a>`,
-							1,
+							`<a href="${updatedLink.target_url}" class="sge-contextual-link" data-sge-source="ai"${attrStr} style="color:#6366f1; text-decoration:underline;">${editingAnchorText}</a>`
 						);
 
 					// Re-assign object to trigger deep reactivity
@@ -613,7 +617,9 @@
 				successMessage =
 					result.message ||
 					"Đã kích hoạt quét & tự động phân tích link ngữ cảnh cho các Cluster. Bạn sẽ nhận được thông báo chuông khi hoàn tất.";
-				nanobot.showToast(successMessage, "success");
+				if (successMessage) {
+					nanobot.showToast(successMessage, "success");
+				}
 			} catch (e) {
 				errorMessage =
 					e instanceof Error
@@ -856,7 +862,7 @@
 				<div class="action-buttons">
 					<button
 						class="btn refresh"
-						onclick={fetchContextualLinks}
+						onclick={() => fetchContextualLinks()}
 						disabled={isLoading}
 						title="Tải lại danh sách"
 					>
@@ -1123,7 +1129,7 @@
 				<div class="action-buttons">
 					<button
 						class="btn refresh"
-						onclick={fetchContextualLinks}
+						onclick={() => fetchContextualLinks()}
 						disabled={isLoading}
 					>
 						<RefreshCw
@@ -1447,7 +1453,7 @@
 				<div class="action-buttons">
 					<button
 						class="btn refresh"
-						onclick={fetchContextualLinks}
+						onclick={() => fetchContextualLinks()}
 						disabled={isLoading}
 						title="Tải lại danh sách"
 					>

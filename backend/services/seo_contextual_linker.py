@@ -169,6 +169,21 @@ class SeoContextualLinker:
             await db.commit()
             logger.info("[ContextualLinker] Cleared previous pending/rejected suggestions for article %s (pillar: %s)", article_id, target_pillar_id)
 
+        # Load user configured brand keywords and generic exclusions from System Settings
+        brand_keywords_config = None
+        generic_exclusions_config = None
+        try:
+            from backend.services.settings_service import settings_service
+            settings_res = await settings_service.get_general_settings(db)
+            if settings_res and settings_res.settings and hasattr(settings_res.settings, "seo_contextual_links"):
+                seo_settings = settings_res.settings.seo_contextual_links
+                if seo_settings.brand_keywords:
+                    brand_keywords_config = [w.lower().strip() for w in seo_settings.brand_keywords if w.strip()]
+                if seo_settings.generic_exclusions:
+                    generic_exclusions_config = {w.lower().strip() for w in seo_settings.generic_exclusions if w.strip()}
+        except Exception as e:
+            logger.warning("[ContextualLinker] Failed to load system settings for contextual linking: %s", e)
+
         # Step 0: Load Pillar nodes with their entities
         pillars = await self._load_pillars_with_entities(db, tenant)
         if not pillars:
@@ -276,7 +291,7 @@ class SeoContextualLinker:
             return [] if is_dry_run else 0
 
         # Step 2: Entity pre-filter
-        candidates = self._entity_prefilter(sentences, pillars, article_node)
+        candidates = self._entity_prefilter(sentences, pillars, article_node, stop_words_config=generic_exclusions_config)
         if not candidates:
             logger.info("[ContextualLinker] No candidate sentences after pre-filter — skipping")
             return [] if is_dry_run else 0
@@ -340,7 +355,7 @@ class SeoContextualLinker:
                     continue
                 if suggestion.confidence < _MIN_CONFIDENCE:
                     continue
-                eas_score = self._calculate_eas(suggestion, pillars, article_content)
+                eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config)
                 if eas_score < 0.6:
                     logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                     continue
@@ -406,7 +421,7 @@ class SeoContextualLinker:
                         continue
                     if suggestion.confidence < _MIN_CONFIDENCE:
                         continue
-                    eas_score = self._calculate_eas(suggestion, pillars, article_content)
+                    eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config)
                     if eas_score < 0.6:
                         logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                         continue
@@ -517,18 +532,26 @@ class SeoContextualLinker:
         sentences: list[dict],
         pillars: list[dict],
         article_node: Optional[SeoNode],
+        stop_words_config: Optional[set[str]] = None,
     ) -> list[dict]:
         """
         Filter sentences: chỉ giữ những câu chứa entity trùng với Pillar nào đó.
         Enriches each candidate with matched_pillar_ids.
         """
+        if stop_words_config is not None:
+            stop_words = stop_words_config
+        else:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            stop_words = {w.lower().strip() for w in defaults.generic_exclusions if w.strip()}
+
         # Build entity → pillar_id lookup
         entity_pillar_map: dict[str, list[str]] = {}
         for p in pillars:
             entities = p.get("entities", [])
             for ent in entities:
                 name = ent.get("name", "").lower().strip()
-                if name and len(name) >= 4:
+                if name and len(name) >= 4 and name not in stop_words:
                     if name not in entity_pillar_map:
                         entity_pillar_map[name] = []
                     if p["id"] not in entity_pillar_map[name]:
@@ -558,17 +581,6 @@ class SeoContextualLinker:
                         suffix = core_cleaned[len(brand):].strip()
                         if len(suffix) >= 5:
                             additional_terms.append(suffix.lower())
-            
-            # Stop words mở rộng — loại cụm generic không mang ngữ nghĩa thực thể
-            stop_words = {
-                "kem", "serum", "gel", "tinh chất", "sữa rửa", "nước hoa", "mặt nạ", "kem dưỡng", "dưỡng da",
-                "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão", "lão hóa", "chăm sóc", "tẩy tế", "tế bào", "nhạy cảm",
-                "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả",
-                "premium", "rich", "gold", "white", "label", "special", "perfect", "natural",
-                "body", "face", "skin", "hair", "cream", "lotion", "wash", "oil", "mask",
-                "dưỡng ẩm", "dưỡng trắng", "chống nắng", "trị mụn", "giảm thâm", "se khít",
-                "làm sạch", "tẩy trang", "dưỡng thể", "dưỡng tóc", "chăm sóc da",
-            }
             
             for t in additional_terms:
                 t_clean = t.strip()
@@ -728,6 +740,8 @@ class SeoContextualLinker:
         suggestion: SentenceLinkSuggestion,
         pillars: list[dict[str, object]],
         article_content: Optional[str] = None,
+        brand_keywords_config: Optional[list[str]] = None,
+        generic_exclusions_config: Optional[set[str]] = None,
     ) -> float:
         """
         Calculate Entity Alignment Score (EAS V2) under Google CTO-level strictness.
@@ -748,11 +762,26 @@ class SeoContextualLinker:
         gate_brand = 1.0
         if entity_type == "PRODUCT":
             # Check if anchor text contains brand keywords or product name parts
-            brand_keywords = ["miccosmo", "beppin", "white label", "placenta", "virgin", "essence", "cream", "serum", "gel", "soap"]
-            # Also extract lowercase tokens from target product label (excluding common words)
+            brand_keywords = brand_keywords_config
+            if brand_keywords is None:
+                from backend.schemas.system_settings import SeoContextualLinksSettings
+                defaults = SeoContextualLinksSettings()
+                brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
+
+            # Also extract lowercase tokens from target product label (excluding common/generic words)
             label_lower = (target_pillar.get("label") or "").lower()
             label_clean = label_lower.translate(str.maketrans("", "", string.punctuation))
-            label_tokens = [t for t in label_clean.split() if len(t) >= 3 and t not in ["kem", "cho", "tro", "duong", "sang", "ngua", "lao", "hoa", "nhap", "khau", "chinh", "hang"]]
+            
+            generic_exclusions = generic_exclusions_config
+            if generic_exclusions is None:
+                from backend.schemas.system_settings import SeoContextualLinksSettings
+                defaults = SeoContextualLinksSettings()
+                generic_exclusions = {w.lower().strip() for w in defaults.generic_exclusions if w.strip()}
+            
+            label_tokens = [
+                t for t in label_clean.split() 
+                if len(t) >= 3 and t not in generic_exclusions
+            ]
             
             anchor_lower = (suggestion.anchor_text or "").lower()
             has_brand_token = any(kw in anchor_lower for kw in brand_keywords) or any(t in anchor_lower for t in label_tokens)
