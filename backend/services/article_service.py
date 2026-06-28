@@ -980,7 +980,7 @@ class ArticleService:
             logger.exception(f"[ArticleService] AI Excerpt Suggestion Failed: {e}")
             return ""
 
-    async def suggest_content(self, db_session: Optional[AsyncSession], title: str, category: str, excerpt: str, product_id: str = "") -> str:
+    async def suggest_content(self, db_session: Optional[AsyncSession], title: str, category: str, excerpt: str, product_id: str = "", template: str = "") -> str:
         """GEO 2026: XOHI Auto Content Generator — sinh HTML bài viết hoàn chỉnh EEAT."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -998,6 +998,55 @@ class ArticleService:
             "- Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
             "- TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết."
         )
+
+        templates_prompts = {
+            "sge_definition": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 1: Khối Định nghĩa SGE):\n"
+                "- Mở đầu bài viết bằng một định nghĩa cực kỳ súc tích, trực diện về thuật ngữ/khái niệm chủ chốt.\n"
+                "- Ngay sau tiêu đề H2 đầu tiên, bạn BẮT BUỘC phải chèn một khối trích dẫn <blockquote> chứa định nghĩa in đậm (sử dụng <strong>) dài 1-2 câu làm khối định nghĩa chính để AI Overviews có thể trích xuất.\n"
+                "- Các phần tiếp theo đi vào phân tích chi tiết cơ chế tác dụng ở cấp độ tế bào và ứng dụng thực tế."
+            ),
+            "step_by_step": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 2: Quy trình RAG từng bước):\n"
+                "- Trình bày nội dung dưới dạng một hướng dẫn/quy trình từng bước (Step-by-step tutorial/workflow) có hệ thống.\n"
+                "- Mỗi bước hành động phải được đánh số thứ tự rõ ràng (ví dụ: Bước 1, Bước 2...) kết hợp với tiêu đề phụ H3 và phần giải thích ngắn gọn, đi thẳng vào cách thực hiện."
+            ),
+            "consensus_list": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 3: Danh sách Đồng thuận):\n"
+                "- Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
+                "- Sử dụng bảng HTML (<table>, <tr>, <th>, <td>) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
+                "- Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
+            ),
+            "info_case_study": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 4: Case Study Tăng trưởng Thông tin):\n"
+                "- Cấu trúc bài viết xoay quanh một câu chuyện trải nghiệm thực tế (storytelling) của khách hàng hoặc nghiên cứu tình huống cụ thể.\n"
+                "- Mô tả chi tiết vấn đề ban đầu, quá trình áp dụng giải pháp và kết quả định lượng cụ thể bằng các con số thực tế.\n"
+                "- Đưa vào các thông tin độc nhất mang tính thực tiễn cao (Information Gain) nhằm tăng độ tin cậy."
+            ),
+            "versus_paradigm": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 5: Đối chiếu Song song):\n"
+                "- Viết bài dưới dạng so sánh đối chiếu trực tiếp giữa hai sản phẩm, hai hoạt chất hoặc hai phương pháp phổ biến (A vs B).\n"
+                "- Xây dựng bảng so sánh HTML chi tiết về công dụng, tính an toàn và giá cả.\n"
+                "- Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
+            ),
+            "expert_consensus": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 6: Ý kiến Chuyên gia Đồng thuận):\n"
+                "- Phân tích xu hướng thị trường và tổng hợp nhận định, đánh giá của các chuyên gia hoặc bác sĩ uy tín trong ngành.\n"
+                "- Sử dụng các trích dẫn ngắn (nằm trong thẻ <blockquote> hoặc định dạng nổi bật) để minh họa cho ý kiến đồng thuận.\n"
+                "- Đưa ra dự báo hoặc khuyến nghị đáng tin cậy về tương lai."
+            ),
+            "faq_hub": (
+                "Yêu cầu cấu trúc bổ sung (Bản mẫu 7: Trung tâm FAQ Chuyên sâu):\n"
+                "- Cấu trúc bài viết hoàn toàn dưới dạng các câu hỏi thường gặp và câu trả lời chi tiết.\n"
+                "- Mỗi tiêu đề phụ H3 bắt buộc phải viết ở dạng câu hỏi tự nhiên thường được người dùng tìm kiếm.\n"
+                "- Câu trả lời tương ứng phải súc tích, đầy đủ và đi thẳng vào trọng tâm câu hỏi."
+            )
+        }
+
+        template_prompt = templates_prompts.get(template, "")
+        if template_prompt:
+            base_prompt = f"{base_prompt}\n\n{template_prompt}"
+
         sge_cfg = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
             base_prompt,

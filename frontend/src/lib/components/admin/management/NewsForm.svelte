@@ -188,6 +188,7 @@
     related_keywords: string[];
   }>({ seo_sge: [], guide_advanced: [], related_keywords: [] });
   let showTitleSuggestions = $state(false);
+  let selectedTitleGroup = $state<'seo_sge' | 'guide_advanced' | 'related_keywords' | 'custom' | null>(null);
 
   const isProductSelected = $derived(
     !!formRelatedProductId &&
@@ -238,8 +239,9 @@
     }
   }
 
-  function selectSuggestedTitle(title: string) {
+  function selectSuggestedTitle(title: string, group: 'seo_sge' | 'guide_advanced' | 'related_keywords' | 'custom' | null = null) {
     formTitle = title;
+    selectedTitleGroup = group;
     if (!editingId) formSlug = generateSlug(title);
     showTitleSuggestions = false;
     suggestedTitlesGrouped = { seo_sge: [], guide_advanced: [], related_keywords: [] };
@@ -340,11 +342,38 @@
     }
     isSuggestingContent = true;
     try {
+      let chosenTemplate = 'sge_definition';
+      if (selectedTitleGroup === 'seo_sge') {
+        const templates = ['sge_definition', 'info_case_study', 'faq_hub'];
+        chosenTemplate = templates[Math.floor(Math.random() * templates.length)];
+      } else if (selectedTitleGroup === 'guide_advanced') {
+        const templates = ['step_by_step', 'versus_paradigm'];
+        chosenTemplate = templates[Math.floor(Math.random() * templates.length)];
+      } else if (selectedTitleGroup === 'related_keywords') {
+        const templates = ['consensus_list', 'expert_consensus'];
+        chosenTemplate = templates[Math.floor(Math.random() * templates.length)];
+      } else {
+        const templates = ['sge_definition', 'step_by_step', 'consensus_list', 'info_case_study', 'versus_paradigm', 'expert_consensus', 'faq_hub'];
+        chosenTemplate = templates[Math.floor(Math.random() * templates.length)];
+      }
+
+      const templateNames: Record<string, string> = {
+        'sge_definition': 'Khối Định nghĩa SGE',
+        'step_by_step': 'Quy trình RAG từng bước',
+        'consensus_list': 'Danh sách Đồng thuận',
+        'info_case_study': 'Case Study Tăng trưởng Thông tin',
+        'versus_paradigm': 'Đối chiếu Song song',
+        'expert_consensus': 'Ý kiến Chuyên gia Đồng thuận',
+        'faq_hub': 'Trung tâm FAQ Chuyên sâu'
+      };
+      nanobot.showToast(`XOHI đang dùng bản mẫu: ${templateNames[chosenTemplate] || chosenTemplate}`, "info");
+
       const res = await apiClient.post<{ data: string }>('/api/v1/articles/content-suggest', {
         title: formTitle,
         category: formCategory || '',
         excerpt: formExcerpt || '',
-        product_id: formRelatedProductId || ''
+        product_id: formRelatedProductId || '',
+        template: chosenTemplate
       });
       if (res?.data && typeof res.data === 'string' && res.data.trim()) {
         formContent = res.data.trim();
@@ -452,6 +481,7 @@
               bind:value={formTitle}
               oninput={(e) => { 
                 const val = e.currentTarget.value;
+                selectedTitleGroup = 'custom';
                 if (!editingId && val) formSlug = generateSlug(val); 
               }}
               placeholder="Nhập tiêu đề Bài viết..."
@@ -484,7 +514,7 @@
                   </div>
                   {#each suggestedTitlesGrouped.seo_sge as title, i}
                     <button
-                      onclick={() => selectSuggestedTitle(title)}
+                      onclick={() => selectSuggestedTitle(title, 'seo_sge')}
                       class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-cyan-400 hover:bg-cyan-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
                     >
                       <span class="shrink-0 w-4 h-4 rounded bg-cyan-500/10 flex items-center justify-center text-[8px] font-black text-cyan-400">{i + 1}</span>
@@ -501,7 +531,7 @@
                   </div>
                   {#each suggestedTitlesGrouped.guide_advanced as title, i}
                     <button
-                      onclick={() => selectSuggestedTitle(title)}
+                      onclick={() => selectSuggestedTitle(title, 'guide_advanced')}
                       class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-purple-400 hover:bg-purple-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
                     >
                       <span class="shrink-0 w-4 h-4 rounded bg-purple-500/10 flex items-center justify-center text-[8px] font-black text-purple-400">{i + 1}</span>
@@ -518,7 +548,7 @@
                   </div>
                   {#each suggestedTitlesGrouped.related_keywords as title, i}
                     <button
-                      onclick={() => selectSuggestedTitle(title)}
+                      onclick={() => selectSuggestedTitle(title, 'related_keywords')}
                       class="w-full text-left px-4 py-2 text-xs text-white/70 hover:text-amber-400 hover:bg-amber-500/5 border-b border-white/5 last:border-0 transition-all cursor-pointer flex items-center gap-2.5"
                     >
                       <span class="shrink-0 w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-[8px] font-black text-amber-400">{i + 1}</span>

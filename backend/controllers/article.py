@@ -241,7 +241,8 @@ class ArticleController(Controller):
         category = data.get("category", "")
         excerpt = data.get("excerpt", "")
         product_id = data.get("product_id", "")
-        content = await article_service.suggest_content(None, title, category, excerpt, product_id)
+        template = data.get("template", "")
+        content = await article_service.suggest_content(None, title, category, excerpt, product_id, template)
         return {"data": content}
 
     @post("/title-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
