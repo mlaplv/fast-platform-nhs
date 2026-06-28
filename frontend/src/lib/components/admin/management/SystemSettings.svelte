@@ -30,6 +30,7 @@
   let { data = {} } = $props<BaseWidgetProps>();
 
   interface SeoContextualLinksSettings {
+    auto_linking_enabled: boolean;
     brand_keywords: string[];
     generic_exclusions: string[];
   }
@@ -191,6 +192,7 @@
       scan_end_hour: 4,
     },
     seo_contextual_links: {
+      auto_linking_enabled: false,
       brand_keywords: [],
       generic_exclusions: [],
     },
@@ -278,9 +280,10 @@
             scan_start_hour: 2,
             scan_end_hour: 4,
           },
-          seo_contextual_links: res.settings.seo_contextual_links || {
-            brand_keywords: [],
-            generic_exclusions: [],
+          seo_contextual_links: {
+            auto_linking_enabled: res.settings.seo_contextual_links?.auto_linking_enabled ?? false,
+            brand_keywords: res.settings.seo_contextual_links?.brand_keywords || [],
+            generic_exclusions: res.settings.seo_contextual_links?.generic_exclusions || [],
           },
           news_tags: res.settings.news_tags || {
             tags_map: {},
@@ -1772,13 +1775,40 @@
                 class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8"
               >
                 <div
-                  class="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4"
+                  class="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-2"
                 >
                   <p
                     class="text-[11px] text-zinc-300 leading-relaxed font-mono"
                   >
                     <span class="text-cyan-400 font-bold">INFO:</span> Cấu hình các bộ lọc từ khóa dùng để phê duyệt hoặc loại bỏ tự động các gợi ý liên kết ngữ cảnh SEO (SGE/AIO Contextual Links).
                   </p>
+                </div>
+
+                <div class="flex items-center justify-between p-5 bg-black/40 border border-white/5 rounded-xl mb-4">
+                  <div>
+                    <h4 class="text-xs font-bold text-white tracking-wider">
+                      Tự động phân tích và gợi ý link ngữ cảnh
+                    </h4>
+                    <p class="text-[9px] text-zinc-500 font-mono mt-1">
+                      AUTO LINK ANALYSIS & INJECTION FOR NEW ARTICLES
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onclick={() =>
+                      (settings.seo_contextual_links.auto_linking_enabled =
+                        !settings.seo_contextual_links.auto_linking_enabled)}
+                    aria-label="Toggle Auto Linking"
+                    class="relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none {settings.seo_contextual_links.auto_linking_enabled
+                      ? 'bg-cyan-500'
+                      : 'bg-zinc-800'}"
+                  >
+                    <div
+                      class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 {settings.seo_contextual_links.auto_linking_enabled
+                        ? 'translate-x-6'
+                        : 'translate-x-0'}"
+                    ></div>
+                  </button>
                 </div>
 
                 <div class="space-y-4">

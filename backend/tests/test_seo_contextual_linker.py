@@ -294,3 +294,14 @@ def test_brand_relevance_multiplier_and_generic_penalties():
     assert mult_ok == 1.0
 
 
+@pytest.mark.asyncio
+async def test_seo_contextual_linker_setting_auto_linking_enabled():
+    from backend.schemas.system_settings import SeoContextualLinksSettings
+    config = SeoContextualLinksSettings()
+    assert config.auto_linking_enabled is False
+    
+    config_true = SeoContextualLinksSettings(auto_linking_enabled=True)
+    assert config_true.auto_linking_enabled is True
+
+
+

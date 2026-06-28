@@ -367,6 +367,26 @@ async def seo_contextual_link_job(
     token = current_tenant_id.set(tenant_id)
     session_maker = alchemy_config.create_session_maker()
     try:
+        # Check system settings first to respect auto-linking toggle
+        async with session_maker() as db:
+            from backend.database.models import SystemSetting
+            from sqlalchemy import select
+            auto_linking_enabled = False
+            try:
+                stmt_settings = select(SystemSetting).where(SystemSetting.key == "primary_config")
+                res_settings = await db.execute(stmt_settings)
+                setting_row = res_settings.scalar_one_or_none()
+                if setting_row and isinstance(setting_row.value, dict):
+                    seo_dict = setting_row.value.get("seo_contextual_links")
+                    if isinstance(seo_dict, dict):
+                        auto_linking_enabled = seo_dict.get("auto_linking_enabled", False)
+            except Exception as settings_ex:
+                logger.warning(f"[SEO Contextual Link Job] Failed to check auto_linking_enabled status: {settings_ex}")
+
+            if not auto_linking_enabled:
+                logger.info(f"[SEO Contextual Link Job] Auto-linking is disabled in system settings. Skipping analysis for article {article_id}.")
+                return
+
         # Phase 1: Short-lived session to retrieve metadata and close connection immediately
         article_content = None
         article_title = None

@@ -841,7 +841,8 @@ class ArticleService:
             "3. Câu trả lời (answer) phải ngắn gọn, súc tích (dưới 80 từ), chính xác và đi thẳng vào trọng tâm câu hỏi.\n"
             "4. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%.\n"
             "5. Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown:\n"
-            "[{\"question\": \"...\", \"answer\": \"...\"}]"
+            "[{\"question\": \"...\", \"answer\": \"...\"}]\n"
+            "6. TUYỆT ĐỐI không chứa bất kỳ thẻ liên kết <a>, đường dẫn (URL) nào trong câu hỏi hoặc câu trả lời."
         )
         sge_cfg_faq = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -920,7 +921,8 @@ class ArticleService:
             "3. Tuyệt đối không được ngắt dòng khi chưa viết hết câu.\n"
             "4. Hãy chủ động viết ngắn gọn ngay từ đầu. Độ dài tóm tắt không được vượt quá 250 ký tự để đảm bảo tính súc tích và tránh bị cắt cụt.\n"
             "5. Dựa vào tiêu đề, chuyên mục, sản phẩm liên kết (nếu có) và nội dung bài viết (nếu có), hãy viết 1-2 câu tóm tắt súc tích, hấp dẫn, chứa từ khóa chính.\n"
-            "6. Chỉ trả về đoạn văn thuần túy (paragraph), KHÔNG dùng markdown, KHÔNG ghi danh sách (ví dụ: không viết dạng '1. ...', '2. ...' hoặc dùng dấu gạch đầu dòng), KHÔNG giải thích thêm."
+            "6. Chỉ trả về đoạn văn thuần túy (paragraph), KHÔNG dùng markdown, KHÔNG ghi danh sách (ví dụ: không viết dạng '1. ...', '2. ...' hoặc dùng dấu gạch đầu dòng), KHÔNG giải thích thêm.\n"
+            "7. TUYỆT ĐỐI không chứa bất kỳ thẻ liên kết <a>, đường dẫn (URL) nào trong đoạn văn tóm tắt."
         )
         sge_cfg = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -993,7 +995,8 @@ class ArticleService:
             "- Dùng <p>, <ul>, <li>, <strong> để làm phong phú nội dung.\n"
             "- Viết tối thiểu 600 từ, chia đều thành 3-5 phần logic.\n"
             "- TUYỆT ĐỐI không dùng Markdown. Không JSON. Chỉ HTML thuần.\n"
-            "- Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết."
+            "- Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
+            "- TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết."
         )
         sge_cfg = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(

@@ -59,15 +59,34 @@ def _setup_seo_subscriptions() -> None:
 
                 # Auto-trigger contextual link analysis for articles (deferred 30s to allow match job to complete)
                 if entity_type.lower() == "article":
-                    from datetime import timedelta
-                    await redis.enqueue_job(
-                        "seo_contextual_link_job",
-                        article_id=entity_id,
-                        tenant_id=tenant_id,
-                        _queue_name="high",
-                        _defer_by=timedelta(seconds=30),
-                    )
-                    logger.info(f"[SEO] Queued seo_contextual_link_job (high queue, deferred 30s) for article:{entity_id}")
+                    from backend.database.alchemy_config import alchemy_config
+                    from backend.database.models import SystemSetting
+                    from sqlalchemy import select
+                    auto_linking_enabled = False
+                    try:
+                        async with alchemy_config.create_session_maker()() as session:
+                            stmt_settings = select(SystemSetting).where(SystemSetting.key == "primary_config")
+                            res_settings = await session.execute(stmt_settings)
+                            setting_row = res_settings.scalar_one_or_none()
+                            if setting_row and isinstance(setting_row.value, dict):
+                                seo_dict = setting_row.value.get("seo_contextual_links")
+                                if isinstance(seo_dict, dict):
+                                    auto_linking_enabled = seo_dict.get("auto_linking_enabled", False)
+                    except Exception as settings_ex:
+                        logger.warning(f"[SEO] Failed to check auto_linking_enabled status: {settings_ex}")
+
+                    if auto_linking_enabled:
+                        from datetime import timedelta
+                        await redis.enqueue_job(
+                            "seo_contextual_link_job",
+                            article_id=entity_id,
+                            tenant_id=tenant_id,
+                            _queue_name="high",
+                            _defer_by=timedelta(seconds=30),
+                        )
+                        logger.info(f"[SEO] Queued seo_contextual_link_job (high queue, deferred 30s) for article:{entity_id}")
+                    else:
+                        logger.info(f"[SEO] Skipping automatic seo_contextual_link_job for article:{entity_id} because auto_linking_enabled is False")
             finally:
                 await redis.aclose()
         except Exception as e:

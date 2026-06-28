@@ -79,6 +79,7 @@ class AutopilotSettings(BaseModel):
 
 class SeoContextualLinksSettings(BaseModel):
     """Cấu hình bộ lọc link ngữ cảnh SEO/SGE."""
+    auto_linking_enabled: bool = Field(default=False)
     brand_keywords: List[str] = Field(default_factory=lambda: [
         "miccosmo", "beppin", "white label", "hurry harry", 
         "virgin white", "oklab", "reborn", "placenta", "virgin",
@@ -99,6 +100,7 @@ class SeoContextualLinksSettings(BaseModel):
         "moisturizer", "moisturizing", "whitening", "brightening", "antiaging", "repair", "soothing",
         "care", "exfoliator", "exfoliating", "ml", "g", "gr"
     ])
+
 
 
 class NewsTagSettings(BaseModel):

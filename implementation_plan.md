@@ -1,51 +1,55 @@
-# Kế hoạch gộp Giỏ hàng UI và Bản nháp đơn hàng AI (Single Source of Truth)
+# Kế hoạch Triển khai Kiến trúc Sinh Nội dung Đa dạng XOHI (7 Bản mẫu & Tối ưu hóa GEO/SGE 2026)
 
 ## 1. Mô tả mục tiêu
-Gộp giỏ hàng giao diện (Frontend Cart) và bản nháp đơn hàng của AI (Redis Order Draft) thành một nguồn dữ liệu duy nhất. Khi khách hàng bấm "Tính tiền" hoặc nhắn "tính tiền", Helen sẽ lấy trực tiếp sản phẩm trong giỏ hàng thực tế để chốt đơn, loại bỏ hoàn toàn sự bất đồng bộ giữa giao diện web và khung chat.
+Tái cấu trúc lại công cụ sinh nội dung tự động XOHI nhằm loại bỏ hoàn toàn các lỗi trùng lặp kiến trúc vật lý (structural footprint) và tuân thủ các hướng dẫn tìm kiếm thế hệ mới của Google (AI Overviews, Helpful Content Update) thông qua việc triển khai Ma trận 7 Bản mẫu (7 Templates) cùng với pipeline phân tích thực thể và ý định tìm kiếm động.
 
 ---
 
-## 2. Phân tích giải pháp & Phản biện rủi ro (Risk Analysis & Critique)
-
-### Rủi ro 1: Bất đồng bộ khi khách hàng thay đổi sản phẩm bằng lời nói qua Chat
-- **Mô tả**: Nếu khách hàng đang mở giỏ hàng nhưng lại nhắn chat: *"Cho chị thêm 1 serum nhé"*, AI sẽ ghi nhận thêm serum vào đơn hàng nháp. Tuy nhiên, ở lượt chat tiếp theo, do giỏ hàng Frontend truyền lên không thay đổi, sản phẩm serum vừa thêm bằng miệng sẽ bị ghi đè/mất đi.
-- **Phương án giải quyết (Bidirectional Sync)**: 
-  - Khi AI xử lý thêm/bớt hàng qua chat, Backend sẽ trả về danh sách sản phẩm mới trong thuộc tính `ui_metadata.update_cart`.
-  - Frontend Svelte Store sẽ lắng nghe sự kiện này và tự động gọi hàm `getGlobalCart().updateItem(...)` để đồng bộ giỏ hàng thực tế trên giao diện khớp với lời nói của AI.
-
-### Rủi ro 2: Khách hàng đa kênh (Zalo, Facebook Messenger) không có giỏ hàng Frontend
-- **Mô tả**: Khách chat từ Zalo OA hoặc Messenger không có trình duyệt/giỏ hàng UI truyền lên (`cart_items` rỗng).
-- **Phương án giải quyết (Hybrid Fallback)**:
-  - Hệ thống chỉ đồng bộ theo giỏ hàng UI khi `cart_items` được truyền lên (Web Chat).
-  - Nếu `cart_items` trống hoặc rỗng (Zalo/Messenger), hệ thống tự động sử dụng luồng trích xuất sản phẩm bằng AI (LLM-based extraction) và lưu trữ nháp trên Redis như cũ.
+## 2. Phân tích giải pháp & Kiến trúc Core (7 Bản mẫu)
+Chúng ta sẽ thiết lập 7 cấu trúc tài liệu độc lập và tối ưu hóa sâu cho định dạng đầu ra:
+- **Bản mẫu 1: Khối Định nghĩa SGE (SGE Definition Block):** Tối ưu cho các câu hỏi định nghĩa, khái niệm.
+- **Bản mẫu 2: Quy trình RAG từng bước (Step-by-Step RAG Framework):** Dành cho tài liệu hướng dẫn, cẩm nang.
+- **Bản mẫu 3: Danh sách Đồng thuận (The Consensus List):** Dành cho tổng hợp, đánh giá sản phẩm hàng đầu.
+- **Bản mẫu 4: Case Study Tăng trưởng Thông tin (Information Gain Case Study):** Dành cho nội dung dựa trên câu chuyện thực tế và dữ liệu độc nhất.
+- **Bản mẫu 5: Đối chiếu Song song (The Versus Paradigm):** Dành cho so sánh trực tiếp sản phẩm hoặc giải pháp.
+- **Bản mẫu 6: Ý kiến Chuyên gia Đồng thuận (The Expert Consensus):** Phân tích xu hướng và dự báo thị trường.
+- **Bản mẫu 7: Trung tâm FAQ Chuyên sâu (The Ultimate FAQ Hub):** Giải đáp thắc mắc chi tiết và tối ưu hóa từ khóa đuôi dài.
 
 ---
 
-## 3. Các thay đổi đề xuất
+## 3. Quy trình thực hiện (Pipeline 3 bước)
 
-### A. Backend Layer (Đồng bộ và xử lý logic chốt đơn)
+### Bước 1: Phân tích Ý định & Thực thể (Intent & Entity Analysis)
+- Phân loại nội dung đầu vào thành ba nhóm ý định (Thông tin, Thương mại/Giao dịch, hoặc Hỗn hợp).
+- Trích xuất các thực thể chính như thương hiệu sản phẩm, thành phần cốt lõi và số liệu kỹ thuật thực tế để duy trì mật độ thực thể cao trong bài viết.
 
-#### [MODIFY] [lead_extractor.py](file:///media/lv/data/fast-platform-core/backend/services/commerce/logic/lead_extractor.py)
-- Trong hàm `extract_and_convert`, kiểm tra tham số `cart_items`.
-- Nếu có `cart_items` (Web Chat), bỏ qua bước AI trích xuất sản phẩm từ văn bản chat. Gán trực tiếp danh sách sản phẩm từ `cart_items` vào `lead.items`.
-- Nếu `cart_items` rỗng, thực hiện trích xuất sản phẩm qua AI từ tin nhắn như bình thường (Zalo/Messenger fallback).
+### Bước 2: Lựa chọn Bản mẫu Động
+- Sử dụng cơ chế chọn ngẫu nhiên có trọng số trong nhóm bản mẫu phù hợp với ý định đã phân tích để đảm bảo cấu trúc vật lý của mỗi bài viết là độc nhất, tránh tạo ra khuôn mẫu giống nhau trên hệ thống.
 
-#### [MODIFY] [order.py](file:///media/lv/data/fast-platform-core/backend/services/commerce/operatives/handlers/order.py)
-- Cập nhật luồng xử lý `OrderHandler`: Khi nhận thấy khách nhắn từ khóa thanh toán (`tính tiền`, `thanh toán`) và giỏ hàng client gửi lên có hàng, thực hiện đồng bộ ngay lập tức các sản phẩm này vào Redis `order_draft` để đảm bảo dữ liệu đơn hàng luôn chính xác tuyệt đối theo giỏ hàng hiện tại.
-
-### B. Frontend Layer (Đồng bộ 2 chiều về giao diện)
-
-#### [MODIFY] [supportAgent.svelte.ts](file:///media/lv/data/fast-platform-core/frontend/src/lib/state/commerce/supportAgent.svelte.ts)
-- Bổ sung hàm lắng nghe kết quả trả về từ Helen: Nếu phản hồi từ server có chứa chỉ thị cập nhật giỏ hàng (`ui_metadata.update_cart`), tự động gọi store `getGlobalCart()` để cập nhật số lượng và sản phẩm thực tế của giỏ hàng trên giao diện của khách.
+### Bước 3: Áp dụng Tiêu chuẩn Tạo lập Nội dung (2026 Viral & Hook)
+- Tích hợp các kỹ thuật thu hút người đọc ngay từ dòng đầu tiên.
+- Thiết lập khối định nghĩa nổi bật (blockquote chứa định nghĩa cô đọng) nhằm hỗ trợ khả năng trích xuất nội dung của AI Overviews.
+- Sử dụng định dạng bảng biểu và danh sách Markdown trực quan để nâng cao trải nghiệm người dùng và điểm scannability.
 
 ---
 
-## 4. Kế hoạch xác minh (Verification Plan)
+## 4. Kế hoạch thay đổi đề xuất
+
+### A. Phần cấu hình hệ thống (Backend settings)
+- Thiết lập cấu hình lưu trữ trạng thái kích hoạt, các tham số đầu vào của từng bản mẫu và hỗ trợ tùy chọn ghi đè bản mẫu thủ công từ phía quản trị viên.
+
+### B. Phần xử lý nghiệp vụ bài viết (Article Service)
+- Cải tiến quy trình sinh nội dung để thực hiện phân tích ý định tự động và áp dụng prompt tương ứng với bản mẫu được chọn. Đảm bảo cấu trúc HTML tạo ra đa dạng về mặt phân bổ thẻ và không bị rập khuôn.
+
+### C. Phần quản trị giao diện (Frontend admin)
+- Cập nhật biểu mẫu tạo và chỉnh sửa bài viết để hiển thị thông tin nhật ký hệ thống về ý định tìm kiếm đã phân tích và bản mẫu đã được áp dụng.
+
+---
+
+## 5. Kế hoạch xác minh (Verification Plan)
 
 ### Kiểm thử tự động (Automated Tests)
-- Bổ sung test case trong `backend/tests/test_helen_support_specialists.py` giả lập trường hợp client gửi request chat kèm `cart_items` và nội dung `"tính tiền"`, kiểm tra xem đơn hàng tạo ra có khớp 100% với danh sách sản phẩm trong giỏ hàng gửi lên hay không.
+- Xây dựng các ca kiểm thử giả lập đầu vào để xác định hệ thống tự động phân loại đúng ý định tìm kiếm và trả về nội dung có cấu trúc tương thích với bản mẫu được chỉ định.
 
 ### Kiểm thử thủ công (Manual Verification)
-- Mở Storefront, thêm sản phẩm vào giỏ hàng.
-- Chat với Helen: nhắn `"tính tiền"`. Kiểm tra xem Helen có hiển thị đúng thông tin thanh toán của các sản phẩm trong giỏ hàng hay không.
-- Thử nhắn *"cho chị thêm 1 sản phẩm X"* trong chat, kiểm tra xem sản phẩm X có tự động được thêm vào giỏ hàng trên giao diện web hay không.
+- Thử nghiệm sinh nội dung cho các sản phẩm và bài viết khác nhau, kiểm tra tính ngẫu nhiên của các bản mẫu được áp dụng và đảm bảo không còn sự trùng lặp về thẻ tiêu đề vật lý giữa các bài viết được tạo ra liên tiếp.
