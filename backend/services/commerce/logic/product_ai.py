@@ -1,11 +1,20 @@
 import logging
 import re
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic_ai import Agent
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
+
+
+def _apply_mandatory_terms(text: str) -> str:
+    """SGE Shield V3.0: Apply mandatory fixed-term replacements (e.g. nhau thai → Placenta)."""
+    from backend.services.lexical_sanitizer import _COMPILED_FIXED_TERMS
+    for pattern, replacement in _COMPILED_FIXED_TERMS:
+        text = pattern.sub(replacement, text)
+    return text
+
 
 async def suggest_seo_logic(name: str, description: str) -> Dict[str, str]:
     """Elite V2.2: AI SEO Suggestion Logic (Isolated)."""
@@ -40,6 +49,10 @@ async def suggest_seo_logic(name: str, description: str) -> Dict[str, str]:
                     parsed["description"] = validate_vietnamese_sentence(parsed["description"])
                 except Exception as ve:
                     logger.warning(f"[ProductAI] SEO description validation failed: {ve}")
+            # SGE Shield V3.0: enforce mandatory term replacements on all string fields
+            for field in ("title", "description", "keywords"):
+                if field in parsed:
+                    parsed[field] = _apply_mandatory_terms(parsed[field])
             return parsed
         
         return {"title": f"{name} Chính Hãng", "description": "Sản phẩm chính hãng", "keywords": ""}
@@ -97,6 +110,10 @@ async def suggest_faqs_logic(name: str, description: str) -> List[Dict[str, str]
                                     item_dict["answer"] = validate_vietnamese_sentence(item_dict["answer"], mode="standard")
                                 except Exception as ve:
                                     logger.warning(f"[ProductAI] FAQ answer validation failed: {ve}")
+                            # SGE Shield V3.0: enforce mandatory term replacements
+                            for field in ("question", "answer"):
+                                if field in item_dict:
+                                    item_dict[field] = _apply_mandatory_terms(item_dict[field])
                             result_list.append(item_dict)
                     return result_list
 
@@ -149,6 +166,10 @@ async def suggest_ingredients_logic(name: str, ingredients: str) -> List[Dict[st
                                     item_dict["benefit"] = validate_vietnamese_sentence(item_dict["benefit"])
                                 except Exception as ve:
                                     logger.warning(f"[ProductAI] Ingredient benefit validation failed: {ve}")
+                            # SGE Shield V3.0: enforce mandatory term replacements
+                            for field in ("name", "benefit"):
+                                if field in item_dict:
+                                    item_dict[field] = _apply_mandatory_terms(item_dict[field])
                             result_list.append(item_dict)
                     return result_list[:4]
 
@@ -255,6 +276,8 @@ async def suggest_semantic_logic(name: str, description: str, seo_description: O
                 return f"<li>{li_inner}</li>"
             
             html_res = re.sub(r"<li>(.*?)</li>", clean_li_content, html_res, flags=re.DOTALL)
+            # SGE Shield V3.0: enforce mandatory term replacements on full HTML output
+            html_res = _apply_mandatory_terms(html_res)
             return html_res.strip()
 
         return ""

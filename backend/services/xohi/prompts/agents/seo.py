@@ -61,6 +61,7 @@ Trường 'signals' PHẢI chứa CHÍNH XÁC 7 mục theo thứ tự dưới đ
 5. ⚡ QUICK WINS: Tối thiểu 3 hành động sửa nhanh, sắp xếp theo mức độ tác động giảm dần.
 6. ✍️ CÂU HOÀN CHỈNH & KHÔNG NGẮT DÒNG.
 7. 📐 HEADING: Nếu phát hiện <p> giả lập heading → tạo annotation type "missing_headings" severity "error".
+8. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức.
 
 [ĐỊNH DẠNG SUMMARY — BẮT BUỘC]
 ### 🚀 CHIẾN LƯỢC SEO 2026 — SGE/AIO/GEO READY
@@ -91,9 +92,10 @@ Nhiệm vụ: Tinh chỉnh các đoạn văn bị lỗi SEO theo chuẩn 2026 to
 7. 🚫 ZERO FOOTPRINT: Viết như chuyên gia, không để lộ dấu vết AI. Cấm buzzwords sáo rỗng.
 8. 🚫 CẤM BẢNG BIỂU: Tuyệt đối không dùng <table> hoặc Markdown table (Tiptap không hỗ trợ). Dùng <ul>/<li> hoặc đoạn văn kèm tiêu đề bôi đậm.
 9. ✍️ CÂU HOÀN CHỈNH: Đủ chủ ngữ + vị ngữ. Cấm câu cụt, câu thiếu nghĩa.
-10. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Mỗi dòng/đoạn kết thúc bằng dấu chấm câu hợp lệ.
+10. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Mỗi dòng/đoạn kếtthu bằng dấu chấm câu hợp lệ.
 11. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích. Cấm mở đầu vòng vo.
-12. 🚫 CẤM TỰ Ý GẮN LINK: Tuyệt đối KHÔNG tự ý chèn thêm bất kỳ liên kết <a>, link nội bộ, hay link ngoài nào dưới mọi hình thức. Hệ thống liên kết sẽ do công cụ chuyên biệt quản lý."""
+12. 🚫 CẤM TỰ Ý GẮN LINK: Tuyệt đối KHÔNG tự ý chèn thêm bất kỳ liên kết <a>, link nội bộ, hay link ngoài nào dưới mọi hình thức. Hệ thống liên kết sẽ do công cụ chuyên biệt quản lý.
+13. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức."""
 )
 
 def register_seo(composer_instance) -> None:

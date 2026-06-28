@@ -197,8 +197,9 @@ class NeuralRewriter(BaseAgentOperative):
             sanitized_content = self.clean_ai_html(content_raw)
             sanitized_content = shield_service.sanitize(sanitized_content)
             
-            # ELITE V2.2: Lệnh Sếp - Ép kiểu "Nhau thai" -> "Placenta" tuyệt đối (Post-processing Regex)
-            sanitized_content = re.sub(r'(?i)nhau thai', 'Placenta', sanitized_content)
+            # SGE Shield V3.0: "nhau thai" -> "Placenta" đã được xử lý global trong lexical_sanitizer.
+            # Dòng dưới là safety net dự phòng (double-guard) — giữ lại để đảm bảo tuyệt đối.
+            sanitized_content = re.sub(r'(?i)nhau\s+thai', 'Placenta', sanitized_content)
             
             # ELITE V2.2: Lệnh Sếp - Loại bỏ hoàn toàn phần Cam kết ra khỏi mô tả sản phẩm
             if content_type == "product":

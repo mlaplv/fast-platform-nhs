@@ -162,6 +162,7 @@ class ClientHomeController(Controller):
         [SOC] Báo cáo lỗi kết nối/timeout từ Frontend và gửi Telegram alert.
         """
         from backend.services.telegram_service import telegram_service
+        import html
 
         error_type = data.get("error", "UNKNOWN_ERROR")
         url = data.get("url", "N/A")
@@ -176,11 +177,11 @@ class ClientHomeController(Controller):
 
         message = (
             f"🚨 <b>[SOC ALERT] SỰ CỐ KẾT NỐI HỆ THỐNG</b>\n"
-            f"🔴 <b>Lỗi:</b> {error_type}\n"
-            f"🔗 <b>Endpoint:</b> {url}\n"
-            f"🌐 <b>IP Khách:</b> {ip}\n"
-            f"⏱️ <b>Thời gian:</b> {timestamp}\n"
-            f"📝 <b>Chi tiết:</b> {details}\n"
+            f"🔴 <b>Lỗi:</b> {html.escape(error_type)}\n"
+            f"🔗 <b>Endpoint:</b> {html.escape(url)}\n"
+            f"🌐 <b>IP Khách:</b> {html.escape(ip)}\n"
+            f"⏱️ <b>Thời gian:</b> {html.escape(timestamp)}\n"
+            f"📝 <b>Chi tiết:</b> {html.escape(details)}\n"
             f"💡 <i>Khuyến nghị: Kiểm tra trạng thái tải của hệ thống.</i>"
         )
         

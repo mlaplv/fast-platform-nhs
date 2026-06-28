@@ -674,7 +674,11 @@ CHỈ THỊ QUAN TRỌNG:
                 )
             content_raw = str(getattr(response, "data", response)).strip()
             # Sanitize: bỏ quote dư và xử lý newline
-            content_raw = content_raw.strip('"\' \n').split('\n')[0][:500]
+            content_raw = content_raw.strip('"\'  \n').split('\n')[0][:500]
+            # SGE Shield V3.0: Apply mandatory term replacements (nhau thai → Placenta)
+            from backend.services.lexical_sanitizer import _COMPILED_FIXED_TERMS
+            for _fp, _fr in _COMPILED_FIXED_TERMS:
+                content_raw = _fp.sub(_fr, content_raw)
 
             # Elite V2.2: Enforce Vietnamese NLP validation on AI-generated reviews
             from backend.utils.text import validate_vietnamese_sentence

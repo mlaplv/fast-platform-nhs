@@ -49,9 +49,18 @@ class TelegramService:
             if resp.status_code == 200:
                 logger.info("✅ [TelegramService] Alert message dispatched successfully.")
                 return True
-            else:
-                logger.warning(f"⚠️ [TelegramService] Failed to send Telegram alert: {resp.text}")
-                return False
+            
+            # Elite V2.2 Fallback: If Telegram rejects HTML formatting, strip parse_mode and retry as plain text.
+            if resp.status_code == 400 and any(err in resp.text for err in ["can't parse entities", "Unsupported"]):
+                logger.warning(f"⚠️ [TelegramService] HTML parsing failed, retrying in plain text: {resp.text}")
+                payload.pop("parse_mode", None)
+                resp = await self.client.post(url, json=payload)
+                if resp.status_code == 200:
+                    logger.info("✅ [TelegramService] Alert message dispatched successfully with plain text fallback.")
+                    return True
+
+            logger.warning(f"⚠️ [TelegramService] Failed to send Telegram alert: {resp.text}")
+            return False
         except Exception as e:
             logger.error(f"❌ [TelegramService] Network or connection timeout sending Telegram alert: {e}")
             return False

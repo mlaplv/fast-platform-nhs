@@ -432,6 +432,7 @@ async def seo_pillar_auto_link_job(
     ctx: Dict[str, object],
     pillar_id: str,
     tenant_id: str,
+    force_scan: bool = False,
 ) -> None:
     """
     Tự động đi link từ các Cluster con trỏ về Pillar node hiện tại.
@@ -443,7 +444,7 @@ async def seo_pillar_auto_link_job(
        - Chỉ chọn đề xuất có confidence cao nhất để tự động duyệt (approved).
        - Chèn link tự động vào bài viết: seo_contextual_linker.apply_approved_links().
     """
-    logger.info(f"[Pillar Auto Link] Starting auto linking job for pillar {pillar_id} tenant={tenant_id}")
+    logger.info(f"[Pillar Auto Link] Starting auto linking job for pillar {pillar_id} tenant={tenant_id} force_scan={force_scan}")
     from backend.database import current_tenant_id
     token = current_tenant_id.set(tenant_id)
     session_maker = alchemy_config.create_session_maker()
@@ -520,17 +521,18 @@ async def seo_pillar_auto_link_job(
                             continue
 
                         # Tiêu chuẩn 2: Loại bỏ bài viết đã có link APPROVED hoặc APPLIED trỏ tới Pillar đích này rồi (tránh double link)
-                        existing_link = await db.scalar(
-                            select(SeoContextualLink).where(
-                                SeoContextualLink.source_article_id == article_id,
-                                SeoContextualLink.target_node_id == pillar_id,
-                                SeoContextualLink.status.in_(["approved", "applied"]),
-                                SeoContextualLink.tenant_id == tenant_id
+                        if not force_scan:
+                            existing_link = await db.scalar(
+                                select(SeoContextualLink).where(
+                                    SeoContextualLink.source_article_id == article_id,
+                                    SeoContextualLink.target_node_id == pillar_id,
+                                    SeoContextualLink.status.in_(["approved", "applied"]),
+                                    SeoContextualLink.tenant_id == tenant_id
+                                )
                             )
-                        )
-                        if existing_link:
-                            logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it already has an approved/applied link to pillar {pillar_id}")
-                            continue
+                            if existing_link:
+                                logger.info(f"[Pillar Auto Link] Skipping article {article_id} because it already has an approved/applied link to pillar {pillar_id}")
+                                continue
 
                         # Tiêu chuẩn 3: Loại bỏ bài viết đã đạt giới hạn tối đa số link ngữ cảnh cho phép (tối đa 3 link/bài)
                         total_links_count = await db.scalar(

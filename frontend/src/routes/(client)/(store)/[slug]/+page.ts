@@ -112,7 +112,9 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
   // ── 2. News list ─────────────────────────────────────────────────────────
   if (slug === 'bai-viet') {
-    const newsRes = await fetch(`/api/v1/client/news?limit=25`, {
+    const tag = url.searchParams.get('tag');
+    const tagParam = tag ? `&tag=${encodeURIComponent(tag)}` : '';
+    const newsRes = await fetch(`/api/v1/client/news?limit=25${tagParam}`, {
       signal: AbortSignal.timeout(6000)
     }).catch(e => { console.error('[NEWS FETCH FAILED]', e); return null; });
 

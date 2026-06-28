@@ -475,6 +475,7 @@ class SeoService:
         brand_name = os.getenv("SEO_BRAND_NAME") or "osmo"
 
         # 1. Try Redis cache first
+        cache_hit = False
         try:
             from backend.services.xohi_memory import xohi_memory
             cached = await xohi_memory.client.get("system:settings:primary_config")
@@ -486,11 +487,12 @@ class SeoService:
                 if basic.get("domain"):
                     base_domain = basic["domain"]
                     site_url = f"https://{base_domain}"
+                cache_hit = True
         except Exception:
             pass
 
-        # 2. Try DB if cache miss or db is passed
-        if db and site_name == "osmo.vn":
+        # 2. Try DB if cache miss
+        if db and not cache_hit:
             try:
                 from sqlalchemy import text
                 res = await db.execute(text("SELECT value FROM system_settings WHERE key = 'primary_config'"))
@@ -646,9 +648,9 @@ class SeoService:
                                     "entity_type": e.get("type") or e.get("entity_type") or "unknown"
                                 })
 
-        # Outbound E-E-A-T Authority Link Injection
+        # Hardening existing external links to ensure E-E-A-T rel authority compliance
         if product.description:
-            product.description = SeoService.inject_outbound_authority_links(product.description)
+            product.description = SeoService.harden_external_links(product.description)
 
         # ── Live Review Injection: Query system_reviews table (SSOT) ──────────
         # product.metadata.reviews (JSONB static) is NOT synced by ReviewService.
@@ -1040,12 +1042,11 @@ class SeoService:
         )
 
     @staticmethod
-    def inject_outbound_authority_links(html_content: str) -> str:
-        """Inject E-E-A-T outbound authority links into HTML content dynamically."""
+    def harden_external_links(html_content: str) -> str:
+        """Harden existing external links in HTML to ensure security & E-E-A-T rel authority compliance."""
         if not html_content:
             return html_content
 
-        # Elite V2.2: Hardening existing external links to ensure E-E-A-T rel authority compliance
         def _harden_external_link(match: re.Match) -> str:
             tag = match.group(0)
             href_m = re.search(r'href=["\']([^"\']+)["\']', tag, re.IGNORECASE)

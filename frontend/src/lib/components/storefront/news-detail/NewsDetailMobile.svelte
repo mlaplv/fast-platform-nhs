@@ -2,8 +2,10 @@
   import { onMount } from "svelte";
   import { beforeNavigate } from "$app/navigation";
   import { cubicOut } from "svelte/easing";
+  import { fade } from "svelte/transition";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ArticleOrderFunnel from "./ArticleOrderFunnel.svelte";
 
   // Svelte 5 safe slide transition workaround to prevent NaNpx errors
   function slide(node: HTMLElement, { duration = 200 } = {}) {
@@ -55,6 +57,9 @@
       category?: string;
       metadata?: {
         faqs?: { question: string; answer: string }[];
+        related_product_id?: string;
+        related_product_name?: string;
+        related_product_image?: string;
       };
     };
     resolvedLcpUrl?: string;
@@ -110,6 +115,35 @@
   let activeFaq = $state<number | null>(null);
   let loadBelowFold = $state(false);
   let contextualLinks = $state<ContextualLinkInfo[]>([]);
+  let isArticleRead = $state(false);
+
+  $effect(() => {
+    if (typeof window === "undefined" || !article.metadata?.related_product_id) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            isArticleRead = true;
+            observer.disconnect();
+          }
+        });
+      },
+      {
+        rootMargin: "0px",
+        threshold: 0.1,
+      }
+    );
+
+    const marker = document.getElementById("article-end-marker");
+    if (marker) {
+      observer.observe(marker);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  });
 
   onMount(async () => {
     // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
@@ -459,6 +493,13 @@
       {@html injectedContent}
     </svelte:element>
   </div>
+  <div id="article-end-marker" class="h-1 w-full"></div>
+
+  {#if article.metadata?.related_product_id && isArticleRead}
+    <div transition:fade={{ duration: 250 }} class="px-[10px] pb-0">
+      <ArticleOrderFunnel productId={article.metadata.related_product_id} />
+    </div>
+  {/if}
 
   <!-- GEO 2026: FAQ Section (Full Width Redesign) -->
   {#if article.metadata?.faqs && article.metadata.faqs.length > 0}

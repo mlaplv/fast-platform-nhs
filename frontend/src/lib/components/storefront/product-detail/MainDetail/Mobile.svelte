@@ -29,9 +29,10 @@
     relatedProducts?: Product[];
     reviewStats?: ReviewStats | null;
     resolvedLcpUrl?: string;
+    isEmbedded?: boolean;
   }
 
-  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl, isEmbedded = false }: Props = $props();
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -265,16 +266,18 @@
   });
 </script>
 
-<div class="product-mobile-root" translate="no">
+<div class="product-mobile-root" class:embedded={isEmbedded} translate="no">
   <!-- 1. STICKY HEADER -->
-  <ProductMobileHeader
-    {product}
-    {showTabs}
-    {scrollRatio}
-    {activeTab}
-    onScrollToSection={scrollToSection}
-    onShare={shareProduct}
-  />
+  {#if !isEmbedded}
+    <ProductMobileHeader
+      {product}
+      {showTabs}
+      {scrollRatio}
+      {activeTab}
+      onScrollToSection={scrollToSection}
+      onShare={shareProduct}
+    />
+  {/if}
 
   <!-- 2. MAIN CONTENT -->
   <div class="content-body">
@@ -295,31 +298,33 @@
       />
     </section>
 
-    <section id="description">
-      <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
-    </section>
+    {#if !isEmbedded}
+      <section id="description">
+        <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
+      </section>
 
-    <section id="reviews">
-      {#if loadBelowFold}
-        <ProductMobileReviews {product} />
-      {:else}
-        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-b border-gray-100">
-          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải đánh giá...</span>
-        </div>
-      {/if}
-    </section>
+      <section id="reviews">
+        {#if loadBelowFold}
+          <ProductMobileReviews {product} />
+        {:else}
+          <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-b border-gray-100">
+            <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+            <span class="text-[10px] font-black tracking-widest uppercase">Đang tải đánh giá...</span>
+          </div>
+        {/if}
+      </section>
 
-    <section id="recommendations">
-      {#if loadBelowFold}
-        <ProductMobileRecommendations {relatedProducts} />
-      {:else}
-        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2">
-          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
-          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải gợi ý...</span>
-        </div>
-      {/if}
-    </section>
+      <section id="recommendations">
+        {#if loadBelowFold}
+          <ProductMobileRecommendations {relatedProducts} />
+        {:else}
+          <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2">
+            <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+            <span class="text-[10px] font-black tracking-widest uppercase">Đang tải gợi ý...</span>
+          </div>
+        {/if}
+      </section>
+    {/if}
   </div>
 
   <!-- 3. FOOTER NAV -->
@@ -359,7 +364,9 @@
 
 
 
-  <div class="h-20"></div>
+  {#if !isEmbedded}
+    <div class="h-20"></div>
+  {/if}
 </div>
 
 <style>
@@ -368,6 +375,11 @@
     min-height: 100dvh;
     width: 100%;
     position: relative;
+  }
+
+  .product-mobile-root.embedded {
+    min-height: auto !important;
+    background: transparent !important;
   }
 
   .content-body {

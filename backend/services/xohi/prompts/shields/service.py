@@ -55,7 +55,13 @@ class SgeShieldService:
         )
 
     def sanitize(self, text: str) -> str:
-        """Removes blacklisted AI buzzwords from the text."""
+        """Removes blacklisted AI buzzwords and applies mandatory term replacements."""
+        # SGE Shield V3.0: Apply mandatory fixed-term replacements first (nhau thai → Placenta, etc.)
+        from backend.services.lexical_sanitizer import _COMPILED_FIXED_TERMS
+        for fixed_pattern, fixed_replacement in _COMPILED_FIXED_TERMS:
+            text = fixed_pattern.sub(fixed_replacement, text)
+
+        # Then remove AI buzzwords from GLOBAL_BLACKLIST
         for word in self.GLOBAL_BLACKLIST:
             pattern = re.compile(re.escape(word), re.IGNORECASE)
             text = pattern.sub("", text)

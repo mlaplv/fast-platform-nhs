@@ -11,6 +11,8 @@ class ArticleMetadata(BaseModel):
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
     # V2026: Single product linking for context-aware title generation
     related_product_id: Optional[str] = Field(None, alias="related_product_id")
+    related_product_name: Optional[str] = Field(None, alias="related_product_name")
+    related_product_image: Optional[str] = Field(None, alias="related_product_image")
 
 
 class ArticleSeoMeta(BaseModel):

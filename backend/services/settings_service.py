@@ -293,13 +293,13 @@ class SettingsService:
         )
         update_entropy_cache(entropy_dict)
 
-        # Sync Outbound Links Settings vào Redis
-        outbound_dict = data.outbound_links.model_dump()
+        # Sync News Tags mapping to Redis
+        news_tags_dict = data.news_tags.tags_map
         await xohi_memory.client.set(
-            "system:outbound_links_config",
-            _json.dumps(outbound_dict),
+            "system:news_tags",
+            _json.dumps(news_tags_dict),
         )
-        
+
         # Elite V2.2: Sync Media
         await SettingsService._sync_media_links(data_dict)
 

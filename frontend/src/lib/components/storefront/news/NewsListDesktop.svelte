@@ -1,6 +1,9 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   interface NewsItem {
     id: string;
@@ -20,21 +23,40 @@
 
   let { newsList = [], categoryName = "Bài viết", serverTotal = 0 }: Props = $props();
 
-  let allNews = $state<NewsItem[]>([...newsList]);
-  let currentOffset = $state(newsList.length);
+  let allNews = $state<NewsItem[]>([]);
+  let currentOffset = $state(0);
   let isLoading = $state(false);
+  let currentTotal = $state(serverTotal);
+
+  $effect(() => {
+    allNews = [...newsList];
+    currentOffset = newsList.length;
+    currentTotal = serverTotal;
+  });
+
+  const ui = getClientUi();
+  const hotTopics = $derived(
+    ui.settings?.news_tags?.tags_map
+      ? Object.keys(ui.settings.news_tags.tags_map)
+      : ['DƯỠNG DA', 'CẢM HỨNG', 'XU HƯỚNG', 'ƯU ĐÃI', 'MẸO HAY', 'SỨC KHỎE']
+  );
 
   async function loadMore() {
     if (isLoading) return;
-    if (allNews.length >= (serverTotal || 0)) return;
+    const listTotal = currentTotal || 0;
+    if (allNews.length > 0 && allNews.length >= listTotal) return;
     isLoading = true;
     try {
-      const res = await fetch(`/api/v1/client/news?limit=20&offset=${currentOffset}`);
+      const tagParam = selectedTag ? `&tag=${encodeURIComponent(selectedTag)}` : '';
+      const res = await fetch(`/api/v1/client/news?limit=25&offset=${currentOffset}${tagParam}`);
       if (res.ok) {
         const data = await res.json();
         const newItems = (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[];
         allNews = [...allNews, ...newItems];
         currentOffset += newItems.length;
+        if (data && typeof data === 'object' && 'total' in data) {
+          currentTotal = data.total;
+        }
       }
     } catch (e) {
       console.error('[LOAD MORE NEWS FAILED]', e);
@@ -58,7 +80,7 @@
   }
 
   // Elite V2.2: Enhanced News Metadata (Viral 2026 Protocol)
-  let selectedTag = $state<string | null>(null);
+  const selectedTag = $derived(page.url.searchParams.get('tag'));
 
   // Hàm phân loại ngữ nghĩa động từ văn bản bài viết (Zero-Migration)
   const getArticleTags = (item: NewsItem): string[] => {
@@ -66,27 +88,29 @@
     const excerpt = (item.excerpt || "").toLowerCase();
     const text = `${title} ${excerpt}`;
     
+    const tags_map = ui.settings?.news_tags?.tags_map || {
+      "DƯỠNG DA": ["skin", "aging", "cleansing", "hydration", "da", "dưỡng", "rửa", "cổ"],
+      "CẢM HỨNG": ["inspiration", "story", "cảm hứng", "hành trình", "chia sẻ", "lối sống"],
+      "XU HƯỚNG": ["trend", "strategies", "future", "xu hướng", "2026", "mới", "lão hóa"],
+      "ƯU ĐÃI": ["deal", "discount", "voucher", "ưu đãi", "khuyến mãi", "quà"],
+      "MẸO HAY": ["tips", "fundamentals", "how to", "mẹo", "hướng dẫn", "nguyên tắc", "cách"],
+      "SỨC KHỎE": ["health", "healthy", "sức khỏe", "lão hóa", "dinh dưỡng"]
+    };
+
     const tags: string[] = [];
-    if (text.includes("skin") || text.includes("aging") || text.includes("cleansing") || text.includes("hydration") || text.includes("da") || text.includes("dưỡng") || text.includes("rửa") || text.includes("cổ")) {
-      tags.push("DƯỠNG DA");
-    }
-    if (text.includes("inspiration") || text.includes("story") || text.includes("cảm hứng") || text.includes("hành trình") || text.includes("chia sẻ") || text.includes("lối sống")) {
-      tags.push("CẢM HỨNG");
-    }
-    if (text.includes("trend") || text.includes("strategies") || text.includes("future") || text.includes("xu hướng") || text.includes("2026") || text.includes("mới") || text.includes("lão hóa")) {
-      tags.push("XU HƯỚNG");
-    }
-    if (text.includes("deal") || text.includes("discount") || text.includes("voucher") || text.includes("ưu đãi") || text.includes("khuyến mãi") || text.includes("quà")) {
-      tags.push("ƯU ĐÃI");
-    }
-    if (text.includes("tips") || text.includes("fundamentals") || text.includes("how to") || text.includes("mẹo") || text.includes("hướng dẫn") || text.includes("nguyên tắc") || text.includes("cách")) {
-      tags.push("MẸO HAY");
-    }
-    if (text.includes("health") || text.includes("healthy") || text.includes("sức khỏe") || text.includes("lão hóa") || text.includes("dinh dưỡng")) {
-      tags.push("SỨC KHỎE");
+    for (const [tagKey, keywords] of Object.entries(tags_map)) {
+      const tagLower = tagKey.toLowerCase();
+      const hasKeywordMatch = keywords.some(kw => text.includes(kw.toLowerCase()));
+      const hasTagNameMatch = text.includes(tagLower);
+      if (hasKeywordMatch || hasTagNameMatch) {
+        tags.push(tagKey);
+      }
     }
     
-    if (tags.length === 0) tags.push("MẸO HAY");
+    if (tags.length === 0) {
+      const keys = Object.keys(tags_map);
+      tags.push(keys.includes("MẸO HAY") ? "MẸO HAY" : (keys[0] || "MẸO HAY"));
+    }
     return tags;
   };
 
@@ -134,11 +158,13 @@
   const featuredNews = $derived(() => enhancedNews().slice(0, 5));
 
   function toggleTag(tag: string) {
+    const url = new URL(page.url.href);
     if (selectedTag === tag) {
-      selectedTag = null;
+      url.searchParams.delete('tag');
     } else {
-      selectedTag = tag;
+      url.searchParams.set('tag', tag);
     }
+    goto(url.pathname + url.search, { replaceState: true, noScroll: true });
   }
 </script>
 
@@ -199,12 +225,17 @@
       <div class="bg-white p-6 border border-gray-100">
           <h4 class="text-[11px] font-black text-gray-400 tracking-widest mb-6">Chủ đề hot</h4>
           <div class="flex flex-wrap gap-2">
-            {#each ['DƯỠNG DA', 'CẢM HỨNG', 'XU HƯỚNG', 'ƯU ĐÃI', 'MẸO HAY', 'SỨC KHỎE'] as tag}
-              <button 
-                onclick={() => toggleTag(tag)}
-                class="px-3 py-1.5 text-[10px] font-black tracking-tighter border transition-all active:scale-95 {selectedTag === tag ? 'bg-black text-white border-black shadow-lg shadow-black/10' : 'bg-gray-50 text-gray-500 border-transparent hover:border-black hover:bg-black hover:text-white'}">
+            {#each hotTopics as tag}
+              {@const isActive = selectedTag === tag}
+              <a 
+                href={isActive ? '/bai-viet' : `/bai-viet?tag=${encodeURIComponent(tag)}`}
+                onclick={(e) => {
+                  e.preventDefault();
+                  toggleTag(tag);
+                }}
+                class="px-3 py-1.5 text-[10px] font-black tracking-tighter border transition-all active:scale-95 inline-block {isActive ? 'bg-black text-white border-black shadow-lg shadow-black/10' : 'bg-gray-50 text-gray-500 border-transparent hover:border-black hover:bg-black hover:text-white'}">
                 #{tag}
-              </button>
+              </a>
             {/each}
           </div>
       </div>
@@ -269,11 +300,17 @@
             <h3 class="text-lg font-black text-gray-800 tracking-tight">Không tìm thấy bài viết nào</h3>
             <p class="text-sm text-gray-400 font-medium max-w-sm">Hiện tại chưa có bài viết nào thuộc chủ đề #{selectedTag}. Sếp vui lòng chọn chủ đề khác hoặc bấm nút bên dưới để xem lại tất cả bài viết.</p>
           </div>
-          <button 
-            onclick={() => selectedTag = null}
-            class="px-8 py-3 bg-black text-white text-[10px] font-black tracking-widest hover:bg-red-600 transition-all active:scale-95">
+          <a 
+            href="/bai-viet"
+            onclick={(e) => {
+              e.preventDefault();
+              const url = new URL(page.url.href);
+              url.searchParams.delete('tag');
+              goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+            }}
+            class="px-8 py-3 bg-black text-white text-[10px] font-black tracking-widest hover:bg-red-600 transition-all active:scale-95 inline-block">
             XEM TẤT CẢ BÀI VIẾT
-          </button>
+          </a>
         </div>
       {/if}
 

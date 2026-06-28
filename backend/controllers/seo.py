@@ -968,6 +968,7 @@ class SeoController(Controller):
                     "seo_pillar_auto_link_job",
                     pillar_id=pillar_node_id,
                     tenant_id=tenant_id,
+                    force_scan=True,
                     _queue_name="high",
                 )
             finally:

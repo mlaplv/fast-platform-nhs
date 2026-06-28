@@ -1,11 +1,13 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import Search from "@lucide/svelte/icons/search";
   import X from "@lucide/svelte/icons/x";
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   interface NewsItem {
      id: string;
@@ -23,21 +25,39 @@
   }
   let { newsList = [], categoryName = "Tin tức", serverTotal = 0 }: Props = $props();
 
-  let allNews = $state<NewsItem[]>([...newsList]);
-  let currentOffset = $state(newsList.length);
+  let allNews = $state<NewsItem[]>([]);
+  let currentOffset = $state(0);
   let isLoading = $state(false);
+  let currentTotal = $state(serverTotal);
+
+  $effect(() => {
+    allNews = [...newsList];
+    currentOffset = newsList.length;
+    currentTotal = serverTotal;
+  });
+
+  const ui = getClientUi();
+  const hotTopics = $derived(
+    ui.settings?.news_tags?.tags_map
+      ? Object.keys(ui.settings.news_tags.tags_map)
+      : ['DƯỠNG DA', 'CẢM HỨNG', 'XU HƯỚNG', 'ƯU ĐÃI', 'MẸO HAY', 'SỨC KHỎE']
+  );
 
   async function loadMore() {
     if (isLoading) return;
-    if (allNews.length >= (serverTotal || 0)) return;
+    if (allNews.length > 0 && allNews.length >= currentTotal) return;
     isLoading = true;
     try {
-      const res = await fetch(`/api/v1/client/news?limit=20&offset=${currentOffset}`);
+      const tagParam = selectedTag ? `&tag=${encodeURIComponent(selectedTag)}` : '';
+      const res = await fetch(`/api/v1/client/news?limit=20&offset=${currentOffset}${tagParam}`);
       if (res.ok) {
         const data = await res.json();
         const newItems = (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[];
         allNews = [...allNews, ...newItems];
         currentOffset += newItems.length;
+        if (data && typeof data === 'object' && 'total' in data) {
+          currentTotal = data.total;
+        }
       }
     } catch (e) {
       console.error('[LOAD MORE NEWS FAILED]', e);
@@ -62,7 +82,7 @@
 
   const searchStore = getSearchStore();
   let searchQuery = $state("");
-  let selectedTag = $state<string | null>(null);
+  const selectedTag = $derived(page.url.searchParams.get('tag'));
 
   // Hàm phân loại ngữ nghĩa động từ văn bản bài viết (Zero-Migration)
   const getArticleTags = (item: NewsItem): string[] => {
@@ -70,27 +90,29 @@
     const excerpt = (item.excerpt || "").toLowerCase();
     const text = `${title} ${excerpt}`;
     
+    const tags_map = ui.settings?.news_tags?.tags_map || {
+      "DƯỠNG DA": ["skin", "aging", "cleansing", "hydration", "da", "dưỡng", "rửa", "cổ"],
+      "CẢM HỨNG": ["inspiration", "story", "cảm hứng", "hành trình", "chia sẻ", "lối sống"],
+      "XU HƯỚNG": ["trend", "strategies", "future", "xu hướng", "2026", "mới", "lão hóa"],
+      "ƯU ĐÃI": ["deal", "discount", "voucher", "ưu đãi", "khuyến mãi", "quà"],
+      "MẸO HAY": ["tips", "fundamentals", "how to", "mẹo", "hướng dẫn", "nguyên tắc", "cách"],
+      "SỨC KHỎE": ["health", "healthy", "sức khỏe", "lão hóa", "dinh dưỡng"]
+    };
+
     const tags: string[] = [];
-    if (text.includes("skin") || text.includes("aging") || text.includes("cleansing") || text.includes("hydration") || text.includes("da") || text.includes("dưỡng") || text.includes("rửa") || text.includes("cổ")) {
-      tags.push("DƯỠNG DA");
-    }
-    if (text.includes("inspiration") || text.includes("story") || text.includes("cảm hứng") || text.includes("hành trình") || text.includes("chia sẻ") || text.includes("lối sống")) {
-      tags.push("CẢM HỨNG");
-    }
-    if (text.includes("trend") || text.includes("strategies") || text.includes("future") || text.includes("xu hướng") || text.includes("2026") || text.includes("mới") || text.includes("lão hóa")) {
-      tags.push("XU HƯỚNG");
-    }
-    if (text.includes("deal") || text.includes("discount") || text.includes("voucher") || text.includes("ưu đãi") || text.includes("khuyến mãi") || text.includes("quà")) {
-      tags.push("ƯU ĐÃI");
-    }
-    if (text.includes("tips") || text.includes("fundamentals") || text.includes("how to") || text.includes("mẹo") || text.includes("hướng dẫn") || text.includes("nguyên tắc") || text.includes("cách")) {
-      tags.push("MẸO HAY");
-    }
-    if (text.includes("health") || text.includes("healthy") || text.includes("sức khỏe") || text.includes("lão hóa") || text.includes("dinh dưỡng")) {
-      tags.push("SỨC KHỎE");
+    for (const [tagKey, keywords] of Object.entries(tags_map)) {
+      const tagLower = tagKey.toLowerCase();
+      const hasKeywordMatch = keywords.some(kw => text.includes(kw.toLowerCase()));
+      const hasTagNameMatch = text.includes(tagLower);
+      if (hasKeywordMatch || hasTagNameMatch) {
+        tags.push(tagKey);
+      }
     }
     
-    if (tags.length === 0) tags.push("MẸO HAY");
+    if (tags.length === 0) {
+      const keys = Object.keys(tags_map);
+      tags.push(keys.includes("MẸO HAY") ? "MẸO HAY" : (keys[0] || "MẸO HAY"));
+    }
     return tags;
   };
 
@@ -142,16 +164,20 @@
   });
 
   function toggleTag(tag: string) {
+    const url = new URL(page.url.href);
     if (selectedTag === tag) {
-      selectedTag = null;
+      url.searchParams.delete('tag');
     } else {
-      selectedTag = tag;
+      url.searchParams.set('tag', tag);
     }
+    goto(url.pathname + url.search, { replaceState: true, noScroll: true });
   }
 
   function resetFilters() {
-    selectedTag = null;
     searchQuery = "";
+    const url = new URL(page.url.href);
+    url.searchParams.delete('tag');
+    goto(url.pathname + url.search, { replaceState: true, noScroll: true });
   }
 </script>
 
@@ -173,18 +199,27 @@
 
     <!-- Row 2: Category Bubble Scroller -->
     <div class="px-4 pb-4 overflow-x-auto scrollbar-hide flex items-center gap-3 whitespace-nowrap pt-1">
-      <button 
-        onclick={() => selectedTag = null}
-        class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest transition-all active:scale-95 {!selectedTag ? 'bg-[#C18F7E] text-white shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border border-gray-100'}">
+      <a 
+        href="/bai-viet"
+        onclick={(e) => {
+          e.preventDefault();
+          resetFilters();
+        }}
+        class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest transition-all active:scale-95 inline-block {!selectedTag ? 'bg-[#C18F7E] text-white shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border border-gray-100'}">
         TẤT CẢ
-      </button>
-      {#each ['DƯỠNG DA', 'CẢM HỨNG', 'XU HƯỚNG', 'ƯU ĐÃI', 'MẸO HAY', 'SỨC KHỎE'] as tag}
-        <button 
-          onclick={() => toggleTag(tag)}
-          class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest border transition-all active:scale-95 {selectedTag === tag ? 'bg-[#C18F7E] text-white border-[#C18F7E] shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border-gray-100'}"
+      </a>
+      {#each hotTopics as tag}
+        {@const isActive = selectedTag === tag}
+        <a 
+          href={isActive ? '/bai-viet' : `/bai-viet?tag=${encodeURIComponent(tag)}`}
+          onclick={(e) => {
+            e.preventDefault();
+            toggleTag(tag);
+          }}
+          class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest border transition-all active:scale-95 inline-block {isActive ? 'bg-[#C18F7E] text-white border-[#C18F7E] shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border-gray-100'}"
         >
           #{tag}
-        </button>
+        </a>
       {/each}
     </div>
   </header>
@@ -262,11 +297,15 @@
               Không tìm thấy bài viết nào phù hợp với bộ lọc chủ đề hoặc tìm kiếm hiện tại của Sếp.
             </p>
           </div>
-          <button 
-            onclick={resetFilters} 
-            class="px-8 py-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">
+          <a 
+            href="/bai-viet"
+            onclick={(e) => {
+              e.preventDefault();
+              resetFilters();
+            }} 
+            class="px-8 py-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95 inline-block">
             XÓA TẤT CẢ BỘ LỌC
-          </button>
+          </a>
        </div>
     {/if}
 

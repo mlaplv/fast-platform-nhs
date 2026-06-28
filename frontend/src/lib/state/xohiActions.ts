@@ -1,10 +1,10 @@
 import { apiClient } from "$lib/utils/apiClient";
-import type { 
-    GenericResponse, 
-    BulkFixReplacement, 
-    AnalysisAnnotation, 
-    CopyrightResult, 
-    SEOResult, 
+import type {
+    GenericResponse,
+    BulkFixReplacement,
+    AnalysisAnnotation,
+    CopyrightResult,
+    SEOResult,
     AIInspectResult,
     CleanOptions
 } from "$lib/state/types";
@@ -12,15 +12,12 @@ import type {
 // Re-export CleanOptions so components can import it from here (backward compat)
 export type { CleanOptions } from "$lib/state/types";
 
-
-
-
 /**
  * Elite V2.2: Core API Actions for Xohi Analysis
  */
 export const xohiActions = {
     async runClean(content: string, options?: CleanOptions) {
-        const res = await apiClient.post<GenericResponse<{ content: string }>>('/api/v1/content/clean', { 
+        const res = await apiClient.post<GenericResponse<{ content: string }>>('/api/v1/content/clean', {
             content,
             options
         });
@@ -74,8 +71,13 @@ export const xohiActions = {
                 if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
                 return null;
             };
-            const isAdmin = typeof window !== 'undefined' && window.location.hostname.split('.')[0] === 'admin';
-            if (isAdmin) return getCk('admin_token') || sessionStorage.getItem('admin_token') || null;
+            const host = typeof window !== 'undefined' ? window.location.hostname : '';
+            const isAdmin = host.split('.')[0] === 'admin';
+            const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+            const isIpAccess = ipRegex.test(host);
+            if (isAdmin || isIpAccess) {
+                return getCk('admin_token') || sessionStorage.getItem('admin_token') || null;
+            }
             return getCk('access_token') || null;
         }
 
@@ -83,7 +85,8 @@ export const xohiActions = {
         function _getTenant(): string {
             if (typeof window === 'undefined') return 'osmo.vn';
             const host = window.location.hostname;
-            if (host === 'localhost' || host === '127.0.0.1') return 'osmo.vn';
+            const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+            if (host === 'localhost' || host === '127.0.0.1' || ipRegex.test(host)) return 'osmo.vn';
             const parts = host.split('.');
             const skip = new Set(['admin', 'api', 'www', 'portal']);
             const relevant = parts.filter(p => !skip.has(p));
@@ -181,9 +184,9 @@ export const xohiActions = {
     },
 
     async runEnrich(cid: string) {
-        const res = await apiClient.post<GenericResponse<{ 
-            new_content: string, 
-            logs?: string[], 
+        const res = await apiClient.post<GenericResponse<{
+            new_content: string,
+            logs?: string[],
             items?: Record<string, unknown>[],
             annotations?: AnalysisAnnotation[]
         }>>(`/api/v1/content/campaigns/${cid}/analyze/enrich`, {});

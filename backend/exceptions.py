@@ -60,15 +60,16 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
     try:
         from backend.services.telegram_service import telegram_service
         import asyncio
+        import html
         
         path = request.url.path if hasattr(request, "url") else "Unknown path"
         method = request.method if hasattr(request, "method") else "Unknown method"
         
         telegram_msg = (
             f"❌ <b>[SERVER ERROR - 500]</b>\n"
-            f"<b>Path:</b> {method} {path}\n"
-            f"<b>Trace ID:</b> <code>{trace_id}</code>\n"
-            f"<b>Error:</b> <code>{type(exc).__name__}: {exc}</code>"
+            f"<b>Path:</b> {html.escape(method)} {html.escape(path)}\n"
+            f"<b>Trace ID:</b> <code>{html.escape(trace_id)}</code>\n"
+            f"<b>Error:</b> <code>{html.escape(type(exc).__name__)}: {html.escape(str(exc))}</code>"
         )
         try:
             loop = asyncio.get_running_loop()

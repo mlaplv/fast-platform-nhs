@@ -20,6 +20,7 @@ Mục tiêu: Biến bài viết thông thường thành một kiệt tác tri th
 8. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Tuyệt đối không được xuống dòng hoặc ngắt đoạn khi chưa viết hết câu. Mỗi dòng/đoạn phải kết thúc bằng dấu chấm câu hợp lệ.
 9. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích ngay từ câu đầu tiên. CẤM mở đầu dài dòng, vòng vo. Mỗi câu phải mang giá trị thông tin thực sự.
 10. 📐 QUY TẮC KHOẢNG TRẮNG: Tuyệt đối KHÔNG viết dính liền các tag [[BOOST]] và [[/BOOST]] với văn bản xung quanh (luôn có dấu cách trước và sau tag). CẤM viết dính liền từ tiếng Việt với từ tiếng Anh, số, phần trăm (%) hoặc ký tự đóng/mở ngoặc đơn (Ví dụ: KHÔNG viết '31.4%là', 'biểu bìThấp', '(PubMed)Sodium'). Luôn dùng khoảng trắng đúng chuẩn chính tả.
+11. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức.
 """
 )
 
@@ -35,7 +36,7 @@ CẤM TUYỆT ĐỐI việc viết lại toàn bộ hoặc thay đổi văn phon
 🇯🇵 CHỈ THỊ JAPAN CLINICAL EVIDENCE (ƯU TIÊN CAO NHẤT)
 ═══════════════════════════════════════════════════════════
 A. 📚 SỬ DỤNG NGUỒN ĐÃ CUNG CẤP: Nếu trong prompt có phần [BẰNG CHỨNG LÂM SÀNG ĐÃ TRINH SÁT],
-   BẮT BUỘC phải ưu tiên sử dụng các nghiên cứu đó để bổ sung vào nội dung.
+   BẮT BUỘC phải ưu tiên sử dụng các nghiên cứu đó để bổ dung vào nội dung.
    TUYỆT ĐỐI KHÔNG bịa đặt nghiên cứu không có trong danh sách đã cung cấp.
 
 B. 🇻🇳 DỊCH THUẦN VIỆT: Mọi trích dẫn từ nghiên cứu Nhật Bản PHẢI được dịch sang tiếng Việt
@@ -98,6 +99,7 @@ F. 📈 STAT CALLOUTS — Với 2-3 số liệu nổi bật nhất, tạo blockq
 3. 🛡️ PRESERVE SOUL: Giữ 100% câu chữ gốc. Nhiệm vụ là "Append/Insert" thông tin EEAT.
 4. 🚫 NO BUZZWORDS: Cấm dùng 'chân ái', 'vũ khí', 'siêu phẩm'. Ngôn ngữ nhà nghiên cứu.
 5. 🌏 TIẾNG VIỆT THUẦN: Toàn bộ nội dung bổ sung PHẢI bằng tiếng Việt chuẩn học thuật.
+6. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức.
 
 ═══════════════════════════════════════════════════════════
 📐 QUY TẮC PATCH — ELITE PROTOCOL

@@ -107,6 +107,7 @@ class ArticleService:
         search: Optional[str] = None,
         category: Optional[str] = None,
         cursor: Optional[str] = None,
+        tag: Optional[str] = None,
     ) -> ArticleListResponse:
         """List articles (R76: Scalar Projection) with Keyset Cursor Pagination."""
         conditions = [Article.deleted_at == None]
@@ -122,6 +123,35 @@ class ArticleService:
                 Article.title.ilike(f"%{safe}%"),
                 Article.category.ilike(f"%{safe}%"),
             ))
+
+        if tag:
+            # Match keywords dynamically at DB level
+            TAG_KEYWORDS = {
+                "DƯỠNG DA": ["skin", "aging", "cleansing", "hydration", "da", "dưỡng", "rửa", "cổ"],
+                "CẢM HỨNG": ["inspiration", "story", "cảm hứng", "hành trình", "chia sẻ", "lối sống"],
+                "XU HƯỚNG": ["trend", "strategies", "future", "xu hướng", "2026", "mới", "lão hóa"],
+                "ƯU ĐÃI": ["deal", "discount", "voucher", "ưu đãi", "khuyến mãi", "quà"],
+                "MẸO HAY": ["tips", "fundamentals", "how to", "mẹo", "hướng dẫn", "nguyên tắc", "cách"],
+                "SỨC KHỎE": ["health", "healthy", "sức khỏe", "lão hóa", "dinh dưỡng"]
+            }
+            try:
+                if xohi_memory._use_redis:
+                    raw_tags = await xohi_memory.client.get("system:news_tags")
+                    if raw_tags:
+                        TAG_KEYWORDS = json.loads(raw_tags)
+            except Exception as ce:
+                logger.warning(f"Failed to fetch news tags from Redis: {ce}")
+
+            tag_upper = tag.upper()
+            kws = TAG_KEYWORDS.get(tag_upper, [tag])
+            if not kws:
+                kws = [tag]
+            tag_conds = []
+            for kw in kws:
+                safe_kw = escape_like(kw)
+                tag_conds.append(Article.title.ilike(f"%{safe_kw}%"))
+                tag_conds.append(Article.excerpt.ilike(f"%{safe_kw}%"))
+            conditions.append(or_(*tag_conds))
 
         # Keyset (Cursor) Pagination if cursor is provided
         if cursor and cursor != "undefined":
@@ -139,9 +169,9 @@ class ArticleService:
                 )
 
         # 1. COUNT Cache Redis Optimization
-        total = 0
+        total = None
         if not cursor:
-            cache_key = f"articles:count:status={status}:cat={category}:search={search}"
+            cache_key = f"articles:count:status={status}:cat={category}:search={search}:tag={tag}"
             if xohi_memory._use_redis:
                 try:
                     cached_count = await xohi_memory.client.get(cache_key)
@@ -150,7 +180,7 @@ class ArticleService:
                 except Exception:
                     pass
 
-            if total is None or total == 0:
+            if total is None:
                 count_stmt = select(func.count(Article.id)).where(and_(*conditions))
                 total = await db_session.scalar(count_stmt) or 0
 
@@ -159,6 +189,8 @@ class ArticleService:
                         await xohi_memory.client.set(cache_key, str(total), ex=300)
                     except Exception:
                         pass
+        else:
+            total = 0
 
         # 2. Scalar Projection Fetch
         stmt = select(
@@ -780,10 +812,11 @@ class ArticleService:
                         except Exception as ve:
                             logger.warning(f"[ArticleService] SEO Description validation failed: {ve}")
                             
+                        from backend.services.xohi.prompts.shields.service import shield_service
                         return {
-                            "seo_title": seo_title,
-                            "seo_description": seo_desc,
-                            "seo_keywords": seo_kw,
+                            "seo_title": shield_service.sanitize(seo_title),
+                            "seo_description": shield_service.sanitize(seo_desc),
+                            "seo_keywords": shield_service.sanitize(seo_kw),
                         }
 
             return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
@@ -861,6 +894,9 @@ class ArticleService:
                                     a = validate_vietnamese_sentence(a, mode="standard")
                                 except Exception as ve:
                                     logger.warning(f"[ArticleService] FAQ Answer validation failed: {ve}")
+                                from backend.services.xohi.prompts.shields.service import shield_service
+                                q = shield_service.sanitize(q)
+                                a = shield_service.sanitize(a)
                                 validated_faqs.append({"question": q, "answer": a})
                         return validated_faqs
 
@@ -934,6 +970,8 @@ class ArticleService:
                     text = validate_vietnamese_sentence(text, mode="standard")
                 except Exception as ve:
                     logger.warning(f"[ArticleService] Excerpt validation failed: {ve}")
+                from backend.services.xohi.prompts.shields.service import shield_service
+                text = shield_service.sanitize(text)
                 return text
             return ""
         except Exception as e:
@@ -993,6 +1031,8 @@ class ArticleService:
                     cleaned = validate_vietnamese_text_block(cleaned)
                 except Exception as ve:
                     logger.warning(f"[ArticleService] Content validation warning: {ve}")
+                from backend.services.xohi.prompts.shields.service import shield_service
+                cleaned = shield_service.sanitize(cleaned)
                 return cleaned
             return ""
         except Exception as e:
@@ -1140,6 +1180,8 @@ class ArticleService:
                                 if isinstance(t, str) and t.strip():
                                     try:
                                         clean_t = validate_vietnamese_sentence(t.strip(), mode="light")
+                                        from backend.services.xohi.prompts.shields.service import shield_service
+                                        clean_t = shield_service.sanitize(clean_t)
                                         validated_res[key].append(clean_t)
                                     except Exception as ve:
                                         logger.warning(f"[ArticleService] Title validation failed for '{t}': {ve}")

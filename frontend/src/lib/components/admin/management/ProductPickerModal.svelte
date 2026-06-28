@@ -75,7 +75,7 @@
     role="dialog"
   >
     <!-- Modal -->
-    <div class="w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col max-h-[80vh] overflow-hidden">
+    <div class="w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col max-h-[80vh] overflow-hidden">
       
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
@@ -142,7 +142,7 @@
 
               <!-- Product Info -->
               <div class="flex-1 text-left min-w-0">
-                <div class="text-sm text-white/80 truncate font-medium">{product.name}</div>
+                <div class="text-sm text-white/80 font-medium line-clamp-2 leading-snug">{product.name}</div>
                 <div class="flex items-center gap-2 mt-0.5">
                   {#if product.discountPrice || product.discount_price}
                     <span class="text-[10px] text-cyan-400 font-bold">{formatPrice((product.discountPrice || product.discount_price) as number)}</span>

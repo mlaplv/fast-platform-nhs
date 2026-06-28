@@ -178,8 +178,7 @@ class PlagiarismRefiner(XoHiProgressMixin):
             self.current_step = 3
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
-            logger.warning(f"✅ [PlagiarismRefiner] [QUANTUM] Bulk fix complete.")
-            final_content = self.clean_ai_html(final_content)
+            final_content = shield_service.sanitize(self.clean_ai_html(final_content))
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.exception(f"❌ [PlagiarismRefiner] AI Bulk Fix failed: {e}")

@@ -83,6 +83,12 @@
     const items = [{ name: 'Trang chủ', url: '/' }];
     if (data.type === 'category') {
       items.push({ name: data.categoryName, url: `/${data.categorySlug}/` });
+    } else if (data.type === 'news') {
+      items.push({ name: 'Hướng dẫn - kiến thức', url: '/bai-viet' });
+      const activeTag = page.url.searchParams.get('tag');
+      if (activeTag) {
+        items.push({ name: `Chủ đề ${activeTag}`, url: `/bai-viet?tag=${encodeURIComponent(activeTag)}` });
+      }
     } else if (data.type === 'product' && data.product) {
       if (data.product.category_name && data.product.category_slug) {
         items.push({ name: data.product.category_name, url: `/${data.product.category_slug}/` });
@@ -156,7 +162,25 @@
 
 
 <!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
-{#if data.type === 'category' || data.type === 'news'}
+{#if data.type === 'news'}
+  {@const activeTag = page.url.searchParams.get('tag')}
+  {@const title = activeTag ? `Chủ đề ${activeTag} | Hướng dẫn - kiến thức` : `${data.categoryName} | ${siteName}`}
+  {@const description = activeTag ? `Các bài viết, chia sẻ kinh nghiệm và hướng dẫn chuyên sâu về chủ đề ${activeTag} tại ${siteName}.` : `Hướng dẫn - kiến thức - Cẩm nang chia sẻ bí quyết làm đẹp, cẩm nang sức khỏe tại ${siteName}.`}
+  {@const canonical = activeTag ? `${siteUrl}/bai-viet?tag=${encodeURIComponent(activeTag)}` : `${siteUrl}/bai-viet`}
+  <SeoHead
+    pageType="category"
+    {title}
+    {description}
+    {canonical}
+    keywords={activeTag ? `${activeTag}, hướng dẫn, kiến thức, ${siteName}` : "hướng dẫn, kiến thức, bí quyết làm đẹp, sức khỏe"}
+    {breadcrumbItems}
+    categoryData={{
+      name: activeTag ? `Chủ đề ${activeTag}` : data.categoryName,
+      items: data.items?.map((it) => ({ name: it.title, url: `${siteUrl}/${it.slug}.html` }))
+    }}
+  />
+
+{:else if data.type === 'category'}
   <SeoHead
     pageType="category"
     title={categorySeoMeta?.title || `${data.categoryName} | ${siteName}`}

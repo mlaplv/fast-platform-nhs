@@ -22,20 +22,12 @@
   import Coins from "@lucide/svelte/icons/coins";
   import Bell from "@lucide/svelte/icons/bell";
   import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Tag from "@lucide/svelte/icons/tag";
+  import X from "@lucide/svelte/icons/x";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 
   let { data = {} } = $props<BaseWidgetProps>();
-
-  interface OutboundLinkItem {
-    keyword: string;
-    url: string;
-  }
-
-  interface OutboundLinksSettings {
-    max_links_per_article: number;
-    authority_map: OutboundLinkItem[];
-  }
 
   interface SeoContextualLinksSettings {
     brand_keywords: string[];
@@ -133,8 +125,10 @@
     currency: CurrencySettings;
     entropy: EntropySettings;
     autopilot: AutopilotSettings;
-    outbound_links: OutboundLinksSettings;
     seo_contextual_links: SeoContextualLinksSettings;
+    news_tags?: {
+      tags_map: Record<string, string[]>;
+    };
   }
 
   let settings = $state<SystemSettings>({
@@ -196,13 +190,12 @@
       scan_start_hour: 2,
       scan_end_hour: 4,
     },
-    outbound_links: {
-      max_links_per_article: 2,
-      authority_map: [],
-    },
     seo_contextual_links: {
       brand_keywords: [],
       generic_exclusions: [],
+    },
+    news_tags: {
+      tags_map: {},
     },
   });
 
@@ -227,8 +220,8 @@
     | "helen"
     | "conversion"
     | "entropy"
-    | "outbound_links"
     | "seo_contextual_links"
+    | "news_tags"
     | "loyalty"
     | "notification_retention"
     | "autopilot";
@@ -250,8 +243,8 @@
     { id: "helen", label: "Helen AI", icon: Sparkles },
     { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
     { id: "entropy", label: "SGE Shield", icon: ShieldCheck },
-    { id: "outbound_links", label: "Link uy tín (E-E-A-T)", icon: ExternalLink },
     { id: "seo_contextual_links", label: "Link ngữ cảnh SEO", icon: Sparkles },
+    { id: "news_tags", label: "Tags & Từ khóa Tin tức", icon: Tag },
     { id: "loyalty", label: "Điểm danh hàng ngày", icon: Coins },
     { id: "notification_retention", label: "Lưu trữ thông báo", icon: Bell },
     { id: "autopilot", label: "Neural Autopilot", icon: Sparkles },
@@ -285,13 +278,12 @@
             scan_start_hour: 2,
             scan_end_hour: 4,
           },
-          outbound_links: res.settings.outbound_links || {
-            max_links_per_article: 2,
-            authority_map: [],
-          },
           seo_contextual_links: res.settings.seo_contextual_links || {
             brand_keywords: [],
             generic_exclusions: [],
+          },
+          news_tags: res.settings.news_tags || {
+            tags_map: {},
           },
         };
       }
@@ -403,6 +395,50 @@
         settings.seo_contextual_links.generic_exclusions = [...settings.seo_contextual_links.generic_exclusions, val];
         target.value = "";
       }
+    }
+  }
+
+  let newTagInput = $state("");
+  let showAddTagInput = $state(false);
+
+  function addNewsTag() {
+    const tagName = newTagInput.trim().toUpperCase();
+    if (!tagName) return;
+    if (!settings.news_tags) {
+      settings.news_tags = { tags_map: {} };
+    }
+    if (!settings.news_tags.tags_map[tagName]) {
+      settings.news_tags.tags_map[tagName] = [];
+      settings.news_tags.tags_map = { ...settings.news_tags.tags_map };
+    }
+    newTagInput = "";
+    showAddTagInput = false;
+  }
+
+  function removeNewsTag(tagName: string) {
+    if (settings.news_tags?.tags_map[tagName]) {
+      delete settings.news_tags.tags_map[tagName];
+      settings.news_tags.tags_map = { ...settings.news_tags.tags_map };
+    }
+  }
+
+  function handleAddNewsKeyword(e: KeyboardEvent, tagName: string) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const target = e.target as HTMLInputElement;
+      const val = target.value.trim().toLowerCase();
+      if (val && settings.news_tags?.tags_map[tagName]) {
+        if (!settings.news_tags.tags_map[tagName].includes(val)) {
+          settings.news_tags.tags_map[tagName] = [...settings.news_tags.tags_map[tagName], val];
+        }
+        target.value = "";
+      }
+    }
+  }
+
+  function removeNewsKeyword(tagName: string, index: number) {
+    if (settings.news_tags?.tags_map[tagName]) {
+      settings.news_tags.tags_map[tagName] = settings.news_tags.tags_map[tagName].filter((_, i) => i !== index);
     }
   }
 
@@ -1722,108 +1758,6 @@
                 </div>
               </div>
             </div>
-          {:else if activeTab === "outbound_links"}
-            <div
-              class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
-            >
-              <h3
-                class="text-sm font-black text-indigo-400 tracking-[0.2em] flex items-center gap-2"
-              >
-                <ExternalLink size={16} /> Link uy tín ngoài bài viết (E-E-A-T)
-              </h3>
-
-              <div
-                class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6 md:p-8"
-              >
-                <div
-                  class="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl mb-4"
-                >
-                  <p
-                    class="text-[11px] text-zinc-300 leading-relaxed font-mono"
-                  >
-                    <span class="text-indigo-400 font-bold">INFO:</span> Hệ thống sẽ tự động quét các từ khóa bên dưới trong bài viết khi hiển thị ra Storefront, và tiêm link dẫn nguồn uy tín tương ứng nhằm củng cố uy tín khoa học (E-E-A-T) và đáp ứng thuật toán SGE/AIO của Google.
-                  </p>
-                </div>
-
-                <div class="space-y-2">
-                  <label
-                    for="max_links_per_article"
-                    class="text-[10px] font-mono text-zinc-500 tracking-widest block"
-                    >Số lượng link tối đa tiêm vào mỗi bài viết</label
-                  >
-                  <input
-                    id="max_links_per_article"
-                    type="number"
-                    bind:value={settings.outbound_links.max_links_per_article}
-                    min="1"
-                    max="10"
-                    class="w-full md:w-1/3 bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-indigo-500/50 outline-none transition-colors"
-                  />
-                  <p class="text-[9px] text-zinc-500 italic mt-1">Khuyến khích tối đa từ 2 - 3 link để tránh spam link phạt SEO.</p>
-                </div>
-
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                    <h4 class="text-xs font-bold text-white tracking-wider">Danh sách từ khóa & Link nguồn uy tín</h4>
-                    <button
-                      type="button"
-                      onclick={() => {
-                        settings.outbound_links.authority_map = [
-                          ...settings.outbound_links.authority_map,
-                          { keyword: "", url: "" }
-                        ];
-                      }}
-                      class="flex items-center gap-1 text-[11px] font-mono text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20 transition-all cursor-pointer"
-                    >
-                      <Plus size={12} /> Thêm từ khóa
-                    </button>
-                  </div>
-
-                  {#if settings.outbound_links.authority_map.length === 0}
-                    <div class="text-center py-8 text-zinc-500 text-xs font-mono border border-dashed border-white/5 rounded-xl">
-                      Chưa có từ khóa nào được cấu hình. Nhấp "Thêm từ khóa" ở trên.
-                    </div>
-                  {:else}
-                    <div class="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                      {#each settings.outbound_links.authority_map as item, index}
-                        <div class="flex items-center gap-3 bg-black/30 border border-white/5 rounded-xl p-3">
-                          <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                              <label class="text-[9px] font-mono text-zinc-600 block">Từ khóa (Ví dụ: PubMed, Ceramide...)</label>
-                              <input
-                                type="text"
-                                bind:value={item.keyword}
-                                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:border-indigo-500/50 outline-none transition-colors"
-                                placeholder="Từ khóa..."
-                              />
-                            </div>
-                            <div class="space-y-1">
-                              <label class="text-[9px] font-mono text-zinc-600 block">URL đích (Phải bắt đầu bằng http:// hoặc https://)</label>
-                              <input
-                                type="text"
-                                bind:value={item.url}
-                                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:border-indigo-500/50 outline-none transition-colors"
-                                placeholder="https://..."
-                              />
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onclick={() => {
-                              settings.outbound_links.authority_map = settings.outbound_links.authority_map.filter((_, i) => i !== index);
-                            }}
-                            class="text-zinc-500 hover:text-red-400 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer mt-4"
-                            title="Xóa từ khóa"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            </div>
           {:else if activeTab === "seo_contextual_links"}
             <div
               class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
@@ -2202,6 +2136,109 @@
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          {:else if activeTab === "news_tags"}
+            <div
+              class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <div class="flex items-center justify-between">
+                <h3
+                  class="text-sm font-black text-cyan-400 tracking-[0.2em] flex items-center gap-2"
+                >
+                  <Tag size={16} /> Cấu hình Tags & Từ khóa Tin tức
+                </h3>
+                <button
+                  onclick={() => (showAddTagInput = !showAddTagInput)}
+                  class="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400 text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} /> Thêm Tag Mới
+                </button>
+              </div>
+
+              {#if showAddTagInput}
+                <div class="p-4 bg-zinc-950/60 border border-white/5 rounded-xl flex gap-3 items-end animate-in fade-in duration-200">
+                  <div class="flex-1 space-y-1">
+                    <label for="new_tag_name" class="text-[9px] font-mono text-zinc-500 tracking-widest block">Tên Tag (Màu chữ in hoa)</label>
+                    <input
+                      id="new_tag_name"
+                      bind:value={newTagInput}
+                      type="text"
+                      autocomplete="off"
+                      class="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500/50 outline-none"
+                      placeholder="VD: DƯỠNG DA"
+                      onkeydown={(e) => e.key === 'Enter' && addNewsTag()}
+                    />
+                  </div>
+                  <button
+                    onclick={addNewsTag}
+                    class="h-9 px-4 bg-cyan-600 hover:bg-cyan-500 text-black font-bold rounded-lg text-xs tracking-wider"
+                  >
+                    Xác nhận
+                  </button>
+                </div>
+              {/if}
+
+              <div class="space-y-6">
+                {#if settings.news_tags && settings.news_tags.tags_map && Object.keys(settings.news_tags.tags_map).length > 0}
+                  {#each Object.entries(settings.news_tags.tags_map) as [tagKey, keywords] (tagKey)}
+                    <div class="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-4">
+                      <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                        <div class="flex items-center gap-2">
+                          <span class="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-md text-xs font-bold text-cyan-400">
+                            #{tagKey}
+                          </span>
+                          <span class="text-[9px] font-mono text-zinc-500">
+                            ({keywords.length} từ khóa)
+                          </span>
+                        </div>
+                        <button
+                          onclick={() => removeNewsTag(tagKey)}
+                          class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-colors"
+                          title="Xóa tag"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+
+                      <div class="space-y-3">
+                        <label class="text-[9px] font-mono text-zinc-500 tracking-widest block">
+                          Từ khóa đối sánh (nhập rồi nhấn Enter hoặc dấu phẩy để thêm)
+                        </label>
+                        
+                        <div class="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/5 rounded-xl min-h-[46px]">
+                          {#each keywords as kw, idx}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-zinc-300 group/pill hover:border-white/20 transition-all">
+                              {kw}
+                              <button
+                                onclick={() => removeNewsKeyword(tagKey, idx)}
+                                class="text-zinc-500 hover:text-rose-400 transition-colors"
+                              >
+                                <X size={10} />
+                              </button>
+                            </span>
+                          {:else}
+                            <span class="text-[10px] text-zinc-600 font-mono italic flex items-center">
+                              Chưa có từ khóa đối sánh. Bài viết sẽ không được phân loại vào tag này.
+                            </span>
+                          {/each}
+                        </div>
+
+                        <input
+                          type="text"
+                          autocomplete="off"
+                          placeholder="Thêm từ khóa mới..."
+                          onkeydown={(e) => handleAddNewsKeyword(e, tagKey)}
+                          class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-xs focus:border-cyan-500/50 outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                  {/each}
+                {:else}
+                  <div class="text-center py-20 bg-zinc-950/20 rounded-2xl border border-dashed border-white/5">
+                    <p class="text-zinc-600 text-xs font-mono">Chưa cấu hình tag tin tức nào. Vui lòng bấm "Thêm Tag Mới".</p>
+                  </div>
+                {/if}
               </div>
             </div>
           {/if}

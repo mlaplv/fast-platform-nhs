@@ -25,7 +25,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
         if (browser) {
             try {
                 const lastFetch = sessionStorage.getItem('last_config_fetch_time');
-                if (lastFetch && Date.now() - parseInt(lastFetch, 10) < 300000) {
+                if (lastFetch && Date.now() - parseInt(lastFetch, 10) < 5000) {
                     shouldSync = false;
                 }
             } catch (e) {}

@@ -35,15 +35,16 @@ async def auto_block_task(ip_address: str, log_entry: dict):
     try:
         from backend.services.telegram_service import telegram_service
         import asyncio
+        import html
         
         # 1. Báo cáo phát hiện tấn công đáng nghi lên Telegram
         action = log_entry.get("action", "Unknown")
         reason = log_entry.get("risk_reason", "Malicious request pattern detected")
         alert_msg = (
             f"⚠️ <b>[PHÁT HIỆN TẤN CÔNG]</b>\n"
-            f"<b>IP:</b> <code>{ip_address}</code>\n"
-            f"<b>Yêu cầu:</b> <code>{action}</code>\n"
-            f"<b>Lý do:</b> {reason}"
+            f"<b>IP:</b> <code>{html.escape(ip_address)}</code>\n"
+            f"<b>Yêu cầu:</b> <code>{html.escape(action)}</code>\n"
+            f"<b>Lý do:</b> {html.escape(reason)}"
         )
         task = asyncio.create_task(telegram_service.send_alert(alert_msg))
         _background_tasks.add(task)
@@ -69,8 +70,8 @@ async def auto_block_task(ip_address: str, log_entry: dict):
                     # 2. Báo cáo Block IP thành công lên Telegram
                     ban_msg = (
                         f"🚨 <b>[AUTO-BAN THÀNH CÔNG]</b>\n"
-                        f"<b>IP:</b> <code>{ip_address}</code>\n"
-                        f"<b>Lý do:</b> <i>{analysis.reason}</i>"
+                        f"<b>IP:</b> <code>{html.escape(ip_address)}</code>\n"
+                        f"<b>Lý do:</b> <i>{html.escape(analysis.reason)}</i>"
                     )
                     task = asyncio.create_task(telegram_service.send_alert(ban_msg))
                     _background_tasks.add(task)

@@ -31,6 +31,7 @@ class PublicNewsController(Controller):
         limit: int = 20,
         offset: int = 0,
         search: Optional[str] = None,
+        tag: Optional[str] = None,
         cursor: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""
@@ -40,6 +41,7 @@ class PublicNewsController(Controller):
             offset=offset, 
             status="PUBLISHED", 
             search=search, 
+            tag=tag,
             category="Bài viết",
             cursor=cursor
         )
@@ -83,7 +85,7 @@ class PublicNewsController(Controller):
                 if cached_content:
                     article.content = cached_content
                 else:
-                    article.content = SeoService.inject_outbound_authority_links(article.content)
+                    article.content = SeoService.harden_external_links(article.content)
                     article.content = await SeoService.inject_contextual_links(db_session, article.id, article.content)
                     try:
                         if xohi_memory._use_redis and xohi_memory.client:
@@ -144,7 +146,7 @@ class PublicNewsController(Controller):
                 if cached_content:
                     article.content = cached_content
                 else:
-                    article.content = SeoService.inject_outbound_authority_links(article.content)
+                    article.content = SeoService.harden_external_links(article.content)
                     article.content = await SeoService.inject_contextual_links(db_session, article.id, article.content)
                     try:
                         if xohi_memory._use_redis and xohi_memory.client:

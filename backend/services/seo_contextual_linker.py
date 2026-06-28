@@ -161,7 +161,10 @@ class SeoContextualLinker:
             stmt = delete(SeoContextualLink).where(
                 SeoContextualLink.source_article_id == article_id,
                 SeoContextualLink.tenant_id == tenant,
-                SeoContextualLink.status.in_(["pending", "rejected"]),
+                SeoContextualLink.status.in_([
+                    SeoContextualLinkStatus.PENDING,
+                    SeoContextualLinkStatus.REJECTED
+                ]),
             )
             if target_pillar_id:
                 stmt = stmt.where(SeoContextualLink.target_node_id == target_pillar_id)
@@ -291,7 +294,13 @@ class SeoContextualLinker:
             return [] if is_dry_run else 0
 
         # Step 2: Entity pre-filter
-        candidates = self._entity_prefilter(sentences, pillars, article_node, stop_words_config=generic_exclusions_config)
+        candidates = self._entity_prefilter(
+            sentences, 
+            pillars, 
+            article_node, 
+            stop_words_config=generic_exclusions_config,
+            brand_keywords_config=brand_keywords_config
+        )
         if not candidates:
             logger.info("[ContextualLinker] No candidate sentences after pre-filter — skipping")
             return [] if is_dry_run else 0
@@ -314,7 +323,11 @@ class SeoContextualLinker:
         for i in range(0, len(candidates), _BATCH_SIZE):
             batch = candidates[i:i + _BATCH_SIZE]
             try:
-                batch_result = await self._ai_analyze_batch(batch, pillars)
+                batch_result = await self._ai_analyze_batch(
+                    batch, 
+                    pillars,
+                    brand_keywords_config=brand_keywords_config
+                )
                 if batch_result:
                     all_suggestions.extend(batch_result.suggestions)
             except Exception as e:
@@ -340,6 +353,26 @@ class SeoContextualLinker:
                 suggestion.matched_entity_name,
                 pillar_label
             )
+
+        # Apply Brand-Relevance Multiplier and Keyword Affinity Filter
+        for suggestion in all_suggestions:
+            multiplier = self._calculate_brand_relevance_multiplier(
+                suggestion,
+                pillars,
+                brand_keywords_config=brand_keywords_config,
+                generic_exclusions_config=generic_exclusions_config
+            )
+            original_conf = suggestion.confidence
+            suggestion.confidence = round(suggestion.confidence * multiplier, 4)
+            if multiplier < 1.0:
+                logger.info(
+                    "[ContextualLinker] Penalized confidence for anchor '%s' (type: %s): %.2f -> %.2f (multiplier: %.2f)",
+                    suggestion.anchor_text,
+                    suggestion.matched_entity_type,
+                    original_conf,
+                    suggestion.confidence,
+                    multiplier
+                )
 
         persisted = 0
         dry_run_results = []
@@ -409,9 +442,25 @@ class SeoContextualLinker:
         else:
             # Persistent mode: Open a fresh short-lived session just for the write operations
             from backend.database.alchemy_config import alchemy_config
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as new_db:
-                # Track links per pillar for density constraint
+                # Pre-load target_node_ids already APPROVED/APPLIED for this article from DB
+                # to enforce strict 1-link-per-pillar-per-article at write time (not just in-memory)
+                existing_applied_targets_res = await new_db.execute(
+                    select(SeoContextualLink.target_node_id).where(
+                        SeoContextualLink.source_article_id == article_id,
+                        SeoContextualLink.tenant_id == tenant,
+                        SeoContextualLink.status.in_([
+                            SeoContextualLinkStatus.APPROVED,
+                            SeoContextualLinkStatus.APPLIED
+                        ]),
+                    ).distinct()
+                )
+                existing_applied_targets: set[str] = set(existing_applied_targets_res.scalars().all())
+
+                # Track links per pillar for density constraint (in-memory for this run)
                 pillar_link_count: dict[str, int] = {}
                 for suggestion in all_suggestions:
                     if not suggestion.should_link:
@@ -428,6 +477,15 @@ class SeoContextualLinker:
                     if persisted >= effective_max:
                         break
                     pid = suggestion.target_pillar_id
+
+                    # Anti-spam: skip nếu pillar này đã có link APPLIED/APPROVED trong bài viết (DB check)
+                    if pid in existing_applied_targets:
+                        logger.info(
+                            "[ContextualLinker] Skipping suggestion for pillar %s in article %s — already has approved/applied link (anti-double-link)",
+                            pid, article_id,
+                        )
+                        continue
+
                     count = pillar_link_count.get(pid, 0)
                     if count >= _MAX_LINKS_PER_PILLAR:
                         continue
@@ -454,7 +512,12 @@ class SeoContextualLinker:
                     if pid in final_linked:
                         final_linked = final_linked.replace(pid, target_url)
 
-                    link = SeoContextualLink(
+                    entity_type_val = suggestion.matched_entity_type.value if hasattr(suggestion.matched_entity_type, 'value') else suggestion.matched_entity_type
+
+                    # Use ON CONFLICT DO NOTHING to gracefully skip duplicate sentence+target combinations.
+                    # This handles force_scan re-analysis where approved/applied links may already exist
+                    # for the same (source_article_id, sentence_index, target_node_id) unique key.
+                    stmt = pg_insert(SeoContextualLink.__table__).values(
                         id=new_id_default(),
                         source_article_id=article_id,
                         target_node_id=pid,
@@ -462,7 +525,7 @@ class SeoContextualLinker:
                         original_sentence=suggestion.original_sentence,
                         linked_sentence=final_linked,
                         anchor_text=suggestion.anchor_text,
-                        matched_entity_type=suggestion.matched_entity_type,
+                        matched_entity_type=entity_type_val,
                         matched_entity_name=suggestion.matched_entity_name,
                         ai_confidence=suggestion.confidence,
                         ai_reasoning=suggestion.reasoning,
@@ -470,8 +533,10 @@ class SeoContextualLinker:
                         status=SeoContextualLinkStatus.PENDING,
                         content_hash=content_hash,
                         tenant_id=tenant,
+                    ).on_conflict_do_nothing(
+                        constraint="uq_seo_ctx_link_sentence_target"
                     )
-                    new_db.add(link)
+                    await new_db.execute(stmt)
                     persisted += 1
                 await new_db.commit()
 
@@ -533,6 +598,7 @@ class SeoContextualLinker:
         pillars: list[dict],
         article_node: Optional[SeoNode],
         stop_words_config: Optional[set[str]] = None,
+        brand_keywords_config: Optional[list[str]] = None,
     ) -> list[dict]:
         """
         Filter sentences: chỉ giữ những câu chứa entity trùng với Pillar nào đó.
@@ -545,17 +611,39 @@ class SeoContextualLinker:
             defaults = SeoContextualLinksSettings()
             stop_words = {w.lower().strip() for w in defaults.generic_exclusions if w.strip()}
 
+        # Load brand keywords dynamically for prefix stripping
+        brand_keywords = brand_keywords_config
+        if brand_keywords is None:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
+        
+        # Sort brand keywords by length descending to match longest prefixes first
+        sorted_brands = sorted(brand_keywords, key=len, reverse=True)
+
         # Build entity → pillar_id lookup
         entity_pillar_map: dict[str, list[str]] = {}
         for p in pillars:
             entities = p.get("entities", [])
             for ent in entities:
                 name = ent.get("name", "").lower().strip()
-                if name and len(name) >= 4 and name not in stop_words:
-                    if name not in entity_pillar_map:
-                        entity_pillar_map[name] = []
-                    if p["id"] not in entity_pillar_map[name]:
-                        entity_pillar_map[name].append(p["id"])
+                if name and len(name) >= 4:
+                    # Check if the name matches or contains any stop word/phrase as a whole word
+                    is_excluded = False
+                    has_brand = any(brand in name for brand in brand_keywords)
+                    if not has_brand:
+                        for sw in stop_words:
+                            if sw == name:
+                                is_excluded = True
+                                break
+                            if len(sw) >= 3 and re.search(r'\b' + re.escape(sw) + r'\b', name):
+                                is_excluded = True
+                                break
+                    if not is_excluded:
+                        if name not in entity_pillar_map:
+                            entity_pillar_map[name] = []
+                        if p["id"] not in entity_pillar_map[name]:
+                            entity_pillar_map[name].append(p["id"])
 
             # Chỉ dùng pillar_topic + tên sản phẩm cốt lõi (full phrase)
             # CẤM tách bigram/trigram — gây noise match bừa bãi ("rich gold", "gold gel"...)
@@ -574,13 +662,14 @@ class SeoContextualLinker:
             if len(core_cleaned) >= 5:
                 additional_terms.append(core_cleaned.lower())
                 
-                # Strip common brand prefixes → chỉ giữ tên sản phẩm cốt lõi (full phrase)
+                # Strip common brand prefixes dynamically
                 lower_core = core_cleaned.lower()
-                for brand in ["miccosmo white label", "miccosmo hurry harry", "miccosmo", "hurry harry", "white label"]:
+                for brand in sorted_brands:
                     if lower_core.startswith(brand):
                         suffix = core_cleaned[len(brand):].strip()
                         if len(suffix) >= 5:
                             additional_terms.append(suffix.lower())
+                        break
             
             for t in additional_terms:
                 t_clean = t.strip()
@@ -622,12 +711,22 @@ class SeoContextualLinker:
         self,
         candidates: list[dict],
         pillars: list[dict],
+        brand_keywords_config: Optional[list[str]] = None,
     ) -> Optional[ContextualLinkBatchResult]:
         """
         Send a batch of candidate sentences to PydanticAI for contextual analysis.
         """
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        # Load brand keywords dynamically if not provided
+        brand_keywords = brand_keywords_config
+        if brand_keywords is None:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
+
+        brand_keywords_str = ", ".join(f"'{kw}'" for kw in brand_keywords)
 
         # Build pillar context for prompt
         pillar_context = "\n".join(
@@ -647,13 +746,15 @@ class SeoContextualLinker:
 
             "QUY TẮC BẮT BUỘC (Tránh Án Phạt Spam Link của Google và Đảm bảo Trọng tâm): \n"
             "1. CHỈ chèn link vào cụm từ mang ngữ nghĩa thực thể thực sự chất lượng và liên quan trực tiếp đến Pillar Page đích. \n"
-            "2. Đảm bảo tính liên kết chặt chẽ (Topical Alignment): KHÔNG được chèn link từ các cụm từ chung chung về nỗi đau (ví dụ: 'làn da khô', 'thâm sạm') vào trang sản phẩm cụ thể trừ khi câu gốc hoặc anchor text có chứa tên sản phẩm/thương hiệu đó (ví dụ: 'Miccosmo', 'White Label', 'Placenta Essence') hoặc thành phần chủ đạo độc quyền của sản phẩm.\n"
+            f"2. Đảm bảo tính liên kết chặt chẽ (Topical Alignment): KHÔNG được chèn link từ các cụm từ chung chung về nỗi đau (ví dụ: 'làn da khô', 'thâm sạm') vào trang sản phẩm cụ thể trừ khi câu gốc hoặc anchor text có chứa tên sản phẩm/thương hiệu đó (Danh sách thương hiệu hợp lệ: {brand_keywords_str}) hoặc thành phần chủ đạo độc quyền của sản phẩm.\n"
             "3. Anchor text phải là danh từ riêng, tên thương hiệu, tên sản phẩm hoặc cụm từ khóa có chứa thành phần/tính năng độc quyền của sản phẩm. Tuyệt đối không dùng các từ khóa chung chung làm anchor để trỏ về trang bán sản phẩm cụ thể. Ví dụ tốt: 'tinh chất Placenta Miccosmo', 'kem trị thâm nách Beppin'. Ví dụ xấu: 'làn da vẫn khô khốc', 'dưỡng ẩm', 'trị thâm'.\n"
             "4. CẤM TUYỆT ĐỐI chèn link vào từ đơn lẻ chung chung (Ví dụ: 'kem', 'serum', 'gel', 'mụn', 'da'...) hoặc đại từ (nó, họ, chúng tôi, mình, bạn...), danh từ chung chung vô nghĩa (tại đây, xem thêm, click, link, website, bài viết, sản phẩm...).\n"
             "5. Anchor text phải tự nhiên, có nghĩa đầy đủ, độ dài tối ưu từ 2 đến 8 từ.\n"
             "6. Câu linked_sentence PHẢI giữ nguyên 100% nội dung câu gốc, không được thay đổi, thêm, bớt bất kỳ ký tự hay dấu câu nào. Chỉ bọc cụm anchor_text chính xác bằng thẻ <a href='URL_CUA_PILLAR'>...</a>.\n"
             "7. Chỉ chèn tối đa 1 link duy nhất trên mỗi câu. Bỏ qua nếu câu đã có sẵn liên kết.\n"
-            "8. Trong 'reasoning', giải thích cụ thể tại sao thực thể này bổ trợ ngữ nghĩa sâu sắc cho người đọc và kết nối logic với Pillar đích.\n\n"
+            "8. Trong 'reasoning', giải thích cụ thể tại sao thực thể này bổ trợ ngữ nghĩa sâu sắc cho người đọc và kết nối logic với Pillar đích.\n"
+            f"9. CẢNH BÁO BẮT BUỘC: Đối với các sản phẩm (ví dụ: kem dưỡng cổ, kem mắt, mặt nạ...), nếu trong câu KHÔNG đề cập rõ ràng đến thương hiệu/tên sản phẩm cụ thể (ví dụ thuộc danh sách: {brand_keywords_str}), tuyệt đối KHÔNG được chèn link vào các cụm từ chung chung như 'kem dưỡng cổ', 'kem trị thâm mắt' hay 'chăm sóc da'. Hãy đặt should_link=false. Vi phạm sẽ bị phạt nặng vì hạ thấp E-E-A-T của trang web.\n"
+            "10. Độ tự tin (confidence) PHẢI bị hạ thấp dưới 0.85 (ví dụ: 0.5 - 0.7) nếu cụm từ neo (anchor text) chỉ là các triệu chứng chung chung (symptom), tính năng chung chung (feature) hoặc thành phần không độc quyền mà không đi kèm tên thương hiệu/tên sản phẩm rõ ràng.\n\n"
             "Chỉ đề xuất khi cực kỳ chắc chắn và độ tự tin cao. Nếu không chắc chắn, đặt should_link=false."
         )
 
@@ -735,6 +836,64 @@ class SeoContextualLinker:
 
         return errors
 
+    def _calculate_brand_relevance_multiplier(
+        self,
+        suggestion: SentenceLinkSuggestion,
+        pillars: list[dict[str, object]],
+        brand_keywords_config: Optional[list[str]] = None,
+        generic_exclusions_config: Optional[set[str]] = None,
+    ) -> float:
+        """
+        Calculates the Brand-Relevance Multiplier (Keyword Affinity Filter).
+        If the target is a PRODUCT but the anchor text lacks explicit brand/product name tokens,
+        penalizes the suggestion depending on its entity type to prevent generic keyword spam.
+        """
+        pid = suggestion.target_pillar_id
+        target_pillar = None
+        for p in pillars:
+            if p["id"] == pid:
+                target_pillar = p
+                break
+
+        if not target_pillar:
+            return 1.0
+
+        entity_type = target_pillar.get("entity_type", "ARTICLE")
+        if entity_type != "PRODUCT":
+            return 1.0
+
+        # Load brand keywords
+        brand_keywords = brand_keywords_config
+        if brand_keywords is None:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
+
+        anchor_lower = (suggestion.anchor_text or "").lower()
+        has_brand_token = any(kw in anchor_lower for kw in brand_keywords)
+
+        if has_brand_token:
+            return 1.0
+
+        # No brand token found in anchor text -> generic link injection!
+        ent_type = suggestion.matched_entity_type
+        if hasattr(ent_type, "value"):
+            ent_type = ent_type.value
+        elif isinstance(ent_type, str):
+            ent_type = ent_type.lower()
+        else:
+            ent_type = str(ent_type).lower()
+
+        # Apply specific penalties based on the matched entity type
+        if ent_type in ["brand", "product"]:
+            return 0.2
+        elif ent_type in ["symptom", "pain_point", "feature"]:
+            return 0.4
+        elif ent_type == "ingredient":
+            return 0.6
+        else:
+            return 0.4
+
     def _calculate_eas(
         self,
         suggestion: SentenceLinkSuggestion,
@@ -761,30 +920,15 @@ class SeoContextualLinker:
         # 1. Gate_brand
         gate_brand = 1.0
         if entity_type == "PRODUCT":
-            # Check if anchor text contains brand keywords or product name parts
+            # Check if anchor text contains brand keywords
             brand_keywords = brand_keywords_config
             if brand_keywords is None:
                 from backend.schemas.system_settings import SeoContextualLinksSettings
                 defaults = SeoContextualLinksSettings()
                 brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
-
-            # Also extract lowercase tokens from target product label (excluding common/generic words)
-            label_lower = (target_pillar.get("label") or "").lower()
-            label_clean = label_lower.translate(str.maketrans("", "", string.punctuation))
-            
-            generic_exclusions = generic_exclusions_config
-            if generic_exclusions is None:
-                from backend.schemas.system_settings import SeoContextualLinksSettings
-                defaults = SeoContextualLinksSettings()
-                generic_exclusions = {w.lower().strip() for w in defaults.generic_exclusions if w.strip()}
-            
-            label_tokens = [
-                t for t in label_clean.split() 
-                if len(t) >= 3 and t not in generic_exclusions
-            ]
             
             anchor_lower = (suggestion.anchor_text or "").lower()
-            has_brand_token = any(kw in anchor_lower for kw in brand_keywords) or any(t in anchor_lower for t in label_tokens)
+            has_brand_token = any(kw in anchor_lower for kw in brand_keywords)
             if not has_brand_token:
                 gate_brand = 0.0
 
@@ -978,8 +1122,17 @@ class SeoContextualLinker:
         applied = 0
         skipped_stale = 0
         skipped_inject_fail = 0
+        applied_targets: set[str] = set()  # Guard: 1 target_url per article max (anti-spam)
 
         for link in links:
+            # Anti-spam: skip nếu target này đã được chèn vào bài viết trong lần apply này
+            if link.target_node_id in applied_targets:
+                logger.warning(
+                    "[ContextualLinker] Skipping duplicate target %s for article %s (already applied in this session) — anti-spam guard",
+                    link.target_node_id, article_id,
+                )
+                continue
+
             attrs = []
             if link.link_rel and link.link_rel.strip().lower() not in ["", "dofollow"]:
                 attrs.append(f'rel="{link.link_rel.strip()}"')
@@ -999,6 +1152,7 @@ class SeoContextualLinker:
             )
             if success:
                 content = new_content
+                applied_targets.add(link.target_node_id)
                 link.status = SeoContextualLinkStatus.APPLIED
                 link.content_hash = current_hash  # Auto-heal the hash in registry!
                 if reviewer_id:

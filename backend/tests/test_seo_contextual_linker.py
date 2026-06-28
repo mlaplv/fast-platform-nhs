@@ -203,3 +203,94 @@ def test_calculate_eas_generic_brand_filtering():
     )
     assert score_with_custom > 0.0
 
+
+def test_brand_relevance_multiplier_and_generic_penalties():
+    from backend.services.seo_contextual_linker import SeoContextualLinker, SentenceLinkSuggestion
+    
+    seo_contextual_linker = SeoContextualLinker()
+    
+    pillars = [
+        {
+            "id": "pillar_1",
+            "label": "Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+            "entity_type": "PRODUCT",
+            "slug": "miccosmo-white-label-essence",
+            "url": "/products/miccosmo-white-label-essence.html",
+            "pillar_topic": "Essence",
+            "entities": [],
+        },
+        {
+            "id": "pillar_2",
+            "label": "Miccosmo Hurry Harry Premium Neck Cream Rich 40gr - Kem dưỡng sáng cổ",
+            "entity_type": "PRODUCT",
+            "slug": "hurry-harry-neck-cream",
+            "url": "/products/hurry-harry-neck-cream.html",
+            "pillar_topic": "Neck Cream",
+            "entities": [],
+        }
+    ]
+    
+    # 1. A generic symptom match: "ngừa lão hóa" targeting placenta essence (without brand name)
+    symptom_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Sản phẩm giúp hỗ trợ ngăn ngừa lão hóa hiệu quả.",
+        anchor_text="ngăn ngừa lão hóa",
+        linked_sentence="Sản phẩm giúp hỗ trợ <a href='pillar_1'>ngăn ngừa lão hóa</a> hiệu quả.",
+        target_pillar_id="pillar_1",
+        matched_entity_type="symptom",
+        matched_entity_name="Miccosmo White Label Premium Placenta Essence 180ml - Tinh chất cấp ẩm, làm dịu da",
+        confidence=0.90,
+        reasoning="Cụm từ ngăn ngừa lão hóa liên quan đến tính chất của essence"
+    )
+    
+    # Let's verify that the brand gate fails on this generic symptom (returns 0.0)
+    score = seo_contextual_linker._calculate_eas(symptom_suggestion, pillars)
+    assert score == 0.0
+    
+    # Verify multiplier applies 0.4 penalty
+    mult = seo_contextual_linker._calculate_brand_relevance_multiplier(symptom_suggestion, pillars)
+    assert mult == 0.4
+    
+    # 2. A high-noise case: "kem dưỡng cổ" targeting Neck Cream
+    neck_cream_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Sử dụng kem dưỡng cổ đều đặn mỗi tối.",
+        anchor_text="kem dưỡng cổ",
+        linked_sentence="Sử dụng <a href='pillar_2'>kem dưỡng cổ</a> đều đặn mỗi tối.",
+        target_pillar_id="pillar_2",
+        matched_entity_type="feature",
+        matched_entity_name="Miccosmo Hurry Harry Premium Neck Cream Rich 40gr - Kem dưỡng sáng cổ",
+        confidence=0.95,
+        reasoning="Kem dưỡng cổ trỏ về neck cream"
+    )
+    
+    # Brand gate should fail because "kem", "dưỡng", "cổ" are in generic exclusions (or normalized exclusions)
+    score_neck = seo_contextual_linker._calculate_eas(neck_cream_suggestion, pillars)
+    assert score_neck == 0.0
+    
+    mult_neck = seo_contextual_linker._calculate_brand_relevance_multiplier(neck_cream_suggestion, pillars)
+    assert mult_neck == 0.4
+
+    # 3. Explicit brand match should pass (multiplier = 1.0, EAS > 0.0)
+    brand_ok_suggestion = SentenceLinkSuggestion(
+        sentence_index=0,
+        should_link=True,
+        original_sentence="Sử dụng kem dưỡng cổ Hurry Harry đều đặn mỗi tối.",
+        anchor_text="kem dưỡng cổ Hurry Harry",
+        linked_sentence="Sử dụng <a href='pillar_2'>kem dưỡng cổ Hurry Harry</a> đều đặn mỗi tối.",
+        target_pillar_id="pillar_2",
+        matched_entity_type="product",
+        matched_entity_name="Miccosmo Hurry Harry Premium Neck Cream Rich 40gr - Kem dưỡng sáng cổ",
+        confidence=0.95,
+        reasoning="Chứa tên thương hiệu Hurry Harry"
+    )
+    
+    score_ok = seo_contextual_linker._calculate_eas(brand_ok_suggestion, pillars)
+    assert score_ok > 0.0
+    
+    mult_ok = seo_contextual_linker._calculate_brand_relevance_multiplier(brand_ok_suggestion, pillars)
+    assert mult_ok == 1.0
+
+

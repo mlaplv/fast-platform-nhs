@@ -9,7 +9,8 @@ from litestar.exceptions import NotFoundException
 from backend.database.models import ProductBase, ProductVariant, Order
 from backend.schemas.product import (
     CreateProductRequest, UpdateProductRequest,
-    ProductResponse, ProductListResponse, ProductMetadata
+    ProductResponse, ProductListResponse, ProductMetadata,
+    FaqItem
 )
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
@@ -566,11 +567,11 @@ class ProductService:
         faqs_json = json.dumps([faq.model_dump() for faq in faqs], ensure_ascii=False)
         stmt = text(
             """
-            UPDATE product_base
+            UPDATE product_bases
             SET product_metadata = jsonb_set(
-                COALESCE(product_metadata, '{}'::jsonb),
+                COALESCE(product_metadata, CAST('{}' AS jsonb)),
                 '{faqs}',
-                :faqs_val::jsonb,
+                CAST(:faqs_val AS jsonb),
                 true
             )
             WHERE id = :product_id AND deleted_at IS NULL

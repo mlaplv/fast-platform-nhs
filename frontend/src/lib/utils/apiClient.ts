@@ -27,8 +27,9 @@ function getTenantIdFromHost(): string {
   if (typeof window === "undefined") return "default";
   const hostname = window.location.hostname;
   
-  // Handle local development
-  if (hostname === "localhost" || hostname === "127.0.0.1") return "osmo.vn";
+  // Handle local development and raw IP access
+  const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || ipRegex.test(hostname)) return "osmo.vn";
   
   const parts = hostname.split(".");
   const systemSubdomains = new Set(["admin", "api", "www", "portal"]);
@@ -67,14 +68,17 @@ function getCookie(name: string): string | null {
  */
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  const isAdmin = window.location.hostname.split(".")[0] === "admin";
-  if (isAdmin) {
-    return (
-      getCookie("admin_token") ||
-      sessionStorage.getItem("admin_token") ||
-      null
-    );
+  const hostname = window.location.hostname;
+  const isAdmin = hostname.split(".")[0] === "admin";
+  
+  const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  const isIpAccess = ipRegex.test(hostname);
+  
+  if (isAdmin || isIpAccess) {
+    const adminToken = getCookie("admin_token") || sessionStorage.getItem("admin_token");
+    if (adminToken) return adminToken;
   }
+  
   return getCookie("access_token") || null;
 }
 

@@ -1,5 +1,5 @@
 """
-SGE Shield V1.0: Lexical Sanitizer — AI Buzzword Neutralizer.
+SGE Shield V3.0: Lexical Sanitizer — AI Buzzword Neutralizer + Mandatory Term Enforcer.
 
 Phát hiện và thay thế/loại bỏ các cụm từ "rập khuôn AI" (AI buzzwords)
 mà Google SGE dùng để nhận diện nội dung AI-generated.
@@ -18,6 +18,23 @@ import re
 from typing import Optional
 
 logger = logging.getLogger("api-gateway")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SGE Shield V3.0: MANDATORY TERM MAP (Fixed 1:1 replacements — không random)
+# Áp dụng TRƯỚC buzzword pass. Dùng cho các từ bắt buộc phải thay đổi tuyệt đối.
+# Key: Regex pattern (case-insensitive)  |  Value: str — replacement cố định
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_FIXED_TERM_MAP: dict[str, str] = {
+    # Branding: Luôn dùng "Placenta" thay vì "nhau thai" trong mọi ngữ cảnh
+    r"nhau\s+thai": "Placenta",
+}
+
+_COMPILED_FIXED_TERMS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(pattern, re.IGNORECASE), replacement)
+    for pattern, replacement in _FIXED_TERM_MAP.items()
+]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -117,8 +134,18 @@ def sanitize_ai_text(
         rng = random.Random()
 
     result = text
-    hit_count = 0
 
+    # SGE Shield V3.0: Pass 1 — Mandatory fixed term replacements (không random, không skip)
+    fixed_count = 0
+    for fixed_pattern, fixed_replacement in _COMPILED_FIXED_TERMS:
+        if fixed_pattern.search(result):
+            result = fixed_pattern.sub(fixed_replacement, result)
+            fixed_count += 1
+    if fixed_count > 0:
+        logger.debug("[SGE Shield] Applied %d mandatory term replacements", fixed_count)
+
+    # Pass 2 — AI Buzzword neutralization (random/deterministic replacements)
+    hit_count = 0
     for pattern, replacements in _COMPILED_PATTERNS:
         if pattern.search(result):
             # Chọn replacement ngẫu nhiên (hoặc deterministic)
@@ -127,7 +154,7 @@ def sanitize_ai_text(
             hit_count += 1
 
     # Dọn whitespace thừa sau replacement (tránh double spaces)
-    if hit_count > 0:
+    if hit_count > 0 or fixed_count > 0:
         result = re.sub(r"  +", " ", result)
         result = re.sub(r"\n\s*\n\s*\n", "\n\n", result)
         logger.debug("[SGE Shield] Sanitized %d AI buzzwords", hit_count)

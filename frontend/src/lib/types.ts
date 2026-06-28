@@ -788,6 +788,9 @@ export interface ShopInfo {
     label: string;
     url: string;
   }[];
+  news_tags?: {
+    tags_map: Record<string, string[]>;
+  };
 }
 
 export interface UpdateProductPayload {

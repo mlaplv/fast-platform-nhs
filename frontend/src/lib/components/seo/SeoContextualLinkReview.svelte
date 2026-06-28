@@ -122,6 +122,10 @@
 				: links.filter((l) => l.status === statusFilter),
 	);
 
+	const totalCount = $derived(
+		stats.pending + stats.approved + stats.rejected + stats.applied,
+	);
+
 	// Sync active targets with props
 	$effect(() => {
 		if (reviewMode === "article") {
@@ -140,17 +144,18 @@
 	});
 
 	$effect(() => {
-		if (reviewMode === "article") {
-			if (activeArticleId) {
-				fetchContextualLinks();
-			} else {
-				links = [];
-				stats = { pending: 0, approved: 0, rejected: 0, applied: 0 };
-				isStale = false;
-				articleTitle = "";
-			}
+		const _mode = reviewMode;
+		const _artId = activeArticleId;
+		const _pilId = activePillarId;
+		
+		// Reset filters and offset on active target changes to prevent stale states
+		statusFilter = "all";
+		offset = 0;
+		
+		if (_mode === "article") {
+			fetchContextualLinks();
 		} else {
-			if (activePillarId) {
+			if (_pilId) {
 				fetchContextualLinks();
 			} else {
 				links = [];
@@ -160,6 +165,7 @@
 			}
 		}
 	});
+
 
 	onMount(async () => {
 		if (reviewMode === "article") {
@@ -302,6 +308,14 @@
 		fetchContextualLinks(true);
 	}
 
+	function handleStatusFilterChange(newStatus: typeof statusFilter) {
+		statusFilter = newStatus;
+		if (reviewMode === "article" && !activeArticleId) {
+			offset = 0;
+			fetchContextualLinks(false);
+		}
+	}
+
 	async function handleUpdateStatus(
 		linkId: string,
 		status: "approved" | "rejected",
@@ -350,11 +364,13 @@
 	}
 
 	async function handleRevertLink(linkId: string) {
-		if (
-			!confirm(
-				"Bạn có chắc chắn muốn loại bỏ cập nhật và gỡ liên kết này khỏi bài viết?",
-			)
-		) {
+		const confirmed = await nanobot.showConfirm({
+			title: "XÁC NHẬN GỠ LIÊN KẾT",
+			message: "Bạn có chắc chắn muốn loại bỏ cập nhật và gỡ liên kết này khỏi bài viết?",
+			confirmLabel: "GỠ LIÊN KẾT",
+			cancelLabel: "Quay lại"
+		});
+		if (!confirmed) {
 			return;
 		}
 		isActioning = true;
@@ -482,12 +498,13 @@
 
 		if (reviewMode === "article") {
 			if (!activeArticleId) return;
-			if (
-				!confirm(
-					"Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?",
-				)
-			)
-				return;
+			const confirmed = await nanobot.showConfirm({
+				title: "XÁC NHẬN CHÈN LIÊN KẾT",
+				message: "Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?",
+				confirmLabel: "XÁC NHẬN",
+				cancelLabel: "Hủy bỏ"
+			});
+			if (!confirmed) return;
 			isActioning = true;
 			try {
 				const result = await apiClient.post<any>(
@@ -523,12 +540,13 @@
 			const approvedLinks = links.filter((l) => l.status === "approved");
 			if (approvedLinks.length === 0) return;
 
-			if (
-				!confirm(
-					`Bạn có chắc muốn chèn liên kết đã duyệt vào các bài viết Cluster gốc liên quan?`,
-				)
-			)
-				return;
+			const confirmed = await nanobot.showConfirm({
+				title: "XÁC NHẬN CHÈN LIÊN KẾT HÀNG LOẠT",
+				message: "Bạn có chắc muốn chèn liên kết đã duyệt vào các bài viết Cluster gốc liên quan?",
+				confirmLabel: "XÁC NHẬN",
+				cancelLabel: "Hủy bỏ"
+			});
+			if (!confirmed) return;
 
 			isActioning = true;
 			try {
@@ -825,35 +843,35 @@
 					<button
 						class="filter-tab"
 						class:active={statusFilter === "all"}
-						onclick={() => (statusFilter = "all")}
+						onclick={() => handleStatusFilterChange("all")}
 					>
-						Tất cả ({links.length})
+						Tất cả ({totalCount})
 					</button>
 					<button
 						class="filter-tab pending"
 						class:active={statusFilter === "pending"}
-						onclick={() => (statusFilter = "pending")}
+						onclick={() => handleStatusFilterChange("pending")}
 					>
 						Chờ duyệt ({stats.pending})
 					</button>
 					<button
 						class="filter-tab approved"
 						class:active={statusFilter === "approved"}
-						onclick={() => (statusFilter = "approved")}
+						onclick={() => handleStatusFilterChange("approved")}
 					>
 						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
 					<button
 						class="filter-tab rejected"
 						class:active={statusFilter === "rejected"}
-						onclick={() => (statusFilter = "rejected")}
+						onclick={() => handleStatusFilterChange("rejected")}
 					>
 						Đã từ chối ({stats.rejected})
 					</button>
 					<button
 						class="filter-tab applied"
 						class:active={statusFilter === "applied"}
-						onclick={() => (statusFilter = "applied")}
+						onclick={() => handleStatusFilterChange("applied")}
 					>
 						Đã chèn ({stats.applied})
 					</button>
@@ -1092,35 +1110,35 @@
 					<button
 						class="filter-tab"
 						class:active={statusFilter === "all"}
-						onclick={() => (statusFilter = "all")}
+						onclick={() => handleStatusFilterChange("all")}
 					>
-						Tất cả gợi ý ({links.length})
+						Tất cả gợi ý ({totalCount})
 					</button>
 					<button
 						class="filter-tab pending"
 						class:active={statusFilter === "pending"}
-						onclick={() => (statusFilter = "pending")}
+						onclick={() => handleStatusFilterChange("pending")}
 					>
 						Chờ duyệt ({stats.pending})
 					</button>
 					<button
 						class="filter-tab approved"
 						class:active={statusFilter === "approved"}
-						onclick={() => (statusFilter = "approved")}
+						onclick={() => handleStatusFilterChange("approved")}
 					>
 						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
 					<button
 						class="filter-tab rejected"
 						class:active={statusFilter === "rejected"}
-						onclick={() => (statusFilter = "rejected")}
+						onclick={() => handleStatusFilterChange("rejected")}
 					>
 						Đã từ chối ({stats.rejected})
 					</button>
 					<button
 						class="filter-tab applied"
 						class:active={statusFilter === "applied"}
-						onclick={() => (statusFilter = "applied")}
+						onclick={() => handleStatusFilterChange("applied")}
 					>
 						Đã chèn ({stats.applied})
 					</button>
@@ -1416,35 +1434,35 @@
 					<button
 						class="filter-tab"
 						class:active={statusFilter === "all"}
-						onclick={() => (statusFilter = "all")}
+						onclick={() => handleStatusFilterChange("all")}
 					>
-						Tất cả ({links.length})
+						Tất cả ({totalCount})
 					</button>
 					<button
 						class="filter-tab pending"
 						class:active={statusFilter === "pending"}
-						onclick={() => (statusFilter = "pending")}
+						onclick={() => handleStatusFilterChange("pending")}
 					>
 						Chờ duyệt ({stats.pending})
 					</button>
 					<button
 						class="filter-tab approved"
 						class:active={statusFilter === "approved"}
-						onclick={() => (statusFilter = "approved")}
+						onclick={() => handleStatusFilterChange("approved")}
 					>
 						Đã duyệt (Chờ chèn) ({stats.approved})
 					</button>
 					<button
 						class="filter-tab rejected"
 						class:active={statusFilter === "rejected"}
-						onclick={() => (statusFilter = "rejected")}
+						onclick={() => handleStatusFilterChange("rejected")}
 					>
 						Đã từ chối ({stats.rejected})
 					</button>
 					<button
 						class="filter-tab applied"
 						class:active={statusFilter === "applied"}
-						onclick={() => (statusFilter = "applied")}
+						onclick={() => handleStatusFilterChange("applied")}
 					>
 						Đã chèn ({stats.applied})
 					</button>

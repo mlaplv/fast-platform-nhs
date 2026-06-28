@@ -76,27 +76,6 @@ class AutopilotSettings(BaseModel):
     scan_start_hour: int = Field(default=2, ge=0, le=23)
     scan_end_hour: int = Field(default=4, ge=0, le=23)
 
-class OutboundLinkItem(BaseModel):
-    keyword: str
-    url: str
-
-class OutboundLinksSettings(BaseModel):
-    max_links_per_article: int = 2
-    authority_map: List[OutboundLinkItem] = Field(default_factory=lambda: [
-        OutboundLinkItem(keyword="Tiến sĩ Kenneth K. Hansraj", url="https://pubmed.ncbi.nlm.nih.gov/25393825/"),
-        OutboundLinkItem(keyword="Hiệp hội Placenta Nhật Bản", url="https://jplaa.jp/"),
-        OutboundLinkItem(keyword="Miccosmo Japan Laboratory", url="https://www.miccosmo.co.jp/english/"),
-        OutboundLinkItem(keyword="chiết xuất nhau thai cừu", url="https://jplaa.jp/"),
-        OutboundLinkItem(keyword="nhau thai cừu", url="https://jplaa.jp/"),
-        OutboundLinkItem(keyword="ceramide tinh khiết", url="https://pubmed.ncbi.nlm.nih.gov/31840425/"),
-        OutboundLinkItem(keyword="dầu hạt jojoba", url="https://pubmed.ncbi.nlm.nih.gov/24442110/"),
-        OutboundLinkItem(keyword="Harvard Health Publishing", url="https://www.health.harvard.edu"),
-        OutboundLinkItem(keyword="Đại học Y Harvard", url="https://www.health.harvard.edu"),
-        OutboundLinkItem(keyword="PubMed", url="https://pubmed.ncbi.nlm.nih.gov/"),
-        OutboundLinkItem(keyword="ceramide", url="https://pubmed.ncbi.nlm.nih.gov/31840425/"),
-        OutboundLinkItem(keyword="collagen", url="https://pubmed.ncbi.nlm.nih.gov/30681787/"),
-    ])
-
 
 class SeoContextualLinksSettings(BaseModel):
     """Cấu hình bộ lọc link ngữ cảnh SEO/SGE."""
@@ -108,27 +87,11 @@ class SeoContextualLinksSettings(BaseModel):
         "pintup", "limerence", "osmo", "naris"
     ])
     generic_exclusions: List[str] = Field(default_factory=lambda: [
-        # Vietnamese product types & generic terms (with and without diacritics)
-        "kem", "cho", "tro", "duong", "sang", "ngua", "lao", "hoa", "nhap", "khau", "chinh", "hang",
-        "tinh", "chất", "chat", "cap", "cấp", "am", "ẩm", "lam", "làm", "diu", "dịu", "da", "tri", "trị",
-        "tham", "thâm", "mun", "mụn", "chong", "chống", "nang", "nắng", "phuc", "phục", "hoi", "hồi",
-        "tai", "tái", "tao", "tạo", "se", "khit", "khít", "tay", "tẩy", "trang", "te", "tế", "bao", "bào",
-        "chet", "chết", "nhay", "nhạy", "cam", "cảm", "san", "sản", "pham", "phẩm", "hieu", "hiệu",
-        "qua", "quả", "nhat", "nhật", "ban", "bản", "sua", "sữa", "nuoc", "nước", "mat", "mặt", "na", "nạ",
-        "dau", "dầu", "bot", "bọt", "son", "phan", "phấn", "tro", "trở", "duong", "dưỡng", "sang", "sáng",
-        "ngoc", "ngọc", "trai", "nhat", "nhất", "yeu", "yêu", "thich", "thích", "ban", "bán", "chay", "chạy",
-        "danh", "đánh", "gia", "giá", "cong", "công", "dung", "dụng", "thanh", "thành", "phan", "phần",
-        "cach", "cách", "dung", "dùng", "ngay", "ngày", "dem", "đêm", "the", "thể", "toan", "toàn",
-        "than", "thân", "nach", "nách", "vung", "vùng", "kin", "kín", "ben", "bẹn", "mong", "mông",
-        "goi", "gối", "khu", "khử", "mui", "mùi", "hoi", "hôi", "seo", "sẹo", "ran", "rạn", "nut", "nứt",
-        "got", "gót", "chan", "chân", "hồng", "mịn", "màng", "tự", "nhiên", "nhạy", "cảm", "khô", "hỗn", "hợp",
-        "nám", "tàn", "nhang", "nếp", "nhăn", "chảy", "xệ", "rò", "rỉ", "móp", "méo", "bể", "vỡ", "trầy", "xước",
-        # Vietnamese multi-word generic phrases
-        "serum", "gel", "tinh chất", "sữa rửa", "nước hoa", "mặt nạ", "kem dưỡng", "dưỡng da",
-        "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão", "lão hóa", "chăm sóc", "tẩy tế", "tế bào", "nhạy cảm",
-        "nhật bản", "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả",
-        "dưỡng ẩm", "dưỡng trắng", "chống nắng", "trị mụn", "giảm thâm", "se khít",
-        "làm sạch", "tẩy trang", "dưỡng thể", "dưỡng tóc", "chăm sóc da",
+        # Vietnamese common stop words & product types
+        "kem", "serum", "gel", "sữa rửa mặt", "sữa tắm", "nước hoa hồng", "mặt nạ", "kem dưỡng", "dưỡng da",
+        "làm dịu", "cấp ẩm", "trị thâm", "ngừa lão hóa", "chăm sóc da", "tẩy tế bào chết", "nhạy cảm",
+        "chính hãng", "nhập khẩu", "giá rẻ", "an toàn", "hiệu quả", "dưỡng ẩm", "dưỡng trắng",
+        "chống nắng", "trị mụn", "giảm thâm", "se khít", "làm sạch", "tẩy trang", "dưỡng thể", "dưỡng tóc",
         # English generic terms & product types
         "essence", "cream", "soap", "lotion", "toner", "cleanser", "sunscreen",
         "white", "label", "premium", "body", "face", "skin", "hair", "wash", "oil", "mask",
@@ -136,6 +99,18 @@ class SeoContextualLinksSettings(BaseModel):
         "moisturizer", "moisturizing", "whitening", "brightening", "antiaging", "repair", "soothing",
         "care", "exfoliator", "exfoliating", "ml", "g", "gr"
     ])
+
+
+class NewsTagSettings(BaseModel):
+    """Cấu hình ánh xạ từ khóa cho các tag/chủ đề hot của tin tức."""
+    tags_map: dict[str, List[str]] = Field(default_factory=lambda: {
+        "DƯỠNG DA": ["skin", "aging", "cleansing", "hydration", "da", "dưỡng", "rửa", "cổ"],
+        "CẢM HỨNG": ["inspiration", "story", "cảm hứng", "hành trình", "chia sẻ", "lối sống"],
+        "XU HƯỚNG": ["trend", "strategies", "future", "xu hướng", "2026", "mới", "lão hóa"],
+        "ƯU ĐÃI": ["deal", "discount", "voucher", "ưu đãi", "khuyến mãi", "quà"],
+        "MẸO HAY": ["tips", "fundamentals", "how to", "mẹo", "hướng dẫn", "nguyên tắc", "cách"],
+        "SỨC KHỎE": ["health", "healthy", "sức khỏe", "lão hóa", "dinh dưỡng"]
+    })
 
 
 class SystemSettingsPayload(BaseModel):
@@ -150,8 +125,8 @@ class SystemSettingsPayload(BaseModel):
     conversions: ConversionSettings = Field(default_factory=ConversionSettings)
     entropy: EntropySettings = Field(default_factory=EntropySettings)
     autopilot: AutopilotSettings = Field(default_factory=AutopilotSettings)
-    outbound_links: OutboundLinksSettings = Field(default_factory=OutboundLinksSettings)
     seo_contextual_links: SeoContextualLinksSettings = Field(default_factory=SeoContextualLinksSettings)
+    news_tags: NewsTagSettings = Field(default_factory=NewsTagSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

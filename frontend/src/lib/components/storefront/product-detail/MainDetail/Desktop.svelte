@@ -30,8 +30,9 @@
     relatedProducts?: Product[];
     reviewStats?: ReviewStats | null;
     resolvedLcpUrl?: string;
+    isEmbedded?: boolean;
   }
-  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null, resolvedLcpUrl, isEmbedded = false }: Props = $props();
 
   interface ExtendedProductMetadata {
     share_promotion?: {
@@ -507,30 +508,11 @@
   );
 </script>
 
-<svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
-  <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
-  <div class="bg-[#f5f5f5] py-4">
-    <div
-      class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[12px] text-gray-400 font-medium"
-    >
-      <a
-        href="/"
-        class="text-gray-400 hover:text-[#d12a0f] transition-all font-black tracking-widest text-[11px]"
-      >
-        Osmo
-      </a>
-      <span class="opacity-30">/</span>
-      <span class="text-gray-500 font-medium">{product.name}</span>
-    </div>
-  </div>
-
-  <svelte:element
-    this={contentWrapper}
-    class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 rounded-none p-5"
-  >
-    <div class="flex flex-col md:flex-row gap-4">
+{#if isEmbedded}
+  <div class="w-full py-0 px-0 mt-2 mb-2">
+    <div class="flex flex-col md:flex-row gap-8">
       <!-- LEFT: IMAGES & SOCIAL (ProductGallery Module) -->
-      <div class="relative shrink-0">
+      <div class="embedded-product-gallery relative shrink-0">
         <button
           onclick={triggerVerify}
           class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:opacity-90 drop-shadow-md bg-transparent border-none p-0 focus:outline-none"
@@ -556,7 +538,7 @@
       </div>
 
       <!-- RIGHT: PRODUCT INFO (ProductPrimaryInfo Module) -->
-      <div class="min-w-0 flex-1">
+      <div class="embedded-product-info min-w-0 flex-1 text-left">
         <ProductPrimaryInfo
           {product}
           stats={reviewStats}
@@ -585,45 +567,126 @@
         />
       </div>
     </div>
-  </svelte:element>
-
-  <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) - Pre-rendered for maximum SEO & instantaneous Above-the-fold paint -->
-  <ProductDetailSections
-    {product}
-    {productInfo}
-    visibleAttributes={product.attributes
-      ? (Object.entries(product.attributes).filter(([key, value]) => {
-          const k = key.toLowerCase().replace(/_/g, " ").trim();
-          const brand = productInfo.brand;
-          const origin = productInfo.origin;
-          const weight = productInfo.weight;
-          return !(
-            ((k === "xuất xứ" || k === "origin") && origin) ||
-            ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
-              weight) ||
-            ((k === "mã vạch" || k === "barcode") &&
-              productInfo.barcode &&
-              productInfo.barcode !== "N/A") ||
-            k === "thương hiệu" ||
-            k === "brand"
-          );
-        }) as [string, string | number | Record<string, unknown>][])
-      : []}
-  />
-
-  <!-- BELOW THE FOLD DYNAMIC SECTIONS -->
-  <div bind:this={dynamicSection} class="w-full min-h-[1px]">
-    {#if shouldRenderDynamic}
-      <!-- REVIEWS SECTION -->
-      <ProductReviews {product} />
-
-      <!-- RELATED PRODUCTS -->
-      <div class="max-w-[1200px] mx-auto mt-0 mb-12">
-        <RelatedProducts {product} initialProducts={relatedProducts} />
-      </div>
-    {/if}
   </div>
-</svelte:element>
+{:else}
+  <svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
+    <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
+    <div class="bg-[#f5f5f5] py-4">
+      <div
+        class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[12px] text-gray-400 font-medium"
+      >
+        <a
+          href="/"
+          class="text-gray-400 hover:text-[#d12a0f] transition-all font-black tracking-widest text-[11px]"
+        >
+          Osmo
+        </a>
+        <span class="opacity-30">/</span>
+        <span class="text-gray-500 font-medium">{product.name}</span>
+      </div>
+    </div>
+
+    <svelte:element
+      this={contentWrapper}
+      class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 rounded-none p-5"
+    >
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- LEFT: IMAGES & SOCIAL (ProductGallery Module) -->
+        <div class="relative shrink-0">
+          <button
+            onclick={triggerVerify}
+            class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:opacity-90 drop-shadow-md bg-transparent border-none p-0 focus:outline-none"
+          >
+            <img
+              src={product?.metadata?.verified_badge_url ||
+                SHOP_CONFIG.default_badge_url}
+              alt="Verified"
+              class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
+              decoding="async"
+              fetchpriority="low"
+            />
+          </button>
+          <ProductGallery
+            {product}
+            {likeCount}
+            {isFlashSaleActive}
+            {productInfo}
+            {selectedIndices}
+            {variations}
+            {resolvedLcpUrl}
+          />
+        </div>
+
+        <!-- RIGHT: PRODUCT INFO (ProductPrimaryInfo Module) -->
+        <div class="min-w-0 flex-1">
+          <ProductPrimaryInfo
+            {product}
+            stats={reviewStats}
+            {displayPrice}
+            {activePrices}
+            {helenAdvice}
+            {productVouchers}
+            {selectedVouchers}
+            {variations}
+            {selectedIndices}
+            {quantity}
+            {currentStock}
+            {activeComboQty}
+            {activeGifts}
+            {isFlashSaleActive}
+            {timeLeft}
+            {isViralUnlocked}
+            {variantActivityMap}
+            onToggleVoucher={toggleVoucher}
+            onSelectOption={selectOption}
+            onQuantityChange={handleQuantityChange}
+            onAddToCart={addToCart}
+            onBuyNow={buyNow}
+            onTriggerWriteReview={triggerWriteReview}
+            onTriggerViralFly={triggerViralFly}
+          />
+        </div>
+      </div>
+    </svelte:element>
+
+    <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) - Pre-rendered for maximum SEO & instantaneous Above-the-fold paint -->
+    <ProductDetailSections
+      {product}
+      {productInfo}
+      visibleAttributes={product.attributes
+        ? (Object.entries(product.attributes).filter(([key, value]) => {
+            const k = key.toLowerCase().replace(/_/g, " ").trim();
+            const brand = productInfo.brand;
+            const origin = productInfo.origin;
+            const weight = productInfo.weight;
+            return !(
+              ((k === "xuất xứ" || k === "origin") && origin) ||
+              ((k === "trọng lượng" || k === "quy cách" || k === "weight") &&
+                weight) ||
+              ((k === "mã vạch" || k === "barcode") &&
+                productInfo.barcode &&
+                productInfo.barcode !== "N/A") ||
+              k === "thương hiệu" ||
+              k === "brand"
+            );
+          }) as [string, string | number | Record<string, unknown>][])
+        : []}
+    />
+
+    <!-- BELOW THE FOLD DYNAMIC SECTIONS -->
+    <div bind:this={dynamicSection} class="w-full min-h-[1px]">
+      {#if shouldRenderDynamic}
+        <!-- REVIEWS SECTION -->
+        <ProductReviews {product} />
+
+        <!-- RELATED PRODUCTS -->
+        <div class="max-w-[1200px] mx-auto mt-0 mb-12">
+          <RelatedProducts {product} initialProducts={relatedProducts} />
+        </div>
+      {/if}
+    </div>
+  </svelte:element>
+{/if}
 
 <style>
   :global(.prose-osmo) {
@@ -829,5 +892,40 @@
     color: #10b981 !important; /* HSL Emerald Green Bullet */
     font-size: 18px !important;
     line-height: 1.2 !important;
+  }
+
+  /* Embedded Funnel Mode Optimizations (Frontend Design + UI/UX Pro Max) */
+  .embedded-product-gallery :global(> div) {
+    width: 300px !important;
+  }
+  .embedded-product-gallery :global(img[width="450"]) {
+    width: 300px !important;
+    height: 300px !important;
+  }
+  .embedded-product-info :global(h1) {
+    font-size: 20px !important;
+    margin-bottom: 12px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+  }
+  .embedded-product-info :global(.mb-2) {
+    margin-bottom: 12px !important;
+  }
+  .embedded-product-info :global(.mb-3) {
+    margin-bottom: 14px !important;
+  }
+  .embedded-product-info :global([class*="mb-3.5"]) {
+    margin-bottom: 16px !important;
+  }
+  .embedded-product-info :global(.mb-6) {
+    margin-bottom: 20px !important;
+  }
+  .embedded-product-info :global(.mt-4) {
+    margin-top: 24px !important;
+  }
+  .embedded-product-info :global([class*="bg-[#f6f6f6]"]) {
+    background-color: #f5f5f4 !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
   }
 </style>
