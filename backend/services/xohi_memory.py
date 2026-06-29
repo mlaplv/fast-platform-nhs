@@ -133,7 +133,14 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e: logger.warning(f"[XoHiMemory] Redis pattern delete failed: {e}")
 
     async def clear_article_cache(self):
-        await self.delete_pattern("articles:count:*")
+        if self._use_redis and self.client:
+            try:
+                keys = await self.client.smembers("articles:cache_keys")
+                if keys:
+                    await self.client.delete(*keys)
+                await self.client.delete("articles:cache_keys")
+            except Exception as e:
+                logger.warning(f"[XoHiMemory] clear_article_cache failed: {e}")
 
     # ═══════════════════════════════════════════════════════
     # THREE-LAYER MEMORY ARCHITECTURE — Elite V2.2

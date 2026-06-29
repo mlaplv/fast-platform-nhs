@@ -124,6 +124,45 @@ export const neuralCleanPastedHTML = (htmlStr: string): string => {
         return;
       }
 
+      // 2.4.5 Clean Table elements & Auto-wrap with figure
+      if (tag === 'table') {
+        el.querySelectorAll('colgroup, col').forEach(col => col.remove());
+        el.removeAttribute('style');
+        
+        // Ensure proper thead structure
+        const firstRow = el.querySelector('tbody tr');
+        if (firstRow && firstRow.querySelector('th') && !el.querySelector('thead')) {
+          const thead = doc.createElement('thead');
+          thead.appendChild(firstRow);
+          el.insertBefore(thead, el.firstChild);
+          changed = true;
+        }
+
+        // Clean cell paragraphs and styles
+        el.querySelectorAll('th, td').forEach(cell => {
+          cell.removeAttribute('style');
+          const cellParagraphs = cell.querySelectorAll('p');
+          if (cellParagraphs.length > 0) {
+            cellParagraphs.forEach(p => {
+              while (p.firstChild) {
+                p.parentNode?.insertBefore(p.firstChild, p);
+              }
+              p.remove();
+            });
+            changed = true;
+          }
+        });
+
+        // Auto wrap table in figure.xohi-clinical-table if not already wrapped
+        if (!el.closest('figure.xohi-clinical-table')) {
+          const figure = doc.createElement('figure');
+          figure.className = 'xohi-clinical-table';
+          el.parentNode?.insertBefore(figure, el);
+          figure.appendChild(el);
+          changed = true;
+        }
+      }
+
       // 2.5 Prune Empty Nodes
       const containers = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'strong', 'b', 'em', 'i', 'span', 'u', 's', 'del', 'a', 'figure', 'figcaption'];
       const whitelisted = ['img', 'br', 'hr', 'figure', 'figcaption'];

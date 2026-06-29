@@ -108,6 +108,13 @@
         tags.push(tagKey);
       }
     }
+
+    if (selectedTag) {
+      const activeTagLower = selectedTag.toLowerCase();
+      if ((text.includes(activeTagLower) || tags.some(t => t.toLowerCase() === activeTagLower)) && !tags.includes(selectedTag)) {
+        tags.push(selectedTag);
+      }
+    }
     
     if (tags.length === 0) {
       const keys = Object.keys(tags_map);
@@ -148,7 +155,7 @@
     
     // 1. Lọc theo tag
     if (activeTag) {
-      list = list.filter(item => item.tags.includes(activeTag));
+      list = list.filter(item => item.tags.some(t => t.toLowerCase() === activeTag.toLowerCase()));
     }
     
     // 2. Lọc theo thanh tìm kiếm

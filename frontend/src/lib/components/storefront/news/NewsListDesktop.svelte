@@ -106,6 +106,13 @@
         tags.push(tagKey);
       }
     }
+
+    if (selectedTag) {
+      const activeTagLower = selectedTag.toLowerCase();
+      if ((text.includes(activeTagLower) || tags.some(t => t.toLowerCase() === activeTagLower)) && !tags.includes(selectedTag)) {
+        tags.push(selectedTag);
+      }
+    }
     
     if (tags.length === 0) {
       const keys = Object.keys(tags_map);
@@ -144,7 +151,7 @@
     const list = enhancedNews();
     const activeTag = selectedTag;
     let result = activeTag 
-      ? list.filter(item => item.tags.includes(activeTag))
+      ? list.filter(item => item.tags.some(t => t.toLowerCase() === activeTag.toLowerCase()))
       : list;
 
     // Elite V2.2: Option B - Prevent duplication by hiding articles that are already featured

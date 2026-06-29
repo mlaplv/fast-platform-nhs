@@ -110,6 +110,15 @@ class ArticleService:
         tag: Optional[str] = None,
     ) -> ArticleListResponse:
         """List articles (R76: Scalar Projection) with Keyset Cursor Pagination."""
+        cache_key_list = f"articles:list:limit={limit}:offset={offset}:status={status}:ex_status={exclude_status}:search={search}:cat={category}:cursor={cursor}:tag={tag}"
+        if xohi_memory._use_redis:
+            try:
+                cached_data = await xohi_memory.client.get(cache_key_list)
+                if cached_data:
+                    return ArticleListResponse.model_validate_json(cached_data)
+            except Exception:
+                pass
+
         conditions = [Article.deleted_at == None]
         if status and status != "all":
             conditions.append(Article.status == status.upper())
@@ -139,8 +148,14 @@ class ArticleService:
                     raw_tags = await xohi_memory.client.get("system:news_tags")
                     if raw_tags:
                         TAG_KEYWORDS = json.loads(raw_tags)
+                    else:
+                        from backend.services.settings_service import settings_service
+                        settings_res = await settings_service.get_general_settings(db_session)
+                        if settings_res and settings_res.settings and settings_res.settings.news_tags:
+                            TAG_KEYWORDS = settings_res.settings.news_tags.tags_map
+                            await xohi_memory.client.set("system:news_tags", json.dumps(TAG_KEYWORDS))
             except Exception as ce:
-                logger.warning(f"Failed to fetch news tags from Redis: {ce}")
+                logger.warning(f"Failed to fetch news tags from Redis/DB: {ce}")
 
             tag_upper: str = tag.upper()
             normalized_tags: dict[str, list[str]] = {k.upper(): v for k, v in TAG_KEYWORDS.items()}
@@ -188,6 +203,7 @@ class ArticleService:
                 if xohi_memory._use_redis:
                     try:
                         await xohi_memory.client.set(cache_key, str(total), ex=300)
+                        await xohi_memory.client.sadd("articles:cache_keys", cache_key)
                     except Exception:
                         pass
         else:
@@ -234,20 +250,21 @@ class ArticleService:
                 ).where(
                     and_(
                         Appointment.deleted_at == None,
-                        Appointment.status == "UPCOMING"
+                        Appointment.status == "UPCOMING",
+                        Appointment.metadata_json["action"].astext == "publish_article",
+                        Appointment.metadata_json["article_id"].astext.in_(draft_ids)
                     )
                 )
                 appt_res = await db_session.execute(appt_stmt)
                 for appt in appt_res.all():
                     meta = appt.metadata_json or {}
-                    if meta.get("action") == "publish_article":
-                        aid = meta.get("article_id")
-                        if aid in draft_ids:
-                            upcoming_appts[str(aid)] = {
-                                "id": appt.id,
-                                "start_time": appt.start_time.isoformat() if appt.start_time else None,
-                                "status": appt.status
-                            }
+                    aid = meta.get("article_id")
+                    if aid:
+                        upcoming_appts[str(aid)] = {
+                            "id": appt.id,
+                            "start_time": appt.start_time.isoformat() if appt.start_time else None,
+                            "status": appt.status
+                        }
 
         data = []
         for row in rows:
@@ -260,12 +277,19 @@ class ArticleService:
         if data and has_more:
             next_cursor = str(data[-1].id)
 
-        return ArticleListResponse(
+        response_obj = ArticleListResponse(
             data=data,
             total=total,
             next_cursor=next_cursor,
             has_more=has_more
         )
+        if xohi_memory._use_redis:
+            try:
+                await xohi_memory.client.set(cache_key_list, response_obj.model_dump_json(), ex=300)
+                await xohi_memory.client.sadd("articles:cache_keys", cache_key_list)
+            except Exception:
+                pass
+        return response_obj
 
     async def search_semantic(
         self,
@@ -998,7 +1022,8 @@ class ArticleService:
             "Quy tắc 4: TUYỆT ĐỐI không dùng Markdown. Không JSON. Chỉ HTML thuần.\n"
             "Quy tắc 5: Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
             "Quy tắc 6: TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết.\n"
-            "Quy tắc 7: TUYỆT ĐỐI không bắt đầu các dòng, các đoạn văn hoặc các thẻ tiêu đề (<h2>, <h3>) bằng dấu gạch ngang (-), dấu sao (*), hoặc ký tự liệt kê của Markdown. Tất cả mã HTML phải ở dạng độc lập, không được lồng trong danh sách trừ khi đó là danh sách thực sự."
+            "Quy tắc 7: TUYỆT ĐỐI không bắt đầu các dòng, các đoạn văn hoặc các thẻ tiêu đề (<h2>, <h3>) bằng dấu gạch ngang (-), dấu sao (*), hoặc ký tự liệt kê của Markdown. Tất cả mã HTML phải ở dạng độc lập, không được lồng trong danh sách trừ khi đó là danh sách thực sự.\n"
+            "Quy tắc 8: BẢNG BIỂU (TABLE): Nếu tạo bảng so sánh/định lượng, bạn BẮT BUỘC phải bọc bảng trong thẻ <figure class=\"xohi-clinical-table\"> và tuân thủ đúng cấu trúc chuẩn HTML gồm: <caption>, <thead> (cho tiêu đề cột <th>) và <tbody> (cho các ô <td>). TUYỆT ĐỐI CẤM dùng các thuộc tính style, width, hoặc thẻ <colgroup>/<col> cố định kích thước, và KHÔNG bọc thẻ <p> bên trong các ô <th> hay <td>."
         )
 
         templates_prompts = {
@@ -1016,7 +1041,7 @@ class ArticleService:
             "consensus_list": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 3: Danh sách Đồng thuận):\n"
                 "Quy tắc A: Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
-                "Quy tắc B: Sử dụng bảng HTML (<table>, <tr>, <th>, <td>) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
+                "Quy tắc B: Sử dụng bảng so sánh HTML chuẩn được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
                 "Quy tắc C: Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
             ),
             "info_case_study": (
@@ -1028,7 +1053,7 @@ class ArticleService:
             "versus_paradigm": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 5: Đối chiếu Song song):\n"
                 "Quy tắc A: Viết bài dưới dạng so sánh đối chiếu trực tiếp giữa hai sản phẩm, hai hoạt chất hoặc hai phương pháp phổ biến (A vs B).\n"
-                "Quy tắc B: Xây dựng bảng so sánh HTML chi tiết về công dụng, tính an toàn và giá cả.\n"
+                "Quy tắc B: Xây dựng bảng so sánh HTML chi tiết được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) về công dụng, tính an toàn và giá cả.\n"
                 "Quy tắc C: Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
             ),
             "expert_consensus": (

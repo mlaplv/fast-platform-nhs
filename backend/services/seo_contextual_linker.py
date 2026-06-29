@@ -20,7 +20,7 @@ import logging
 import re
 import string
 from html.parser import HTMLParser
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select, delete
@@ -39,7 +39,7 @@ _MIN_CONFIDENCE = 0.85         # Nâng lên 0.85 để giảm noise — chỉ gi
 _MAX_LINKS_PER_PILLAR = 1     # Giới hạn 1 link cho mỗi Pillar trỏ về để tránh nhồi nhét
 _MAX_LINKS_PER_ARTICLE = 2    # Giảm xuống 2 cho mật độ an toàn hơn, tránh link spam
 _MAX_TOTAL_LINKS_IN_ARTICLE = 4  # Cluster đã có >= 4 link nội bộ → KHÔNG thêm nữa
-_AI_TIMEOUT = 25.0
+_AI_TIMEOUT = 60.0
 
 
 # ─── PydanticAI V2 Output Schemas ────────────────────────────────────────────
@@ -52,7 +52,7 @@ class SentenceLinkSuggestion(BaseModel):
     anchor_text: str = Field(max_length=200, description="Cụm từ ngữ cảnh được chọn làm anchor")
     linked_sentence: str = Field(description="Câu hoàn chỉnh với <a> tag đã chèn")
     target_pillar_id: str = Field(description="ID của Pillar Node đích")
-    matched_entity_type: str = Field(description="pain_point | feature | brand | ingredient | symptom")
+    matched_entity_type: Literal["pain_point", "feature", "brand", "ingredient", "symptom"] = Field(description="pain_point | feature | brand | ingredient | symptom")
     matched_entity_name: str = Field(description="Tên entity cụ thể đã match")
     confidence: float = Field(ge=0.0, le=1.0, description="Độ tin cậy")
     reasoning: str = Field(description="Lý do chọn anchor phrase này — phải hợp ngữ cảnh câu văn")
@@ -984,6 +984,9 @@ class SeoContextualLinker:
         e_name = entity_name.lower().strip()
         p_label = target_pillar_label.lower().strip()
         
+        if e_type == "product":
+            e_type = "brand"
+        
         # Brand and product keywords
         brand_keywords = {"miccosmo", "beppin", "white label", "hurry harry", "virgin white", "virgin"}
         
@@ -996,9 +999,9 @@ class SeoContextualLinker:
         
         if is_brand_or_product:
             if e_type in ["symptom", "pain_point"]:
-                return "brand"
+                e_type = "brand"
                 
-        return entity_type
+        return e_type
 
     @staticmethod
     def _is_inside_anchor(content: str, index: int) -> bool:
