@@ -507,7 +507,7 @@
 
   $effect(() => {
     // CNS V2.3: Stabilized Content Sync (Zero-Flicker & No Scroll Jump)
-    if (!editor || editor.isDestroyed || isInternalUpdating || isSyncLocked) return;
+    if (!editor || editor.isDestroyed || isInternalUpdating || isSyncLocked || showSource) return;
     
     // [CRITICAL] If editor is focused, it IS the master. 
     // Do NOT sync back from props to avoid scroll/cursor resets during active editing.

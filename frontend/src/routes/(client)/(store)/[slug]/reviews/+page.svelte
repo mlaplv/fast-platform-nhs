@@ -21,18 +21,43 @@
   import { apiClient } from '$lib/utils/apiClient';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
 
-  let { data } = $props();
+  import type { Review, ReviewStats, Product, Category, Article } from '$lib/types';
+
+  interface ClientReview extends Review {
+    _isLiked?: boolean;
+    likes_count?: number;
+    avatar_url?: string;
+    is_verified_buyer?: boolean;
+    variant_name?: string;
+    category_name?: string;
+  }
+
+  let { data }: { data: { entity: Product | Category | Article; entityType: 'PRODUCT' | 'CATEGORY' | 'NEWS' } } = $props();
   const entity = $derived(data.entity);
   const entityType = $derived(data.entityType);
-  const product = $derived(entityType === 'PRODUCT' ? entity : null);
-  const category = $derived(entityType === 'CATEGORY' ? entity : null);
-  const news = $derived(entityType === 'NEWS' ? entity : null);
+  const product = $derived(entityType === 'PRODUCT' ? entity as Product : null);
+  const category = $derived(entityType === 'CATEGORY' ? entity as Category : null);
+  const news = $derived(entityType === 'NEWS' ? entity as Article : null);
   const ui = getClientUi();
   const cartStore = getCartStore();
 
+  const entityName = $derived(
+    product ? product.name :
+    category ? category.name :
+    news ? news.title : ''
+  );
+
+  const entityImage = $derived(
+    product ? product.images?.[0] :
+    category ? category.image :
+    news ? news.featuredImage : null
+  );
+
+  const entitySlug = $derived(entity?.slug || '');
+
   // --- State ---
-  let reviews = $state<any[]>([]);
-  let stats = $state<any>(null);
+  let reviews = $state<ClientReview[]>([]);
+  let stats = $state<ReviewStats | null>(null);
   let isLoading = $state(true);
   let activeFilter = $state<string>('all');
   let sortMode = $state<'newest' | 'highest'>('newest');
@@ -130,7 +155,7 @@
       cartStore.addItem(product);
       window.location.href = '/checkout';
     } else {
-      window.location.href = `/${entity.slug}`;
+      window.location.href = `/${entitySlug}`;
     }
   }
 
@@ -142,7 +167,7 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  async function handleLike(review: any) {
+  async function handleLike(review: ClientReview) {
     if (review._isLiked) return;
     
     // Optimistic UI
@@ -171,7 +196,7 @@
     return html.replace(/<[^>]*>?/gm, '');
   }
 
-  const avgRating = $derived(stats?.average_rating ?? (entity as any).metadata?.rating ?? 5);
+  const avgRating = $derived(stats?.average_rating ?? (product?.metadata?.rating ? Number(product.metadata.rating) : 5));
   const totalCount = $derived(stats?.total_count ?? 0);
 
   // --- Write Review Logic ---
@@ -407,15 +432,15 @@
           {#if entity}
             <div class="rv-product-ref">
               <div class="rv-product-thumb">
-                {#if entity.images?.[0] || entity.image}
-                  <img src={entity.images?.[0] || entity.image} alt={entity.name} />
+                {#if entityImage}
+                  <img src={entityImage} alt={entityName} />
                 {:else}
                   <div class="rv-product-thumb-placeholder"></div>
                 {/if}
               </div>
               <div class="rv-product-ref-info">
-                <span class="rv-product-ref-name">{entity.name}</span>
-                {#if entityType === 'PRODUCT' && entity.discountPrice && entity.discountPrice < entity.price}
+                <span class="rv-product-ref-name">{entityName}</span>
+                {#if product && product.discountPrice && product.discountPrice < product.price}
                   <span class="rv-product-ref-avail rv-product-ref-avail--sale">Đang giảm giá</span>
                 {:else}
                   <span class="rv-product-ref-avail">{entityType === 'PRODUCT' ? 'Còn hàng' : 'Khám phá ngay'}</span>
@@ -493,14 +518,14 @@
   <!-- ── BOTTOM CTA ── -->
   <div class="rv-bottom-cta">
     <div class="rv-cta-product">
-      {#if entity.images?.[0] || entity.image}
-        <img src={entity.images?.[0] || entity.image} alt={entity.name} class="rv-cta-thumb" />
+      {#if entityImage}
+        <img src={entityImage} alt={entityName} class="rv-cta-thumb" />
       {/if}
       <div class="rv-cta-info">
-        <span class="rv-cta-name">{entity.name}</span>
+        <span class="rv-cta-name">{entityName}</span>
         <span class="rv-cta-price">
-          {#if entityType === 'PRODUCT'}
-            ₫{(entity.discountPrice || entity.price)?.toLocaleString('vi-VN')}
+          {#if product}
+            ₫{(product.discountPrice || product.price)?.toLocaleString('vi-VN')}
           {:else}
             Xem ngay
           {/if}
@@ -545,11 +570,11 @@
         {:else}
           <!-- Product info -->
           <div class="rv-product-ref">
-            {#if entity.images?.[0] || entity.image}
-              <div class="rv-product-thumb"><img src={entity.images?.[0] || entity.image} alt={entity.name} /></div>
+            {#if entityImage}
+              <div class="rv-product-thumb"><img src={entityImage} alt={entityName} /></div>
             {/if}
             <div class="rv-product-ref-info">
-              <span class="rv-product-ref-name">{entity.name}</span>
+              <span class="rv-product-ref-name">{entityName}</span>
               <span class="rv-product-ref-avail">Mỹ phẩm osmo</span>
             </div>
           </div>

@@ -84,13 +84,17 @@
     const headerRow = tbl.headers.map((h: string) => `<th>${h}</th>`).join('');
     const bodyRows = tbl.rows.map((row: string[]) =>
       `<tr>${row.map((cell: string) => `<td>${cell}</td>`).join('')}</tr>`
-    ).join('\n    ');
+    ).join('\n      ');
     return (
       `<figure class="xohi-clinical-table">\n` +
       `  <table>\n` +
       `    <caption>${tbl.table_title}</caption>\n` +
-      `    <tr>${headerRow}</tr>\n` +
-      `    ${bodyRows}\n` +
+      `    <thead>\n` +
+      `      <tr>${headerRow}</tr>\n` +
+      `    </thead>\n` +
+      `    <tbody>\n` +
+      `      ${bodyRows}\n` +
+      `    </tbody>\n` +
       `  </table>\n` +
       `  <figcaption>${tbl.caption_vi || ''} <cite class="xohi-cite">${tbl.source_citation}</cite></figcaption>\n` +
       `</figure>`

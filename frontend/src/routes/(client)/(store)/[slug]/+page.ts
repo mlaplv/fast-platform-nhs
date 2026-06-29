@@ -3,12 +3,11 @@ import type { PageLoad } from './$types';
 import { normalizeSeoMeta, type NormalizedSeoMeta } from '$lib/utils/seo';
 import { browser } from '$app/environment';
 import { resolveOptimizedImageUrl, extractIdFromUrl } from '$lib/state/utils';
+import type { Product, Category, Article, ReviewStats, Review } from '$lib/types';
 
 export const trailingSlash = 'ignore';
 
-const resolvedCache = new Map<string, string>();
-
-async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string, width: number): Promise<string> {
+async function resolveDirectCacheUrl(originalUrl: string, width: number): Promise<string> {
   const isVideo = /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(originalUrl.split('?')[0].toLowerCase());
   if (isVideo) return originalUrl;
 
@@ -23,48 +22,23 @@ async function resolveDirectCacheUrl(fetchFn: typeof fetch, originalUrl: string,
 }
 
 // ── Shared local types ────────────────────────────────────────────────────────
-interface NewsItem {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  featured_image?: string;
-  category?: string;
-}
-
-interface ReviewStats {
-  average_rating: number;
-  total_count: number;
-}
-
-interface ProductMetadata {
-  landing_type?: string;
-  mobile_images?: string[];
-}
-
-interface TierVariation {
-  mobile_images?: string[];
-  mobileImages?: string[];
-  images?: string[];
-}
-
-interface ProductDetails {
-  id?: string | number;
-  name?: string;
+export interface ClientProduct extends Product {
   seoMeta?: NormalizedSeoMeta | null;
-  metadata?: ProductMetadata | null;
-  tierVariations?: TierVariation[];
-  tier_variations?: TierVariation[];
-  attributes?: {
-    tier_variations?: TierVariation[];
-  } & Record<string, unknown>;
-  mobileImages?: string[];
-  images?: string[];
+}
+
+export interface ClientCategory extends Category {
+  seoMeta?: NormalizedSeoMeta | null;
 }
 
 // ── Loader ────────────────────────────────────────────────────────────────────
 export const load: PageLoad = async ({ params, fetch, url }) => {
   const { slug } = params;
+
+  // ── 0. Guard: Reject non-slug file requests (crawler noise: sitemap_index.xml, robots.txt, etc.) ──
+  const INVALID_SLUG_EXTENSIONS = /\.(xml|txt|php|asp|aspx|jsp|json|ico|png|jpg|jpeg|gif|svg|css|js|map|woff|woff2|ttf|eot)$/i;
+  if (INVALID_SLUG_EXTENSIONS.test(slug)) {
+    throw error(404, { message: `Không tìm thấy: ${slug}` });
+  }
 
   // ── 1. Category (trailing slash) ─────────────────────────────────────────
   if (url.pathname.endsWith('/')) {
@@ -86,14 +60,14 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     if (!prodRes.ok || !catRes || !catRes.ok) throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
 
-    const prodData = await prodRes.json() as Record<string, unknown>;
-    const items = (prodData.data ?? []) as unknown[];
-    const total = (prodData.total as number) || items.length;
+    const prodData = (await prodRes.json()) as { data: Product[]; total: number };
+    const items = prodData.data ?? [];
+    const total = prodData.total || items.length;
 
-    let category: Record<string, unknown> | null = null;
+    let category: ClientCategory | null = null;
     if (catRes?.ok) {
-      const catData = await catRes.json() as Record<string, unknown>;
-      const rawSeo = (catData.seoMeta ?? catData.seo_meta) as Record<string, unknown> | null;
+      const catData = (await catRes.json()) as Category & { seo_meta?: Record<string, unknown>; seoMeta?: Record<string, unknown> };
+      const rawSeo = catData.seoMeta ?? catData.seo_meta ?? null;
       category = {
         ...catData,
         seoMeta: normalizeSeoMeta(rawSeo, String(catData.name ?? ''))
@@ -120,9 +94,9 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     if (!newsRes?.ok) throw error(404, { message: 'Hiện tại chưa có bài viết nào.' });
 
-    const data = await newsRes.json() as Record<string, unknown>;
-    const items = (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[];
-    const total = typeof data.total === 'number' ? data.total : (Array.isArray(data) ? data.length : items.length);
+    const data = (await newsRes.json()) as { data?: Article[]; items?: Article[]; total?: number } | Article[];
+    const items = (Array.isArray(data) ? data : (data.data ?? data.items ?? [])) as Article[];
+    const total = typeof data === 'object' && 'total' in data && typeof data.total === 'number' ? data.total : items.length;
 
     return {
       type: 'news' as const,
@@ -138,16 +112,16 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
   }).catch(e => { console.error(`[PRODUCT FETCH FAILED] ${slug}`, e); return null; });
 
   if (prodRes?.ok) {
-    const prodData = await prodRes.json() as Record<string, unknown>;
-    const rawSeo = (prodData.seoMeta ?? prodData.seo_meta) as Record<string, unknown> | null;
+    const prodData = (await prodRes.json()) as Product & { seo_meta?: Record<string, unknown>; seoMeta?: Record<string, unknown> };
+    const rawSeo = prodData.seoMeta ?? prodData.seo_meta ?? null;
     const seoMeta: NormalizedSeoMeta | null = normalizeSeoMeta(rawSeo, String(prodData.name ?? ''));
 
-    const product = {
+    const product: ClientProduct = {
       ...prodData,
       seoMeta,
       // Normalize legacy weight notation
       name: typeof prodData.name === 'string' ? prodData.name.replace(/40gr/g, '40g') : prodData.name
-    } as ProductDetails & Record<string, unknown>;
+    };
 
     const metadata = product.metadata || {};
     const landingType = metadata.landing_type || 'standard';
@@ -175,28 +149,28 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     const [relRes, statsRes, reviewsRes, settingsRes] = await Promise.all(promises);
 
-    let relatedProducts: { id: string }[] = [];
+    let relatedProducts: Product[] = [];
     if (relRes?.ok) {
-      const relData = await relRes.json() as Record<string, unknown>;
-      relatedProducts = ((relData.data ?? []) as { id: string }[])
+      const relData = (await relRes.json()) as { data?: Product[] };
+      relatedProducts = (relData.data ?? [])
         .filter(p => p.id !== String(product.id))
         .slice(0, 8);
     }
 
     let reviewStats: ReviewStats | null = null;
     if (statsRes?.ok) {
-      reviewStats = await statsRes.json() as ReviewStats;
+      reviewStats = (await statsRes.json()) as ReviewStats;
     }
 
-    let reviews: unknown[] = [];
+    let reviews: Review[] = [];
     if (reviewsRes && reviewsRes.ok) {
-      const revData = await reviewsRes.json() as Record<string, unknown>;
-      reviews = (revData.items || []) as unknown[];
+      const revData = (await reviewsRes.json()) as { items?: Review[] };
+      reviews = revData.items || [];
     }
 
-    let shopInfo: unknown = null;
+    let shopInfo: Record<string, unknown> | null = null;
     if (settingsRes && settingsRes.ok) {
-      shopInfo = await settingsRes.json();
+      shopInfo = (await settingsRes.json()) as Record<string, unknown>;
     }
 
     let unlockedVoucherIds: string[] = [];
@@ -216,11 +190,11 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     const mobileHeroImage = (() => {
       const p = product;
-      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0];
       if (tierVar) {
-        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean).filter(img => !isVideo(img));
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter((img): img is string => img !== null).filter(img => !isVideo(img));
         if (mobImgs.length > 0) return mobImgs[0];
-        const deskImgs = (tierVar.images || []).filter(Boolean).filter(img => !isVideo(img));
+        const deskImgs = (tierVar.images || []).filter((img): img is string => img !== null).filter(img => !isVideo(img));
         if (deskImgs.length > 0) return deskImgs[0];
       }
       if (p.mobileImages && p.mobileImages.length > 0) {
@@ -236,17 +210,17 @@ export const load: PageLoad = async ({ params, fetch, url }) => {
 
     const desktopHeroImage = (() => {
       const p = product;
-      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0] || p.attributes?.tier_variations?.[0];
+      const tierVar = p.tierVariations?.[0] || p.tier_variations?.[0];
       if (tierVar) {
-        const deskImgs = (tierVar.images || []).filter(Boolean).filter(img => !isVideo(img));
+        const deskImgs = (tierVar.images || []).filter((img): img is string => img !== null).filter(img => !isVideo(img));
         if (deskImgs.length > 0) return deskImgs[0];
       }
       return (p.images || []).filter(Boolean).filter(img => !isVideo(img))[0];
     })();
 
     const [resolvedMobileLcpUrl, resolvedDesktopLcpUrl] = await Promise.all([
-      mobileHeroImage ? resolveDirectCacheUrl(fetch, mobileHeroImage, 450) : Promise.resolve(''),
-      desktopHeroImage ? resolveDirectCacheUrl(fetch, desktopHeroImage, 800) : Promise.resolve('')
+      mobileHeroImage ? resolveDirectCacheUrl(mobileHeroImage, 450) : Promise.resolve(''),
+      desktopHeroImage ? resolveDirectCacheUrl(desktopHeroImage, 800) : Promise.resolve('')
     ]);
 
     // NOTE: isMobile intentionally NOT set here.

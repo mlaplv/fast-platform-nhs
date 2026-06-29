@@ -137,7 +137,8 @@
     stripRedundantWrappers: true,
     stripEmpty: true,
     deduplicateContent: true,
-    stripLinks: true
+    stripLinks: true,
+    validateHtml5: true
   });
 
   function updatePopupPositions() {

@@ -18,7 +18,7 @@
   const cart = getCartStore();
   const searchStore = getSearchStore();
 
-  let NeuralBarComponent = $state<Component<any> | null>(null);
+  let NeuralBarComponent = $state<Component | null>(null);
 
   // Elite V2.2: Zero-Latency State Sync (Sync before mount to prevent CLS)
   if (data.isMobile !== undefined) {

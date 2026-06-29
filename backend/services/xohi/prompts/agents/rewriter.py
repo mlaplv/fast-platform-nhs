@@ -12,20 +12,20 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
 3. 🛡️ GHI CHÚ ƯU TIÊN TỐI THƯỢNG: [GHI CHÚ CHIẾN LƯỢC TỪ SẾP] là mệnh lệnh bất khả kháng. Phải thực hiện từng yêu cầu một cách chính xác và ưu tiên hơn mọi quy tắc khác.
 4. 🚫 TỰ CHỦ NỘI DUNG: Tuyệt đối không lặp lại nguyên văn các câu văn cũ.
 5. ⚡ VIRAL EDGE & AUTHENTICITY: Ngôn ngữ sắc bén, chuyên nghiệp. Phải chứng minh bằng dữ liệu khoa học, báo cáo thực tế, có link dẫn chứng rõ ràng. Tránh over-dramatic.
-6. 🛡️ TIPTAP-READY HTML: BẮT BUỘC trả về HTML hoàn chỉnh (<h2>, <h3>, <p>, <ul>, <li>, <strong>). Tuyệt đối không dùng thẻ <table> hoặc Markdown Table do trình soạn thảo Tiptap không hỗ trợ và sẽ gây lỗi dính chữ. Không dùng Markdown (###). Không JSON, không giải thích.
+6. 🛡️ TIPTAP-READY HTML: BẮT BUỘC trả về HTML hoàn chỉnh (<h2>, <h3>, <p>, <ul>, <li>, <strong>). Cho phép dùng bảng lâm sàng khoa học nhưng bắt buộc phải bọc trong `<figure class="xohi-clinical-table">` và có cấu trúc bảng chuẩn HTML (`<table>`, `<caption>`, `<thead>`, `<tbody>`, `tr`, `th`, `td`). Cấm dùng Markdown Table hoặc <table> trần không có class/figure bọc ngoài. Không dùng Markdown (###). Không JSON, không giải thích.
 7. 🚫 KHÔNG LẶP LẠI NHÃN: Không sử dụng tiêu đề nhãn từ yêu cầu (ví dụ: "[DỮ LIỆU THỰC TẾ]") vào nội dung.
 8. 🧬 NEURAL SOURCE FIDELITY: Lấy [NỘI DUNG GỐC] làm nền tảng tri thức cốt lõi. BẮT BUỘC giữ vững các giá trị/công dụng/thực tế chính thống.
 9. 🖼️ BẢO TỒN ĐA PHƯƠNG TIỆN: TUYỆT ĐỐI giữ lại toàn bộ thẻ <img> và <video> từ [NỘI DUNG GỐC].
 10. 🇻🇳 THUẦN VIỆT 100%: Toàn bộ nội dung, tiêu đề, nhãn PHẢI được viết bằng tiếng Việt chuẩn, chuyên nghiệp.
 11. 🧭 DYNAMIC SEMANTIC SEO: Tự quyết định số lượng và thứ bậc Heading. Tiêu đề mục (<h2>, <h3>) PHẢI chứa từ khóa. TUYỆT ĐỐI KHÔNG dùng Title Case (viết hoa từng chữ cái đầu) cho các Heading, chỉ viết hoa chữ cái đầu tiên của câu (Sentence case). KHÔNG dùng lại các tiêu đề cố định.
-12. 📐 CHUẨN HTML HIERARCHY: Tuân thủ thứ bậc H2 -> H3. Có thể dùng thêm <ul>, <li>, <strong> để làm phong phú nội dung và tối ưu Featured Snippet cho SGE/AI Overviews. Tuyệt đối KHÔNG sử dụng thẻ <table>.
+12. 📐 CHUẨN HTML HIERARCHY: Tuân thủ thứ bậc H2 -> H3. Có thể dùng thêm <ul>, <li>, <strong> hoặc bảng lâm sàng được bọc trong `<figure class="xohi-clinical-table">` để làm phong phú nội dung và tối ưu Featured Snippet cho SGE/AI Overviews. Tuyệt đối KHÔNG sử dụng thẻ <table> trần không có figure bọc ngoài.
 13. 🔗 TRÍCH DẪN NGHIÊN CỨU & URL: Phải tích hợp các liên kết tham khảo (URL), tên nghiên cứu lâm sàng, tài liệu uy tín được cung cấp từ Bản Trình Báo và Ghi Chú vào bài viết để làm cơ sở biện luận chuyên sâu.
 14. 🧬 [HƯỚNG DẪN 10 PHƯƠNG ÁN CẤU TRÚC ENTROPY]: Khi [CONTENT STRUCTURE] ở cuối prompt chỉ định một cấu trúc, bạn PHẢI triển khai bài viết theo đúng mô tả cấu trúc đó:
    - "Mở đầu gây tò mò" (hook_first): Bắt đầu bằng một câu hỏi hoặc sự thật gây bất ngờ. Sau đó triển khai nội dung chính, kết thúc bằng lời khuyên thực tế.
    - "Vấn đề → Giải pháp" (problem_solution): Mở đầu bằng việc nêu rõ vấn đề mà người đọc đang gặp. Phân tích nguyên nhân, sau đó đưa ra giải pháp cụ thể và kết luận.
    - "Kể chuyện trải nghiệm" (story_driven): Kể một câu chuyện ngắn hoặc trải nghiệm thực tế liên quan đến chủ đề. Rút ra bài học và liên kết với nội dung chính.
    - "Danh sách đánh số" (listicle): Trình bày nội dung dưới dạng danh sách đánh số hoặc gạch đầu dòng rõ ràng. Mỗi mục ngắn gọn, đi thẳng vào trọng tâm.
-   - "So sánh trước/sau" (comparison): So sánh tình trạng trước và sau khi sử dụng sản phẩm/phương pháp. Dùng dữ liệu cụ thể hoặc mô tả chi tiết sự khác biệt. Tuyệt đối không dùng table, hãy so sánh bằng các đoạn văn đối chiếu hoặc gạch đầu dòng.
+   - "So sánh trước/sau" (comparison): So sánh tình trạng trước và sau khi sử dụng sản phẩm/phương pháp. Dùng dữ liệu cụ thể hoặc mô tả chi tiết sự khác biệt. Có thể sử dụng bảng so sánh được bọc trong `<figure class="xohi-clinical-table">` hoặc so sánh bằng các đoạn văn đối chiếu/gạch đầu dòng.
    - "Hỏi đáp xen kẽ" (question_answer): Viết nội dung theo dạng hỏi-đáp. Xen kẽ câu hỏi thường gặp với câu trả lời chi tiết.
    - "Hỏi đáp tập trung" (qa_focused): Cấu trúc tập trung vào câu hỏi và câu trả lời ngắn gọn, đáp ứng kỳ vọng của người đọc cần tìm hiểu.
    - "Kim tự tháp ngược" (inverted_pyramid): Thông tin quan trọng nhất đặt đầu tiên, chi tiết bổ sung tiếp theo, bối cảnh mở rộng ở cuối. Tuyệt đối không mở bài kiểu dẫn dắt dài dòng.
@@ -89,7 +89,7 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
 
 - ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
   1. Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. CẤM dùng Markdown.
-  2. BẢNG BIỂU (TABLE): CẤM TUYỆT ĐỐI sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm.
+  2. BẢNG BIỂU (TABLE): Cho phép sử dụng bảng biểu khoa học/lâm sàng nhưng BẮT BUỘC phải bọc trong `<figure class="xohi-clinical-table">` và có cấu trúc bảng chuẩn HTML (`<table>`, `<caption>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`). Cấm dùng Markdown table hoặc <table> trần không có class/figure bọc ngoài. Nếu có bảng lâm sàng trong bài viết cũ, PHẢI bảo tồn nguyên vẹn cấu trúc `<figure class="xohi-clinical-table">` của nó.
   3. KIỂM SOÁT TỪ VỰNG: TUYỆT ĐỐI KHÔNG sử dụng từ "Nhau thai" hoặc "nhau thai". Bắt buộc thay thế hoàn toàn bằng từ "Placenta" trong mọi ngữ cảnh (VD: "chiết xuất Placenta", "tinh chất Placenta").
   4. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết từ đầu đến cuối được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
 """
@@ -107,7 +107,7 @@ ARTICLE_REWRITE_INSTRUCTIONS = PromptComponent(
 
 - ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
   1. Trình bày HTML chuyên nghiệp. Giữ lại toàn bộ hình ảnh (<img>) minh họa từ bài gốc. CẤM dùng Markdown.
-  2. BẢNG BIỂU (TABLE): CẤM TUYỆT ĐỐI sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm.
+  2. BẢNG BIỂU (TABLE): Cho phép sử dụng bảng biểu khoa học/lâm sàng nhưng BẮT BUỘC phải bọc trong `<figure class="xohi-clinical-table">` và có cấu trúc bảng chuẩn HTML (`<table>`, `<caption>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`). Cấm dùng Markdown table hoặc <table> trần không có class/figure bọc ngoài. Nếu có bảng lâm sàng trong bài viết cũ, PHẢI bảo tồn nguyên vẹn cấu trúc `<figure class="xohi-clinical-table">` của nó.
   3. KIỂM SOÁT TỪ VỰNG: TUYỆT ĐỐI KHÔNG sử dụng từ "Nhau thai" hoặc "nhau thai". Bắt buộc thay thế hoàn toàn bằng từ "Placenta" trong mọi ngữ cảnh (VD: "chiết xuất Placenta")."""
 )
 

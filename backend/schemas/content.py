@@ -116,6 +116,8 @@ class ContentCleanOptions(BaseModel):
     stripRedundantWrappers: bool = True
     stripEmpty: bool = True
     deduplicateContent: bool = True
+    stripLinks: bool = True
+    validateHtml5: bool = True
 
 class ContentCleanRequest(BaseModel):
     model_config = ConfigDict(strict=True)

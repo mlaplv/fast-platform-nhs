@@ -77,8 +77,9 @@ class KeyMetricsMixin:
         m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
         key = f"ai:model:fail_count:{m_slug}"
         try:
-            # Timeout and 503 are severe failures. Increment by 2 to trigger fast circuit breaker.
-            increment = 2 if reason in ["timeout", "503_unavailable"] else 1
+            # 503 = Google server down → poison model immediately (increment=3 ≥ threshold=3).
+            # Timeout = model capacity issue → increment by 2 for fast circuit breaker.
+            increment = 3 if reason == "503_unavailable" else (2 if reason == "timeout" else 1)
             fails = await self.client.incrby(key, increment)
             if fails <= 2:
                 await self.client.expire(key, 60) # 60s failure window

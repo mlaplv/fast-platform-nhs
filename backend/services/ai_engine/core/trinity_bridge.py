@@ -352,11 +352,9 @@ class TrinityBridge:
                                 rpm_fail_count += 1
                                 continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name}. Rotating key...")
-                            await self.rotator.mark_unhealthy(key, reason="503_unavailable", session_id=s_id)
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name}. Fast-breaking to next model (key rotation futile).")
                             await self.rotator.track_model_failure(m_name, reason="503_unavailable")
-                            rpm_fail_count += 1
-                            continue
+                            break  # 503 = Google server issue. Key rotation is futile. Skip to next model.
 
                     if cat == "fail_fast":
                         logger.error(f"🚫 [TrinityBridge] Fail-Fast: {m_name} | {str(e)[:100]}...")
@@ -529,11 +527,9 @@ class TrinityBridge:
                             await self.rotator.mark_model_daily(key, m_name)
                             continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name} (Stream). Rotating key...")
-                            await self.rotator.mark_unhealthy(key, reason="503_unavailable", session_id=s_id)
-                            await self.rotator.track_model_failure(m_name, reason="stream_error")
-                            rpm_fail_count += 1
-                            continue
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500) on {m_name} (Stream). Fast-breaking to next model.")
+                            await self.rotator.track_model_failure(m_name, reason="503_unavailable")
+                            break  # 503 = Google server issue. Key rotation is futile.
 
                     if cat == "auth_hard": 
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)

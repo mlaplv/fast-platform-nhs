@@ -506,6 +506,7 @@ export interface CleanOptions {
   stripEmpty?: boolean;
   deduplicateContent?: boolean;
   stripLinks?: boolean;
+  validateHtml5?: boolean;
 }
 
 export interface ComponentData {

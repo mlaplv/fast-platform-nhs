@@ -381,19 +381,21 @@ class AIService:
             # Rank 1-6: Healthy Probed Models (automatically sorted by our Trinity Model Scoring Engine)
             # Bottom: Unprobed or Failed Models as last-resort backups (Max Redundancy)
             final_winners: list[str] = []
+            degraded_backups: list[str] = []
             
             # Phase A: Top Healthy Probed Models (dynamically scored)
             for w in winners:
                 if w not in final_winners:
                     final_winners.append(w)
             
-            # Phase B: Remaining Discovered Models (Unprobed/Failed) at the very bottom
+            # Phase B: Remaining Discovered Models (Unprobed/Failed/Poisoned) pushed to the bottom
             for s in scored:
                 m_name = s["name"]
                 if m_name not in final_winners and not trinity_bridge.models_helper.is_blacklisted(m_name):
-                    final_winners.append(m_name)
+                    degraded_backups.append(m_name)
             
-            # Limit to top 6 for a deep waterfall
+            # Combine: Healthy models first, degraded/failed ones as absolute last resorts
+            final_winners.extend(degraded_backups)
             winners = final_winners[:6]
             
             if not winners:

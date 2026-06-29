@@ -239,6 +239,46 @@ DRAFT:
             if response is None:
                 raise ValueError("Hệ thống AI quá tải hoặc quá thời gian chờ.")
             report = response
+
+            # Clean report fields to remove any code blocks/tags (tôi cấm code)
+            def _clean_report_code(t: str) -> str:
+                if not t:
+                    return t
+                t = re.sub(r'```[a-zA-Z0-9]*', '', t)
+                t = re.sub(r'`([^`\n]+)`', r'\1', t)
+                t = t.replace('`', '')
+                t = re.sub(r'</?code[^>]*>', '', t, flags=re.IGNORECASE)
+                t = re.sub(r'</?pre[^>]*>', '', t, flags=re.IGNORECASE)
+                return t
+
+            if hasattr(report, 'summary') and report.summary:
+                report.summary = _clean_report_code(report.summary)
+            elif isinstance(report, dict) and report.get('summary'):
+                report['summary'] = _clean_report_code(report['summary'])
+
+            if hasattr(report, 'quick_wins') and report.quick_wins:
+                report.quick_wins = [_clean_report_code(q) for q in report.quick_wins if q]
+            elif isinstance(report, dict) and report.get('quick_wins'):
+                report['quick_wins'] = [_clean_report_code(q) for q in report['quick_wins'] if q]
+
+            if hasattr(report, 'seo_annotations') and report.seo_annotations:
+                for ann in report.seo_annotations:
+                    if hasattr(ann, 'message') and ann.message:
+                        ann.message = _clean_report_code(ann.message)
+                    if hasattr(ann, 'text') and ann.text:
+                        ann.text = _clean_report_code(ann.text)
+            elif isinstance(report, dict) and report.get('seo_annotations'):
+                for ann in report['seo_annotations']:
+                    if isinstance(ann, dict):
+                        if ann.get('message'):
+                            ann['message'] = _clean_report_code(ann['message'])
+                        if ann.get('text'):
+                            ann['text'] = _clean_report_code(ann['text'])
+                    else:
+                        if hasattr(ann, 'message') and ann.message:
+                            ann.message = _clean_report_code(ann.message)
+                        if hasattr(ann, 'text') and ann.text:
+                            ann.text = _clean_report_code(ann.text)
             
             # 🛡️ [SEO SCORE GUARD] Enforce monotonically non-decreasing score (>= previous score)
             # This protects the total score and signals from dropping during revisions
@@ -663,3 +703,53 @@ DRAFT:
         except Exception as e:
             logger.exception(f"❌ [SeoAnalyzer] Bulk fix failed: {e}")
             return BulkFixResponse(new_content=draft, logs=logs)
+
+    def clean_ai_html(self, html: str) -> str:
+        """CNS V2.2: Clean AI artifacts and restrict code & strong tags in SEO Refiner."""
+        if not html:
+            return ""
+        
+        # 1. Base clean
+        clean = super().clean_ai_html(html)
+        
+        # 2. Strip code/pre tags from draft content (tôi cấm code)
+        clean = re.sub(r'</?pre[^>]*>', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'</?code[^>]*>', '', clean, flags=re.IGNORECASE)
+        
+        # 3. Clean indiscriminate strong tags
+        # 3a. Remove strong tags wrapping stats, numbers, percentages, or quantities
+        stat_pattern = re.compile(
+            r'<strong>(\s*\d+[\d\s%.,\-–—\/]*?(?:lần|năm|tháng|ngày|mg|ml|g|kg|%|tuổi|tuần|giờ|phút)?\s*)</strong>',
+            re.IGNORECASE
+        )
+        clean = stat_pattern.sub(r'\1', clean)
+        
+        # 3b. Remove indiscriminate strong tags inside sentences (middle of sentences)
+        def replacer(match):
+            full_match = match.group(0)
+            inner_text = match.group(1)
+            
+            start_idx = match.start()
+            end_idx = match.end()
+            
+            context_before = clean[max(0, start_idx - 20):start_idx]
+            starts_block = re.search(r'<(?:li|p|div|h\d)>\s*(?:<[^>]+>\s*)*$', context_before, re.IGNORECASE)
+            
+            context_after = clean[end_idx:end_idx + 20]
+            has_colon = inner_text.strip().endswith(':') or re.match(r'^\s*[:：\-–—]', context_after)
+            
+            if starts_block and has_colon:
+                # Keeps headers like <li><strong>Ingredient:</strong> ...
+                return full_match
+                
+            # Keep strong tags if they are the entire content of a heading tag
+            if re.search(r'<h\d[^>]*>\s*$', context_before, re.IGNORECASE) and re.match(r'^\s*</h\d>', context_after, re.IGNORECASE):
+                return full_match
+                
+            # Otherwise, strip the strong wrapper
+            return inner_text
+
+        strong_pattern = re.compile(r'<strong[^>]*>(.*?)</strong>', re.IGNORECASE | re.DOTALL)
+        clean = strong_pattern.sub(replacer, clean)
+        
+        return clean

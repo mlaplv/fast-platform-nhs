@@ -463,6 +463,7 @@ body.live-edit-mode .editable-wrapper.is-disabled {
   }
 
 /* ═══ CLINICAL DATA TABLES (SGE & AI Overview Optimization - Client Side) ═══ */
+/* ═══ CLINICAL DATA TABLES (SGE & AI Overview Optimization - Client Side) ═══ */
 figure.xohi-clinical-table {
   display: block !important;
   width: 100% !important;
@@ -525,11 +526,13 @@ figure.xohi-clinical-table th {
   letter-spacing: normal !important;
   font-size: 11px !important;
   border-top: 1px solid #cbd5e1 !important; /* Acts as the clean line below caption */
-  border-bottom: 1px solid #cbd5e1 !important; /* Soft header divider */
+  border-bottom: 2px solid #cbd5e1 !important; /* Soft header divider */
   padding: 14px 16px !important;
   text-align: left !important;
   min-width: 100px !important;
   vertical-align: middle !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 
 figure.xohi-clinical-table td {
@@ -541,6 +544,8 @@ figure.xohi-clinical-table td {
   min-width: 100px !important;
   vertical-align: middle !important;
   background: transparent !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 
 /* Reset inner margins for nested editor block elements */
@@ -589,7 +594,7 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
   display: inline-block !important;
 }
 
-/* 📱 Mobile Optimization for Clinical Tables (Collapses to 1-Column Editorial Stack) */
+/* 📱 Mobile Optimization for Clinical Tables (Scrollable Premium Layout with Zero Layout Shift) */
 @media (max-width: 768px) {
   figure.xohi-clinical-table {
     margin: 2rem 0 !important;
@@ -597,12 +602,29 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
     max-width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    border: none !important;
+    border-radius: 0px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
-  
+
+  /* Premium Scrollbar */
+  figure.xohi-clinical-table::-webkit-scrollbar {
+    height: 5px !important;
+  }
+  figure.xohi-clinical-table::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+  }
+  figure.xohi-clinical-table::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
+  }
+
   figure.xohi-clinical-table table {
     display: table !important;
     width: 100% !important;
-    min-width: 100% !important;
+    min-width: 580px !important; /* Forces enough width to read comparison columns without squishing */
     border-collapse: collapse !important;
     border: none !important;
     margin: 0 !important;
@@ -612,14 +634,10 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
     display: table-row-group !important;
   }
   
-  figure.xohi-clinical-table tr:first-of-type {
-    display: table-row !important;
-  }
-  
   figure.xohi-clinical-table tr {
     display: table-row !important;
     background: transparent !important;
-    border-left: none !important;
+    border: none !important;
     padding: 0 !important;
     margin-bottom: 0 !important;
   }
@@ -632,28 +650,25 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
   figure.xohi-clinical-table td {
     font-family: var(--font-main) !important;
     display: table-cell !important;
-    padding: 8px 8px !important;
-    font-size: 12px !important;
+    padding: 10px 12px !important; /* Denser premium spacing */
+    font-size: 13px !important; /* Optimized typography scale */
     vertical-align: middle !important;
     white-space: normal !important;
     border-bottom: 1px solid #e2e8f0 !important;
-    min-width: auto !important;
+    border-left: none !important;
+    border-right: none !important;
+    min-width: 120px !important; /* Balanced layout */
   }
   
   figure.xohi-clinical-table th {
-    font-size: 10px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
-    text-transform: none !important;
-  }
-  
-  figure.xohi-clinical-table th:first-of-type,
-  figure.xohi-clinical-table td:first-of-type {
-    width: 40% !important;
-  }
-  
-  figure.xohi-clinical-table th:not(:first-of-type),
-  figure.xohi-clinical-table td:not(:first-of-type) {
-    width: 30% !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-top: 1px solid #e2e8f0 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
   }
   
   figure.xohi-clinical-table td:empty {
@@ -661,14 +676,10 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
   }
   
   figure.xohi-clinical-table td:first-of-type {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #0f172a !important;
-    background: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: 10px !important;
-    text-transform: none !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    background: #f8fafc !important; /* Subtle highlight */
+    border-right: none !important;
   }
   
   figure.xohi-clinical-table table caption,
@@ -678,13 +689,71 @@ figure.xohi-clinical-table figcaption cite.xohi-cite {
     width: 100% !important;
     max-width: 100% !important;
     font-size: 16px !important;
-    margin-bottom: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
     border-bottom: none !important;
     padding-bottom: 0 !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
   }
   
   figure.xohi-clinical-table figcaption {
     text-align: left !important;
-    margin-top: 1rem !important;
+    margin-top: 0.75rem !important;
+    font-size: 11px !important;
+    color: #64748b !important;
+  }
+}
+
+/* 🧱 GENERAL PROSE TABLE RESPONSIVENESS FALLBACK (Zero Footprint) */
+.news-article-prose table,
+.elite-prose-mobile table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 2rem 0 !important;
+  font-size: 14px !important;
+}
+
+.news-article-prose th,
+.elite-prose-mobile th {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  padding: 12px 14px !important;
+  border: 1px solid #cbd5e1 !important;
+  text-align: left !important;
+}
+
+.news-article-prose td,
+.elite-prose-mobile td {
+  padding: 12px 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.news-article-prose tr:nth-child(even) td,
+.elite-prose-mobile tr:nth-child(even) td {
+  background: #f8fafc !important;
+}
+
+@media (max-width: 768px) {
+  /* Prevent raw tables from breaking viewport on mobile */
+  .news-article-prose table,
+  .elite-prose-mobile table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    min-width: 100% !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  .news-article-prose table tr,
+  .elite-prose-mobile table tr {
+    display: table-row !important;
+  }
+  .news-article-prose table th,
+  .news-article-prose table td,
+  .elite-prose-mobile table th,
+  .elite-prose-mobile table td {
+    display: table-cell !important;
+    min-width: 130px !important;
   }
 }

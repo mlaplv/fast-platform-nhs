@@ -62,6 +62,7 @@ Trường 'signals' PHẢI chứa CHÍNH XÁC 7 mục theo thứ tự dưới đ
 6. ✍️ CÂU HOÀN CHỈNH & KHÔNG NGẮT DÒNG.
 7. 📐 HEADING: Nếu phát hiện <p> giả lập heading → tạo annotation type "missing_headings" severity "error".
 8. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức.
+9. 🚫 CẤM TUYỆT ĐỐI DÙNG CODE: Cấm sử dụng code blocks (như ```), thẻ HTML <code> hoặc <pre> trong báo cáo, annotations và các hành động sửa nhanh (quick wins). Toàn bộ nội dung báo cáo phải viết bằng văn xuôi tiếng Việt tự nhiên, ví dụ viết 'dùng thẻ H2' thay vì 'dùng <h2>'.
 
 [ĐỊNH DẠNG SUMMARY — BẮT BUỘC]
 ### 🚀 CHIẾN LƯỢC SEO 2026 — SGE/AIO/GEO READY
@@ -90,12 +91,14 @@ Nhiệm vụ: Tinh chỉnh các đoạn văn bị lỗi SEO theo chuẩn 2026 to
 5. 📐 HEADING FIX: Nếu annotation chỉ ra heading lỗi (dùng <p> thay vì <h2>/<h3>), BẮT BUỘC chuyển đổi sang thẻ heading chuẩn. Ví dụ: <p>Tiêu đề</p> → <h2>Tiêu đề</h2>.
 6. 🛡️ BẢO TỒN HTML: Giữ nguyên cấu trúc HTML gốc trừ khi annotation yêu cầu sửa heading tags. Chỉ thay đổi text bên trong hoặc nâng cấp tag type.
 7. 🚫 ZERO FOOTPRINT: Viết như chuyên gia, không để lộ dấu vết AI. Cấm buzzwords sáo rỗng.
-8. 🚫 CẤM BẢNG BIỂU: Tuyệt đối không dùng <table> hoặc Markdown table (Tiptap không hỗ trợ). Dùng <ul>/<li> hoặc đoạn văn kèm tiêu đề bôi đậm.
+8. 📊 CHO PHÉP BẢNG LÂM SÀNG: Được phép sử dụng bảng biểu khoa học/lâm sàng nhưng BẮT BUỘC phải bọc trong `<figure class="xohi-clinical-table">` và có cấu trúc bảng chuẩn HTML (`<table>`, `<caption>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`). Cấm dùng Markdown table hoặc <table> trần không có class/figure bọc ngoài. Nếu có bảng lâm sàng trong bài viết cũ, PHẢI bảo tồn nguyên vẹn cấu trúc `<figure class="xohi-clinical-table">` của nó, không được tự ý xóa hoặc thay đổi cấu trúc bảng.
 9. ✍️ CÂU HOÀN CHỈNH: Đủ chủ ngữ + vị ngữ. Cấm câu cụt, câu thiếu nghĩa.
 10. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Mỗi dòng/đoạn kếtthu bằng dấu chấm câu hợp lệ.
 11. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích. Cấm mở đầu vòng vo.
 12. 🚫 CẤM TỰ Ý GẮN LINK: Tuyệt đối KHÔNG tự ý chèn thêm bất kỳ liên kết <a>, link nội bộ, hay link ngoài nào dưới mọi hình thức. Hệ thống liên kết sẽ do công cụ chuyên biệt quản lý.
-13. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức."""
+13. [KIỂM SOÁT TỪ VỰNG]: Bắt buộc dùng từ "Placenta" thay cho "nhau thai". CẤM TUYỆT ĐỐI sử dụng từ "nhau thai" hay "Nhau thai" dưới mọi hình thức.
+14. 🚫 CẤM GẮN THẺ STRONG VÔ TỘI VẠ: Chỉ sử dụng thẻ <strong> cho tiêu đề phụ hoặc tiêu đề danh sách liệt kê ở đầu dòng (ví dụ: <li><strong>Thành phần:</strong> mô tả</li>). Tuyệt đối KHÔNG bôi đậm (<strong>) các con số, phần trăm, số liệu, hoặc các cụm từ ngẫu nhiên ở giữa câu (ví dụ: cấm dùng 'giảm nếp nhăn đến <strong>30-40%</strong>' hoặc 'giữ nước gấp <strong>1000 lần</strong>').
+15. 🚫 CẤM TUYỆT ĐỐI DÙNG CODE: Cấm sử dụng code blocks (như ```), thẻ HTML <code> hoặc <pre> trong bài viết."""
 )
 
 def register_seo(composer_instance) -> None:

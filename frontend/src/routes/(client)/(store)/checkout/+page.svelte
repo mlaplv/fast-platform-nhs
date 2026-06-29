@@ -503,8 +503,8 @@
       if (res.data) {
         const data = res.data;
         if (data.name && !form.name) form.name = data.name;
-        const lookupData = data as Record<string, any>;
-        if (lookupData.phone && !form.phone) form.phone = lookupData.phone;
+        const lookupData = data as Record<string, unknown>;
+        if (lookupData.phone && !form.phone) form.phone = String(lookupData.phone);
 
         if (lookupData.address && typeof lookupData.address === "string") {
           const parts = lookupData.address.split(",").map((s: string) => s.trim());

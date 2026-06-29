@@ -120,7 +120,7 @@ Nhiệm vụ: Tái cấu trúc các đoạn văn vi phạm bản quyền dựa t
 3. 🛡️ BẢO TỒN HTML: Giữ nguyên thẻ HTML hiện có.
 4. 🚫 KHÔNG TẠO LỖI MỚI: Tuyệt đối không viết lại giống với các đoạn văn khác trong bài (tránh lỗi internal-dedup).
 5. 📊 GIỮ ĐIỂM: Nếu tinh chỉnh quá hời hợt, điểm Uniqueness sẽ giảm. Hãy đảm bảo đoạn văn sau sửa là GỐC 100%.
-6. 🚫 CẤM DÙNG BẢNG BIỂU: Cấm tuyệt đối sử dụng mọi hình thức bảng biểu (không dùng Markdown table, không dùng HTML <table>). Trình soạn thảo Tiptap không hỗ trợ table nên việc dùng bảng sẽ làm chữ bị dính chùm. Nếu muốn so sánh hoặc trình bày thông số, hãy sử dụng danh sách gạch đầu dòng (<ul>/<li>) hoặc viết thành các đoạn văn thường kèm tiêu đề bôi đậm.
+6. 📊 CHO PHÉP BẢNG LÂM SÀNG: Được phép sử dụng bảng biểu khoa học/lâm sàng nhưng BẮT BUỘC phải bọc trong `<figure class="xohi-clinical-table">` và có cấu trúc bảng chuẩn HTML (`<table>`, `<caption>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`). Cấm dùng Markdown table hoặc <table> trần không có class/figure bọc ngoài. Nếu có bảng lâm sàng trong bài viết cũ, PHẢI bảo tồn nguyên vẹn cấu trúc `<figure class="xohi-clinical-table">` của nó, không được tự ý xóa hoặc thay đổi cấu trúc bảng.
 7. ✍️ CÂU HOÀN CHỈNH: Mỗi câu BẮT BUỘC phải có đầy đủ chủ ngữ và vị ngữ, tạo thành một ý hoàn chỉnh về mặt ngữ nghĩa. CẤM viết câu cụt, câu thiếu thành phần chính hoặc câu vô nghĩa.
 8. 🚫 CẤM NGẮT CÂU GIỮA CHỪNG: Tuyệt đối không được xuống dòng hoặc ngắt đoạn khi chưa viết hết câu. Mỗi dòng/đoạn phải kết thúc bằng dấu chấm câu hợp lệ.
 9. ✂️ NGẮN GỌN TỪ ĐẦU: Viết cô đọng, súc tích ngay từ câu đầu tiên. CẤM mở đầu dài dòng, vòng vo. Mỗi câu phải mang giá trị thông tin thực sự.

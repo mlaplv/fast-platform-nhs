@@ -248,7 +248,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                     system_prompt=system_prompt,
                     force=force,
                     role="brain",
-                    timeout=180.0,
+                    timeout=90.0,
+                    per_model_timeout=30.0,
                     safety_none=True,
                     # CNS V91.2: CRITICAL FIX — key was 'max_output_tokens' (WRONG/ignored), must be 'max_tokens'
                     # PydanticAI ModelSettings TypedDict only has 'max_tokens' field, others are silently ignored

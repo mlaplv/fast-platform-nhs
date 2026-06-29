@@ -58,6 +58,10 @@
         <input type="checkbox" bind:checked={cleanOptions.stripLinks} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Remove All Links" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors text-rose-400">Strip All Hyperlinks</span>
       </label>
+      <label class="flex items-center gap-3 cursor-pointer group">
+        <input type="checkbox" bind:checked={cleanOptions.validateHtml5} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Validate HTML5 Structure" />
+        <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors text-emerald-400">Check HTML5 Compliance</span>
+      </label>
     </div>
 
     <button 
