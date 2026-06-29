@@ -142,9 +142,9 @@ class ArticleService:
             except Exception as ce:
                 logger.warning(f"Failed to fetch news tags from Redis: {ce}")
 
-            tag_upper = tag.upper()
-            normalized_tags = {k.upper(): v for k, v in TAG_KEYWORDS.items()}
-            kws = normalized_tags.get(tag_upper, [tag])
+            tag_upper: str = tag.upper()
+            normalized_tags: dict[str, list[str]] = {k.upper(): v for k, v in TAG_KEYWORDS.items()}
+            kws: list[str] = normalized_tags.get(tag_upper, [tag])
             if not kws:
                 kws = [tag]
             tag_conds = []
