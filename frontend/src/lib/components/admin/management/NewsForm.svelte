@@ -15,6 +15,7 @@
   import X from "@lucide/svelte/icons/x";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
+  import AiPreviewModal from "../../media/AiPreviewModal.svelte";
   import ProductPickerModal from "./ProductPickerModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
@@ -87,6 +88,7 @@
   }>();
 
   let showMediaModal = $state(false);
+  let showAiImageModal = $state(false);
   let selectingOgImage = $state(false);
   let selectedAvatarUrl = $state<string | null>(null);
   let selectedAssetIndex = $state(0);
@@ -658,14 +660,20 @@
                   class="w-full h-full object-cover opacity-90"
                   onerror={() => featuredImageBroken = true}
                 />
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3">
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2">
                   <button
                     onclick={() => showMediaModal = true}
-                    class="px-4 py-1.5 bg-white text-black text-[9px] font-black tracking-wider rounded-lg"
+                    class="px-3 py-1.5 bg-white text-black text-[9px] font-black tracking-wider rounded-lg hover:bg-zinc-200 transition-all cursor-pointer"
                   >Thay đổi</button>
                   <button
+                    onclick={() => showAiImageModal = true}
+                    class="px-3 py-1.5 bg-cyan-500 text-black text-[9px] font-black tracking-wider rounded-lg hover:bg-cyan-400 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles size={10} /> AI
+                  </button>
+                  <button
                     onclick={() => formFeaturedImage = null}
-                    class="p-1.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white"
+                    class="p-1.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
                   ><Trash2 size={14} /></button>
                 </div>
               {/if}
@@ -674,18 +682,27 @@
               </div>
             </div>
           {:else}
-            <button
-              onclick={() => showMediaModal = true}
-              class="w-full aspect-[16/10] rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-cyan-500/30 flex flex-col items-center justify-center gap-2 group"
-            >
-              <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400/50 group-hover:text-cyan-400">
-                <ImagePlus size={18} />
-              </div>
-              <div class="flex flex-col items-center gap-0.5">
-                <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-cyan-400">Chọn ảnh</span>
-                <span class="text-[8px] text-white/10 italic">Recommend: 16:9</span>
-              </div>
-            </button>
+            <div class="w-full aspect-[16/10] rounded-xl border border-dashed border-white/10 bg-white/[0.01] flex items-center justify-center gap-4 p-4">
+              <button
+                onclick={() => showMediaModal = true}
+                class="flex flex-col items-center justify-center p-3 bg-white/5 border border-white/10 hover:border-cyan-500/30 rounded-xl transition-all group w-24 h-24 cursor-pointer"
+              >
+                <div class="w-7 h-7 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400/50 group-hover:text-cyan-400 mb-1.5">
+                  <ImagePlus size={15} />
+                </div>
+                <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-cyan-400 font-sans">Chọn ảnh</span>
+              </button>
+
+              <button
+                onclick={() => showAiImageModal = true}
+                class="flex flex-col items-center justify-center p-3 bg-white/5 border border-white/10 hover:border-purple-500/30 rounded-xl transition-all group w-24 h-24 cursor-pointer"
+              >
+                <div class="w-7 h-7 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400/50 group-hover:text-purple-400 mb-1.5">
+                  <Sparkles size={15} class="animate-pulse" />
+                </div>
+                <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-purple-400 font-sans">Sinh ảnh AI</span>
+              </button>
+            </div>
           {/if}
         </div>
       </div>
@@ -1042,6 +1059,16 @@
     }
     showMediaModal = false; 
     selectingOgImage = false;
+  }}
+/>
+
+<AiPreviewModal
+  bind:show={showAiImageModal}
+  initialPrompt={formTitle || ""}
+  campaignId={editingId || null}
+  onSelect={(url) => {
+    formFeaturedImage = url;
+    featuredImageBroken = false;
   }}
 />
 

@@ -525,19 +525,66 @@ class MediaStore {
         }
     }
 
+    async generatePreview(prompt: string, aspectRatio: string = "16:9", previousPreviewPath: string | null = null): Promise<{ file_path: string, prompt: string } | null> {
+        try {
+            this.isLoading = true;
+            const response = await apiClient.post<{ status: string, data: { file_path: string, prompt: string } }>('/api/v1/media/generate-preview', {
+                prompt,
+                aspect_ratio: aspectRatio,
+                previous_preview_path: previousPreviewPath
+            });
+            if (response.status === 'success' && response.data) {
+                return response.data;
+            }
+            return null;
+        } catch (error: unknown) {
+            console.error('[MediaStore] generatePreview failed:', (error as Error).message);
+            throw error;
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async savePreview(filePath: string, prompt: string, campaignId: string | null = null): Promise<MediaAsset | null> {
+        try {
+            this.isLoading = true;
+            const cleanCid = sanitizeId(campaignId || this.currentCampaignId);
+            const response = await apiClient.post<{ status: string, data: MediaAsset }>('/api/v1/media/save-preview', {
+                file_path: filePath,
+                prompt,
+                campaign_id: cleanCid
+            });
+            if (response.status === 'success' && response.data) {
+                const newAsset: MediaAsset = {
+                    ...response.data,
+                    created_at: response.data.created_at || new Date().toISOString(),
+                    media_metadata: response.data.media_metadata || {}
+                };
+                this.assets = [newAsset, ...this.assets];
+                this.total++;
+                await this.loadStats();
+                return newAsset;
+            }
+            return null;
+        } catch (error: unknown) {
+            console.error('[MediaStore] savePreview failed:', (error as Error).message);
+            throw error;
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
     async quickEdit(assetId: string, action: string, params: Record<string, unknown> | null = null) {
         try {
             this.isLoading = true;
             const response = await apiClient.post<{ status: string, data: Partial<MediaAsset> }>(`/api/v1/media/${assetId}/edit`, { action, params });
             if (response.status === 'success' && response.data) {
-                // R105: Surgical state update
                 const index = this.assets.findIndex(a => a.id === assetId);
                 if (index !== -1) {
                     const updatedAsset = response.data;
                     this.assets[index] = {
                         ...this.assets[index],
                         ...updatedAsset,
-                        // Thêm timestamp để bypass browser cache của ảnh gốc/thumb
                         _updatedAt: Date.now()
                     } as MediaAsset;
                 }
@@ -551,3 +598,4 @@ class MediaStore {
 }
 
 export const mediaStore = new MediaStore();
+

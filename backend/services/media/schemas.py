@@ -198,4 +198,29 @@ class CommandAction(TypedDict):
     args: Optional[str]
     metadata: Dict[str, object]
     consumed: Optional[bool]
-    
+
+
+class GeminiPreviewRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    prompt: str
+    aspect_ratio: Optional[str] = "16:9"
+    previous_preview_path: Optional[str] = None
+
+
+class GeminiPreviewResponseData(BaseModel):
+    model_config = ConfigDict(strict=True)
+    file_path: str
+    prompt: str
+
+
+class GeminiPreviewResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    status: str = "success"
+    data: GeminiPreviewResponseData
+
+
+class GeminiSaveRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    file_path: str
+    prompt: str
+    campaign_id: Optional[str] = None

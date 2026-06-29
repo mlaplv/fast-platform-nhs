@@ -120,3 +120,37 @@ class MediaController(Controller):
     async def link_media_to_post(self, request: Request, media_repo: MediaRegistryRepository, data: MediaLinkToPostRequest) -> GenericResponse:
         c = await media_service.link_to_post(repo=media_repo, asset_ids=data.asset_ids, post_id=data.post_id, post_type=data.post_type, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success", message=f"Linked {c} assets")
+
+    @post("/generate-preview", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
+    async def generate_preview(self, request: Request, media_repo: MediaRegistryRepository, data: GeminiPreviewRequest) -> GeminiPreviewResponse:
+        url = await media_service.generate_preview_image(
+            repo=media_repo,
+            prompt=data.prompt,
+            aspect_ratio=data.aspect_ratio or "16:9",
+            previous_preview_path=data.previous_preview_path
+        )
+        if not url:
+            raise HTTPException(status_code=500, detail="AI preview image generation failed")
+        if url == "cleanup_success":
+            return GeminiPreviewResponse(
+                status="success",
+                data=GeminiPreviewResponseData(file_path="", prompt="")
+            )
+        return GeminiPreviewResponse(
+            status="success",
+            data=GeminiPreviewResponseData(file_path=url, prompt=data.prompt)
+        )
+
+    @post("/save-preview", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
+    async def save_preview(self, request: Request, media_repo: MediaRegistryRepository, data: GeminiSaveRequest) -> MediaDetailResponse:
+        asset = await media_service.save_preview_image(
+            repo=media_repo,
+            file_path=data.file_path,
+            prompt=data.prompt,
+            campaign_id=data.campaign_id,
+            owner_id=request.state.get("user", {}).get("id")
+        )
+        if not asset:
+            raise HTTPException(status_code=500, detail="Failed to save AI preview image to Media Vault")
+        return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
+

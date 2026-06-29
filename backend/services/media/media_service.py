@@ -279,4 +279,230 @@ class MediaService(
             await session.rollback()
             return 0
 
+    async def generate_preview_image(
+        self,
+        repo: MediaRegistryRepository,
+        prompt: str,
+        aspect_ratio: str = "16:9",
+        previous_preview_path: Optional[str] = None
+    ) -> Optional[str]:
+        """Tạo ảnh nháp WebP bằng AI sử dụng Google Gemini Nano Banana model thông qua Key Rotator.
+        
+        Không tạo bản ghi trong DB, chỉ lưu vật lý trên storage và tự động dọn dẹp ảnh nháp cũ.
+        """
+        try:
+            # 1. Dọn dẹp ảnh nháp cũ nếu được truyền vào
+            if previous_preview_path:
+                clean_path = previous_preview_path.strip().lstrip("/")
+                if clean_path.startswith("uploads/") and not ".." in clean_path:
+                    logger.info(f"[MediaService] Cleaning up old preview: {clean_path}")
+                    await storage.delete(clean_path)
+
+            if not prompt or not prompt.strip():
+                return "cleanup_success"
+
+            from backend.services.ai_engine.core.key_rotator import key_rotator
+            from google import genai
+            from google.genai import types
+            import asyncio
+            import uuid
+
+            # 2. Map aspect ratio
+            ratio_map = {
+                "1:1": "1:1",
+                "16:9": "16:9",
+                "4:3": "4:3",
+                "3:2": "3:2",
+            }
+            api_ratio = ratio_map.get(aspect_ratio, "16:9")
+
+            logger.info(f"[MediaService] Generating AI Preview: prompt='{prompt}', aspect={api_ratio}")
+
+            # Danh sách các mô hình sinh ảnh hỗ trợ xoay vòng / fallback (Thứ tự ưu tiên từ cao xuống thấp)
+            image_models = [
+                "imagen-3.0-generate-002",  # Bản tiêu chuẩn chất lượng cao
+                "imagen-3.0-fast-002"       # Bản tối ưu tốc độ, độ trễ thấp
+            ]
+
+            response = None
+            last_error = None
+            used_model = None
+
+            for model_name in image_models:
+                try:
+                    # Lấy API key tương ứng cho model cụ thể này từ rotator
+                    api_key = await key_rotator.get_key(model_name=model_name)
+                    if not api_key:
+                        logger.warning(f"[MediaService] No API key available for model: {model_name}")
+                        continue
+
+                    client = genai.Client(api_key=api_key)
+                    logger.info(f"[MediaService] Attempting to generate AI image using model='{model_name}'")
+
+                    # Gọi Gemini API trong thread executor
+                    def call_gemini():
+                        return client.models.generate_images(
+                            model=model_name,
+                            prompt=prompt,
+                            config=types.GenerateImagesConfig(
+                                number_of_images=1,
+                                output_mime_type="image/jpeg",
+                                aspect_ratio=api_ratio,
+                            )
+                        )
+
+                    res = await asyncio.to_thread(call_gemini)
+                    if res and res.generated_images:
+                        response = res
+                        used_model = model_name
+                        break
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"[MediaService] Image generation failed with model '{model_name}': {e}. Trying fallback...")
+
+            if not response:
+                raise ValueError(f"Tất cả các mô hình sinh ảnh đều thất bại. Lỗi cuối cùng: {last_error}")
+
+            logger.info(f"[MediaService] Successfully generated image using model: {used_model}")
+            image_bytes = response.generated_images[0].image.image_bytes
+
+            # 4. Xử lý cắt cúp & resize an toàn chống OOM
+            def process_bytes():
+                import gc
+                from PIL import Image
+                from io import BytesIO
+                
+                if len(image_bytes) > 5 * 1024 * 1024:
+                    raise ValueError("Tệp ảnh từ API quá lớn, từ chối xử lý.")
+                
+                with Image.open(BytesIO(image_bytes)) as img:
+                    target_width, target_height = 750, 400
+                    target_ratio = target_width / target_height
+                    current_ratio = img.width / img.height
+                    
+                    if current_ratio > target_ratio:
+                        new_height = target_height
+                        new_width = int(img.width * (target_height / img.height))
+                        resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        left = (new_width - target_width) // 2
+                        cropped_img = resized_img.crop((left, 0, left + target_width, target_height))
+                    else:
+                        new_width = target_width
+                        new_height = int(img.height * (target_width / img.width))
+                        resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        top = (new_height - target_height) // 2
+                        cropped_img = resized_img.crop((0, top, target_width, top + target_height))
+                    
+                    processed = cropped_img.convert('RGB')
+                    output = BytesIO()
+                    processed.save(output, format="WEBP", quality=90, optimize=True)
+                    webp_data = output.getvalue()
+                    output.close()
+                    
+                    if resized_img is not img:
+                        resized_img.close()
+                    if cropped_img is not processed:
+                        cropped_img.close()
+                    processed.close()
+                    
+                    gc.collect()
+                    return webp_data
+
+            processed_webp_bytes = await asyncio.to_thread(process_bytes)
+
+            # 5. Lưu vật lý lên storage
+            asset_id = str(uuid.uuid4())
+            folder = datetime.now().strftime("%Y/%m")
+            remote_path = f"uploads/{folder}/{asset_id}.webp"
+            temp_path = f"/tmp/{asset_id}.webp"
+
+            with open(temp_path, "wb") as f:
+                f.write(processed_webp_bytes)
+
+            try:
+                final_url = await storage.upload(temp_path, remote_path)
+                return final_url
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+        except Exception as e:
+            logger.error(f"[MediaService] generate_preview_image failed: {e}", exc_info=True)
+            return None
+
+    async def save_preview_image(
+        self,
+        repo: MediaRegistryRepository,
+        file_path: str,
+        prompt: str,
+        campaign_id: Optional[str] = None,
+        owner_id: Optional[str] = None
+    ) -> Optional[MediaRegistry]:
+        """Đăng ký tệp ảnh WebP nháp sẵn có vào bảng MediaRegistry để quản lý trong FileManager."""
+        try:
+            import uuid
+            # 1. Kiểm tra file tồn tại trên storage
+            clean_path = file_path.strip().lstrip("/")
+            file_name = clean_path.split("/")[-1]
+            
+            exists_on_storage = await storage.exists(clean_path)
+            if not exists_on_storage:
+                raise FileNotFoundError(f"Không tìm thấy file nháp tại: {clean_path}")
+
+            # Đọc kích thước file từ disk (nếu là local storage)
+            file_size = 0
+            if os.getenv("STORAGE_PROVIDER", "local").lower() == "local":
+                full_path = os.path.join("frontend/static", clean_path)
+                if os.path.exists(full_path):
+                    file_size = os.path.getsize(full_path)
+            
+            if file_size == 0:
+                file_size = 45000  # Fallback size
+
+            asset_id = file_name.split(".")[0]
+            if len(asset_id) != 36 or "-" not in asset_id:
+                asset_id = str(uuid.uuid4())
+
+            # Chuẩn hóa campaign context
+            v_cid, seo_slug = await self._resolve_campaign_context(repo, campaign_id)
+
+            # Cấu hình metadata chuẩn
+            m_meta = {
+                "status": "ready",
+                "focal_point": {"x": 0.5, "y": 0.5},
+                "original_source": "Gemini Nano Banana",
+                "ai_description": prompt
+            }
+
+            # 2. Tạo đối tượng MediaRegistry
+            asset = MediaRegistry(
+                id=asset_id,
+                filename=file_name,
+                file_path=file_path,
+                file_size=file_size,
+                mime_type="image/webp",
+                dimensions="750x400",
+                campaign_id=v_cid,
+                owner_id=owner_id,
+                provider=str(os.getenv("STORAGE_PROVIDER", "local")),
+                media_metadata=m_meta,
+                is_public=True,
+                alt_text=prompt
+            )
+
+            repo.session.add(asset)
+            await repo.session.commit()
+
+            # 3. Phát sự kiện EventBus cho SSE đồng bộ thời gian thực
+            from backend.services.event_bus import event_bus
+            await event_bus.emit("MEDIA_UPLOADED", {"id": asset_id, "file_path": file_path, "campaign_id": v_cid})
+
+            logger.info(f"[MediaService] Successfully registered preview in MediaRegistry: {file_path}")
+            return asset
+
+        except Exception as e:
+            logger.error(f"[MediaService] save_preview_image failed: {e}", exc_info=True)
+            return None
+
 media_service = MediaService()
+
