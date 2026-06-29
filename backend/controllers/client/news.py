@@ -72,6 +72,8 @@ class PublicNewsController(Controller):
         """PUBLIC: Get a single news article by ID."""
         try:
             article = await article_service.get_article(db_session, article_id)
+            if request.method == "GET":
+                await article_service.increment_views(db_session, article.id)
             if article.content:
                 from backend.services.xohi_memory import xohi_memory
                 cache_key = f"news:content:{article.id}"
@@ -133,6 +135,8 @@ class PublicNewsController(Controller):
         """PUBLIC: Get a single news article by slug."""
         try:
             article = await article_service.get_article_by_slug(db_session, slug)
+            if request.method == "GET":
+                await article_service.increment_views(db_session, article.id)
             if article.content:
                 from backend.services.xohi_memory import xohi_memory
                 cache_key = f"news:content:{article.id}"

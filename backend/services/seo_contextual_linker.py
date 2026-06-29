@@ -1000,6 +1000,22 @@ class SeoContextualLinker:
                 
         return entity_type
 
+    @staticmethod
+    def _is_inside_anchor(content: str, index: int) -> bool:
+        prefix = content[:index].lower()
+        last_a = prefix.rfind('<a')
+        if last_a == -1:
+            return False
+        
+        # Check boundary
+        if last_a + 2 < len(prefix):
+            next_char = prefix[last_a + 2]
+            if next_char not in (' ', '\t', '\n', '\r', '>'):
+                return False
+                
+        last_close_a = prefix.rfind('</a>')
+        return last_a > last_close_a
+
     # ─── HTML-Tolerant Link Injection ───────────────────────────────────────
 
     @staticmethod
@@ -1016,10 +1032,25 @@ class SeoContextualLinker:
         Slow-path: regex tolerating inline HTML tags between words.
         Returns (new_content, success).
         """
+        # ── Goal 2: Validate non-empty anchor text and target URL ──
+        if not anchor_text or not anchor_text.strip() or not target_url or not target_url.strip():
+            return content, False
+
+        # Prevent duplicate injection: check if this target URL is already linked in the content
+        url_escaped = re.escape(target_url.strip())
+        if re.search(rf'href=["\']{url_escaped}["\']', content, re.IGNORECASE):
+            return content, False
+
         a_tag = f'<a href="{target_url}" class="sge-contextual-link" data-sge-source="ai"{extra_attrs}>{anchor_text}</a>'
 
         # ── Fast path ────────────────────────────────────────────────────
         if original_sentence in content:
+            sentence_index = content.find(original_sentence)
+            anchor_in_sentence_index = original_sentence.find(anchor_text)
+            if anchor_in_sentence_index != -1:
+                anchor_global_index = sentence_index + anchor_in_sentence_index
+                if SeoContextualLinker._is_inside_anchor(content, anchor_global_index):
+                    return content, False
             new_sentence = original_sentence.replace(anchor_text, a_tag, 1)
             return content.replace(original_sentence, new_sentence, 1), True
 
@@ -1042,6 +1073,7 @@ class SeoContextualLinker:
 
         if sent_match:
             matched_html = sent_match.group(0)
+            sentence_global_start = sent_match.start()
 
             # Find anchor_text within the matched region (also tag-tolerant)
             anchor_words = anchor_text.split()
@@ -1057,8 +1089,15 @@ class SeoContextualLinker:
                 anchor_match = re.search(flex_anchor, matched_html)
 
             if anchor_match:
+                anchor_start = anchor_match.start()
+                anchor_end = anchor_match.end()
+                anchor_global_start = sentence_global_start + anchor_start
+
+                if SeoContextualLinker._is_inside_anchor(content, anchor_global_start):
+                    return content, False
+
                 # Replace matched anchor region with clean <a> tag
-                new_html = matched_html[:anchor_match.start()] + a_tag + matched_html[anchor_match.end():]
+                new_html = matched_html[:anchor_start] + a_tag + matched_html[anchor_end:]
                 return content.replace(matched_html, new_html, 1), True
 
         # ── Final fallback: tìm anchor_text trực tiếp trong content (bỏ qua sentence) ──
@@ -1069,6 +1108,11 @@ class SeoContextualLinker:
             direct_match = re.search(direct_anchor_pat, content)
             if direct_match:
                 matched_anchor = direct_match.group(0)
+                anchor_global_start = direct_match.start()
+
+                if SeoContextualLinker._is_inside_anchor(content, anchor_global_start):
+                    return content, False
+
                 new_content = content.replace(matched_anchor, a_tag, 1)
                 logger.info("[ContextualLinker] Used direct anchor fallback for: %s", anchor_text)
                 return new_content, True

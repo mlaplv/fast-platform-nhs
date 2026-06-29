@@ -304,4 +304,68 @@ async def test_seo_contextual_linker_setting_auto_linking_enabled():
     assert config_true.auto_linking_enabled is True
 
 
+def test_seo_contextual_linker_injection_safeguards():
+    # 1. Parameter validation
+    content = "<p>Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.</p>"
+    
+    # Empty anchor
+    res_content, success = seo_contextual_linker._inject_link_into_html(
+        content,
+        "Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.",
+        "",
+        "/target-url",
+        ""
+    )
+    assert success is False
+    assert res_content == content
+
+    # Empty target URL
+    res_content, success = seo_contextual_linker._inject_link_into_html(
+        content,
+        "Sữa rửa mặt là sản phẩm làm sạch da hàng ngày.",
+        "Sữa rửa mặt",
+        "  ",
+        ""
+    )
+    assert success is False
+    assert res_content == content
+
+    # 2. Duplicate target prevention
+    already_linked_content = '<p>Sử dụng <a href="/target-url">Sữa rửa mặt</a> mỗi ngày.</p>'
+    res_content, success = seo_contextual_linker._inject_link_into_html(
+        already_linked_content,
+        "Sử dụng Sữa rửa mặt mỗi ngày.",
+        "Sữa rửa mặt",
+        "/target-url",
+        ""
+    )
+    assert success is False
+    assert res_content == already_linked_content
+
+    # 3. Nested anchor prevention (Fast path)
+    already_linked_content_other = '<p>Sử dụng <a href="/other-url">Sữa rửa mặt</a> mỗi ngày.</p>'
+    res_content, success = seo_contextual_linker._inject_link_into_html(
+        already_linked_content_other,
+        "Sử dụng Sữa rửa mặt mỗi ngày.",
+        "Sữa rửa mặt",
+        "/target-url", # Different URL, but anchor is inside an existing <a> tag
+        ""
+    )
+    assert success is False
+    assert res_content == already_linked_content_other
+
+    # 4. Nested anchor prevention (Slow path)
+    slow_path_content = '<p>Sử dụng <span><a href="/other-url">Sữa rửa mặt</a></span> mỗi ngày.</p>'
+    res_content, success = seo_contextual_linker._inject_link_into_html(
+        slow_path_content,
+        "Sử dụng Sữa rửa mặt mỗi ngày.",
+        "Sữa rửa mặt",
+        "/target-url",
+        ""
+    )
+    assert success is False
+    assert res_content == slow_path_content
+
+
+
 

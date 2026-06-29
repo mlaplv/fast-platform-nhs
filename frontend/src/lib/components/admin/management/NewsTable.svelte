@@ -12,6 +12,7 @@
   const nanobot = useNanobot();
   import type { Article } from "$lib/types";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { formatDate } from "$lib/state/utils";
 
   let {
     articles,
@@ -33,16 +34,16 @@
     onSchedule: (a: Article) => void;
   }>();
 
-  const isAllSelected = $derived(articles.length > 0 && articles.every(a => selectedIds.has(a.id)));
+  const isAllSelected = $derived(articles.length > 0 && articles.every((a: Article) => selectedIds.has(a.id)));
 
   $effect(() => {
     const action = nanobot.commandAction;
     if (action?.entity === "news" || action?.entity === "article") {
       if (action.verb === "edit" && action.args) {
         const target = articles.find(
-          (a) =>
+          (a: Article) =>
             a.id === action.args ||
-            a.title.toLowerCase().includes(action.args.toLowerCase())
+            a.title.toLowerCase().includes(action.args!.toLowerCase())
         );
         if (target && nanobot.consumeCommand("edit", action.entity)) {
           onEdit(target);
@@ -50,9 +51,9 @@
       }
       if (action.verb === "delete" && action.args) {
         const target = articles.find(
-          (a) =>
+          (a: Article) =>
             a.id === action.args ||
-            a.title.toLowerCase().includes(action.args.toLowerCase())
+            a.title.toLowerCase().includes(action.args!.toLowerCase())
         );
         if (target && nanobot.consumeCommand("delete", action.entity)) {
           onDelete(target.id);
@@ -63,7 +64,7 @@
 </script>
 
 <!-- News Table Header -->
-<div class="hidden md:grid grid-cols-[40px_minmax(300px,2fr)_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-cyan-500/20 tracking-widest text-[9px] font-extrabold font-mono text-cyan-400 shadow-2xl"
+<div class="hidden md:grid grid-cols-[40px_minmax(280px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-cyan-500/20 tracking-widest text-[9px] font-extrabold font-mono text-cyan-400 shadow-2xl"
      style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}; backdrop-filter: blur(16px);">
   <div class="text-center flex justify-center items-center">
     <button
@@ -77,6 +78,7 @@
   <div>Tiêu đề bài viết</div>
   <div>Chuyên mục</div>
   <div>Tác giả</div>
+  <div>Ngày tạo</div>
   <div>Trạng thái</div>
   <div class="text-right">Hành động</div>
 </div>
@@ -85,7 +87,7 @@
   <div class="flex flex-col gap-2 md:gap-0 px-2 sm:px-4 md:px-0">
     {#each articles as article (article.id)}
       <div
-        class="group relative flex flex-col md:grid md:grid-cols-[40px_minmax(300px,2fr)_1fr_1fr_1fr_100px] md:gap-4 md:items-center bg-[#0a0a0a] md:bg-transparent border border-white/5 md:border-none p-3 sm:p-4 rounded-xl md:rounded-none hover:bg-white/[0.03] transition-colors duration-300"
+        class="group relative flex flex-col md:grid md:grid-cols-[40px_minmax(280px,2fr)_1fr_1fr_1fr_1fr_100px] md:gap-4 md:items-center bg-[#0a0a0a] md:bg-transparent border border-white/5 md:border-none p-3 sm:p-4 rounded-xl md:rounded-none hover:bg-white/[0.03] transition-colors duration-300"
       >
         <!-- Selection -->
         <div class="absolute top-2 left-2 md:relative md:top-auto md:left-auto md:flex md:justify-center"
@@ -148,6 +150,8 @@
 
               <span class="md:hidden text-gray-800 ml-1">/</span>
               <span class="md:hidden text-gray-600 font-bold ml-1">{article.category || "Chung"}</span>
+              <span class="md:hidden text-gray-800 ml-1">/</span>
+              <span class="md:hidden text-gray-500 font-mono ml-1">{formatDate(article.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -165,6 +169,11 @@
           <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-600 mt-0.5">
             <Eye size={10} /> {(article.views || 0).toLocaleString()}
           </div>
+        </div>
+
+        <!-- Created Date -->
+        <div class="hidden md:block text-[10px] font-mono text-gray-500 tracking-widest group-hover:text-gray-300 transition-colors">
+          {formatDate(article.createdAt)}
         </div>
 
         <!-- Status -->

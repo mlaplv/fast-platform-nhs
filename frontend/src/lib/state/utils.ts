@@ -214,6 +214,20 @@ interface ContextualLinkInfo {
   link_target?: string;
 }
 
+function isInsideAnchor(content: string, index: number): boolean {
+  const prefix = content.slice(0, index).toLowerCase();
+  const lastA = prefix.lastIndexOf('<a');
+  if (lastA === -1) return false;
+  
+  const nextChar = prefix[lastA + 2];
+  if (nextChar && !/\s|>/.test(nextChar)) {
+    return false;
+  }
+
+  const lastCloseA = prefix.lastIndexOf('</a>');
+  return lastA > lastCloseA;
+}
+
 /**
  * JIT Client-Side link injector.
  * Replaces approved original sentences with anchor-wrapped HTML.
@@ -222,10 +236,24 @@ export function injectContextualLinks(htmlContent: string | null | undefined, li
   let content = htmlContent || "";
   if (!content || !links || links.length === 0) return content;
 
+  const escapeRegex = (str: string) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+
   // Sort links by original_sentence length DESC to prevent nested substring conflicts
   const sortedLinks = [...links].sort((a, b) => b.original_sentence.length - a.original_sentence.length);
 
   for (const link of sortedLinks) {
+    // ── Goal 2: Validate non-empty anchor text and target URL ──
+    if (!link.anchor_text || !link.anchor_text.trim() || !link.target_url || !link.target_url.trim()) {
+      continue;
+    }
+
+    // Prevent duplicate injection: check if this target URL is already linked in the content
+    const urlEscaped = escapeRegex(link.target_url.trim());
+    const hrefRegex = new RegExp(`href=["']${urlEscaped}["']`, 'i');
+    if (hrefRegex.test(content)) {
+      continue;
+    }
+
     const attrs: string[] = [];
     if (link.link_rel && link.link_rel.trim().toLowerCase() !== "dofollow") {
       attrs.push(`rel="${link.link_rel.trim()}"`);
@@ -242,6 +270,14 @@ export function injectContextualLinks(htmlContent: string | null | undefined, li
 
     // ── Fast path ──
     if (content.includes(link.original_sentence)) {
+      const sentenceIndex = content.indexOf(link.original_sentence);
+      const anchorInSentenceIndex = link.original_sentence.indexOf(link.anchor_text);
+      if (anchorInSentenceIndex !== -1) {
+        const anchorGlobalIndex = sentenceIndex + anchorInSentenceIndex;
+        if (isInsideAnchor(content, anchorGlobalIndex)) {
+          continue;
+        }
+      }
       const newSentence = link.original_sentence.replace(link.anchor_text, aTag);
       content = content.replace(link.original_sentence, newSentence);
       continue;
@@ -249,7 +285,6 @@ export function injectContextualLinks(htmlContent: string | null | undefined, li
 
     // ── Slow path: regex tolerant of inline HTML tags ──
     const SEP = '(?:<[^>]*>|\\s)+';
-    const escapeRegex = (str: string) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
     
     const sentWords = link.original_sentence.trim().split(/\s+/).filter(Boolean);
     if (sentWords.length === 0) continue;
@@ -266,6 +301,7 @@ export function injectContextualLinks(htmlContent: string | null | undefined, li
     if (!sentMatch) continue;
 
     const matchedHtml = sentMatch[0];
+    const sentenceGlobalStart = sentMatch.index ?? 0;
 
     const anchorWords = link.anchor_text.trim().split(/\s+/).filter(Boolean);
     if (anchorWords.length === 0) continue;
@@ -283,6 +319,11 @@ export function injectContextualLinks(htmlContent: string | null | undefined, li
 
     const anchorStart = anchorMatch.index ?? 0;
     const anchorEnd = anchorStart + anchorMatch[0].length;
+    const anchorGlobalStart = sentenceGlobalStart + anchorStart;
+
+    if (isInsideAnchor(content, anchorGlobalStart)) {
+      continue;
+    }
 
     const newHtml = matchedHtml.slice(0, anchorStart) + aTag + matchedHtml.slice(anchorEnd);
     content = content.replace(matchedHtml, newHtml);

@@ -18,7 +18,7 @@ import backend.services.xohi.creative_studio.operatives.plagiarism_cop
 import backend.services.xohi.creative_studio.operatives.seo_analyzer
 import backend.services.xohi.creative_studio.operatives.ai_inspector
 import backend.services.xohi.creative_studio.operatives.content_enricher
-from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job, seo_nightly_reconciliation_job, seo_match_entity_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job, generate_article_embed_and_kg_job
+from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, expire_loyalty_points_job, seo_nightly_reconciliation_job, seo_match_entity_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job, generate_article_embed_and_kg_job, flush_article_views_job
 logger = logging.getLogger("arq.worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
@@ -438,7 +438,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job, generate_article_embed_and_kg_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic, helen_self_learning_job, generate_review_kg_job, cleanup_old_notifications, seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job, seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job, generate_article_embed_and_kg_job, flush_article_views_job]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -462,6 +462,7 @@ class WorkerHighSettings(WorkerSettings):
         seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job,
         seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job,
         cleanup_old_tasks, generate_article_embed_and_kg_job,
+        flush_article_views_job,
     ]
     redis_settings = get_redis_settings()
     max_jobs = 15
@@ -476,6 +477,8 @@ class WorkerHighSettings(WorkerSettings):
         cron(cleanup_old_tasks, hour=3, minute=0),
         # Dọn dẹp notifications cũ lúc 4:00 AM mỗi ngày
         cron(cleanup_old_notifications, hour=4, minute=0),
+        # Flush views buffer từ Redis về DB mỗi phút
+        cron(flush_article_views_job, second=0),
     ]
 
 class WorkerDefaultSettings(WorkerSettings):
@@ -492,6 +495,7 @@ class WorkerDefaultSettings(WorkerSettings):
         seo_match_entity_job, seo_nightly_reconciliation_job, seo_bulk_match_job,
         seo_unmatch_entity_job, seo_contextual_link_job, seo_pillar_auto_link_job,
         cleanup_old_tasks, generate_article_embed_and_kg_job,
+        flush_article_views_job,
     ]
     redis_settings = get_redis_settings()
     max_jobs = 5

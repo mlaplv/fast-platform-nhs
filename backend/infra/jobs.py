@@ -694,3 +694,80 @@ async def generate_article_embed_and_kg_job(
         _ctx_tenant.reset(_token)
 
 
+async def flush_article_views_job(ctx: Dict[str, object]) -> None:
+    """
+    Enterprise Redis Buffered Counter:
+    Flushes buffered article and product views from Redis to the Database.
+    """
+    from backend.services.xohi_memory import xohi_memory
+    if not xohi_memory._use_redis or not xohi_memory.client:
+        return
+
+    # Phase 1: Flush Article Views
+    logger.info("📊 [Article Views Buffer] Starting flush sequence...")
+    try:
+        keys = await xohi_memory.client.keys("article:views:buffer:*")
+        if keys:
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as db:
+                from backend.database.models import Article
+                from sqlalchemy import update
+
+                for key in keys:
+                    try:
+                        article_id: str = key.split(":")[-1]
+                        val: Optional[str] = await xohi_memory.client.get(key)
+                        if not val:
+                            continue
+                        delta: int = int(val)
+                        if delta > 0:
+                            stmt = (
+                                update(Article)
+                                .where(Article.id == article_id)
+                                .values(views=Article.views + delta)
+                            )
+                            await db.execute(stmt)
+                            await xohi_memory.client.decrby(key, delta)
+                            logger.info(f"📊 [Article Views Buffer] Flushed +{delta} views to DB for article: {article_id}")
+                    except Exception as ex:
+                        logger.error(f"📊 [Article Views Buffer] Failed to flush key {key}: {ex}")
+
+                await db.commit()
+    except Exception as e:
+        logger.error(f"📊 [Article Views Buffer] Critical failure during views flush: {e}")
+
+    # Phase 2: Flush Product Views
+    logger.info("📊 [Product Views Buffer] Starting flush sequence...")
+    try:
+        keys = await xohi_memory.client.keys("product:views:buffer:*")
+        if keys:
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as db:
+                from backend.database.models import ProductBase
+                from sqlalchemy import update
+
+                for key in keys:
+                    try:
+                        product_id: str = key.split(":")[-1]
+                        val: Optional[str] = await xohi_memory.client.get(key)
+                        if not val:
+                            continue
+                        delta: int = int(val)
+                        if delta > 0:
+                            stmt = (
+                                update(ProductBase)
+                                .where(ProductBase.id == product_id)
+                                .values(views=ProductBase.views + delta)
+                            )
+                            await db.execute(stmt)
+                            await xohi_memory.client.decrby(key, delta)
+                            logger.info(f"📊 [Product Views Buffer] Flushed +{delta} views to DB for product: {product_id}")
+                    except Exception as ex:
+                        logger.error(f"📊 [Product Views Buffer] Failed to flush key {key}: {ex}")
+
+                await db.commit()
+    except Exception as e:
+        logger.error(f"📊 [Product Views Buffer] Critical failure during views flush: {e}")
+
+
+

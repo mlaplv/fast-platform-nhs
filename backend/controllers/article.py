@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Optional, List
-from litestar import Controller, get, post, patch, delete
+from litestar import Controller, get, post, patch, delete, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,9 +74,13 @@ class ArticleController(Controller):
         self, 
         db_session: AsyncSession, 
         article_service: ArticleService,
+        request: Request,
         data: CreateArticleRequest
     ) -> SuccessResponse:
         """Create a new article (Service-Centric RAG)."""
+        user = request.scope.get("state", {}).get("user")
+        if user and not data.authorId:
+            data.authorId = user.get("id")
         res = await article_service.create_article(db_session, data)
         await db_session.commit()
         return res

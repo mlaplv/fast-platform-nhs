@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from litestar import Controller, get
+from litestar import Controller, get, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Dict
@@ -60,11 +60,15 @@ class PublicProductController(Controller):
         self,
         db_session: AsyncSession,
         product_service: ProductService,
-        slug: str
+        slug: str,
+        request: Request
     ) -> ProductResponse:
         """PUBLIC: Get a single product by slug (Scalar Projection)."""
         product = await product_service.get_product_by_slug(db_session, slug, is_public=True)
         product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+        if request.method == "GET" and product:
+            import asyncio
+            asyncio.create_task(product_service.increment_views(db_session, product.id))
         return product
 
     @get("/{product_id:str}")
@@ -72,11 +76,15 @@ class PublicProductController(Controller):
         self,
         db_session: AsyncSession,
         product_service: ProductService,
-        product_id: str
+        product_id: str,
+        request: Request
     ) -> ProductResponse:
         """PUBLIC: Get a single product by exact ID (Crucial for Reorder features)."""
         product = await product_service.get_product(db_session, product_id, is_public=True)
         product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+        if request.method == "GET" and product:
+            import asyncio
+            asyncio.create_task(product_service.increment_views(db_session, product.id))
         return product
 
     @get("/{product_id:str}/faqs")

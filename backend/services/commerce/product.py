@@ -581,6 +581,24 @@ class ProductService:
         if result.rowcount == 0:
             raise NotFoundException(f"Product {product_id} not found")
 
+    async def increment_views(self, db_session: AsyncSession, product_id: str) -> None:
+        """Increment product view count in Redis buffer, with direct DB fallback."""
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                key: str = f"product:views:buffer:{product_id}"
+                await xohi_memory.client.incr(key)
+            else:
+                stmt = (
+                    update(ProductBase)
+                    .where(ProductBase.id == product_id)
+                    .values(views=ProductBase.views + 1)
+                )
+                await db_session.execute(stmt)
+                await db_session.commit()
+        except Exception as e:
+            logger.error(f"[ProductService] Failed to increment views for {product_id}: {e}")
+
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
 # ==========================================

@@ -143,7 +143,8 @@ class ArticleService:
                 logger.warning(f"Failed to fetch news tags from Redis: {ce}")
 
             tag_upper = tag.upper()
-            kws = TAG_KEYWORDS.get(tag_upper, [tag])
+            normalized_tags = {k.upper(): v for k, v in TAG_KEYWORDS.items()}
+            kws = normalized_tags.get(tag_upper, [tag])
             if not kws:
                 kws = [tag]
             tag_conds = []
@@ -1243,6 +1244,24 @@ class ArticleService:
         except Exception as e:
             logger.exception(f"[ArticleService] AI Title Suggestion Failed: {e}")
             return fallback
+
+    async def increment_views(self, db_session: AsyncSession, article_id: str) -> None:
+        """Increment view count in Redis buffer, with direct DB fallback."""
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                key = f"article:views:buffer:{article_id}"
+                await xohi_memory.client.incr(key)
+            else:
+                stmt = (
+                    update(Article)
+                    .where(Article.id == article_id)
+                    .values(views=Article.views + 1)
+                )
+                await db_session.execute(stmt)
+                await db_session.commit()
+        except Exception as e:
+            logger.error(f"[ArticleService] Failed to increment views for {article_id}: {e}")
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
