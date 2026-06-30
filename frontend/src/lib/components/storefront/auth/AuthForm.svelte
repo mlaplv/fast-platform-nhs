@@ -31,7 +31,7 @@
   let code = $state(['', '', '', '', '', '']);
   let otpToken = $state('');
   let isLoading = $state(false);
-  let isSocialLoading = $state<'google' | 'facebook' | 'zalo' | null>(null);
+  let isSocialLoading = $state<'google' | 'facebook' | 'zalo' | 'tiktok' | null>(null);
   let error = $state<string | null>(null);
   let authMethod = $state<'otp' | 'password'>('otp');
   let password = $state('');
@@ -216,7 +216,7 @@
     }
   }
 
-  function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
+  function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo' | 'tiktok') {
     if (isSocialLoading) return; // chống double-click
     isSocialLoading = provider;
     error = null;
@@ -476,6 +476,22 @@
                 {/if}
                 <svg class="w-6 h-6 text-[#1877F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                </svg>
+            </button>
+            <button
+                type="button"
+                onclick={() => handleSocialLogin('tiktok')}
+                disabled={isLoading || isSocialLoading !== null}
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm relative"
+                aria-label="Login with TikTok"
+            >
+                {#if isSocialLoading === 'tiktok'}
+                  <div class="absolute inset-0 flex items-center justify-center {r} bg-white/80">
+                    <div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                {/if}
+                <svg class="w-6 h-6 text-black" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.63 4.15 1.12 1.22 2.7 1.95 4.34 2.11v3.74c-1.78-.17-3.48-.89-4.82-2.1-.15-.14-.3-.29-.44-.45v6.52c.04 1.83-.49 3.65-1.54 5.11-1.48 2.02-3.92 3.16-6.4 3.03-2.61-.09-5.06-1.57-6.27-3.91-1.32-2.48-1.07-5.63.63-7.85 1.45-1.92 3.84-2.95 6.22-2.73v3.74c-1.37-.17-2.78.36-3.6 1.48-.96 1.25-.89 3.12.18 4.28 1.02 1.12 2.73 1.34 3.98.54.76-.47 1.21-1.32 1.21-2.22V.02z"/>
                 </svg>
             </button>
         </div>

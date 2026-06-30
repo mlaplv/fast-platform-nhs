@@ -18,10 +18,14 @@ class OAuth2Service:
         return os.getenv("APP_URL", f"https://{app_domain}").rstrip('/')
         
     def _get_redirect_uri(self, provider: str) -> str:
+        provider_clean = provider.rstrip('/')
         # Zalo yêu cầu xác thực tên miền chính, bắt buộc dùng APP_URL (osmo.vn) làm Callback
-        if provider == "zalo":
+        if provider_clean == "zalo":
             base_url = os.getenv("APP_URL", "https://osmo.vn").rstrip('/')
             return f"{base_url}/api/v1/auth/oauth/callback/zalo"
+
+        # TikTok Sandbox yêu cầu dấu gạch chéo ngược ở cuối để khớp chính xác cấu hình Developer Console
+        suffix = "/" if provider_clean == "tiktok" else ""
 
         # Sử dụng API_URL thay vì APP_URL vì Controller Auth nằm ở Backend (api.osmo)
         # Tuân thủ SSOT: Facebook/Google/Zalo sẽ callback về đúng Endpoint xử lý code.
@@ -29,11 +33,12 @@ class OAuth2Service:
         if not api_url:
             # Fallback nếu API_URL chưa set thì dùng FRONTEND_URL/api...
             base_url = os.getenv("FRONTEND_URL", "https://osmo").rstrip('/')
-            return f"{base_url}/api/v1/auth/oauth/callback/{provider}"
-        return f"{api_url}/api/v1/auth/oauth/callback/{provider}"
+            return f"{base_url}/api/v1/auth/oauth/callback/{provider_clean}{suffix}"
+        return f"{api_url}/api/v1/auth/oauth/callback/{provider_clean}{suffix}"
 
     def get_login_url(self, provider: str, custom_state: Optional[str] = None) -> Tuple[str, Optional[str]]:
         """Sinh ra Access URL để chuyển hướng User sang nền tảng chỉ định."""
+        provider = provider.rstrip('/')
         state = custom_state or "".join(random.choices(string.ascii_letters + string.digits, k=32))
         redirect_uri = self._get_redirect_uri(provider)
         
@@ -93,11 +98,27 @@ class OAuth2Service:
             # Zalo uses a bespoke login portal requiring PKCE
             return f"https://oauth.zaloapp.com/v4/permission?{urlencode(params)}", code_verifier
             
+        elif provider == "tiktok":
+            client_key = os.getenv("TIKTOK_CLIENT_KEY", "")
+            if not client_key:
+                raise ClientException(status_code=500, detail="Chưa cấu hình TIKTOK_CLIENT_KEY")
+            
+            base_url = "https://www.tiktok.com/v2/auth/authorize/"
+            params = {
+                "client_key": client_key,
+                "scope": "user.info.basic",
+                "response_type": "code",
+                "redirect_uri": redirect_uri,
+                "state": state
+            }
+            return f"{base_url}?{urlencode(params)}", None
+            
         else:
             raise ClientException(status_code=400, detail=f"Provider {provider} không được hỗ trợ.")
 
     async def exchange_code_for_user(self, provider: str, code: str, code_verifier: Optional[str] = None) -> Dict[str, str]:
         """Đổi Authorization Code lấy Access Token và trích xuất User Profile (Email, Name, Picture)."""
+        provider = provider.rstrip('/')
         redirect_uri = self._get_redirect_uri(provider)
         
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -107,6 +128,8 @@ class OAuth2Service:
                 return await self._process_facebook(client, code, redirect_uri)
             elif provider == "zalo":
                 return await self._process_zalo(client, code, redirect_uri, code_verifier)
+            elif provider == "tiktok":
+                return await self._process_tiktok(client, code, redirect_uri)
             else:
                 raise ClientException(status_code=400, detail=f"Provider {provider} không được hỗ trợ.")
 
@@ -246,6 +269,67 @@ class OAuth2Service:
             "name": profile.get("name", "Người dùng Zalo"),
             "provider_id": profile.get("id", ""),
             "avatar": avatar
+        }
+
+    async def _process_tiktok(self, client: httpx.AsyncClient, code: str, redirect_uri: str) -> Dict[str, str]:
+        client_key = os.getenv("TIKTOK_CLIENT_KEY", "")
+        client_secret = os.getenv("TIKTOK_CLIENT_SECRET", "")
+        
+        if not client_key or not client_secret:
+            raise ClientException(status_code=500, detail="Chưa cấu hình thông tin xác thực TikTok")
+            
+        token_res = await client.post(
+            "https://open.tiktokapis.com/v2/oauth/token/",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "client_key": client_key,
+                "client_secret": client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri
+            }
+        )
+        
+        if token_res.status_code != 200:
+            logger.error(f"[OAuth TikTok] Token Exchange Failed: {token_res.text}")
+            raise NotAuthorizedException("TikTok Login Failed.")
+            
+        res_json = token_res.json()
+        if "error" in res_json:
+            error_msg = res_json.get("error_description") or f"Mã lỗi: {res_json.get('error')}"
+            logger.error(f"[OAuth TikTok] API Error inside response: {res_json}")
+            raise NotAuthorizedException(f"TikTok Login Failed: {error_msg}")
+            
+        access_token = res_json.get("access_token")
+        open_id = res_json.get("open_id")
+        
+        if not access_token:
+            logger.error(f"[OAuth TikTok] No access_token returned: {res_json}")
+            raise NotAuthorizedException("TikTok Login Failed: Không tìm thấy access token.")
+            
+        user_res = await client.get(
+            "https://open.tiktokapis.com/v2/user/info/",
+            params={"fields": "open_id,union_id,avatar_url,display_name"},
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        
+        if user_res.status_code != 200:
+            logger.error(f"[OAuth TikTok] Fetch User Info Failed: {user_res.text}")
+            raise NotAuthorizedException("TikTok Info Fetch Failed.")
+            
+        profile_json = user_res.json()
+        if profile_json.get("error", {}).get("code") != "ok":
+            err_msg = profile_json.get("error", {}).get("message", "Unknown error")
+            logger.error(f"[OAuth TikTok] Fetch User Info Business Error: {profile_json}")
+            raise NotAuthorizedException(f"TikTok Profile Error: {err_msg}")
+            
+        user_data = profile_json.get("data", {}).get("user", {})
+        
+        return {
+            "email": "",
+            "name": user_data.get("display_name") or "Người dùng TikTok",
+            "provider_id": user_data.get("open_id") or open_id or "",
+            "avatar": user_data.get("avatar_url") or ""
         }
 
 oauth2_service = OAuth2Service()
