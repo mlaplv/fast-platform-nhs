@@ -461,6 +461,55 @@ class SeoService:
         }
         return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
 
+    @staticmethod
+    def _build_how_to_ld(title: str, canonical_url: str, desc: str, how_to_data: dict) -> dict:
+        """Build Google-compliant HowTo structured data."""
+        schema = {
+            "@type": "HowTo",
+            "@id": f"{canonical_url}#howto",
+            "name": title,
+            "description": desc,
+            "inLanguage": "vi",
+            "url": canonical_url,
+        }
+        
+        # Thêm TotalTime (ISO 8601 Duration)
+        if "total_time" in how_to_data and how_to_data["total_time"]:
+            schema["totalTime"] = how_to_data["total_time"]
+            
+        # Thêm Tools
+        if "tools" in how_to_data and how_to_data["tools"]:
+            schema["tool"] = [{"@type": "HowToTool", "name": t.get("name") if isinstance(t, dict) else str(t)} for t in how_to_data["tools"] if (t.get("name") if isinstance(t, dict) else t)]
+            
+        # Thêm Supplies
+        if "supplies" in how_to_data and how_to_data["supplies"]:
+            schema["supply"] = [{"@type": "HowToSupply", "name": s.get("name") if isinstance(s, dict) else str(s)} for s in how_to_data["supplies"] if (s.get("name") if isinstance(s, dict) else s)]
+            
+        # Thêm Các Bước (Steps)
+        steps = []
+        for i, s in enumerate(how_to_data.get("steps", [])):
+            if not s.get("name") or not s.get("text"):
+                continue
+            step_node = {
+                "@type": "HowToStep",
+                "@id": f"{canonical_url}#step-{i+1}",
+                "position": i + 1,
+                "url": f"{canonical_url}#step-{i+1}",
+                "name": s["name"],
+                "itemListElement": [{
+                    "@type": "HowToDirection",
+                    "text": s["text"]
+                }]
+            }
+            if s.get("image"):
+                step_node["image"] = s["image"]
+            steps.append(step_node)
+            
+        if steps:
+            schema["step"] = steps
+            
+        return schema
+
     # ═══════════════════════════════════════════════════════════════════════════
     # PUBLIC API
     # ═══════════════════════════════════════════════════════════════════════════
@@ -814,6 +863,8 @@ class SeoService:
         seo_description: Optional[str] = None,
         seo_keywords: Optional[str] = None,
         db: Optional[AsyncSession] = None,
+        how_to: Optional[dict] = None,
+        content: Optional[str] = None,
     ) -> "ArticleSeoMeta":
         """GEO 2026: Tạo SEO + SGE Entity-Linked JSON-LD cho trang bài viết."""
         from backend.schemas.article import ArticleSeoMeta
@@ -870,24 +921,52 @@ class SeoService:
             except Exception as e:
                 logger.error("[SeoService] Error loading entity/intent metadata: %s", e)
 
+        # Fallback to load how_to from Article table if not passed and db is active
+        article_content = content or ""
+        if db and not how_to:
+            try:
+                from backend.database.models import Article
+                art_stmt = select(Article.article_metadata, Article.content).where(Article.slug == slug, Article.deleted_at.is_(None))
+                res = (await db.execute(art_stmt)).first()
+                if res:
+                    art_meta, db_content = res
+                    if db_content:
+                        article_content = db_content
+                    if art_meta and isinstance(art_meta, dict):
+                        how_to = art_meta.get("how_to")
+            except Exception as e:
+                logger.error("[SeoService] Error loading article metadata for how_to: %s", e)
+
+        # HTML Parser Fallback if still no how_to
+        if not how_to and article_content:
+            how_to = SeoService._parse_how_to_fallback(article_content)
+
         # GEO V4.0: Map intent_type → Schema.org type per Google Article structured data guidelines
         # NewsArticle is reserved for timely news content only
-        schema_type = "NewsArticle" if intent_type == "news" else "Article"
+        how_to_data = how_to
+        if intent_type == "informational_how" and how_to_data and how_to_data.get("steps"):
+            schema_type = "HowTo"
+        else:
+            schema_type = "NewsArticle" if intent_type == "news" else "Article"
 
         # Build SGE-optimized JSON-LD
-        schema: dict = {
-            "@context": "https://schema.org",
-            "@type": schema_type,
-            "@id": f"{canonical_url}#article",
-            "headline": title,
-            "description": desc,
-            "image": [image] if image else [],
-            "datePublished": date_published or "2026-01-01",
-            "author": {"@type": "Person", "name": author, "url": _SITE_URL},
-            "publisher": {"@type": "Organization", "name": _SITE_NAME, "logo": {"@type": "ImageObject", "url": f"{_SITE_URL}/favicon.svg"}},
-            "url": canonical_url,
-            "inLanguage": "vi",
-        }
+        if schema_type == "HowTo":
+            schema = SeoService._build_how_to_ld(title, canonical_url, desc, how_to_data)
+            schema["publisher"] = {"@type": "Organization", "name": _SITE_NAME, "logo": {"@type": "ImageObject", "url": f"{_SITE_URL}/favicon.svg"}}
+        else:
+            schema = {
+                "@context": "https://schema.org",
+                "@type": schema_type,
+                "@id": f"{canonical_url}#article",
+                "headline": title,
+                "description": desc,
+                "image": [image] if image else [],
+                "datePublished": date_published or "2026-01-01",
+                "author": {"@type": "Person", "name": author, "url": _SITE_URL},
+                "publisher": {"@type": "Organization", "name": _SITE_NAME, "logo": {"@type": "ImageObject", "url": f"{_SITE_URL}/favicon.svg"}},
+                "url": canonical_url,
+                "inLanguage": "vi",
+            }
 
         if date_modified:
             schema["dateModified"] = date_modified[:10] if len(date_modified) >= 10 else date_modified
@@ -1106,3 +1185,63 @@ class SeoService:
             logger.error("[SeoService] Dynamic contextual link injection failed: %s", e)
 
         return html_content
+
+    @staticmethod
+    def _parse_how_to_fallback(html_content: str) -> dict | None:
+        """HTML Parser Fallback: Trích xuất danh sách bước tự động từ HTML content."""
+        if not html_content:
+            return None
+
+        steps = []
+        # Cách 1: Quét tiêu đề h3/h4 dạng "Bước X: ..." hoặc "Step X: ..."
+        heading_matches = list(re.finditer(r'<(h[34])\b[^>]*>(?:Bước|Step)\s+(\d+)(?::|\s)*([^<]+)</\1>', html_content, re.IGNORECASE))
+        if heading_matches:
+            for idx, match in enumerate(heading_matches):
+                step_num = match.group(2)
+                step_name = match.group(3).strip()
+                
+                # Trích xuất nội dung phía sau tiêu đề cho đến tiêu đề tiếp theo hoặc hết bài
+                start_pos = match.end()
+                end_pos = heading_matches[idx + 1].start() if idx + 1 < len(heading_matches) else len(html_content)
+                text_block = html_content[start_pos:end_pos]
+                
+                # Làm sạch HTML trong đoạn để lấy text
+                step_text = re.sub(r'<[^>]+>', ' ', text_block)
+                step_text = re.sub(r'\s+', ' ', step_text).strip()
+                
+                # Tìm ảnh đầu tiên trong block
+                img_match = re.search(r'<img\s+[^>]*src=["\']([^"\']+)["\']', text_block, re.IGNORECASE)
+                img_url = img_match.group(1) if img_match else None
+                
+                steps.append({
+                    "name": f"Bước {step_num}: {step_name}" if step_name else f"Bước {step_num}",
+                    "text": step_text or step_name or f"Thực hiện bước {step_num}",
+                    "image": img_url
+                })
+        
+        # Cách 2: Nếu không tìm thấy dạng tiêu đề, tìm thẻ <ol><li>
+        if not steps:
+            ol_match = re.search(r'<ol\b[^>]*>(.*?)</ol>', html_content, re.DOTALL | re.IGNORECASE)
+            if ol_match:
+                li_matches = re.findall(r'<li\b[^>]*>(.*?)</li>', ol_match.group(1), re.DOTALL | re.IGNORECASE)
+                for idx, li_content in enumerate(li_matches):
+                    li_text = re.sub(r'<[^>]+>', ' ', li_content)
+                    li_text = re.sub(r'\s+', ' ', li_text).strip()
+                    if li_text:
+                        img_match = re.search(r'<img\s+[^>]*src=["\']([^"\']+)["\']', li_content, re.IGNORECASE)
+                        img_url = img_match.group(1) if img_match else None
+                        
+                        steps.append({
+                            "name": f"Bước {idx + 1}",
+                            "text": li_text,
+                            "image": img_url
+                        })
+                        
+        if steps:
+            return {
+                "total_time": "PT10M",
+                "tools": [],
+                "supplies": [],
+                "steps": steps
+            }
+        return None

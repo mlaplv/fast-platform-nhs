@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import logging
 from litestar import Controller, get, Request
 from litestar.di import Provide
@@ -65,9 +66,11 @@ class PublicProductController(Controller):
     ) -> ProductResponse:
         """PUBLIC: Get a single product by slug (Scalar Projection)."""
         product = await product_service.get_product_by_slug(db_session, slug, is_public=True)
-        product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+        if product:
+            product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+            if product.description:
+                product.description = SeoService.harden_external_links(product.description)
         if request.method == "GET" and product:
-            import asyncio
             asyncio.create_task(product_service.increment_views(db_session, product.id))
         return product
 
@@ -81,9 +84,11 @@ class PublicProductController(Controller):
     ) -> ProductResponse:
         """PUBLIC: Get a single product by exact ID (Crucial for Reorder features)."""
         product = await product_service.get_product(db_session, product_id, is_public=True)
-        product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+        if product:
+            product.seoMeta = await SeoService.generate_seo_meta(product, db=db_session)
+            if product.description:
+                product.description = SeoService.harden_external_links(product.description)
         if request.method == "GET" and product:
-            import asyncio
             asyncio.create_task(product_service.increment_views(db_session, product.id))
         return product
 

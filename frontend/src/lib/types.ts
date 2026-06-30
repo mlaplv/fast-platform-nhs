@@ -171,6 +171,12 @@ export interface OrderDetail extends Order {
 
 export interface ArticleMetadata {
   faqs?: { question: string; answer: string }[];
+  how_to?: {
+    total_time: string;
+    tools: { name: string }[];
+    supplies: { name: string }[];
+    steps: { name: string; text: string; image: string | null }[];
+  };
   analysis_cache?: import('./state/types').AnalysisCache;
   analysis_metrics?: import('./state/types').CampaignMetrics;
   [key: string]: unknown;

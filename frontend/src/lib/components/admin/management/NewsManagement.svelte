@@ -44,6 +44,7 @@
   let formSeoOgImage = $state<string | null>(null);
   let formFeaturedImage = $state<string | null>(null);
   let formFaqs = $state<{ question: string; answer: string }[]>([]);
+  let formHowTo = $state<{ total_time: string; tools: { name: string }[]; supplies: { name: string }[]; steps: { name: string; text: string; image: string | null }[] }>({ total_time: "PT10M", tools: [], supplies: [], steps: [] });
   // CNS V86.5: Neural Analysis cache/metrics — đồng nhất với ProductForm & DraftStep
   let formAnalysisCache = $state<AnalysisCache>({});
   let formAnalysisMetrics = $state<CampaignMetrics>({});
@@ -232,6 +233,7 @@
     formContent = ""; formSlug = ""; formSeoTitle = "";
     formSeoDescription = ""; formSeoKeywords = ""; formSeoOgImage = null; formFeaturedImage = null;
     formFaqs = [];
+    formHowTo = { total_time: "PT10M", tools: [], supplies: [], steps: [] };
     formStatus = "DRAFT";
     formAnalysisCache = {};
     formAnalysisMetrics = {};
@@ -259,6 +261,7 @@
       formFeaturedImage = fullArticle.featuredImage || null;
       const meta = fullArticle.metadata || {};
       formFaqs = meta.faqs || [];
+      formHowTo = meta.how_to || { total_time: "PT10M", tools: [], supplies: [], steps: [] };
       // CNS V86.5: Hydrate analysis cache để khôi phục highlights sau F5
       formAnalysisCache = meta.analysis_cache || {};
       formAnalysisMetrics = meta.analysis_metrics || {};
@@ -299,6 +302,7 @@
         // CNS V86.5: Persist analysis cache để highlights không bị mất sau F5
         metadata: { 
           faqs: formFaqs,
+          how_to: formHowTo,
           related_product_id: formRelatedProductId || undefined,
           related_product_name: formRelatedProductName || undefined,
           related_product_image: formRelatedProductImage || undefined,
@@ -425,6 +429,7 @@
   bind:formSeoOgImage
   bind:formFeaturedImage
   bind:formFaqs
+  bind:formHowTo
   bind:formAnalysisCache
   bind:formAnalysisMetrics
   bind:formAnalysisReport

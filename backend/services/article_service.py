@@ -410,6 +410,7 @@ class ArticleService:
         article_data = dict(row._mapping)
         meta_dict = article_data.get("article_metadata") or {}
         faqs = meta_dict.get("faqs", [])
+        how_to = meta_dict.get("how_to")
 
         from backend.services.commerce.seo_service import SeoService
         seo_meta = await SeoService.generate_article_seo_meta(
@@ -422,6 +423,7 @@ class ArticleService:
             date_modified=article_data["updated_at"].isoformat() if article_data.get("updated_at") else None,
             faqs=faqs,
             db=db_session,
+            how_to=how_to,
         )
         article_data["seo_meta"] = seo_meta
         
@@ -448,6 +450,8 @@ class ArticleService:
 
         # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
         cleaned_content = await noise_cleaner.clean(pre_content, strip_html=False) if pre_content else ""
+        from backend.services.commerce.seo_service import SeoService
+        cleaned_content = SeoService.harden_external_links(cleaned_content)
         cleaned_excerpt = await noise_cleaner.clean(pre_excerpt, strip_html=True) if pre_excerpt else ""
 
         article = Article(
@@ -553,6 +557,8 @@ class ArticleService:
         if data.content is not None:
             pre_content = sanitize_ai_text(data.content, seed=article.slug, enabled=lex_enabled)
             article.content = await noise_cleaner.clean(pre_content, strip_html=False)
+            from backend.services.commerce.seo_service import SeoService
+            article.content = SeoService.harden_external_links(article.content)
 
         if data.seo_title is not None: article.seo_title = data.seo_title
         if data.seo_description is not None: article.seo_description = data.seo_description
@@ -985,6 +991,134 @@ class ArticleService:
         except Exception as e:
             logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
             return []
+
+    async def suggest_howto(self, db_session: Optional[AsyncSession], title: str, content: str, product_id: str = "") -> Dict[str, object]:
+        """GEO 2026: XOHI Auto HowTo structured data generator for Articles."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from pydantic import BaseModel, Field
+
+        class HowToToolItem(BaseModel):
+            name: str = Field(..., description="Tên dụng cụ (ví dụ: Bông tẩy trang)")
+
+        class HowToSupplyItem(BaseModel):
+            name: str = Field(..., description="Tên sản phẩm/nguyên liệu (ví dụ: Sữa rửa mặt)")
+
+        class HowToStepItem(BaseModel):
+            name: str = Field(..., description="Tiêu đề bước (ví dụ: Bước 1: Làm sạch da mặt)")
+            text: str = Field(..., description="Mô tả chi tiết cách thực hiện bước này (dưới 100 từ)")
+            image: Optional[str] = Field(None, description="Đường dẫn ảnh bước thực hiện (nếu có)")
+
+        class HowToResponse(BaseModel):
+            total_time: str = Field(..., description="Thời gian hoàn thành ước tính định dạng ISO 8601 duration (ví dụ: PT10M cho 10 phút, PT15M cho 15 phút, PT1H cho 1 giờ)")
+            tools: List[HowToToolItem] = Field(default_factory=list, description="Danh sách dụng cụ cần thiết")
+            supplies: List[HowToSupplyItem] = Field(default_factory=list, description="Danh sách sản phẩm/nguyên liệu cần thiết")
+            steps: List[HowToStepItem] = Field(..., description="Danh sách các bước thực hiện theo thứ tự tuyến tính")
+
+        base_prompt = (
+            "Bạn là chuyên gia cấu trúc dữ liệu SEO/SGE chuyên tối ưu hóa dữ liệu HowTo (Hướng dẫn các bước thực hiện) đáp ứng tiêu chuẩn của Google SGE và AI Overviews.\n"
+            "Dựa trên tiêu đề, nội dung bài viết và sản phẩm liên kết (nếu có), hãy trích xuất hoặc tự động sinh cấu trúc hướng dẫn thực hiện dưới dạng JSON HowTo bằng tiếng Việt.\n\n"
+            "YÊU CẦU CHI TIẾT:\n"
+            "1. total_time: Bắt buộc định dạng ISO 8601 duration (ví dụ PT5M cho 5 phút, PT15M cho 15 phút, PT1H cho 1 giờ).\n"
+            "2. tools: Dụng cụ phụ trợ (ví dụ: bông tẩy trang, máy xông hơi, bông tăm).\n"
+            "3. supplies: Nguyên liệu/sản phẩm chính (ví dụ sữa rửa mặt Cerave, serum B5, kem chống nắng).\n"
+            "   - Nếu có sản phẩm liên kết dưới đây, hãy đưa tên sản phẩm này vào phần supplies.\n"
+            "4. steps: Danh sách các bước thực hiện rõ ràng, có thứ tự tuyến tính.\n"
+            "   - Tên bước (name) phải súc tích, mang tính hành động (ví dụ: 'Bước 1: Làm sạch da mặt').\n"
+            "   - Mô tả bước (text) phải chi tiết, hướng dẫn cụ thể cách làm, ngắn gọn và đi thẳng vào trọng tâm (dưới 100 từ/bước).\n"
+            "   - Tuyệt đối không chèn thẻ liên kết <a>, đường dẫn (URL) nào trong name hoặc text của bước.\n"
+            "5. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%."
+        )
+        sge_cfg_howto = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_prompt,
+            tone_override=str(sge_cfg_howto["tone_override"]) if sge_cfg_howto.get("tone_override") else None,
+            structure_override=str(sge_cfg_howto["structure_override"]) if sge_cfg_howto.get("structure_override") else None,
+        ) if sge_cfg_howto.get("enabled", True) else base_prompt
+
+        agent = Agent(system_prompt=system_prompt, output_type=HowToResponse)
+        content_excerpt = (content or "")[:2000]
+
+        _, product_context = await self._read_product_context_isolated(product_id)
+
+        prompt_parts = []
+        if product_context:
+            prompt_parts.append(product_context)
+        prompt_parts.append(f"Article Title: {title}")
+        prompt_parts.append(f"Article Content: {content_excerpt}")
+        prompt = "\n\n".join(prompt_parts)
+
+        try:
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=90.0,
+                per_model_timeout=20.0,
+            )
+
+            if result:
+                data = getattr(result, "data", result)
+                if isinstance(data, HowToResponse):
+                    parsed = data.model_dump()
+                elif hasattr(data, "steps"):
+                    parsed = {
+                        "total_time": getattr(data, "total_time", "PT10M"),
+                        "tools": [t.model_dump() if hasattr(t, "model_dump") else t for t in getattr(data, "tools", [])],
+                        "supplies": [s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(data, "supplies", [])],
+                        "steps": [st.model_dump() if hasattr(st, "model_dump") else st for st in getattr(data, "steps", [])]
+                    }
+                else:
+                    parsed = {}
+
+                from backend.utils.text import validate_vietnamese_sentence
+                from backend.services.xohi.prompts.shields.service import shield_service
+
+                total_time = str(parsed.get("total_time", "PT10M")).strip()
+                if not re.match(r'^PT[0-9]+[MHS]$', total_time):
+                    total_time = "PT10M"
+
+                tools = []
+                for t in parsed.get("tools", []):
+                    name = t.get("name") if isinstance(t, dict) else str(t)
+                    if name:
+                        name = shield_service.sanitize(validate_vietnamese_sentence(name.strip(), mode="light"))
+                        tools.append({"name": name})
+
+                supplies = []
+                for s in parsed.get("supplies", []):
+                    name = s.get("name") if isinstance(s, dict) else str(s)
+                    if name:
+                        name = shield_service.sanitize(validate_vietnamese_sentence(name.strip(), mode="light"))
+                        supplies.append({"name": name})
+
+                steps = []
+                for st in parsed.get("steps", []):
+                    if isinstance(st, dict):
+                        st_name = st.get("name", "").strip()
+                        st_text = st.get("text", "").strip()
+                        st_image = st.get("image", None)
+                        if st_name and st_text:
+                            st_name = shield_service.sanitize(validate_vietnamese_sentence(st_name, mode="light"))
+                            st_text = shield_service.sanitize(validate_vietnamese_sentence(st_text, mode="standard"))
+                            steps.append({
+                                "name": st_name,
+                                "text": st_text,
+                                "image": st_image
+                            })
+
+                return {
+                    "total_time": total_time,
+                    "tools": tools,
+                    "supplies": supplies,
+                    "steps": steps
+                }
+
+            return {"total_time": "PT10M", "tools": [], "supplies": [], "steps": []}
+
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI HowTo Suggestion Failed: {e}")
+            return {"total_time": "PT10M", "tools": [], "supplies": [], "steps": []}
 
     async def suggest_excerpt(self, db_session: Optional[AsyncSession], title: str, category: str, content: str = "", product_id: str = "") -> str:
         """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề và nội dung."""

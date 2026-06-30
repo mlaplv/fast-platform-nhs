@@ -44,6 +44,7 @@
     formSeoOgImage = $bindable(),
     formFeaturedImage = $bindable(),
     formFaqs = $bindable(),
+    formHowTo = $bindable(),
     formAnalysisCache = $bindable(),
     formAnalysisMetrics = $bindable(),
     formAnalysisReport = $bindable(),
@@ -71,6 +72,7 @@
     formSeoOgImage: string | null;
     formFeaturedImage: string | null;
     formFaqs: { question: string; answer: string }[];
+    formHowTo: { total_time: string; tools: { name: string }[]; supplies: { name: string }[]; steps: { name: string; text: string; image: string | null }[] };
     formRelatedProductId: string | null;
     formRelatedProductName: string;
     formRelatedProductImage: string | null;
@@ -149,6 +151,14 @@
     if (formSeoOgImage === undefined) formSeoOgImage = null;
     if (formFeaturedImage === undefined) formFeaturedImage = null;
     if (!formFaqs) formFaqs = [];
+    if (!formHowTo) {
+      formHowTo = { total_time: "PT10M", tools: [], supplies: [], steps: [] };
+    } else {
+      if (!formHowTo.tools) formHowTo.tools = [];
+      if (!formHowTo.supplies) formHowTo.supplies = [];
+      if (!formHowTo.steps) formHowTo.steps = [];
+      if (!formHowTo.total_time) formHowTo.total_time = "PT10M";
+    }
   });
 
   const seoTitleLen = $derived(formSeoTitle?.length ?? 0);
@@ -179,6 +189,8 @@
   let isSuggestingSeo = $state(false);
   let isSuggestingExcerpt = $state(false);
   let isSuggestingContent = $state(false);
+  let isSuggestingHowTo = $state(false);
+  let onSelectStepImageIndex = $state<number | null>(null);
   let isEditorFullScreen = $state(false);
 
   // V2026: Product Picker + XOHI Title Generator
@@ -389,6 +401,59 @@
     } finally {
       isSuggestingContent = false;
     }
+  }
+
+  async function handleAiSuggestHowTo() {
+    if (!formTitle) {
+      nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước khi gọi XOHI.", "warning");
+      return;
+    }
+    isSuggestingHowTo = true;
+    try {
+      const res = await apiClient.post<{ data: { total_time: string; tools: { name: string }[]; supplies: { name: string }[]; steps: { name: string; text: string; image: string | null }[] } }>('/api/v1/articles/howto-suggest', {
+        title: formTitle,
+        content: formContent || formExcerpt || '',
+        product_id: formRelatedProductId || ''
+      });
+      if (res?.data) {
+        formHowTo = res.data;
+        nanobot.showToast("XOHI đã sinh cấu trúc hướng dẫn (HowTo) thành công.", "success");
+      } else {
+        nanobot.showToast("XOHI không thể sinh HowTo. Vui lòng thử lại.", "error");
+      }
+    } catch (e) {
+      console.error('XOHI Article HowTo failed:', e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingHowTo = false;
+    }
+  }
+
+  function addHowToStep() {
+    if (!formHowTo.steps) formHowTo.steps = [];
+    formHowTo.steps = [...formHowTo.steps, { name: '', text: '', image: null }];
+  }
+
+  function removeHowToStep(index: number) {
+    formHowTo.steps = formHowTo.steps.filter((_: any, i: number) => i !== index);
+  }
+
+  function addHowToTool() {
+    if (!formHowTo.tools) formHowTo.tools = [];
+    formHowTo.tools = [...formHowTo.tools, { name: '' }];
+  }
+
+  function removeHowToTool(index: number) {
+    formHowTo.tools = formHowTo.tools.filter((_: any, i: number) => i !== index);
+  }
+
+  function addHowToSupply() {
+    if (!formHowTo.supplies) formHowTo.supplies = [];
+    formHowTo.supplies = [...formHowTo.supplies, { name: '' }];
+  }
+
+  function removeHowToSupply(index: number) {
+    formHowTo.supplies = formHowTo.supplies.filter((_: any, i: number) => i !== index);
   }
 </script>
 
@@ -993,6 +1058,154 @@
     </div>
   </section>
 
+  <!-- ── SECTION 5: HowTo (GEO 2026) ──────────────────── -->
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
+    <div class="flex items-center justify-between">
+      <div class="section-label">
+        <Globe size={11} />
+        Hướng dẫn thực hiện (HowTo Schema - GEO 2026)
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          onclick={handleAiSuggestHowTo}
+          disabled={isSuggestingHowTo}
+          class="flex items-center gap-1.5 px-4 py-2 bg-[#1a2742] border border-[#2a4a7f] rounded-lg text-[9px] font-black tracking-wider text-cyan-300 hover:bg-[#243860] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+        >
+          {#if isSuggestingHowTo}
+            <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+            Đang tạo...
+          {:else}
+            <Sparkles size={12} />
+            XOHI GỢI Ý HOWTO
+          {/if}
+        </button>
+        <button
+          onclick={addHowToStep}
+          class="flex items-center gap-1 px-3 py-2 bg-white/5 border border-amber-500/30 rounded-lg text-[9px] font-black tracking-wider text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer"
+        >
+          <Plus size={12} />
+          Thêm bước
+        </button>
+      </div>
+    </div>
+
+    <!-- HowTo Config fields: Total Time, Tools, Supplies -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+      <div class="field-group">
+        <label class="field-label">Thời gian hoàn thành (ISO 8601)</label>
+        <input
+          type="text"
+          bind:value={formHowTo.total_time}
+          placeholder="Ví dụ: PT10M (10 phút) hoặc PT1H (1 giờ)"
+          class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+        />
+      </div>
+      
+      <!-- Tools -->
+      <div class="field-group bg-white/[0.01] border border-white/5 rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <label class="field-label">Dụng cụ cần thiết</label>
+          <button onclick={addHowToTool} class="text-[8px] font-black text-cyan-400 hover:underline cursor-pointer">+ Thêm dụng cụ</button>
+        </div>
+        <div class="flex flex-col gap-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+          {#each formHowTo.tools || [] as tool, i}
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                bind:value={tool.name}
+                placeholder="Tên dụng cụ..."
+                class="flex-1 bg-white/[0.03] border border-white/8 rounded-lg px-2 py-1 text-xs text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+              />
+              <button onclick={() => removeHowToTool(i)} class="text-red-400/50 hover:text-red-400 transition-colors cursor-pointer">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          {/each}
+          {#if !formHowTo.tools || formHowTo.tools.length === 0}
+            <span class="text-[9px] text-white/20 italic">Không có dụng cụ</span>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Supplies -->
+      <div class="field-group bg-white/[0.01] border border-white/5 rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <label class="field-label">Nguyên liệu / Sản phẩm</label>
+          <button onclick={addHowToSupply} class="text-[8px] font-black text-cyan-400 hover:underline cursor-pointer">+ Thêm nguyên liệu</button>
+        </div>
+        <div class="flex flex-col gap-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+          {#each formHowTo.supplies || [] as supply, i}
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                bind:value={supply.name}
+                placeholder="Tên nguyên liệu..."
+                class="flex-1 bg-white/[0.03] border border-white/8 rounded-lg px-2 py-1 text-xs text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+              />
+              <button onclick={() => removeHowToSupply(i)} class="text-red-400/50 hover:text-red-400 transition-colors cursor-pointer">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          {/each}
+          {#if !formHowTo.supplies || formHowTo.supplies.length === 0}
+            <span class="text-[9px] text-white/20 italic">Không có nguyên liệu</span>
+          {/if}
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="mt-4 flex flex-col gap-3">
+      {#if !formHowTo.steps || formHowTo.steps.length === 0}
+        <div class="text-center py-8 border border-dashed border-white/10 rounded-xl">
+          <p class="text-[10px] text-white/20 tracking-widest font-black">Chưa có các bước hướng dẫn.</p>
+          <p class="text-[9px] text-white/10 italic mt-1">Thêm các bước HowTo để tối ưu hiển thị trên AI Search.</p>
+        </div>
+      {:else}
+        {#each formHowTo.steps || [] as step, i}
+          <div class="bg-white/[0.02] border border-white/8 rounded-xl p-4 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[8px] font-black tracking-widest text-white/20">Bước {i + 1}</span>
+              <button onclick={() => removeHowToStep(i)} class="p-1 text-red-400/50 hover:text-red-400 transition-colors cursor-pointer">
+                <Trash2 size={12} />
+              </button>
+            </div>
+            <input
+              type="text"
+              bind:value={step.name}
+              placeholder="Tiêu đề bước (ví dụ: Bước 1: Làm sạch da)..."
+              class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+            />
+            <span class="text-[8px] font-black tracking-widest text-white/15">Mô tả bước:</span>
+            <textarea
+              bind:value={step.text}
+              rows="2"
+              placeholder="Mô tả chi tiết cách thực hiện bước này..."
+              class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-cyan-500/40 resize-none"
+            ></textarea>
+            <span class="text-[8px] font-black tracking-widest text-white/15">Đường dẫn ảnh bước (không bắt buộc):</span>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                bind:value={step.image}
+                placeholder="https://..."
+                class="flex-1 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-xs text-white/60 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+              />
+              <button
+                onclick={() => {
+                  selectingOgImage = false;
+                  showMediaModal = true;
+                  onSelectStepImageIndex = i;
+                }}
+                class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
+              >Chọn ảnh</button>
+            </div>
+          </div>
+        {/each}
+      {/if}
+    </div>
+  </section>
+
   <!-- ── ACTION BAR ─────────────────── -->
   <div use:portal={isEditorFullScreen}>
     <section 
@@ -1047,13 +1260,18 @@
 
 <MediaVaultModal
   isOpen={showMediaModal}
-  onClose={() => showMediaModal = false}
+  onClose={() => { showMediaModal = false; onSelectStepImageIndex = null; }}
   bind:assets={featuredContextAssets}
   bind:selectedAvatarUrl
   bind:selectedAssetIndex
   onSelect={(url) => { 
     if (selectingOgImage) {
       formSeoOgImage = url;
+    } else if (onSelectStepImageIndex !== null) {
+      if (formHowTo.steps && formHowTo.steps[onSelectStepImageIndex]) {
+        formHowTo.steps[onSelectStepImageIndex].image = url;
+      }
+      onSelectStepImageIndex = null;
     } else {
       formFeaturedImage = url;
     }

@@ -207,6 +207,19 @@ class ArticleController(Controller):
         faqs = await article_service.suggest_faqs(None, title, content, product_id)
         return {"data": faqs}
 
+    @post("/howto-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_howto(
+        self,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto HowTo Schema Generator for Articles."""
+        title = data.get("title", "")
+        content = data.get("content", "")
+        product_id = data.get("product_id", "")
+        howto = await article_service.suggest_howto(None, title, content, product_id)
+        return {"data": howto}
+
     @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
     async def suggest_seo(
         self,

@@ -313,6 +313,29 @@ class SeoContextualLinker:
             len(candidates), len(sentences), article_id
         )
 
+        # Step 0e: Query existing anchor text distribution for all active pillars
+        anchor_distribution: dict[str, dict[str, int]] = {}
+        total_links_per_pillar: dict[str, int] = {}
+        try:
+            links_res = await db.execute(
+                select(SeoContextualLink.target_node_id, SeoContextualLink.anchor_text).where(
+                    SeoContextualLink.tenant_id == tenant,
+                    SeoContextualLink.status.in_([
+                        SeoContextualLinkStatus.APPROVED,
+                        SeoContextualLinkStatus.APPLIED
+                    ])
+                )
+            )
+            for target_id, anchor in links_res:
+                norm_anchor = (anchor or "").strip().lower()
+                if target_id not in anchor_distribution:
+                    anchor_distribution[target_id] = {}
+                    total_links_per_pillar[target_id] = 0
+                anchor_distribution[target_id][norm_anchor] = anchor_distribution[target_id].get(norm_anchor, 0) + 1
+                total_links_per_pillar[target_id] += 1
+        except Exception as e:
+            logger.warning("[ContextualLinker] Failed to load anchor text distribution: %s", e)
+
         # Close the active database session before starting heavy AI/network tasks
         try:
             await db.commit()
@@ -399,6 +422,20 @@ class SeoContextualLinker:
                 if persisted >= effective_max:
                     break
                 pid = suggestion.target_pillar_id
+                norm_anchor = (suggestion.anchor_text or "").strip().lower()
+                
+                # Anchor Text Diversification Guard
+                total_existing = total_links_per_pillar.get(pid, 0)
+                if total_existing >= 5:
+                    existing_count = anchor_distribution.get(pid, {}).get(norm_anchor, 0)
+                    ratio = existing_count / total_existing
+                    if ratio > 0.15:
+                        logger.info(
+                            "[ContextualLinker] Skipping suggestion for pillar %s with anchor '%s' — exceeds 15%% diversification limit (ratio: %.2f)",
+                            pid, suggestion.anchor_text, ratio
+                        )
+                        continue
+
                 count = pillar_link_count.get(pid, 0)
                 if count >= _MAX_LINKS_PER_PILLAR:
                     continue
@@ -481,6 +518,7 @@ class SeoContextualLinker:
                     if persisted >= effective_max:
                         break
                     pid = suggestion.target_pillar_id
+                    norm_anchor = (suggestion.anchor_text or "").strip().lower()
 
                     # Anti-spam: skip nếu pillar này đã có link APPLIED/APPROVED trong bài viết (DB check)
                     if pid in existing_applied_targets:
@@ -489,6 +527,18 @@ class SeoContextualLinker:
                             pid, article_id,
                         )
                         continue
+
+                    # Anchor Text Diversification Guard
+                    total_existing = total_links_per_pillar.get(pid, 0)
+                    if total_existing >= 5:
+                        existing_count = anchor_distribution.get(pid, {}).get(norm_anchor, 0)
+                        ratio = existing_count / total_existing
+                        if ratio > 0.15:
+                            logger.info(
+                                "[ContextualLinker] Skipping suggestion for pillar %s with anchor '%s' — exceeds 15%% diversification limit (ratio: %.2f)",
+                                pid, suggestion.anchor_text, ratio
+                            )
+                            continue
 
                     count = pillar_link_count.get(pid, 0)
                     if count >= _MAX_LINKS_PER_PILLAR:

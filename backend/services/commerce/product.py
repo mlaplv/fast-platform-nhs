@@ -2,6 +2,8 @@ import logging
 from backend.utils.uid import new_id, new_short_id
 from datetime import datetime, timezone
 from sqlalchemy import select, func, and_, or_, update, delete, text, cast
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Dict, Optional, TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -14,6 +16,7 @@ from backend.schemas.product import (
 )
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
+from backend.services.commerce.seo_service import SeoService
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
@@ -21,7 +24,6 @@ from backend.services.commerce.logic.product_ai import suggest_seo_logic, sugges
 from backend.services.commerce.logic.viral_hydration import hydrate_viral_config_logic, sanitize_vouchers_logic
 from backend.services.commerce.logic.product_bulk import bulk_delete_logic, bulk_activate_logic, bulk_update_logic
 from backend.services.commerce.logic.product_query import list_products_logic, get_product_logic, get_product_by_slug_logic
-from sqlalchemy.dialects.postgresql import JSONB
 
 import re
 import json
@@ -255,13 +257,14 @@ class ProductService:
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
         """Create a new product and its embedding."""
-        new_id = new_id()
+        generated_id = new_id()
 
         # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
-        cleaned_description = await noise_cleaner.clean(data.description, strip_html=False) if data.description else ""
+        cleaned_description = await noise_cleaner.clean(data.description, strip_html=False, options={"stripLinks": False}) if data.description else ""
+        cleaned_description = SeoService.harden_external_links(cleaned_description)
 
         product = ProductBase(
-            id=new_id,
+            id=generated_id,
             name=data.name,
             sku=data.sku,
             price=data.price,
@@ -296,7 +299,7 @@ class ProductService:
                 v_id = v.id if v.id and len(v.id) > 5 else f"v_{new_short_id(12)}"
                 variant = ProductVariant(
                     id=v_id,
-                    product_base_id=new_id,
+                    product_base_id=generated_id,
                     tier_index=v.tierIndex,
                     sku=v.sku if v.sku and v.sku.strip() else None,
                     price=v.price,
@@ -312,7 +315,7 @@ class ProductService:
 
         # RAG Upsert
         await self.vector_service.upsert_product_embedding(
-            db_session, new_id, data.name, cleaned_description
+            db_session, generated_id, data.name, cleaned_description
         )
 
         # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
@@ -324,15 +327,14 @@ class ProductService:
                     topic=data.name
                 )
                 product.product_metadata["knowledge_graph"] = kg_data
-                from sqlalchemy.orm.attributes import flag_modified
                 flag_modified(product, "product_metadata")
             except Exception as e:
-                logger.error(f"[ProductService] KG Generation failed for {new_id}: {e}")
+                logger.error(f"[ProductService] KG Generation failed for {generated_id}: {e}")
 
         # Elite V2.2: Sync Media Links
-        await self._sync_media_links(db_session, new_id, product)
+        await self._sync_media_links(db_session, generated_id, product)
 
-        return SuccessResponse(ok=True, id=new_id)
+        return SuccessResponse(ok=True, id=generated_id)
 
     async def update_product(self, db_session: AsyncSession, product_id: str, data: UpdateProductRequest) -> SuccessResponse:
         """Update a product and its embedding."""
@@ -355,7 +357,8 @@ class ProductService:
         if data.description is not None:
             # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
             logger.info(f"🧬 [ProductService] Updating description for {product_id}. Input len: {len(data.description)}. Snippet: {data.description[:100]}...")
-            cleaned = await noise_cleaner.clean(data.description, strip_html=False)
+            cleaned = await noise_cleaner.clean(data.description, strip_html=False, options={"stripLinks": False})
+            cleaned = SeoService.harden_external_links(cleaned)
             logger.info(f"🧬 [ProductService] Cleaned description for {product_id}. Result len: {len(cleaned)}. Snippet: {cleaned[:100]}...")
             product.description = cleaned
 
@@ -414,7 +417,6 @@ class ProductService:
                     if not product.product_metadata:
                         product.product_metadata = {}
                     product.product_metadata["knowledge_graph"] = kg_data
-                    from sqlalchemy.orm.attributes import flag_modified
                     flag_modified(product, "product_metadata")
                 except Exception as e:
                     logger.error(f"[ProductService] KG Refresh failed for {product_id}: {e}")

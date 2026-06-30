@@ -9,6 +9,7 @@ class ArticleMetadata(BaseModel):
     """GEO 2026: Article metadata — FAQs for Schema.org FAQPage."""
     model_config = ConfigDict(extra='allow', populate_by_name=True)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
+    how_to: Optional[dict] = Field(None, alias="how_to")
     # V2026: Single product linking for context-aware title generation
     related_product_id: Optional[str] = Field(None, alias="related_product_id")
     related_product_name: Optional[str] = Field(None, alias="related_product_name")
