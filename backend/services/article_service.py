@@ -775,6 +775,12 @@ class ArticleService:
         """GEO 2026: XOHI Auto SEO Suggestion for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from pydantic import BaseModel, Field
+
+        class SEOSuggestionResponse(BaseModel):
+            seo_title: str = Field(..., description="Tiêu đề SEO (tối đa 60 ký tự)")
+            seo_description: str = Field(..., description="Mô tả SEO (tối đa 160 ký tự)")
+            seo_keywords: str = Field(..., description="Các từ khóa SEO cách nhau bởi dấu phẩy")
 
         # SGE Shield V1.0: Dynamic Prompting — inject entropy với admin config
         base_seo_prompt = (
@@ -784,8 +790,7 @@ class ArticleService:
             "Yêu cầu:\n"
             "1. Tiêu đề SEO: Tối đa 60 ký tự, hấp dẫn, chuyên nghiệp.\n"
             "2. Mô tả SEO: Tối đa 160 ký tự, súc tích và lôi cuốn.\n"
-            "3. Từ khóa: 5-7 từ khóa cách nhau bởi dấu phẩy.\n"
-            "Chỉ trả về JSON hợp lệ: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
+            "3. Từ khóa: 5-7 từ khóa cách nhau bởi dấu phẩy."
         )
         sge_cfg_seo = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -794,7 +799,7 @@ class ArticleService:
             structure_override=str(sge_cfg_seo["structure_override"]) if sge_cfg_seo.get("structure_override") else None,
         ) if sge_cfg_seo.get("enabled", True) else base_seo_prompt
 
-        agent = Agent(system_prompt=system_prompt)
+        agent = Agent(system_prompt=system_prompt, output_type=SEOSuggestionResponse)
         content_excerpt = (content or "")[:2000]
 
         # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
@@ -817,32 +822,50 @@ class ArticleService:
             )
 
             if result:
-                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group(0))
-                    if isinstance(parsed, dict):
-                        from backend.utils.text import validate_vietnamese_sentence
-                        seo_title = parsed.get("seo_title", "")
-                        seo_desc = parsed.get("seo_description", "")
-                        seo_kw = parsed.get("seo_keywords", "")
-                        
+                seo_data = getattr(result, "data", result)
+                if isinstance(seo_data, SEOSuggestionResponse):
+                    parsed_seo = seo_data
+                elif hasattr(seo_data, "seo_title"):
+                    parsed_seo = seo_data
+                else:
+                    # Fallback string parsing
+                    if isinstance(seo_data, str):
                         try:
-                            seo_title = validate_vietnamese_sentence(seo_title, mode="light")
-                        except Exception as ve:
-                            logger.warning(f"[ArticleService] SEO Title validation failed: {ve}")
-                        
-                        try:
-                            seo_desc = validate_vietnamese_sentence(seo_desc, mode="standard")
-                        except Exception as ve:
-                            logger.warning(f"[ArticleService] SEO Description validation failed: {ve}")
-                            
-                        from backend.services.xohi.prompts.shields.service import shield_service
-                        return {
-                            "seo_title": shield_service.sanitize(seo_title),
-                            "seo_description": shield_service.sanitize(seo_desc),
-                            "seo_keywords": shield_service.sanitize(seo_kw),
-                        }
+                            match = re.search(r'\{.*\}', seo_data, re.DOTALL)
+                            parsed = json.loads(match.group(0)) if match else {}
+                        except:
+                            parsed = {}
+                    elif isinstance(seo_data, dict):
+                        parsed = seo_data
+                    else:
+                        parsed = {}
+                    parsed_seo = SEOSuggestionResponse(
+                        seo_title=parsed.get("seo_title", ""),
+                        seo_description=parsed.get("seo_description", ""),
+                        seo_keywords=parsed.get("seo_keywords", "")
+                    )
+
+                from backend.utils.text import validate_vietnamese_sentence
+                seo_title = parsed_seo.seo_title
+                seo_desc = parsed_seo.seo_description
+                seo_kw = parsed_seo.seo_keywords
+                
+                try:
+                    seo_title = validate_vietnamese_sentence(seo_title, mode="light")
+                except Exception as ve:
+                    logger.warning(f"[ArticleService] SEO Title validation failed: {ve}")
+                
+                try:
+                    seo_desc = validate_vietnamese_sentence(seo_desc, mode="standard")
+                except Exception as ve:
+                    logger.warning(f"[ArticleService] SEO Description validation failed: {ve}")
+                    
+                from backend.services.xohi.prompts.shields.service import shield_service
+                return {
+                    "seo_title": shield_service.sanitize(seo_title),
+                    "seo_description": shield_service.sanitize(seo_desc),
+                    "seo_keywords": shield_service.sanitize(seo_kw),
+                }
 
             return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
 
@@ -854,6 +877,14 @@ class ArticleService:
         """GEO 2026: XOHI Auto FAQ Generator for Articles."""
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from pydantic import BaseModel, Field
+
+        class FAQItem(BaseModel):
+            question: str = Field(..., description="Câu hỏi thường gặp")
+            answer: str = Field(..., description="Câu trả lời ngắn gọn")
+
+        class FAQResponse(BaseModel):
+            faqs: List[FAQItem] = Field(..., description="Danh sách các câu hỏi thường gặp")
 
         # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
         base_faq_prompt = (
@@ -865,9 +896,7 @@ class ArticleService:
             "2. Tránh các câu hỏi chung chung. Câu hỏi phải bám sát từ khóa cốt lõi của bài viết để phục vụ truy vấn tìm kiếm.\n"
             "3. Câu trả lời (answer) phải ngắn gọn, súc tích (dưới 80 từ), chính xác và đi thẳng vào trọng tâm câu hỏi.\n"
             "4. QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%.\n"
-            "5. Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown:\n"
-            "[{\"question\": \"...\", \"answer\": \"...\"}]\n"
-            "6. TUYỆT ĐỐI không chứa bất kỳ thẻ liên kết <a>, đường dẫn (URL) nào trong câu hỏi hoặc câu trả lời."
+            "5. TUYỆT ĐỐI không chứa bất kỳ thẻ liên kết <a>, đường dẫn (URL) nào trong câu hỏi hoặc câu trả lời."
         )
         sge_cfg_faq = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -876,7 +905,7 @@ class ArticleService:
             structure_override=str(sge_cfg_faq["structure_override"]) if sge_cfg_faq.get("structure_override") else None,
         ) if sge_cfg_faq.get("enabled", True) else base_faq_prompt
 
-        agent = Agent(system_prompt=system_prompt)
+        agent = Agent(system_prompt=system_prompt, output_type=FAQResponse)
         # Truncate content to first 2000 chars for prompt efficiency
         content_excerpt = (content or "")[:2000]
 
@@ -900,31 +929,56 @@ class ArticleService:
             )
 
             if result:
-                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group(0))
-                    if isinstance(parsed, list):
-                        from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
-                        validated_faqs = []
-                        for faq in parsed:
-                            if isinstance(faq, dict) and "question" in faq and "answer" in faq:
-                                q = str(faq["question"]).strip()
-                                a = str(faq["answer"]).strip()
-                                try:
-                                    q = validate_vietnamese_sentence(q, mode="light")
-                                except Exception as ve:
-                                    logger.warning(f"[ArticleService] FAQ Question validation failed: {ve}")
-                                try:
-                                    a = sanitize_sentence_linebreaks(a)
-                                    a = validate_vietnamese_sentence(a, mode="standard")
-                                except Exception as ve:
-                                    logger.warning(f"[ArticleService] FAQ Answer validation failed: {ve}")
-                                from backend.services.xohi.prompts.shields.service import shield_service
-                                q = shield_service.sanitize(q)
-                                a = shield_service.sanitize(a)
-                                validated_faqs.append({"question": q, "answer": a})
-                        return validated_faqs
+                faq_data = getattr(result, "data", result)
+                if isinstance(faq_data, FAQResponse):
+                    parsed_faqs = faq_data.faqs
+                elif hasattr(faq_data, "faqs"):
+                    parsed_faqs = faq_data.faqs
+                else:
+                    # Fallback string parsing if somehow it returned raw dict or string
+                    if isinstance(faq_data, str):
+                        try:
+                            match = re.search(r'\[.*\]', faq_data, re.DOTALL)
+                            if match:
+                                parsed_list = json.loads(match.group(0))
+                            else:
+                                match_dict = re.search(r'\{.*\}', faq_data, re.DOTALL)
+                                if match_dict:
+                                    parsed_dict = json.loads(match_dict.group(0))
+                                    parsed_list = parsed_dict.get("faqs", [])
+                                else:
+                                    parsed_list = []
+                        except:
+                            parsed_list = []
+                    elif isinstance(faq_data, dict):
+                        parsed_list = faq_data.get("faqs", [])
+                    else:
+                        parsed_list = []
+                    
+                    parsed_faqs = []
+                    for item in parsed_list:
+                        if isinstance(item, dict) and "question" in item and "answer" in item:
+                            parsed_faqs.append(FAQItem(question=item["question"], answer=item["answer"]))
+
+                from backend.utils.text import validate_vietnamese_sentence, sanitize_sentence_linebreaks
+                validated_faqs = []
+                for faq in parsed_faqs:
+                    q = str(faq.question).strip()
+                    a = str(faq.answer).strip()
+                    try:
+                        q = validate_vietnamese_sentence(q, mode="light")
+                    except Exception as ve:
+                        logger.warning(f"[ArticleService] FAQ Question validation failed: {ve}")
+                    try:
+                        a = sanitize_sentence_linebreaks(a)
+                        a = validate_vietnamese_sentence(a, mode="standard")
+                    except Exception as ve:
+                        logger.warning(f"[ArticleService] FAQ Answer validation failed: {ve}")
+                    from backend.services.xohi.prompts.shields.service import shield_service
+                    q = shield_service.sanitize(q)
+                    a = shield_service.sanitize(a)
+                    validated_faqs.append({"question": q, "answer": a})
+                return validated_faqs
 
             return []
 
