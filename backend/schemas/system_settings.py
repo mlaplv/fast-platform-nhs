@@ -100,8 +100,12 @@ class SeoContextualLinksSettings(BaseModel):
         "moisturizer", "moisturizing", "whitening", "brightening", "antiaging", "repair", "soothing",
         "care", "exfoliator", "exfoliating", "ml", "g", "gr"
     ])
-
-
+    intent_keywords: List[str] = Field(default_factory=lambda: [
+        "dùng", "sử dụng", "thoa", "bôi", "uống", "khắc phục", "điều trị", "chữa", 
+        "cải thiện", "chăm sóc", "phục hồi", "tái tạo", "ngăn ngừa", "bảo vệ", "giảm", "trị",
+        "rửa", "sạch", "dịu", "tẩy", "đắp", "thấm", "thẩm thấu"
+    ])
+    
 
 class NewsTagSettings(BaseModel):
     """Cấu hình ánh xạ từ khóa cho các tag/chủ đề hot của tin tức."""

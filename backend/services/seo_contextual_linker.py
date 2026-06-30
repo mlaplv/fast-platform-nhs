@@ -172,9 +172,10 @@ class SeoContextualLinker:
             await db.commit()
             logger.info("[ContextualLinker] Cleared previous pending/rejected suggestions for article %s (pillar: %s)", article_id, target_pillar_id)
 
-        # Load user configured brand keywords and generic exclusions from System Settings
+        # Load user configured brand keywords, generic exclusions, and intent keywords from System Settings
         brand_keywords_config = None
         generic_exclusions_config = None
+        intent_keywords_config = None
         try:
             from backend.services.settings_service import settings_service
             settings_res = await settings_service.get_general_settings(db)
@@ -184,6 +185,8 @@ class SeoContextualLinker:
                     brand_keywords_config = [w.lower().strip() for w in seo_settings.brand_keywords if w.strip()]
                 if seo_settings.generic_exclusions:
                     generic_exclusions_config = {w.lower().strip() for w in seo_settings.generic_exclusions if w.strip()}
+                if hasattr(seo_settings, "intent_keywords") and seo_settings.intent_keywords:
+                    intent_keywords_config = [w.lower().strip() for w in seo_settings.intent_keywords if w.strip()]
         except Exception as e:
             logger.warning("[ContextualLinker] Failed to load system settings for contextual linking: %s", e)
 
@@ -351,7 +354,8 @@ class SeoContextualLinker:
             suggestion.matched_entity_type = self._normalize_entity_type(
                 suggestion.matched_entity_type,
                 suggestion.matched_entity_name,
-                pillar_label
+                pillar_label,
+                brand_keywords_config=brand_keywords_config
             )
 
         # Apply Brand-Relevance Multiplier and Keyword Affinity Filter
@@ -388,7 +392,7 @@ class SeoContextualLinker:
                     continue
                 if suggestion.confidence < _MIN_CONFIDENCE:
                     continue
-                eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config)
+                eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config, intent_keywords_config=intent_keywords_config)
                 if eas_score < 0.6:
                     logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                     continue
@@ -470,7 +474,7 @@ class SeoContextualLinker:
                         continue
                     if suggestion.confidence < _MIN_CONFIDENCE:
                         continue
-                    eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config)
+                    eas_score = self._calculate_eas(suggestion, pillars, article_content, brand_keywords_config=brand_keywords_config, generic_exclusions_config=generic_exclusions_config, intent_keywords_config=intent_keywords_config)
                     if eas_score < 0.6:
                         logger.info("[ContextualLinker] Suggestion '%s' filtered out due to low EAS score: %.2f", suggestion.anchor_text, eas_score)
                         continue
@@ -754,7 +758,8 @@ class SeoContextualLinker:
             "7. Chỉ chèn tối đa 1 link duy nhất trên mỗi câu. Bỏ qua nếu câu đã có sẵn liên kết.\n"
             "8. Trong 'reasoning', giải thích cụ thể tại sao thực thể này bổ trợ ngữ nghĩa sâu sắc cho người đọc và kết nối logic với Pillar đích.\n"
             f"9. CẢNH BÁO BẮT BUỘC: Đối với các sản phẩm (ví dụ: kem dưỡng cổ, kem mắt, mặt nạ...), nếu trong câu KHÔNG đề cập rõ ràng đến thương hiệu/tên sản phẩm cụ thể (ví dụ thuộc danh sách: {brand_keywords_str}), tuyệt đối KHÔNG được chèn link vào các cụm từ chung chung như 'kem dưỡng cổ', 'kem trị thâm mắt' hay 'chăm sóc da'. Hãy đặt should_link=false. Vi phạm sẽ bị phạt nặng vì hạ thấp E-E-A-T của trang web.\n"
-            "10. Độ tự tin (confidence) PHẢI bị hạ thấp dưới 0.85 (ví dụ: 0.5 - 0.7) nếu cụm từ neo (anchor text) chỉ là các triệu chứng chung chung (symptom), tính năng chung chung (feature) hoặc thành phần không độc quyền mà không đi kèm tên thương hiệu/tên sản phẩm rõ ràng.\n\n"
+            "10. Độ tự tin (confidence) PHẢI bị hạ thấp dưới 0.85 (ví dụ: 0.5 - 0.7) nếu cụm từ neo (anchor text) chỉ là các triệu chứng chung chung (symptom), tính năng chung chung (feature) hoặc thành phần không độc quyền mà không đi kèm tên thương hiệu/tên sản phẩm rõ ràng.\n"
+            "11. Anchor text tuyệt đối KHÔNG được chứa các dấu phân cách như dấu gạch ngang '-', dấu gạch đứng '|', hoặc phần mô tả công dụng đi kèm sau dấu phân cách (ví dụ: '- Sữa rửa mặt sạch sâu...'). Anchor text chỉ được chọn phần tên thương hiệu và tên sản phẩm cốt lõi (tối đa 8 từ). Ví dụ: chọn 'Miccosmo White Label Premium Placenta Wash 110g' làm anchor thay vì chọn cả cụm 'Miccosmo White Label Premium Placenta Wash 110g - Sữa rửa mặt sạch sâu, làm dịu da'.\n\n"
             "Chỉ đề xuất khi cực kỳ chắc chắn và độ tự tin cao. Nếu không chắc chắn, đặt should_link=false."
         )
 
@@ -901,6 +906,7 @@ class SeoContextualLinker:
         article_content: Optional[str] = None,
         brand_keywords_config: Optional[list[str]] = None,
         generic_exclusions_config: Optional[set[str]] = None,
+        intent_keywords_config: Optional[list[str]] = None,
     ) -> float:
         """
         Calculate Entity Alignment Score (EAS V2) under Google CTO-level strictness.
@@ -935,8 +941,19 @@ class SeoContextualLinker:
         # 2. Gate_intent
         gate_intent = 1.0
         sentence_lower = (suggestion.original_sentence or "").lower()
-        solution_keywords = ["dùng", "sử dụng", "thoa", "bôi", "uống", "khắc phục", "điều trị", "chữa", "cải thiện", "chăm sóc", "phục hồi", "tái tạo", "ngăn ngừa", "bảo vệ", "giảm", "trị"]
-        if not any(kw in sentence_lower for kw in solution_keywords):
+        
+        # Load configured intent keywords (verbs/action terms) from config or fallback defaults
+        action_verbs = intent_keywords_config
+        if action_verbs is None:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            action_verbs = [w.lower().strip() for w in defaults.intent_keywords if w.strip()]
+        
+        # Dynamically load configured product types/benefits from settings exclusions list
+        settings_exclusions = generic_exclusions_config or set()
+        
+        has_intent = any(verb in sentence_lower for verb in action_verbs) or any(exc in sentence_lower for exc in settings_exclusions)
+        if not has_intent:
             gate_intent = 0.5
 
         # 3. Base Score
@@ -976,7 +993,13 @@ class SeoContextualLinker:
 
         return eas
 
-    def _normalize_entity_type(self, entity_type: str, entity_name: str, target_pillar_label: str) -> str:
+    def _normalize_entity_type(
+        self,
+        entity_type: str,
+        entity_name: str,
+        target_pillar_label: str,
+        brand_keywords_config: Optional[list[str]] = None
+    ) -> str:
         """
         Normalize entity type based on entity name to prevent obvious classification mismatches.
         """
@@ -988,7 +1011,11 @@ class SeoContextualLinker:
             e_type = "brand"
         
         # Brand and product keywords
-        brand_keywords = {"miccosmo", "beppin", "white label", "hurry harry", "virgin white", "virgin"}
+        brand_keywords = brand_keywords_config
+        if brand_keywords is None:
+            from backend.schemas.system_settings import SeoContextualLinksSettings
+            defaults = SeoContextualLinksSettings()
+            brand_keywords = [w.lower().strip() for w in defaults.brand_keywords if w.strip()]
         
         # If the matched entity name contains any brand names, or is highly similar to the pillar label:
         is_brand_or_product = (

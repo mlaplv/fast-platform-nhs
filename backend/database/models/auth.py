@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy import (
     String, ForeignKey, Table, Column, Index, JSON, Float
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 from backend.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
@@ -40,7 +41,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     gender: Mapped[Optional[str]] = mapped_column(String) # MALE, FEMALE, OTHER
     dob: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
     avatar_url: Mapped[Optional[str]] = mapped_column(String)
-    extra_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict) # Elite V3.0: Skin profile, tier, etc.
+    extra_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict) # Elite V3.0: Skin profile, tier, etc.
 
     security_stamp: Mapped[str] = mapped_column(String, default=lambda: str(uuid.uuid4()))
     
@@ -69,23 +70,23 @@ class VoiceProfile(Base, AuditMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="voice_profile")
-    wake_words: Mapped[list[str]] = mapped_column(JSON, default=list)
-    sleep_words: Mapped[list[str]] = mapped_column(JSON, default=list)
+    wake_words: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    sleep_words: Mapped[list[str]] = mapped_column(JSONB, default=list)
     greeting_template: Mapped[str] = mapped_column(String, default=DEFAULT_GREETING)
     farewell_template: Mapped[str] = mapped_column(String, default=DEFAULT_FAREWELL)
-    capabilities: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
-    chat_settings: Mapped[dict[str, object]] = mapped_column(JSON, default=lambda: {
+    capabilities: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    chat_settings: Mapped[dict[str, object]] = mapped_column(JSONB, default=lambda: {
         "selective_persistence": True,
         "save_ai_responses": False,
         "auto_purge_days": 30,
         "cache_limit": 10
     })
-    stt_anchors: Mapped[list[str]] = mapped_column(JSON, default=list)
+    stt_anchors: Mapped[list[str]] = mapped_column(JSONB, default=list)
     mic_sensitivity: Mapped[float] = mapped_column(Float, default=0.6)
     gemini_keys_enc: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True) # V70: Secure keys
-    ai_models: Mapped[list[str]] = mapped_column(JSON, default=list) # V75: Model waterfall
+    ai_models: Mapped[list[str]] = mapped_column(JSONB, default=list) # V75: Model waterfall
     primary_model: Mapped[Optional[str]] = mapped_column(String, nullable=True) # V75: Main model
-    discovered_models: Mapped[list[str]] = mapped_column(JSON, default=list) # V75.7: Cached suggestions
+    discovered_models: Mapped[list[str]] = mapped_column(JSONB, default=list) # V75.7: Cached suggestions
 
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'roles'

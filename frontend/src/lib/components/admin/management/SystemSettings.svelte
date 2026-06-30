@@ -33,6 +33,7 @@
     auto_linking_enabled: boolean;
     brand_keywords: string[];
     generic_exclusions: string[];
+    intent_keywords: string[];
   }
 
   interface BasicInfo {
@@ -195,6 +196,7 @@
       auto_linking_enabled: false,
       brand_keywords: [],
       generic_exclusions: [],
+      intent_keywords: [],
     },
     news_tags: {
       tags_map: {},
@@ -284,6 +286,7 @@
             auto_linking_enabled: res.settings.seo_contextual_links?.auto_linking_enabled ?? false,
             brand_keywords: res.settings.seo_contextual_links?.brand_keywords || [],
             generic_exclusions: res.settings.seo_contextual_links?.generic_exclusions || [],
+            intent_keywords: res.settings.seo_contextual_links?.intent_keywords || [],
           },
           news_tags: res.settings.news_tags || {
             tags_map: {},
@@ -396,6 +399,22 @@
       const val = target.value.trim().toLowerCase();
       if (val && !settings.seo_contextual_links.generic_exclusions.includes(val)) {
         settings.seo_contextual_links.generic_exclusions = [...settings.seo_contextual_links.generic_exclusions, val];
+        target.value = "";
+      }
+    }
+  }
+
+  function removeIntentKeyword(index: number) {
+    settings.seo_contextual_links.intent_keywords = settings.seo_contextual_links.intent_keywords.filter((_, i) => i !== index);
+  }
+
+  function handleAddIntentKeyword(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const target = e.target as HTMLInputElement;
+      const val = target.value.trim().toLowerCase();
+      if (val && !settings.seo_contextual_links.intent_keywords.includes(val)) {
+        settings.seo_contextual_links.intent_keywords = [...settings.seo_contextual_links.intent_keywords, val];
         target.value = "";
       }
     }
@@ -1865,6 +1884,34 @@
                     />
                   </div>
                   <p class="text-[9px] text-zinc-500 italic">Nhập từ khóa loại bỏ và nhấn <strong>Enter</strong> hoặc phím <strong>dấu phẩy (,)</strong> để lưu. Các anchor text trùng hoặc chứa các cụm từ chung chung này sẽ bị bỏ qua hoàn toàn để tránh rác SEO.</p>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-white/5">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 class="text-xs font-bold text-white tracking-wider">Từ khóa hành động & ý định (Intent / Action Keywords)</h4>
+                  </div>
+                  <div class="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/10 rounded-xl min-h-[60px]">
+                    {#each settings.seo_contextual_links.intent_keywords || [] as kw, index}
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-mono text-amber-300">
+                        {kw}
+                        <button
+                          type="button"
+                          onclick={() => removeIntentKeyword(index)}
+                          class="hover:text-amber-400 transition-colors text-sm font-bold"
+                          title="Xóa từ khóa này"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    {/each}
+                    <input
+                      type="text"
+                      placeholder="+ Thêm từ khóa..."
+                      onkeydown={handleAddIntentKeyword}
+                      class="bg-transparent border-none outline-none text-xs text-zinc-300 placeholder-zinc-600 font-mono py-1 px-2 w-32 focus:ring-0"
+                    />
+                  </div>
+                  <p class="text-[9px] text-zinc-500 italic">Nhập các từ chỉ hành động sử dụng sản phẩm hoặc giải pháp điều trị (VD: <em>thoa, bôi, dùng, uống, phục hồi...</em>) và nhấn <strong>Enter</strong> để lưu. Đề xuất chỉ được chấp nhận nếu câu chứa ít nhất một từ khóa hành động hoặc từ khóa loại trừ của ngành hàng.</p>
                 </div>
               </div>
             </div>

@@ -54,7 +54,7 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     views: Mapped[int] = mapped_column(Integer, default=0)
     featured_image: Mapped[Optional[str]] = mapped_column(String)
 
-    article_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    article_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
     # CNS V87.0: Analysis Report (Copyright/SEO/AI)
     analysis_report: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
     
@@ -91,10 +91,10 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String, default="WAITING_FOR_REVIEW")
     category: Mapped[str] = mapped_column(String, default="CREATIVE_CONTENT", index=True)
     
-    gold_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
-    topic_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
-    assets_data: Mapped[Optional[Union[list[object], dict[str, object]]]] = mapped_column(JSON, default=list)
-    outline_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    gold_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
+    topic_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
+    assets_data: Mapped[Optional[Union[list[object], dict[str, object]]]] = mapped_column(JSONB, default=list)
+    outline_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     unique_score: Mapped[float] = mapped_column(sa.Float, default=1.0)
@@ -129,7 +129,7 @@ class CampaignEvent(Base, AuditMixin, TenantMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     campaign_id: Mapped[str] = mapped_column(String, sa.ForeignKey('content_campaigns.id', ondelete="CASCADE"), index=True)
     event_type: Mapped[str] = mapped_column(String, index=True)
-    payload: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    payload: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     campaign: Mapped["ContentCampaign"] = relationship("ContentCampaign", back_populates="events")
 
     __table_args__ = (
@@ -147,11 +147,11 @@ class Appointment(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     type: Mapped[str] = mapped_column(String, default="STRATEGY")
     status: Mapped[str] = mapped_column(String, default="UPCOMING")
     recurring_type: Mapped[str] = mapped_column(String, default="none") # none, daily, weekly, monthly
-    recurring_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    recurring_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
     
     campaign_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('content_campaigns.id', ondelete="SET NULL"), index=True)
     campaign: Mapped[Optional["ContentCampaign"]] = relationship("ContentCampaign")
-    metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict)
 
     __table_args__ = (
         Index("ix_appointments_tenant_deleted", "tenant_id", "deleted_at"),
@@ -163,7 +163,7 @@ class ContentScout(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     topic: Mapped[str] = mapped_column(String, index=True)
-    report_data: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    report_data: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     
     # CNS V62.2: TTL for cache (24h default)
     expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), index=True)
