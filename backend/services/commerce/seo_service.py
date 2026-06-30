@@ -938,13 +938,16 @@ class SeoService:
                 logger.error("[SeoService] Error loading article metadata for how_to: %s", e)
 
         # HTML Parser Fallback if still no how_to
+        is_fallback_parsed = False
         if not how_to and article_content:
             how_to = SeoService._parse_how_to_fallback(article_content)
+            is_fallback_parsed = True
 
         # GEO V4.0: Map intent_type → Schema.org type per Google Article structured data guidelines
         # NewsArticle is reserved for timely news content only
         how_to_data = how_to
-        if intent_type == "informational_how" and how_to_data and how_to_data.get("steps"):
+        has_valid_steps = how_to_data and how_to_data.get("steps")
+        if has_valid_steps and (not is_fallback_parsed or intent_type == "informational_how"):
             schema_type = "HowTo"
         else:
             schema_type = "NewsArticle" if intent_type == "news" else "Article"

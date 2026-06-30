@@ -64,6 +64,12 @@
       category?: string;
       metadata?: {
         faqs?: { question: string; answer: string }[];
+        how_to?: {
+          total_time?: string;
+          tools?: { name: string }[];
+          supplies?: { name: string }[];
+          steps?: { name: string; text: string; image?: string | null }[];
+        };
         related_product_id?: string;
         related_product_name?: string;
         related_product_image?: string;
@@ -322,6 +328,64 @@
         >
           {@html injectedContent}
         </svelte:element>
+
+        {#if article.metadata?.how_to && article.metadata.how_to.steps && article.metadata.how_to.steps.length > 0}
+          <div class="px-8 md:px-12 py-10 bg-gradient-to-tr from-gray-50/70 to-white border-t border-gray-100/60">
+            <!-- Header -->
+            <div class="mb-6 flex items-center gap-3">
+              <span class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full animate-pulse"></span>
+              <h2 class="text-[18px] font-black text-gray-900 tracking-tight uppercase" style="margin: 0; border: none; padding: 0;">Hướng dẫn thực hiện từng bước</h2>
+            </div>
+            
+            <!-- Quick Meta (Total time, tools, supplies) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-[#fff0f0]/60 p-6 border-l-4 border-[#C18F7E] shadow-[10px_10px_30px_rgba(193,143,126,0.04)]">
+              <div>
+                <span class="block text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Thời gian thực hiện</span>
+                <span class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-[#C18F7E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  {article.metadata.how_to.total_time ? article.metadata.how_to.total_time.replace('PT', '').replace('M', ' phút').replace('H', ' giờ') : '5 phút'}
+                </span>
+              </div>
+              
+              {#if article.metadata.how_to.tools && article.metadata.how_to.tools.length > 0}
+                <div>
+                  <span class="block text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Dụng cụ cần thiết</span>
+                  <span class="text-sm font-bold text-gray-800 flex flex-wrap gap-2">
+                    {article.metadata.how_to.tools.map(t => t.name).join(', ')}
+                  </span>
+                </div>
+              {/if}
+
+              {#if article.metadata.how_to.supplies && article.metadata.how_to.supplies.length > 0}
+                <div>
+                  <span class="block text-[10px] font-black text-gray-400 tracking-wider uppercase mb-1">Nguyên liệu / Sản phẩm</span>
+                  <span class="text-sm font-bold text-[#C18F7E] flex flex-wrap gap-2">
+                    {article.metadata.how_to.supplies.map(s => s.name).join(', ')}
+                  </span>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Steps List -->
+            <div class="space-y-6">
+              {#each article.metadata.how_to.steps as step, i}
+                <div class="bg-white border border-gray-100 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex gap-4">
+                  <div class="flex-shrink-0 w-10 h-10 bg-[#C18F7E] text-white font-black text-lg flex items-center justify-center rounded-full shadow-sm shadow-[#C18F7E]/30">
+                    {i + 1}
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-base font-black text-gray-900 mb-1" style="margin: 0; padding: 0;">{step.name}</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed" style="margin: 0.25rem 0 0 0;">{step.text}</p>
+                    {#if step.image}
+                      <img src={step.image} alt={step.name} class="mt-4 rounded-lg max-h-[240px] w-auto object-cover" />
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
         <div id="article-end-marker" class="h-1 w-full"></div>
 
         {#if article.metadata?.related_product_id && isArticleRead}
