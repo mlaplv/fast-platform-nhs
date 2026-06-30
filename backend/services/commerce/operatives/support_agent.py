@@ -11,7 +11,7 @@ import logging
 import time
 from typing import Optional, cast, Union, Dict, Type
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.utils.uid import new_id
