@@ -180,8 +180,9 @@
       />
     {:else}
       <button 
-        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-orange-500/20 transition-all group"
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-orange-500/20 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
         onclick={runCopyrightCheck}
+        disabled={isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing || isBoosting || isRewriting}
       >
         Nhấn <span class="text-orange-400/70 font-bold group-hover:text-orange-400">COPYRIGHT</span> để phân tích đạo văn.
       </button>
@@ -204,12 +205,13 @@
         {seoResult} {runSeoAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
-        isSeoLoading={isSeoLoading}
+        isSeoLoading={isSeoLoading} {isRewriting}
       />
     {:else}
       <button 
-        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-blue-500/20 transition-all group"
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-blue-500/20 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
         onclick={runSeoAnalysis}
+        disabled={isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing || isBoosting || isRewriting}
       >
         Nhấn <span class="text-blue-400/70 font-bold group-hover:text-blue-400">SEO</span> để chấm điểm 7 tín hiệu SEO.
       </button>
@@ -232,12 +234,13 @@
         {aiReadyResult} {runAiAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
-        isAiLoading={isAiLoading}
+        isAiLoading={isAiLoading} {isRewriting}
       />
     {:else}
       <button 
-        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-purple-500/20 transition-all group"
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-purple-500/20 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
         onclick={runAiAnalysis}
+        disabled={isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing || isBoosting || isRewriting}
       >
         Nhấn <span class="text-purple-400/70 font-bold group-hover:text-purple-400">AI MOD</span> để kiểm tra Viral Edge Score.
       </button>
@@ -255,13 +258,14 @@
               <span class="text-sm font-black tracking-[0.1em] text-pink-400">
                 🔪 Surgeon Booster™
               </span>
-              {#if boosterAnnotations.length > 0 && !isBoosting}
+              {#if boosterAnnotations.length > 0}
                 <button 
                   onclick={() => runAiBooster?.()}
-                  class="p-1.5 rounded-lg hover:bg-pink-500/10 text-pink-500/40 hover:text-pink-400 transition-all active:scale-90"
+                  disabled={isBoosting || isBulkFixing}
+                  class="p-1.5 rounded-lg hover:bg-pink-500/10 text-pink-500/40 hover:text-pink-400 transition-all active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Chạy lại Booster"
                 >
-                  <RefreshCw size={12} strokeWidth={3} />
+                  <RefreshCw size={12} strokeWidth={3} class={isBoosting ? "animate-spin text-pink-400" : ""} />
                 </button>
               {/if}
             </div>
@@ -269,14 +273,18 @@
               <span class="text-[9px] font-black tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
             </div>
           
-          {#if boosterAnnotations.some(a => !a.is_applied) && !isBoosting}
+          {#if boosterAnnotations.some(a => !a.is_applied)}
             <div class="ml-auto pr-3">
               <button 
                 onclick={runBulkBoosterFix}
-                disabled={isBulkFixing}
-                class="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-[9px] font-black tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                disabled={isBulkFixing || isBoosting}
+                class="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-[9px] font-black tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle2 size={12} />
+                {#if isBulkFixing}
+                  <div class="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                {:else}
+                  <CheckCircle2 size={12} />
+                {/if}
                 Duyệt tất cả
               </button>
             </div>
@@ -317,8 +325,8 @@
                   {:else}
                     <button 
                       onclick={() => handleInternalFix(ann.search_string || ann.text, 'enrich', ann.replacement_string || '')}
-                      disabled={isFixing === (ann.search_string || ann.text)}
-                      class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-[8px] font-black text-emerald-400 tracking-widest hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                      disabled={isFixing === (ann.search_string || ann.text) || isBulkFixing || isBoosting}
+                      class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-[8px] font-black text-emerald-400 tracking-widest hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {#if isFixing === (ann.search_string || ann.text)}
                         PHẪU THUẬT...

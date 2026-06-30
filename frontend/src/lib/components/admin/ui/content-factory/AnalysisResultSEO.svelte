@@ -13,9 +13,10 @@
     streamingText?: string;
     streamingTarget?: string | null;
     isSeoLoading?: boolean;
+    isRewriting?: boolean;
   }
 
-  let { seoResult, runSeoAnalysis, isFixing = null, handleInternalFix = null, runBulkFix, isBulkFixing = false, streamingText = '', streamingTarget = null, isSeoLoading = false }: Props = $props();
+  let { seoResult, runSeoAnalysis, isFixing = null, handleInternalFix = null, runBulkFix, isBulkFixing = false, streamingText = '', streamingTarget = null, isSeoLoading = false, isRewriting = false }: Props = $props();
 
   const gradeColor = $derived(
     seoResult.grade === 'A' ? '#10b981' :
@@ -67,14 +68,26 @@
 
       <!-- Re-scan -->
       <button onclick={() => runSeoAnalysis(true)}
-        disabled={isSeoLoading || isBulkFixing || !!isFixing}
+        disabled={isSeoLoading || isBulkFixing || !!isFixing || isRewriting}
         class="mr-3 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:bg-blue-500/20 hover:border-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         title="Chạy lại (Force Re-scan)">
-        {#if isSeoLoading}
-          <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-        {:else}
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-        {/if}
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="12" 
+          height="12" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2.5" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          class={isSeoLoading ? "animate-spin text-blue-400" : ""}
+        >
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M3 21v-5h5"/>
+        </svg>
       </button>
     </div>
 
@@ -94,7 +107,7 @@
       <div class="px-3 py-2 border-b border-blue-500/10 bg-blue-500/[0.02]">
         <button 
           onclick={() => runBulkFix?.()}
-          disabled={isSeoLoading || isBulkFixing || !!isFixing}
+          disabled={isSeoLoading || isBulkFixing || !!isFixing || isRewriting}
           class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500 hover:text-white hover:border-blue-400 text-blue-400 text-[10px] font-black tracking-widest transition-all shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 disabled:opacity-50"
         >
           {#if isBulkFixing}
@@ -172,7 +185,7 @@
               {#if handleInternalFix}
                 <button
                   onclick={() => handleInternalFix!(ann.text, ann.type || 'seo', ann.message || ann.reason || '')}
-                  disabled={isSeoLoading || isBulkFixing || !!isFixing}
+                  disabled={isSeoLoading || isBulkFixing || !!isFixing || isRewriting}
                   class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer hover:bg-white/5 active:scale-95"
                   style="border-color: {annHex}40; color: {annHex}; background: {annHex}10">
                   {#if streamingTarget === ann.text}
