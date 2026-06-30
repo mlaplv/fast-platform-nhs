@@ -1010,7 +1010,7 @@ class ArticleService:
             structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
         ) if sge_cfg.get("enabled", True) else base_prompt
 
-        agent = Agent(system_prompt=system_prompt)
+        agent = Agent(system_prompt=system_prompt, output_type=str)
         
         # [ARCH FIX] Session riêng, đóng ngay — ZERO connection held khi gọi AI
         _, product_context = await self._read_product_context_isolated(product_id)
@@ -1181,9 +1181,15 @@ class ArticleService:
     ) -> Dict[str, List[str]]:
         """V2026: XOHI Title Generator — sinh tiêu đề chia theo 3 nhóm dựa trên Top 10 + context sản phẩm."""
         from pydantic_ai import Agent
+        from pydantic import BaseModel, Field
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         from backend.services.xohi.google_search import google_search_service
         from backend.database.models import ProductBase
+
+        class TitleSuggestionResponse(BaseModel):
+            seo_sge: List[str] = Field(..., description="3 tiêu đề SEO/SGE")
+            guide_advanced: List[str] = Field(..., description="3 tiêu đề hướng dẫn nâng cao")
+            related_keywords: List[str] = Field(..., description="3 tiêu đề từ khóa liên quan")
 
         # [ARCH FIX] Tất cả DB queries dùng session riêng, đóng ngay trước khi gọi AI.
         # Đảm bảo ZERO connection held trong suốt quá trình AI generate (~3-10s).
@@ -1260,13 +1266,7 @@ class ArticleService:
             "2. Nhóm 'guide_advanced': Các tiêu đề dạng hướng dẫn sử dụng, mẹo hay, kinh nghiệm thực tế, cách làm nâng cao nhằm giải quyết bài toán của người dùng.\n"
             "3. Nhóm 'related_keywords': Tận dụng các từ khóa phụ liên quan, chủ đề mở rộng xung quanh để tăng tối đa độ bao phủ chủ đề (coverage).\n\n"
             "Mỗi tiêu đề dài từ 50-65 ký tự, tự nhiên, không clickbait rẻ tiền.\n"
-            "QUY TẮC TỐI CAO: Dù dữ liệu đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%.\n"
-            "Chỉ trả về định dạng JSON hợp lệ duy nhất sau:\n"
-            "{\n"
-            "  \"seo_sge\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"],\n"
-            "  \"guide_advanced\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"],\n"
-            "  \"related_keywords\": [\"tiêu đề 1\", \"tiêu đề 2\", \"tiêu đề 3\"]\n"
-            "}"
+            "QUY TẮC TỐI CAO: Dù dữ liệu đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%."
         )
 
         sge_cfg = await _get_sge_config_async()
@@ -1276,7 +1276,7 @@ class ArticleService:
             structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
         ) if sge_cfg.get("enabled", True) else base_prompt
 
-        agent = Agent(system_prompt=system_prompt)
+        agent = Agent(system_prompt=system_prompt, output_type=TitleSuggestionResponse)
         prompt_parts = [f"Chuyên mục: {category or 'Chung'}"]
         if keywords:
             prompt_parts.append(f"Từ khóa SEO: {keywords}")
@@ -1301,24 +1301,27 @@ class ArticleService:
                 per_model_timeout=20.0,
             )
             if result:
-                raw = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                match = re.search(r'\{.*\}', raw, re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group(0))
-                    if isinstance(parsed, dict):
-                        from backend.utils.text import validate_vietnamese_sentence
-                        validated_res = {"seo_sge": [], "guide_advanced": [], "related_keywords": []}
-                        for key in ["seo_sge", "guide_advanced", "related_keywords"]:
-                            for t in parsed.get(key, []):
-                                if isinstance(t, str) and t.strip():
-                                    try:
-                                        clean_t = validate_vietnamese_sentence(t.strip(), mode="light")
-                                        from backend.services.xohi.prompts.shields.service import shield_service
-                                        clean_t = shield_service.sanitize(clean_t)
-                                        validated_res[key].append(clean_t)
-                                    except Exception as ve:
-                                        logger.warning(f"[ArticleService] Title validation failed for '{t}': {ve}")
-                        return {k: v[:3] for k, v in validated_res.items()}
+                title_data = getattr(result, "data", result)
+                if isinstance(title_data, TitleSuggestionResponse):
+                    raw_titles = title_data
+                elif hasattr(title_data, "seo_sge"):
+                    raw_titles = title_data
+                else:
+                    return fallback
+
+                from backend.utils.text import validate_vietnamese_sentence
+                from backend.services.xohi.prompts.shields.service import shield_service
+                validated_res: Dict[str, List[str]] = {"seo_sge": [], "guide_advanced": [], "related_keywords": []}
+                for key in ["seo_sge", "guide_advanced", "related_keywords"]:
+                    for t in getattr(raw_titles, key, []):
+                        if isinstance(t, str) and t.strip():
+                            try:
+                                clean_t = validate_vietnamese_sentence(t.strip(), mode="light")
+                                clean_t = shield_service.sanitize(clean_t)
+                                validated_res[key].append(clean_t)
+                            except Exception as ve:
+                                logger.warning(f"[ArticleService] Title validation failed for '{t}': {ve}")
+                return {k: v[:3] for k, v in validated_res.items()}
             return fallback
         except Exception as e:
             logger.exception(f"[ArticleService] AI Title Suggestion Failed: {e}")
