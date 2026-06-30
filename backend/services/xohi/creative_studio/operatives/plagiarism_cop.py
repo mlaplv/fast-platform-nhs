@@ -41,7 +41,7 @@ MAX_PARAGRAPHS_ANALYZE = 1000
 DEFAULT_SIMILARITY_THRESHOLD = 0.75
 RECON_TIMEOUT_SECONDS = 10.0
 COMPETITOR_TIMEOUT_SECONDS = 5.0
-MAX_SNIPPET_CHARS = 3000
+MAX_SNIPPET_CHARS = 1500
 
 class PlagiarismTaskRequest(BaseModel):
     campaign_id: str
@@ -238,8 +238,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 logger.warning("📡 [PlagiarismCop] Sending to Neural Core (Brain)...")
                 # CNS V91.2: Reduce input pressure — 50k→25k chars to free output token budget
                 # Gemini context window is shared between input+output. Large input = compressed output = truncated verdict
-                content_input = ('\n'.join(deduped))[:25000]
-                # Cap competitor snippets: each MAX_SNIPPET_CHARS=3000, max 5 comps = 15000 chars max
+                content_input = ('\n'.join(deduped))[:15000]
+                # Cap competitor snippets: each MAX_SNIPPET_CHARS=1500, max 5 comps = 7500 chars max
                 comps_input = '\n'.join(c[:MAX_SNIPPET_CHARS] for c in comps[:MAX_COMPETITOR_FETCH])
                 prompt = f"""[BÀI VIẾT CỦA BẠN]:\n{content_input}\n\n[ĐỐI THỦ CẠNH TRANH]:\n{comps_input}"""
                 logger.warning(f"📡 [PlagiarismCop] Prompt size: {len(prompt)} chars. Awaiting Brain Response...")
@@ -248,8 +248,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                     system_prompt=system_prompt,
                     force=force,
                     role="brain",
-                    timeout=90.0,
-                    per_model_timeout=30.0,
+                    timeout=120.0,
+                    per_model_timeout=45.0,
                     safety_none=True,
                     # CNS V91.2: CRITICAL FIX — key was 'max_output_tokens' (WRONG/ignored), must be 'max_tokens'
                     # PydanticAI ModelSettings TypedDict only has 'max_tokens' field, others are silently ignored
@@ -370,7 +370,9 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                     type="plagiarism"
                 ))
 
-        score = max(0.0, 1.0 - (matched_chars / (total_chars or 1)))
+        # Áp dụng discount factor 0.4 cho heuristic false positive (vì đối sánh chuỗi thô sơ có độ sai lệch cao)
+        matched_ratio = (matched_chars / (total_chars or 1)) * 0.4
+        score = max(0.0, 1.0 - matched_ratio)
         return PlagiarismResult(
             uniqueness_score=score,
             risk_level="HIGH" if score < RISK_HIGH_THRESHOLD else ("MEDIUM" if score < RISK_MEDIUM_THRESHOLD else "LOW"),
