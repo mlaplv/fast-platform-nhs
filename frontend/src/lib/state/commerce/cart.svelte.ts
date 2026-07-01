@@ -4,9 +4,10 @@ import { getContext, setContext, untrack } from 'svelte';
 import { authStore } from '../authStore.svelte';
 
 export interface CartItem {
-    id: string; // Unique ID (product.id + variant.id)
+    id: string; // Unique ID: product.id + tier_index signature (e.g. "prod_abc_0,1")
     product: Product;
-    variant?: ProductVariant;
+    classification?: { tier_index: number[] }; // The user's chosen option (e.g. [0] = "Dứt điểm")
+    variant?: ProductVariant; // Kept for compatibility — NOT used as the cart key
     quantity: number;
     selected: boolean;
 }
@@ -82,12 +83,29 @@ export class CartStore {
             try {
                 const parsed = JSON.parse(saved);
                 if (parsed.items) {
-                    this.items = (parsed.items as Partial<CartItem>[] || [])
-                        .filter((i): i is CartItem => !!(i?.id && i?.product))
-                        .map((item) => ({
-                            ...item,
-                            selected: item.selected ?? true
-                        } as CartItem));
+                    const rawItems = (parsed.items as Partial<CartItem>[] || [])
+                        .filter((i): i is CartItem => !!(i?.id && i?.product));
+
+                    // ELITE V3.0: One-time migration from old variant.id-keyed IDs to tier_index-keyed IDs.
+                    // Old format: "product_id_variant_uuid" → New: "product_id_0,1"
+                    const mergedMap = new Map<string, CartItem>();
+                    for (const raw of rawItems) {
+                        const migratedItem: CartItem = { ...raw, selected: raw.selected ?? true };
+
+                        // Rebuild correct classification and id to align with current logic
+                        const idx = this.getClassificationIndex(migratedItem.product, migratedItem.variant);
+                        migratedItem.classification = idx.length > 0 ? { tier_index: idx } : undefined;
+                        migratedItem.id = this.getUniqueId(migratedItem.product, migratedItem.variant);
+
+                        // Merge duplicate rows that map to the same new id
+                        const existing = mergedMap.get(migratedItem.id);
+                        if (existing) {
+                            existing.quantity += migratedItem.quantity;
+                        } else {
+                            mergedMap.set(migratedItem.id, migratedItem);
+                        }
+                    }
+                    this.items = Array.from(mergedMap.values());
                 } else {
                     this.items = [];
                 }
@@ -113,7 +131,6 @@ export class CartStore {
                     }
                     this.giftInfo = parsed.giftInfo || null;
                     this.selectedVoucherIds = parsed.selectedVoucherIds || [];
-                    // Remove legacy key to avoid polluting
                     localStorage.removeItem(legacyKey);
                 } catch (e) {
                     console.error('Failed to parse legacy cart data', e);
@@ -127,6 +144,101 @@ export class CartStore {
         // Elite V2.2: Vouchers are NOT loaded from storage.
         // They are sourced exclusively from the layout API via cart.setVouchers(data.vouchers).
         // DO NOT call setVouchers here — it would wipe API-loaded vouchers on auth state changes.
+    }
+
+    /**
+     * Helper to identify which dimensions in the product's tier_index are combo/quantity dimensions.
+     * Dimensions are classified as combo dimensions if:
+     * 1. Their name/label in tier_variations contains keywords like "combo", "khuyến mãi", "số lượng".
+     * 2. Or if varying that dimension changes the combo_qty attribute of the variants.
+     */
+    private getComboDimensions(product: Product): Set<number> {
+        const comboDims = new Set<number>();
+        const variants = product.variants || [];
+        
+        // 1. Semantic check of tier names
+        const comboKeywords = ['combo', 'khuyến mãi', 'khuyen mai', 'số lượng', 'so luong', 'quà tặng', 'qua tang'];
+        const tierVariations = product.tier_variations ?? product.tierVariations ?? [];
+        tierVariations.forEach((tier, d) => {
+            const nameLower = String(tier.name || '').toLowerCase();
+            if (comboKeywords.some(kw => nameLower.includes(kw))) {
+                comboDims.add(d);
+            }
+        });
+
+        if (variants.length <= 1) return comboDims;
+
+        const getQty = (v: ProductVariant) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 1);
+
+        // Find max tier_index length
+        let maxLen = 0;
+        for (const v of variants) {
+            const vi = v.tier_index ?? v.tierIndex;
+            if (Array.isArray(vi) && vi.length > maxLen) {
+                maxLen = vi.length;
+            }
+        }
+
+        // 2. Attribute-based check: find dimensions where combo_qty varies
+        for (let d = 0; d < maxLen; d++) {
+            for (let i = 0; i < variants.length; i++) {
+                for (let j = i + 1; j < variants.length; j++) {
+                    const v1 = variants[i];
+                    const v2 = variants[j];
+                    const vi1 = v1.tier_index ?? v1.tierIndex;
+                    const vi2 = v2.tier_index ?? v2.tierIndex;
+
+                    if (!Array.isArray(vi1) || !Array.isArray(vi2)) continue;
+                    if (vi1.length !== vi2.length) continue;
+
+                    let diffCount = 0;
+                    let onlyDiffAtD = true;
+                    for (let k = 0; k < vi1.length; k++) {
+                        if (vi1[k] !== vi2[k]) {
+                            diffCount++;
+                            if (k !== d) {
+                                onlyDiffAtD = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (diffCount === 1 && onlyDiffAtD) {
+                        if (getQty(v1) !== getQty(v2)) {
+                            comboDims.add(d);
+                            break;
+                        }
+                    }
+                }
+                if (comboDims.has(d)) break;
+            }
+        }
+
+        return comboDims;
+    }
+
+    /**
+     * Get the classification signature of a variant (returns original tier_index number array).
+     */
+    private getClassificationIndex(product: Product, variant?: ProductVariant): number[] {
+        const idx = variant?.tier_index ?? variant?.tierIndex;
+        if (!Array.isArray(idx)) return [];
+        return idx;
+    }
+
+    /**
+     * ELITE V3.0: Canonical Cart Item ID.
+     * Key = product.id + tier_index of chosen classification, where combo dimensions are replaced by '_'.
+     * E.g. "prod_abc_0,_" or "prod_abc__" if all dimensions are combo/quantity tiers.
+     * This guarantees that items of the same core classification merge into a single row.
+     */
+    private getUniqueId(product: Product, variant?: ProductVariant): string {
+        const idx = this.getClassificationIndex(product, variant);
+        if (idx.length > 0) {
+            const comboDims = this.getComboDimensions(product);
+            return `${product.id}_${idx.map((v, d) => comboDims.has(d) ? '_' : v).join(',')}`;
+        }
+        return product.id;
     }
 
     // Computed State
@@ -297,17 +409,26 @@ export class CartStore {
     }
 
     addItem(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
-        const uniqueId = variant ? `${product.id}_${variant.id}` : product.id;
+        // ELITE V3.0: ID based on tier_index classification, NOT variant.id.
+        // This guarantees same-classification items (combo or single) always merge into one row.
+        const uniqueId = this.getUniqueId(product, variant);
         const existingItem = this.items.find(item => item.id === uniqueId);
+
+        const tierIndex = this.getClassificationIndex(product, variant);
 
         if (existingItem) {
             existingItem.quantity += quantity;
-            existingItem.selected = true; // Auto select when adding
+            existingItem.selected = true;
+            // Update variant reference to latest selection (for gift/attributes metadata lookup)
+            if (variant) existingItem.variant = variant;
             this.items = [...this.items];
         } else {
             this.items.push({
                 id: uniqueId,
                 product,
+                classification: tierIndex.length > 0
+                    ? { tier_index: tierIndex }
+                    : undefined,
                 variant,
                 quantity,
                 selected: true
@@ -318,7 +439,7 @@ export class CartStore {
         if (voucherIds && voucherIds.length > 0) {
             this.selectedVoucherIds = voucherIds;
         }
-        
+
         this.save();
     }
 
@@ -348,53 +469,52 @@ export class CartStore {
     }
 
     /**
-     * ELITE V2.2: Retrieve the resolved active variant based on combo quantity levels
+     * ELITE V3.0: Tier-Aware Variant Resolution.
+     * Uses classification.tier_index to scope variants to the user's chosen option group,
+     * then selects the best combo tier based on total quantity in the cart.
      */
     getEffectiveVariant(itemId: string): ProductVariant | undefined {
         const item = this.items.find(i => i.id === itemId);
         if (!item) return undefined;
 
-        const selectedItems = this.items.filter(i => i.selected);
-        const totalQtyForProduct = selectedItems
-            .filter(i => i.product.id === item.product.id)
-            .reduce((acc, i) => acc + i.quantity, 0);
+        // Total quantity for THIS specific item row (not all variants of the same product)
+        const totalQty = item.quantity;
 
-        const getQty = (attrs: ProductVariant['attributes']): number => 
-            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 1);
+        const getQty = (v: ProductVariant): number =>
+            Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 1);
 
-        if (item.variant) {
-            const currentVariantQty = getQty(item.variant.attributes);
-            if (currentVariantQty === totalQtyForProduct) {
-                return item.variant;
-            }
-        }
+        const allVariants = item.product?.variants?.filter(v => v.is_active !== false) || [];
 
-        const comboVariants = item.product?.variants?.filter(v => {
-            if (!v.attributes) return false;
-            return getQty(v.attributes) > 0;
-        }) || [];
+        // --- 1. Scope to classification (tier_index) ---
+        // classification.tier_index identifies the user's chosen option, ignoring combo dimensions
+        const classIdx = item.classification?.tier_index
+            ?? this.getClassificationIndex(item.product, item.variant);
 
-        if (comboVariants.length === 0) return item.variant || item.product.variants?.[0];
-
-        const sortedTiers = [...comboVariants].sort((a, b) => 
-            getQty(b.attributes) - getQty(a.attributes)
-        );
-        const eligibleTiers = sortedTiers.filter(v => getQty(v.attributes) <= totalQtyForProduct);
-        if (eligibleTiers.length === 0) return item.variant || item.product.variants?.[0];
-
-        // Try to find a tier with matching non-combo attributes
-        const currentVariant = item.variant;
-        if (currentVariant) {
-            const matchingTier = eligibleTiers.find(v => {
-                const attrs1 = currentVariant.attributes || {};
-                const attrs2 = v.attributes || {};
-                const keys = Object.keys(attrs1).filter(k => k !== 'combo_qty' && k !== 'comboQty' && k !== 'gifts');
-                return keys.every(key => attrs1[key] === attrs2[key]);
+        let candidates: ProductVariant[];
+        if (Array.isArray(classIdx) && classIdx.length > 0) {
+            const comboDims = this.getComboDimensions(item.product);
+            // Filter variants that match the classification dimensions, ignoring combo dimensions
+            candidates = allVariants.filter(v => {
+                const vi = v.tier_index ?? v.tierIndex;
+                if (!Array.isArray(vi)) return false;
+                return classIdx.every((val, i) => comboDims.has(i) || vi[i] === val);
             });
-            if (matchingTier) return matchingTier;
+        } else {
+            candidates = allVariants;
         }
 
-        return eligibleTiers[0];
+        if (candidates.length === 0) {
+            return item.variant ?? allVariants[0];
+        }
+
+        // --- 2. Find the best eligible combo tier within scoped candidates ---
+        const sorted = [...candidates].sort((a, b) => getQty(b) - getQty(a));
+        const eligible = sorted.filter(v => getQty(v) <= totalQty);
+
+        if (eligible.length > 0) return eligible[0];
+
+        // Fallback: return the base (smallest qty) variant in the classification
+        return sorted[sorted.length - 1] ?? item.variant;
     }
 
     /**
@@ -450,7 +570,13 @@ export class CartStore {
     }
 
     buyNow(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
-        // Elite V7.4: Pass vouchers to ensure price syncs with product page
+        // ELITE V3.0: "Mua Ngay" semantics.
+        // Clear the cart only if the existing items in the cart are for a DIFFERENT product.
+        // If it's the same product, we keep the items to allow automatic quantity merging.
+        const hasDifferentProduct = this.items.some(item => item.product.id !== product.id);
+        if (hasDifferentProduct) {
+            this.items = [];
+        }
         this.addItem(product, variant, quantity, voucherIds);
     }
 
