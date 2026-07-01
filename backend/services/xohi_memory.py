@@ -23,6 +23,26 @@ logger = logging.getLogger("api-gateway")
 CTX_TTL = 86400
 PROFILE_TTL = 3600
 
+def _decrypt_json(data_val: Union[str, bytes]) -> object:
+    from backend.utils.security import GeminiSecurity
+    try:
+        data_str = data_val.decode() if isinstance(data_val, bytes) else str(data_val)
+        decrypted = GeminiSecurity.decrypt(data_str)
+        if isinstance(decrypted, (dict, list)):
+            return decrypted
+        if isinstance(decrypted, str):
+            try:
+                return json.loads(decrypted)
+            except Exception:
+                return decrypted
+        return decrypted
+    except Exception:
+        try:
+            data_str = data_val.decode() if isinstance(data_val, bytes) else str(data_val)
+            return json.loads(data_str)
+        except Exception:
+            return data_val
+
 class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
     """
     Persistent memory layer for XoHi assistant.
@@ -49,13 +69,18 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         key = f"xohi:ctx:{user_id}"
         try:
             data = await self.client.get(key)
-            if data: return json.loads(data)
+            if data:
+                res = _decrypt_json(data)
+                if isinstance(res, dict): return res
         except Exception as e: logger.debug(f"[XoHiMemory] Redis get failed: {e}")
         return self._fallback_cache.get(f"ctx:{user_id}", {})
 
     async def set_user_context(self, user_id: str, context: Dict[str, JsonValue]):
         key = f"xohi:ctx:{user_id}"
-        try: await self.client.set(key, json.dumps(context, ensure_ascii=False), ex=CTX_TTL)
+        try:
+            from backend.utils.security import GeminiSecurity
+            encrypted = GeminiSecurity.encrypt(context)
+            await self.client.set(key, encrypted, ex=CTX_TTL)
         except Exception as e: logger.debug(f"[XoHiMemory] Redis set failed: {e}")
         self._fallback_cache[f"ctx:{user_id}"] = context
 
@@ -63,13 +88,18 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         key = f"xohi:profile:{user_id}"
         try:
             data = await self.client.get(key)
-            if data: return json.loads(data)
+            if data:
+                res = _decrypt_json(data)
+                if isinstance(res, dict): return res
         except Exception as e: logger.debug(f"[XoHiMemory] Redis profile get failed: {e}")
         return self._fallback_cache.get(f"profile:{user_id}")
 
     async def cache_voice_profile(self, user_id: str, profile: Dict[str, JsonValue]):
         key = f"xohi:profile:{user_id}"
-        try: await self.client.set(key, json.dumps(profile, ensure_ascii=False), ex=PROFILE_TTL)
+        try:
+            from backend.utils.security import GeminiSecurity
+            encrypted = GeminiSecurity.encrypt(profile)
+            await self.client.set(key, encrypted, ex=PROFILE_TTL)
         except Exception as e: logger.debug(f"[XoHiMemory] Redis profile set failed: {e}")
         self._fallback_cache[f"profile:{user_id}"] = profile
 
@@ -95,11 +125,17 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
                 pipe.get("system:intent_mapping")
                 res = await pipe.execute()
 
-            profile = json.loads(res[0]) if res[0] else {}
-            ctx = json.loads(res[1]) if res[1] else {}
-            stt = {**(dict(res[2]) if res[2] else {}), **(dict(res[3]) if res[3] else {}), **ctx.get("stt_dictionary", {})}
+            profile_data = res[0].decode() if isinstance(res[0], bytes) else res[0]
+            ctx_data = res[1].decode() if isinstance(res[1], bytes) else res[1]
+
+            profile = _decrypt_json(profile_data) if profile_data else {}
+            ctx = _decrypt_json(ctx_data) if ctx_data else {}
+            stt = {**(dict(res[2]) if res[2] else {}), **(dict(res[3]) if res[3] else {}), **(ctx.get("stt_dictionary", {}) if isinstance(ctx, dict) else {})}
             intent_map = json.loads(res[4]) if res[4] else {}
-            return {"profile": profile, "ctx": ctx, "stt": stt, "intent_map": intent_map}
+            
+            profile_dict = profile if isinstance(profile, dict) else {}
+            ctx_dict = ctx if isinstance(ctx, dict) else {}
+            return {"profile": profile_dict, "ctx": ctx_dict, "stt": stt, "intent_map": intent_map}
         except Exception as e:
             logger.error(f"[XoHiMemory] Atomic Fetch Failed: {e}")
             return {"profile": {}, "ctx": {}, "stt": {}, "intent_map": {}}
@@ -110,7 +146,14 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         try:
             if self._use_redis:
                 data = await self.client.lrange(key, 0, limit - 1)
-                if data: return [json.loads(m) for m in data]
+                if data:
+                    res_list = []
+                    for m in data:
+                        m_str = m.decode() if isinstance(m, bytes) else str(m)
+                        dec = _decrypt_json(m_str)
+                        if isinstance(dec, dict):
+                            res_list.append(dec)
+                    return res_list
         except Exception as e: logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
         return []
 
@@ -119,8 +162,10 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:
+                from backend.utils.security import GeminiSecurity
+                encrypted_msg = GeminiSecurity.encrypt(message)
                 async with self.client.pipeline(transaction=False) as pipe:
-                    pipe.lpush(key, json.dumps(message, ensure_ascii=False))
+                    pipe.lpush(key, encrypted_msg)
                     pipe.ltrim(key, 0, max(0, limit - 1))
                     await pipe.execute()
         except Exception as e: logger.debug(f"[XoHiMemory] Redis chat push failed: {e}")
@@ -241,7 +286,9 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         try:
             if self._use_redis:
                 data = await self.client.get(key)
-                if data: return json.loads(data)
+                if data:
+                    res = _decrypt_json(data)
+                    if isinstance(res, dict): return res
         except Exception as e: logger.debug(f"[XoHiMemory] Draft get failed: {e}")
         return None
 
@@ -250,8 +297,9 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         key = f"support:order_draft:{session_id}"
         try:
             if self._use_redis:
-                # Elite V5.6: default=str handles datetime serialization from OrderDraft.model_dump()
-                await self.client.set(key, json.dumps(draft_data, ensure_ascii=False, default=str), ex=ttl)
+                from backend.utils.security import GeminiSecurity
+                encrypted = GeminiSecurity.encrypt(draft_data)
+                await self.client.set(key, encrypted, ex=ttl)
                 logger.info(f"💾 [XoHiMemory] Draft persisted for SID: {session_id}")
         except Exception as e:
             logger.error(f"[XoHiMemory] Draft set FAILED: {e}")

@@ -5,7 +5,6 @@
   import CheckSquare from "@lucide/svelte/icons/check-square";
   import Square from "@lucide/svelte/icons/square";
   import ExternalLink from "@lucide/svelte/icons/external-link";
-  import Eye from "@lucide/svelte/icons/eye";
   import Calendar from "@lucide/svelte/icons/calendar";
   import StarIcon from "@lucide/svelte/icons/star";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -165,9 +164,6 @@
         <div class="hidden md:flex flex-col">
           <div class="text-[10px] font-mono text-gray-400 tracking-widest">
             {article.authorName || article.author || "SYSTEM_CORE"}
-          </div>
-          <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-600 mt-0.5">
-            <Eye size={10} /> {(article.views || 0).toLocaleString()}
           </div>
         </div>
 

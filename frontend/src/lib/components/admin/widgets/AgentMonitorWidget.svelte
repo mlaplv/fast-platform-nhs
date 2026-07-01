@@ -20,7 +20,9 @@
     unique_ips: 0,
     blacklisted_ips: [] as Array<{ ip: string; ttl: number }>,
     infraction_ips: [] as Array<{ ip: string; count: number; ttl: number }>,
-    is_shutdown: false
+    is_shutdown: false,
+    thresholds: [5.0, 10.0, 15.0, 20.0] as number[],
+    history: [] as Array<{ time: string; cost: number; input: number; output: number }>
   });
 
   let loading = $state(true);
@@ -52,19 +54,145 @@
     ((inputTokens * 0.075) + (outputTokens * 0.30)) / 1000000
   );
 
+  let thresholds = $derived(metrics.thresholds || [5.0, 10.0, 15.0, 20.0]);
+  let maxLimit = $derived(thresholds[3] || 20.0);
+
   let progressPercentage = $derived(
-    Math.min((estimatedCostUSD / 20) * 100, 100)
+    Math.min((estimatedCostUSD / maxLimit) * 100, 100)
   );
 
   let budgetStatus = $derived(
     metrics.is_shutdown 
       ? "SHUTDOWN" 
-      : estimatedCostUSD >= 15.0 
+      : estimatedCostUSD >= thresholds[2] 
         ? "CRITICAL" 
-        : estimatedCostUSD >= 5.0 
+        : estimatedCostUSD >= thresholds[0] 
           ? "WARNING" 
           : "NORMAL"
   );
+
+  let history = $derived(metrics.history || []);
+
+  let chartPath = $derived(() => {
+    if (history.length < 2) return "";
+    const costs = history.map((d: { cost: number }) => d.cost);
+    const maxVal = Math.max(...costs, 0.0001);
+    const minVal = Math.min(...costs, 0);
+    const range = maxVal - minVal || 0.0001;
+    
+    const width = 300;
+    const height = 24;
+    const points = history.map((d: { cost: number }, i: number) => {
+      const x = (i / (history.length - 1)) * width;
+      const y = height - ((d.cost - minVal) / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return `M ${points.join(" L ")}`;
+  });
+
+  let chartAreaPath = $derived(() => {
+    if (history.length < 2) return "";
+    const costs = history.map((d: { cost: number }) => d.cost);
+    const maxVal = Math.max(...costs, 0.0001);
+    const minVal = Math.min(...costs, 0);
+    const range = maxVal - minVal || 0.0001;
+    
+    const width = 300;
+    const height = 24;
+    const points = history.map((d: { cost: number }, i: number) => {
+      const x = (i / (history.length - 1)) * width;
+      const y = height - ((d.cost - minVal) / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return `M 0,24 L ${points.join(" L ")} L 300,24 Z`;
+  });
+
+  let isEditingThresholds = $state(false);
+  let showChartModal = $state(false);
+  let historyList = $state<any[]>([]);
+  let historyCursor = $state<number | null>(null);
+  let hasMoreHistory = $state(true);
+  let loadingMore = $state(false);
+
+  async function loadMoreHistory() {
+    if (loadingMore || !hasMoreHistory) return;
+    try {
+      loadingMore = true;
+      const url = historyCursor !== null 
+        ? `/api/v1/client/mcp/history?cursor=${historyCursor}&limit=15` 
+        : `/api/v1/client/mcp/history?limit=15`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch history page");
+      const data = await res.json();
+      if (data.status === "success" && data.history) {
+        if (data.history.length === 0) {
+          hasMoreHistory = false;
+        } else {
+          historyList = [...historyList, ...data.history];
+          const lastItem = data.history[data.history.length - 1];
+          historyCursor = lastItem && lastItem.timestamp !== undefined ? lastItem.timestamp : null;
+          if (data.history.length < 15) {
+            hasMoreHistory = false;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error loading history chunk:", err);
+    } finally {
+      loadingMore = false;
+    }
+  }
+
+  function handleTableScroll(e: Event) {
+    const target = e.currentTarget as HTMLDivElement;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 20) {
+      loadMoreHistory();
+    }
+  }
+
+  let editedThresholds = $state([5.0, 10.0, 15.0, 20.0]);
+  let editError = $state("");
+  let saveLoading = $state(false);
+
+  function startEditThresholds() {
+    editedThresholds = [...thresholds];
+    editError = "";
+    isEditingThresholds = true;
+  }
+
+  async function saveThresholds() {
+    try {
+      if (editedThresholds.some(x => isNaN(x) || x <= 0)) {
+        editError = "Các ngưỡng phải là số dương lớn hơn 0.";
+        return;
+      }
+      if (editedThresholds[0] >= editedThresholds[1] || 
+          editedThresholds[1] >= editedThresholds[2] || 
+          editedThresholds[2] >= editedThresholds[3]) {
+        editError = "Các ngưỡng phải sắp xếp tăng dần (e.g. 5, 10, 15, 20).";
+        return;
+      }
+      saveLoading = true;
+      editError = "";
+      const res = await fetch("/api/v1/client/mcp/thresholds", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ thresholds: editedThresholds })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || data.detail || "Không thể lưu cài đặt.");
+      }
+      isEditingThresholds = false;
+      await fetchMetrics();
+    } catch (e: unknown) {
+      editError = e instanceof Error ? e.message : "Lỗi lưu cài đặt";
+    } finally {
+      saveLoading = false;
+    }
+  }
 
   async function fetchMetrics() {
     try {
@@ -273,48 +401,113 @@
       </div>
 
       <!-- Card 3: LLM Cost & Budget Monitoring (Bento Large) -->
-      <div class="lg:col-span-2 bg-[#121212] border-t-2 border-purple-500/50 p-6 flex flex-col justify-between h-44 hover:bg-[#161616] transition-all">
-        <div class="flex justify-between items-start">
-          <div class="flex items-center gap-2">
-            <Coins size={16} class="text-purple-400" />
-            <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Giám Sát Ngân Sách LLM</span>
-          </div>
-          <span class="text-[9px] font-mono font-bold tracking-wider px-2.5 py-0.5 uppercase
-            {budgetStatus === 'SHUTDOWN' ? 'bg-red-500/15 text-red-400 border border-red-500/20' : 
-             budgetStatus === 'CRITICAL' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' : 
-             budgetStatus === 'WARNING' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' : 
-             'bg-purple-500/15 text-purple-400 border border-purple-500/10'}"
-          >
-            {budgetStatus}
-          </span>
-        </div>
-        
-        <div class="my-1">
-          <div class="flex justify-between items-baseline mb-1">
-            <div class="text-3xl font-extrabold text-white tracking-tight">
-              ${estimatedCostUSD.toFixed(4)}
-              <span class="text-xs font-normal text-gray-500">/ $20.00</span>
+      <div class="lg:col-span-2 bg-[#121212] border-t-2 border-purple-500/50 p-6 flex flex-col justify-between h-44 hover:bg-[#161616] transition-all relative">
+        {#if isEditingThresholds}
+          <div class="flex flex-col justify-between h-full w-full">
+            <div class="flex justify-between items-center">
+              <span class="text-[10px] font-bold text-purple-400 tracking-wider uppercase">Cài đặt ngưỡng ngân sách ($)</span>
+              {#if editError}
+                <span class="text-[9px] text-red-400 font-mono truncate max-w-[200px]">{editError}</span>
+              {/if}
             </div>
-            <span class="text-xs font-mono text-gray-400">{progressPercentage.toFixed(1)}%</span>
+            
+            <div class="grid grid-cols-4 gap-2 my-2">
+              {#each [0, 1, 2, 3] as idx}
+                <div class="flex flex-col">
+                  <span class="text-[8px] text-gray-500 uppercase mb-0.5">T{idx + 1}</span>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    bind:value={editedThresholds[idx]}
+                    class="bg-white/5 border border-white/10 text-white text-xs px-2 py-1 rounded font-mono focus:border-purple-500/50 outline-none w-full"
+                  />
+                </div>
+              {/each}
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <button 
+                onclick={() => isEditingThresholds = false}
+                class="text-[9px] font-bold text-gray-400 hover:text-white uppercase transition-colors px-2 py-1"
+                disabled={saveLoading}
+              >
+                Hủy
+              </button>
+              <button 
+                onclick={saveThresholds}
+                class="bg-purple-600 hover:bg-purple-700 text-white text-[9px] font-bold px-3 py-1 rounded uppercase transition-colors"
+                disabled={saveLoading}
+              >
+                {saveLoading ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
+          </div>
+        {:else}
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-2">
+              <Coins size={16} class="text-purple-400" />
+              <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Giám Sát Ngân Sách LLM</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] font-mono font-bold tracking-wider px-2.5 py-0.5 uppercase
+                {budgetStatus === 'SHUTDOWN' ? 'bg-red-500/15 text-red-400 border border-red-500/20' : 
+                 budgetStatus === 'CRITICAL' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' : 
+                 budgetStatus === 'WARNING' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' : 
+                 'bg-purple-500/15 text-purple-400 border border-purple-500/10'}"
+              >
+                {budgetStatus}
+              </span>
+              <button 
+                onclick={() => {
+                  historyList = [];
+                  historyCursor = null;
+                  hasMoreHistory = true;
+                  showChartModal = true;
+                  loadMoreHistory();
+                }}
+                class="text-[9px] font-bold text-purple-400 hover:text-purple-300 border border-purple-500/20 px-2 py-0.5 bg-purple-500/5 transition-colors uppercase cursor-pointer"
+              >
+                Biểu đồ
+              </button>
+            </div>
           </div>
           
-          <!-- Progress Bar -->
-          <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
-            <div 
-              class="h-full rounded-full transition-all duration-500
-                {budgetStatus === 'SHUTDOWN' ? 'bg-red-500' : 
-                 budgetStatus === 'CRITICAL' ? 'bg-orange-500' : 
-                 budgetStatus === 'WARNING' ? 'bg-amber-500' : 
-                 'bg-purple-500'}"
-              style="width: {progressPercentage}%"
-            ></div>
+          <div class="my-1">
+            <div class="flex justify-between items-baseline mb-1">
+              <div class="text-3xl font-extrabold text-white tracking-tight">
+                ${estimatedCostUSD.toFixed(4)}
+                <span class="text-xs font-normal text-gray-500">/ ${maxLimit.toFixed(2)}</span>
+              </div>
+              <span class="text-xs font-mono text-gray-400">{progressPercentage.toFixed(1)}%</span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+              <div 
+                class="h-full rounded-full transition-all duration-500
+                  {budgetStatus === 'SHUTDOWN' ? 'bg-red-500' : 
+                   budgetStatus === 'CRITICAL' ? 'bg-orange-500' : 
+                   budgetStatus === 'WARNING' ? 'bg-amber-500' : 
+                   'bg-purple-500'}"
+                style="width: {progressPercentage}%"
+              ></div>
+            </div>
           </div>
-        </div>
 
-        <div class="text-[9px] text-gray-500 font-mono flex justify-between uppercase">
-          <span>Tokens: {((inputTokens + outputTokens) / 1000).toFixed(1)}k (In: {(inputTokens / 1000).toFixed(1)}k)</span>
-          <span class="text-gray-400">Ngưỡng: $5 | $10 | $15 | $20</span>
-        </div>
+          <div class="text-[9px] text-gray-500 font-mono flex justify-between items-center uppercase">
+            <span>Tokens: {((inputTokens + outputTokens) / 1000).toFixed(1)}k (In: {(inputTokens / 1000).toFixed(1)}k)</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-gray-400">Ngưỡng: ${thresholds[0]} | ${thresholds[1]} | ${thresholds[2]} | ${thresholds[3]}</span>
+              <button 
+                onclick={startEditThresholds}
+                class="text-purple-400 hover:text-purple-300 font-bold transition-colors cursor-pointer"
+                title="Thay đổi ngưỡng"
+              >
+                [Sửa]
+              </button>
+            </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Card 4: Agent Node Network (Bento Small) -->
@@ -518,6 +711,173 @@
     </div>
   </div>
 </div>
+
+{#if showChartModal}
+  <div 
+    transition:fade={{ duration: 150 }}
+    class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+    style="z-index: 9999;"
+  >
+    <!-- Modal Container -->
+    <div 
+      transition:fly={{ y: 20, duration: 250 }}
+      class="bg-[#0c0c0c] border border-purple-500/30 w-full max-w-2xl p-6 flex flex-col gap-6 relative"
+    >
+      <!-- Close Button -->
+      <button 
+        onclick={() => showChartModal = false}
+        class="absolute top-4 right-4 text-gray-500 hover:text-white font-mono text-sm cursor-pointer"
+      >
+        [X]
+      </button>
+
+      <!-- Title & Status -->
+      <div>
+        <h2 class="text-sm font-bold text-purple-400 tracking-wider uppercase mb-1">
+          Lịch Sử & Biểu Đồ Ngân Sách LLM
+        </h2>
+        <p class="text-[10px] text-gray-500 font-mono uppercase">
+          Chi tiết 15 chu kỳ truy vấn gần nhất từ cổng bảo mật A2A/MCP Gateway
+        </p>
+      </div>
+
+      <!-- Large SVG Area Chart -->
+      <div class="bg-black/40 border border-white/5 p-4 rounded flex flex-col gap-2 relative">
+        {#if history && history.length >= 2}
+          <div class="h-40 w-full relative">
+            <!-- Grid Lines & Labels -->
+            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 text-[8px] font-mono text-gray-400">
+              <div class="border-b border-white/10 w-full pb-0.5 flex justify-between">
+                <span>Ngưỡng cao nhất: ${Math.max(...history.map(d => d.cost), 0.001).toFixed(4)}</span>
+              </div>
+              <div class="border-b border-white/10 w-full pb-0.5"></div>
+              <div class="border-b border-white/10 w-full pb-0.5"></div>
+              <div class="flex justify-between pt-0.5">
+                <span>Min: $0.0000</span>
+              </div>
+            </div>
+            
+            <!-- SVG Line & Area -->
+            <svg viewBox="0 0 500 150" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="modal-purple-glow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#a855f7" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+              
+              <!-- Draw path inside modal size: 500 x 150 -->
+              {#key history}
+                {@const maxVal = Math.max(...history.map(d => d.cost), 0.0001)}
+                {@const minVal = Math.min(...history.map(d => d.cost), 0)}
+                {@const range = maxVal - minVal || 0.0001}
+                {@const points = history.map((d, i) => {
+                  const x = (i / (history.length - 1)) * 500;
+                  const y = 150 - ((d.cost - minVal) / range) * 150;
+                  return { x, y, raw: d };
+                })}
+                
+                <!-- Area Path -->
+                <path 
+                  d="M 0,150 L {points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} L 500,150 Z" 
+                  fill="url(#modal-purple-glow)" 
+                />
+                
+                <!-- Line Path -->
+                <path 
+                  d="M {points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}" 
+                  fill="none" 
+                  stroke="#c084fc" 
+                  stroke-width="2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                />
+
+                <!-- Data Points (Circles) -->
+                {#each points as pt, i}
+                  <circle 
+                    cx={pt.x} 
+                    cy={pt.y} 
+                    r="3.5" 
+                    fill="#121212" 
+                    stroke="#c084fc" 
+                    stroke-width="1.5" 
+                  />
+                {/each}
+              {/key}
+            </svg>
+          </div>
+          
+          <!-- Axis Timestamps -->
+          <div class="flex justify-between items-center px-1 text-[8px] text-gray-500 font-mono">
+            <span>{history[0].time}</span>
+            <span>{history[Math.floor(history.length / 2)].time}</span>
+            <span>{history[history.length - 1].time}</span>
+          </div>
+        {:else}
+          <div class="h-40 flex items-center justify-center text-xs text-gray-500 font-mono uppercase italic">
+            Chưa có đủ dữ liệu lịch sử để hiển thị biểu đồ.
+          </div>
+        {/if}
+      </div>
+
+      <!-- Tabular Cost & Token Summary -->
+      <div class="flex flex-col">
+        <span class="text-[9px] font-bold text-gray-400 tracking-wider uppercase mb-2">Bảng thống kê minh bạch (Tải thêm khi cuộn)</span>
+        <div 
+          onscroll={handleTableScroll}
+          class="max-h-48 overflow-y-auto custom-scrollbar border border-white/5 bg-black/20"
+        >
+          <table class="w-full text-[10px] font-mono text-left">
+            <thead>
+              <tr class="border-b border-white/10 bg-white/5 text-gray-400 uppercase text-[8px] tracking-wider sticky top-0 z-10">
+                <th class="p-2">Thời gian</th>
+                <th class="p-2">Chi phí tích lũy</th>
+                <th class="p-2">Input Tokens</th>
+                <th class="p-2">Output Tokens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#if historyList && historyList.length > 0}
+                {#each historyList as item}
+                  <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-2 text-white">{item.time}</td>
+                    <td class="p-2 text-purple-400 font-bold">${item.cost.toFixed(4)}</td>
+                    <td class="p-2 text-gray-400">{item.input.toLocaleString()}</td>
+                    <td class="p-2 text-gray-400">{item.output.toLocaleString()}</td>
+                  </tr>
+                {/each}
+              {/if}
+              {#if loadingMore}
+                <tr>
+                  <td colspan="4" class="p-2 text-center text-purple-400 font-mono animate-pulse uppercase text-[9px]">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              {:else}
+                {#if historyList.length === 0}
+                  <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-500 italic uppercase">Không có dữ liệu</td>
+                  </tr>
+                {/if}
+              {/if}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bottom Button -->
+      <div class="flex justify-end mt-2">
+        <button 
+          onclick={() => showChartModal = false}
+          class="bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-4 py-2 uppercase transition-all active:scale-95 cursor-pointer"
+        >
+          Đóng cửa sổ
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar {

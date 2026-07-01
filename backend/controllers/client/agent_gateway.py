@@ -803,6 +803,28 @@ class AgentGatewayController(Controller):
         stats = await AgentMonitor.get_stats()
         return {"status": "success", "metrics": stats}
 
+    @get("/api/v1/client/mcp/history", media_type=MediaType.JSON, guards=[])
+    async def get_agent_history(
+        self,
+        request: Request,
+        cursor: Optional[float] = None,
+        limit: int = 15
+    ) -> Dict[str, Any]:
+        """Expose paginated agent metrics history."""
+        from litestar.exceptions import PermissionDeniedException
+        is_agent = request.scope.get("state", {}).get("is_agent", False)
+        is_admin = False
+        user = request.scope.get("state", {}).get("user")
+        if user and any(role in ["ADMIN", "SUPER_ADMIN", "OPERATIVE"] for role in user.get("roles", [])):
+            is_admin = True
+            
+        if not is_agent and not is_admin:
+            raise PermissionDeniedException("Bạn không có quyền truy cập dữ liệu lịch sử của AI Agent.")
+            
+        from backend.services.agent_monitor import AgentMonitor
+        history = await AgentMonitor.get_history_page(cursor=cursor, limit=limit)
+        return {"status": "success", "history": history}
+
     @post("/api/v1/client/mcp/blacklist", media_type=MediaType.JSON, guards=[])
     async def block_ip(self, request: Request, data: IPBlockRequest) -> Dict[str, Any]:
         """Manually blacklist an IP address."""
@@ -860,7 +882,7 @@ class AgentGatewayController(Controller):
         return {"status": "success", "message": f"Đã mở chặn IP {ip} thành công."}
 
     @post("/api/v1/client/mcp/reopen", media_type=MediaType.JSON, guards=[])
-    async def reopen_gateway(self, request: Request) -> Dict[str, Any]:
+    async def reopen_gateway(self, request: Request) -> dict[str, str]:
         """Manually reopen the A2A Gateway after a budget lock."""
         from litestar.exceptions import PermissionDeniedException
         is_admin = False
@@ -876,5 +898,36 @@ class AgentGatewayController(Controller):
         
         logger.info("[Military-Security] Admin manually reopened the A2A Gateway after budget lock.")
         return {"status": "success", "message": "Đã mở lại cổng A2A và thiết lập lại bộ đếm ngân sách."}
+
+    @post("/api/v1/client/mcp/thresholds", media_type=MediaType.JSON, guards=[])
+    async def update_thresholds(self, request: Request) -> dict[str, str]:
+        """Manually update LLM budget thresholds."""
+        from litestar.exceptions import PermissionDeniedException, ValidationException
+        is_admin = False
+        user = request.scope.get("state", {}).get("user")
+        if user and any(role in ["ADMIN", "SUPER_ADMIN", "OPERATIVE"] for role in user.get("roles", [])):
+            is_admin = True
+            
+        if not is_admin:
+            raise PermissionDeniedException("Bạn không có quyền quản trị để thực hiện hành động này.")
+            
+        try:
+            body = await request.json()
+            thresholds = body.get("thresholds")
+            if not isinstance(thresholds, list) or len(thresholds) != 4:
+                raise ValidationException("Danh sách ngưỡng phải chứa đúng 4 giá trị số.")
+            thresholds = [float(x) for x in thresholds]
+            if not all(x > 0 for x in thresholds):
+                raise ValidationException("Các giá trị ngưỡng phải lớn hơn 0.")
+            if not all(thresholds[i] < thresholds[i+1] for i in range(len(thresholds)-1)):
+                raise ValidationException("Các giá trị ngưỡng phải tăng dần (e.g. 5, 10, 15, 20).")
+        except Exception as e:
+            raise ValidationException(f"Dữ liệu không hợp lệ: {e}")
+            
+        from backend.services.agent_monitor import AgentMonitor
+        await AgentMonitor.set_thresholds(thresholds)
+        
+        logger.info(f"[Military-Security] Admin updated LLM budget thresholds to: {thresholds}")
+        return {"status": "success", "message": f"Đã cập nhật ngưỡng ngân sách thành công: {thresholds}"}
 
 

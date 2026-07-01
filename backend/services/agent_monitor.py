@@ -33,6 +33,33 @@ class AgentMonitor:
             logger.warning(f"Failed to record agent error metric: {e}")
 
     @staticmethod
+    async def get_thresholds() -> list[float]:
+        r = xohi_memory.client
+        if not r:
+            return [5.0, 10.0, 15.0, 20.0]
+        try:
+            import json
+            data = await r.get("agent:metrics:thresholds")
+            if data:
+                loaded = json.loads(data)
+                if isinstance(loaded, list) and len(loaded) == 4:
+                    return [float(x) for x in loaded]
+        except Exception:
+            pass
+        return [5.0, 10.0, 15.0, 20.0]
+
+    @staticmethod
+    async def set_thresholds(thresholds: list[float]) -> None:
+        r = xohi_memory.client
+        if not r:
+            return
+        try:
+            import json
+            await r.set("agent:metrics:thresholds", json.dumps(thresholds))
+        except Exception as e:
+            logger.warning(f"Failed to set thresholds in Redis: {e}")
+
+    @staticmethod
     async def record_token_usage(input_tokens: int, output_tokens: int) -> None:
         r = xohi_memory.client
         if not r:
@@ -45,8 +72,29 @@ class AgentMonitor:
             # Gemini-2.5-Flash prices: Input: $0.075 / M tokens | Output: $0.30 / M tokens
             cost_usd = ((new_input * 0.075) + (new_output * 0.30)) / 1_000_000
 
+            # Record cost history (keep last 15 points)
+            try:
+                import datetime
+                import json
+                import time
+                now_str = datetime.datetime.now().strftime("%H:%M:%S")
+                history_entry = {
+                    "time": now_str,
+                    "cost": float(cost_usd),
+                    "input": int(new_input),
+                    "output": int(new_output),
+                    "timestamp": float(time.time())
+                }
+                await r.rpush("agent:metrics:history", json.dumps(history_entry))
+                await r.ltrim("agent:metrics:history", -100, -1)
+            except Exception as he:
+                logger.warning(f"Failed to record agent budget history: {he}")
+
             # Alert and Shutdown limits
-            thresholds = [5.0, 10.0, 15.0, 20.0]
+            thresholds = await AgentMonitor.get_thresholds()
+            shutdown_threshold = thresholds[-1] if thresholds else 20.0
+            critical_threshold = thresholds[-2] if len(thresholds) >= 2 else 15.0
+            
             for limit in thresholds:
                 if cost_usd >= limit:
                     alert_key = f"agent:metrics:alert_sent:{limit}"
@@ -66,10 +114,10 @@ class AgentMonitor:
                             f"<b>Tokens Output:</b> <code>{new_output:,}</code>\n"
                         )
 
-                        if limit >= 20.0:
-                            msg += "\n⚠️ <b>HÀNH ĐỘNG:</b> Tự động KHÓA & ĐÓNG HOÀN TOÀN cổng A2A Gateway để bảo vệ ngân sách!"
+                        if limit >= shutdown_threshold:
+                            msg += f"\n⚠️ <b>HÀNH ĐỘNG:</b> Tự động KHÓA & ĐÓNG HOÀN TOÀN cổng A2A Gateway để bảo vệ ngân sách!"
                             await r.set("agent:gateway:shutdown", "1")
-                            logger.error(f"[A2A-Security] LLM Budget limit of $20 reached. Gateway SHUTDOWN activated.")
+                            logger.error(f"[A2A-Security] LLM Budget limit of ${shutdown_threshold} reached. Gateway SHUTDOWN activated.")
                         else:
                             msg += "\n<b>Trạng thái:</b> Đang giám sát chặt chẽ."
 
@@ -79,15 +127,15 @@ class AgentMonitor:
                             user_id="user_admin",
                             signal=SignalSchema(
                                 message=f"Cảnh báo chi phí LLM A2A: Vượt quá ${limit:.2f} (Hiện tại: ${cost_usd:.4f})." +
-                                        (" Đóng hoàn toàn cổng A2A!" if limit >= 20.0 else ""),
-                                severity=SignalSeverity.CRITICAL if limit >= 15.0 else SignalSeverity.ACTION,
+                                        (f" Đóng hoàn toàn cổng A2A!" if limit >= shutdown_threshold else ""),
+                                severity=SignalSeverity.CRITICAL if limit >= critical_threshold else SignalSeverity.ACTION,
                                 signal_type="SYSTEM_SECURITY",
                                 payload={
                                     "limit": limit,
                                     "current_cost": cost_usd,
                                     "input_tokens": new_input,
                                     "output_tokens": new_output,
-                                    "shutdown": limit >= 20.0
+                                    "shutdown": limit >= shutdown_threshold
                                 },
                                 persist=True
                             )
@@ -113,14 +161,9 @@ class AgentMonitor:
             return
         try:
             await r.delete("agent:gateway:shutdown")
-            await r.delete("agent:metrics:alert_sent:5")
-            await r.delete("agent:metrics:alert_sent:5.0")
-            await r.delete("agent:metrics:alert_sent:10")
-            await r.delete("agent:metrics:alert_sent:10.0")
-            await r.delete("agent:metrics:alert_sent:15")
-            await r.delete("agent:metrics:alert_sent:15.0")
-            await r.delete("agent:metrics:alert_sent:20")
-            await r.delete("agent:metrics:alert_sent:20.0")
+            keys = await r.keys("agent:metrics:alert_sent:*")
+            for k in keys:
+                await r.delete(k)
             await r.delete("agent:metrics:tokens")
             logger.info("[A2A-Security] A2A Gateway manually reopened and metrics reset.")
         except Exception as e:
@@ -137,7 +180,7 @@ class AgentMonitor:
             logger.warning(f"Failed to record agent IP metric: {e}")
 
     @staticmethod
-    async def get_stats() -> dict[str, int | bool | dict[str, int] | list[dict]]:
+    async def get_stats() -> dict[str, int | bool | list[float] | list[dict[str, str | int | float]] | dict[str, int] | list[dict[str, str | int]]]:
         r = xohi_memory.client
         if not r:
             return {}
@@ -153,12 +196,12 @@ class AgentMonitor:
             is_sd_bool = (is_sd == b"1" or is_sd == "1")
 
             # Decode bytes if needed
-            def decode_dict(d: dict) -> dict[str, int]:
+            def decode_dict(d: dict[bytes | str, bytes | str | int | float]) -> dict[str, int]:
                 return {k.decode() if isinstance(k, bytes) else str(k): int(v) for k, v in d.items()}
                 
             # Scan for blacklist and infractions
-            blacklisted_ips = []
-            infraction_ips = []
+            blacklisted_ips: list[dict[str, str | int]] = []
+            infraction_ips: list[dict[str, str | int]] = []
             
             # 1. Blacklist
             blacklist_keys = await r.keys("support:blacklist:*")
@@ -184,6 +227,20 @@ class AgentMonitor:
                     "ttl": ttl
                 })
                 
+            thresholds = await AgentMonitor.get_thresholds()
+            
+            # Fetch only the last 15 items for the inline status check
+            history_data = await r.lrange("agent:metrics:history", -15, -1)
+            history: list[dict[str, str | int | float]] = []
+            if history_data:
+                import json
+                for h in history_data:
+                    try:
+                        h_str = h.decode() if isinstance(h, bytes) else str(h)
+                        history.append(json.loads(h_str))
+                    except Exception:
+                        pass
+
             return {
                 "orders": decode_dict(orders or {}),
                 "errors": decode_dict(errors or {}),
@@ -192,8 +249,48 @@ class AgentMonitor:
                 "unique_ips": int(ips) if ips else 0,
                 "blacklisted_ips": blacklisted_ips,
                 "infraction_ips": infraction_ips,
-                "is_shutdown": is_sd_bool
+                "is_shutdown": is_sd_bool,
+                "thresholds": thresholds,
+                "history": history
             }
         except Exception as e:
             logger.warning(f"Failed to get agent metrics: {e}")
             return {}
+
+    @staticmethod
+    async def get_history_page(cursor: Optional[float] = None, limit: int = 15) -> list[dict[str, str | int | float]]:
+        r = xohi_memory.client
+        if not r:
+            return []
+        try:
+            history_data = await r.lrange("agent:metrics:history", 0, -1)
+            if not history_data:
+                return []
+                
+            history: list[dict[str, str | int | float]] = []
+            import json
+            for h in history_data:
+                try:
+                    h_str = h.decode() if isinstance(h, bytes) else str(h)
+                    history.append(json.loads(h_str))
+                except Exception:
+                    pass
+            history.reverse()
+
+            if cursor is None:
+                return history[:limit]
+
+            cursor_idx = -1
+            for idx, item in enumerate(history):
+                if item.get("timestamp") == cursor:
+                    cursor_idx = idx
+                    break
+
+            if cursor_idx == -1:
+                # If cursor timestamp is not found (might have expired/pruned), return first page
+                return history[:limit]
+
+            return history[cursor_idx + 1 : cursor_idx + 1 + limit]
+        except Exception as e:
+            logger.warning(f"Failed to get agent history page: {e}")
+            return []
