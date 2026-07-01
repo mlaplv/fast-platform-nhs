@@ -161,6 +161,13 @@ class SupportAgentOperative(BaseAgentOperative):
             _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
             return SupportResponse(ok=False, reply=_rejection_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="REJECTED")
 
+        # [SECURITY] Session Token Quota — chặn botnet đốt LLM quota
+        from backend.services.ai_engine.core.session_quota import session_quota
+        if not await session_quota.check(session_id):
+            logger.warning("[SupportAgent/Brain] Session quota exceeded: %s", session_id[:16])
+            _quota_reply = "Dạ Helen đang phục vụ nhiều khách cùng lúc, bạn vui lòng thử lại sau ít phút nhé! 🌸"
+            return SupportResponse(ok=True, reply=_quota_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="QUOTA_EXCEEDED")
+
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang chuẩn bị context Senior Beauty Architect..."})
         
         cur_settings, raw_draft = await asyncio.gather(

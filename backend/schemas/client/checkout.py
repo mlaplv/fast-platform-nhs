@@ -58,6 +58,10 @@ class StealthCheckoutSchema(BaseModel):
         None, max_length=150, pattern=r"^[A-Za-z0-9_\-=]*$",
         description="Mã người giới thiệu CTV (optional hoặc token mã hóa)"
     )
+    idempotency_key: Optional[str] = Field(
+        None, max_length=64, pattern=r"^[A-Za-z0-9\-_]{8,64}$",
+        description="[SECURITY] Khoá idempotency — AI Agent dùng để chống tạo đơn trùng khi retry"
+    )
 
     @field_validator("customer_phone", mode="before")
     @classmethod

@@ -77,6 +77,15 @@ class CheckoutService:
         attribution_source: Optional[str] = None,
     ) -> CheckoutResult:
 
+        # [SECURITY] Idempotency Guard — AI Agent retry-safe (TTL 1h)
+        if payload.idempotency_key:
+            from backend.services.xohi_memory import xohi_memory
+            idem_redis_key: str = f"order:idem:{payload.idempotency_key}"
+            existing_order_id: Optional[str] = await xohi_memory.client.get(idem_redis_key) if xohi_memory.client else None
+            if existing_order_id:
+                logger.info(f"[Idempotency] Duplicate request blocked. Key={payload.idempotency_key} → OrderID={existing_order_id}")
+                return CheckoutResult(id=existing_order_id, ok=True, message="Đơn hàng đã được tạo trước đó.")
+
         is_spam, reason, score, device_hash = await anti_spam_service.check_order_spam(
             ip=customer_ip,
             user_agent=user_agent,
@@ -613,6 +622,16 @@ class CheckoutService:
             "address": payload.customer_address,
             "items": items_list,
         })
+
+        # [SECURITY] Persist idempotency key sau khi tạo order thành công (TTL 1h)
+        if payload.idempotency_key:
+            try:
+                from backend.services.xohi_memory import xohi_memory
+                idem_store_key: str = f"order:idem:{payload.idempotency_key}"
+                if xohi_memory.client:
+                    await xohi_memory.client.set(idem_store_key, new_order.id, ex=3600)
+            except Exception as idem_err:
+                logger.warning(f"[Idempotency] Failed to persist key: {idem_err}")
 
         return {"id": new_order.id, "ok": True, "message": None}
 

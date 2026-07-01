@@ -288,6 +288,24 @@ class SupportController(Controller):
                 await redis.set(hash_key, msg_hash, ex=10)
 
             await self._check_rate_limit(request, session_id)
+
+            # [SECURITY] Stateful Multi-turn Injection Guard
+            from backend.services.commerce.security.context_guard import check_session_threat, record_message as ctx_record
+            _ctx_safe, _ctx_reason = await check_session_threat(session_id, data.message)
+            if not _ctx_safe:
+                await input_guard.record_security_infraction(ip)
+                return Response(
+                    content=SupportResponse(
+                        ok=False,
+                        reply="Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏",
+                        intent=SupportIntent.UNKNOWN,
+                        session_id=session_id,
+                        status="REJECTED"
+                    ),
+                    status_code=403
+                )
+            await ctx_record(session_id, data.message)
+
             response = await support_agent.chat(request=data, db=db_session)
             if response.status == "REJECTED":
                 await input_guard.record_security_infraction(ip)

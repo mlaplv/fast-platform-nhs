@@ -245,8 +245,8 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e: logger.debug(f"[XoHiMemory] Draft get failed: {e}")
         return None
 
-    async def set_order_draft(self, session_id: str, draft_data: Dict[str, object], ttl: int = 86400):
-        """Persist the pending order draft (Default 24h TTL)."""
+    async def set_order_draft(self, session_id: str, draft_data: Dict[str, object], ttl: int = 180):
+        """Persist the pending order draft. [SECURITY] Default TTL=180s (3 min) — chống inventory lockout attack."""
         key = f"support:order_draft:{session_id}"
         try:
             if self._use_redis:

@@ -378,7 +378,7 @@ async def _try_sync_slot_fill(
             if total < 0: total = 0.0
 
             order_data = OrderCreateRequest(
-                items=enriched_items, total_amount=max(total, subtotal * 0.3),
+                items=enriched_items, total_amount=max(total, subtotal * 0.5),  # [SECURITY] Floor 50% — đồng bộ checkout.py:398
                 customer_name=dna.customer_name or draft.customer_name or customer_name or "Quý khách",
                 customer_email=f"{draft.customer_phone}@helen.osmo.vn", customer_phone=draft.customer_phone,
                 customer_address=draft.customer_address,
