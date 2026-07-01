@@ -364,6 +364,12 @@
       console.log("LOG customer_note:", displayNote);
     }
   });
+
+  const hotline = $derived(
+    page.data.shopInfo?.contact_info?.hotline ||
+    page.data.shopInfo?.contact?.hotline ||
+    '0949901122'
+  );
 </script>
 
 <div
@@ -785,7 +791,7 @@
       </div>
 
     <a
-      href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
+      href="tel:{hotline.replace(/\D/g, '')}"
       class="fixed bottom-8 right-4 z-50 px-6 py-4 bg-[#ee4d2d] text-white font-black italic tracking-widest text-center shadow-[0_20px_40px_rgba(238,77,45,0.3)] flex items-center gap-2 group active:scale-95 transition-all"
     >
       Gọi xác nhận ngay 
