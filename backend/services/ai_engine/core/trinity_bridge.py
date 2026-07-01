@@ -200,6 +200,9 @@ class TrinityBridge:
         val_pmt: object = kwargs.pop("per_model_timeout", None)
         pmt: Optional[float] = float(val_pmt) if val_pmt is not None else None
         
+        val_is_agent: object = kwargs.pop("is_agent", True)
+        is_agent: bool = bool(val_is_agent)
+        
         # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
         if not self._initialized:
             await self.initialize()
@@ -301,6 +304,14 @@ class TrinityBridge:
 
                     if hasattr(res, 'usage'):
                         await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
+                        if is_agent:
+                            try:
+                                from backend.services.agent_monitor import AgentMonitor
+                                in_tokens = getattr(res.usage, 'request_tokens', 0) or 0
+                                out_tokens = getattr(res.usage, 'response_tokens', 0) or 0
+                                await AgentMonitor.record_token_usage(in_tokens, out_tokens)
+                            except Exception as e_monitor:
+                                logger.warning(f"Failed to record A2A token usage: {e_monitor}")
 
                     await self.rotator.set_success(key, session_id=s_id)
                     await self.rotator.reset_model_failures(m_name)

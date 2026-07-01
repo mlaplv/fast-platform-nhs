@@ -161,12 +161,21 @@ class SupportAgentOperative(BaseAgentOperative):
             _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
             return SupportResponse(ok=False, reply=_rejection_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="REJECTED")
 
+        # [SECURITY] Global Budget Shutdown — tự động đóng khi bị tấn công đốt token
+        from backend.services.agent_monitor import AgentMonitor
+        if await AgentMonitor.is_shutdown():
+            logger.error("[SupportAgent/Brain] Request blocked due to global A2A budget shutdown.")
+            _shutdown_reply = "Dạ hệ thống hỗ trợ tự động Helen hiện đang bảo trì, Anh/Chị vui lòng liên hệ hotline để được hỗ trợ nhanh nhất nhé! 🌸"
+            return SupportResponse(ok=True, reply=_shutdown_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="SHUTDOWN")
+
         # [SECURITY] Session Token Quota — chặn botnet đốt LLM quota
         from backend.services.ai_engine.core.session_quota import session_quota
-        if not await session_quota.check(session_id):
-            logger.warning("[SupportAgent/Brain] Session quota exceeded: %s", session_id[:16])
+        is_agent_req = getattr(request, "is_agent", False)
+        if not await session_quota.check(session_id, is_agent=is_agent_req):
+            logger.warning("[SupportAgent/Brain] Session quota exceeded: %s (agent=%s)", session_id[:16], is_agent_req)
             _quota_reply = "Dạ Helen đang phục vụ nhiều khách cùng lúc, bạn vui lòng thử lại sau ít phút nhé! 🌸"
             return SupportResponse(ok=True, reply=_quota_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="QUOTA_EXCEEDED")
+
 
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang chuẩn bị context Senior Beauty Architect..."})
         
@@ -465,6 +474,13 @@ class SupportAgentOperative(BaseAgentOperative):
             _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
             return SupportResponse(ok=False, reply=_rejection_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="REJECTED")
 
+        # [SECURITY] Global Budget Shutdown
+        from backend.services.agent_monitor import AgentMonitor
+        if await AgentMonitor.is_shutdown():
+            logger.error("[SupportAgent] Request blocked due to global A2A budget shutdown.")
+            _shutdown_reply = "Dạ hệ thống hỗ trợ tự động Helen hiện đang bảo trì, Anh/Chị vui lòng liên hệ hotline để được hỗ trợ nhanh nhất nhé! 🌸"
+            return SupportResponse(ok=True, reply=_shutdown_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="SHUTDOWN")
+
         dna = await _fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         c_name = dna.customer_name or request.customer_name or "Quý khách"
         if c_name in ["Khách ẩn danh", "Sếp"]:
@@ -731,7 +747,8 @@ class SupportAgentOperative(BaseAgentOperative):
                     trinity_bridge.run(
                         _fast_intent_agent, masked_msg,
                         deps=FastIntentDeps(customer_name=c_name, product_name=p_info.name if p_info else None),
-                        role=trinity_bridge.ROLE_FAST, timeout=12.0, per_model_timeout=5.0
+                        role=trinity_bridge.ROLE_FAST, timeout=12.0, per_model_timeout=5.0,
+                        is_agent=getattr(request, "is_agent", False)
                     ), timeout=13.0
                 )
                 f_data = cast(BaseModel, fast_res)

@@ -22,6 +22,11 @@ User-agent: *
 # Block all paths by default
 Disallow: /
 
+# Allow MCP (Model Context Protocol) Discovery & Gateway for AI Agents
+Allow: /.well-known/mcp.json
+Allow: /api/v1/client/mcp/tools
+Allow: /api/v1/client/mcp/call
+
 # Allow Sitemap-defined indexable formats ONLY
 Allow: /sitemap.xml$
 Allow: /$

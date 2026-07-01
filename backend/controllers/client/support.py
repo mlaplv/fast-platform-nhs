@@ -211,6 +211,10 @@ class SupportController(Controller):
         from backend.services.commerce.security.input_guard import input_guard
         await input_guard.check_military_blacklist(request)
 
+        # B. Military-Grade Cryptographic Signature Check for A2A
+        body_bytes = await request.body()
+        await input_guard.verify_request_signature(request, body_bytes)
+
         # Trích xuất IP tin cậy
         ip = (
             request.headers.get("x-real-ip")
@@ -219,19 +223,24 @@ class SupportController(Controller):
         )
 
         # 1. Giới hạn, cấm dùng công cụ hay tool (cấm bot / API clients)
+        is_agent = request.state.get("is_agent", False) if hasattr(request, "state") else False
         user_agent = request.headers.get("user-agent", "").strip().lower()
-        if not user_agent:
-            await input_guard.record_security_infraction(ip)
-            raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do thiếu định dạng User-Agent hợp lệ.")
-        
-        bot_keywords = [
-            "headless", "selenium", "puppeteer", "playwright", "python-requests", 
-            "curl", "wget", "httpclient", "postman", "scrapy", "urllib", 
-            "axios", "got", "node-fetch", "pycurl", "perl", "java", "go-http"
-        ]
-        if any(bot in user_agent for bot in bot_keywords):
-            await input_guard.record_security_infraction(ip)
-            raise HTTPException(status_code=403, detail="Truy cập tự động thông qua công cụ API bị nghiêm cấm.")
+        if not is_agent:
+            if not user_agent:
+                await input_guard.record_security_infraction(ip)
+                raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do thiếu định dạng User-Agent hợp lệ.")
+            
+            bot_keywords = [
+                "headless", "selenium", "puppeteer", "playwright", "python-requests", 
+                "curl", "wget", "httpclient", "postman", "scrapy", "urllib", 
+                "axios", "got", "node-fetch", "pycurl", "perl", "java", "go-http"
+            ]
+            if any(bot in user_agent for bot in bot_keywords):
+                await input_guard.record_security_infraction(ip)
+                raise HTTPException(status_code=403, detail="Truy cập tự động thông qua công cụ API bị nghiêm cấm.")
+        else:
+            logger.info(f"[Auth-Agent] Bypassing user-agent anti-bot filters for verified agent.")
+
 
         session_id = request.cookies.get("helen_session_id")
         if not session_id:
@@ -239,12 +248,37 @@ class SupportController(Controller):
              session_id = str(uuid.uuid4())
              
         data.session_id = session_id # Override with secure cookie session
+        data.is_agent = is_agent
+        # Get A2A context from current request state
+        a2a_ctx = request.scope.get("state", {}).get("a2a_context")
         
+        # Redis context storage for session persistence (Anti-Dementia)
+        from backend.services.xohi_memory import xohi_memory
+        redis = xohi_memory.client
+        redis_ctx_key = f"support:a2a_context:{session_id}"
+        
+        if a2a_ctx:
+            # Save to Redis
+            try:
+                import json
+                await redis.set(redis_ctx_key, json.dumps(a2a_ctx), ex=1800)  # TTL 30 minutes
+            except Exception as e:
+                logger.warning(f"Failed to cache A2A context in Redis: {e}")
+        else:
+            # Fallback to cached Redis context
+            try:
+                cached_ctx = await redis.get(redis_ctx_key)
+                if cached_ctx:
+                    import json
+                    a2a_ctx = json.loads(cached_ctx)
+            except Exception as e:
+                logger.warning(f"Failed to retrieve cached A2A context from Redis: {e}")
+                
+        data.a2a_context = a2a_ctx
+
         try:
             # Elite V3.5: Hardened Anti-Spam & Duplicate Message Defense thưa sếp!
-            from backend.services.xohi_memory import xohi_memory
-            redis = xohi_memory.client
-            if redis:
+            if not is_agent and redis:
                 import hashlib
                 msg_clean = data.message.strip().lower()
                 msg_hash = hashlib.md5(msg_clean.encode("utf-8")).hexdigest()

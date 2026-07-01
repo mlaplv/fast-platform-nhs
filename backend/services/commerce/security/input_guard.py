@@ -210,16 +210,74 @@ class InputGuard:
             count = await redis.incr(infraction_key)
             if count == 1:
                 await redis.expire(infraction_key, 300)  # 5 minutes rolling window
+            
+            # Gửi cảnh báo vi phạm bảo mật (infraction) qua Telegram và Admin dashboard
+            try:
+                import asyncio
+                from backend.services.telegram_service import telegram_service
+                from backend.services.signal_center import signal_center
+                from backend.schemas.signal import SignalSchema, SignalSeverity
+
+                msg = (
+                    f"🛡️ <b>[VI PHẠM BẢO MẬT]</b>\n"
+                    f"<b>IP:</b> <code>{ip}</code>\n"
+                    f"<b>Số lần vi phạm (rolling 5m):</b> <code>{count}/3</code>\n"
+                    f"<b>Trạng thái:</b> Đã ghi nhận vi phạm bảo mật và tăng mức phạt."
+                )
+                asyncio.create_task(telegram_service.send_alert(msg))
+
+                asyncio.create_task(signal_center.dispatch(
+                    user_id="user_admin",
+                    signal=SignalSchema(
+                        message=f"Phát hiện hành vi vi phạm bảo mật từ IP {ip} (Lần thứ {count}).",
+                        severity=SignalSeverity.ACTION,
+                        signal_type="SYSTEM_SECURITY",
+                        payload={"ip": ip, "infraction_count": count},
+                        persist=True
+                    )
+                ))
+            except Exception as alert_err:
+                logger.warning("[InputGuard] Failed to dispatch infraction alert: %s", alert_err)
+
             if count >= 3:
                 blacklist_key = f"support:blacklist:{ip}"
                 await redis.set(blacklist_key, "1", ex=86400)  # 24 hours lock
                 logger.error("🛡️ [MILITARY-SECURITY] IP %s blacklisted for 24 hours due to repeated infractions.", ip)
+                
+                # Gửi cảnh báo khóa IP tự động (blacklist) qua Telegram và Admin dashboard
+                try:
+                    import asyncio
+                    from backend.services.telegram_service import telegram_service
+                    from backend.services.signal_center import signal_center
+                    from backend.schemas.signal import SignalSchema, SignalSeverity
+
+                    blacklist_msg = (
+                        f"🚨 <b>[IP BLACKLISTED]</b>\n"
+                        f"<b>IP:</b> <code>{ip}</code>\n"
+                        f"<b>Lý do:</b> Vi phạm quy tắc an toàn bảo mật liên tục (>= 3 lần).\n"
+                        f"<b>Trạng thái:</b> Đã khóa truy cập (blacklist) trong 24 giờ."
+                    )
+                    asyncio.create_task(telegram_service.send_alert(blacklist_msg))
+
+                    asyncio.create_task(signal_center.dispatch(
+                        user_id="user_admin",
+                        signal=SignalSchema(
+                            message=f"Địa chỉ IP {ip} đã bị khóa tự động 24h do vi phạm bảo mật liên tiếp.",
+                            severity=SignalSeverity.CRITICAL,
+                            signal_type="SYSTEM_SECURITY",
+                            payload={"ip": ip, "reason": "repeated_infractions", "duration": "24h"},
+                            persist=True
+                        )
+                    ))
+                except Exception as alert_err:
+                    logger.warning("[InputGuard] Failed to dispatch blacklist alert: %s", alert_err)
         except Exception as e:
             logger.warning("[InputGuard] Failed to record security infraction: %s", e)
 
     @staticmethod
     async def check_military_blacklist(request: object) -> None:
         """Military-Grade Blacklist gatekeeper. Fast path execution."""
+        from litestar.exceptions import HTTPException
         try:
             from backend.services.xohi_memory import xohi_memory
             redis = xohi_memory.client
@@ -232,12 +290,63 @@ class InputGuard:
             )
             blacklist_key = f"support:blacklist:{ip}"
             if await redis.get(blacklist_key):
-                from litestar.exceptions import HTTPException
                 raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do vi phạm quy tắc an toàn.")
         except HTTPException:
             raise
         except Exception as e:
             logger.warning("[InputGuard] Blacklist check bypass gracefully: %s", e)
+
+    @staticmethod
+    async def verify_request_signature(request: object, body_bytes: bytes) -> None:
+        """
+        Military-Grade Cryptographic Signature and Replay Protection.
+        Validates X-Agent-Signature (HMAC-SHA256) and X-Agent-Timestamp.
+        If verification fails, records security infraction and raises 403 Forbidden.
+        """
+        from litestar.exceptions import HTTPException
+        headers = getattr(request, "headers", {})
+        agent_sig = headers.get("x-agent-signature")
+        agent_timestamp = headers.get("x-agent-timestamp")
+        
+        # Only verify if agent is authenticated and signature headers are sent
+        is_agent = request.state.get("is_agent", False) if hasattr(request, "state") else False
+        if not is_agent:
+            return
+            
+        # Replay Attack Protection
+        if agent_timestamp:
+            try:
+                import time
+                request_time = float(agent_timestamp)
+                current_time = time.time()
+                if abs(current_time - request_time) > 300: # 5 minutes window
+                    ip = headers.get("x-real-ip") or (request.client.host if request.client else None) or "unknown"
+                    await InputGuard.record_security_infraction(ip)
+                    raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do phiên yêu cầu quá hạn (suspected replay attack).")
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.warning(f"Failed to validate agent timestamp: {e}")
+                
+        # Signature Verification
+        if agent_sig:
+            agent_key = request.state.get("agent_key")
+            if not agent_key:
+                raise HTTPException(status_code=403, detail="Không tìm thấy Agent key hợp lệ trong phiên làm việc.")
+                
+            import hmac
+            import hashlib
+            try:
+                expected_sig = hmac.new(agent_key.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(expected_sig.lower(), agent_sig.lower()):
+                    ip = headers.get("x-real-ip") or (request.client.host if request.client else None) or "unknown"
+                    await InputGuard.record_security_infraction(ip)
+                    raise HTTPException(status_code=403, detail="Chữ ký bảo mật không khớp. Yêu cầu đã bị thay đổi hoặc giả mạo.")
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking HMAC signature: {e}")
+                raise HTTPException(status_code=403, detail="Xử lý chữ ký bảo mật thất bại.")
 
 
 # Module-level singleton — stateless, safe to share

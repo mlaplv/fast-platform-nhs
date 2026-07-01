@@ -81,6 +81,10 @@ class SupportRequest(BaseModel):
     selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
     pricing_context: Optional[PricingBreakdown] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")
     cart_epoch: Optional[int] = Field(default=None, description="Current cart epoch on the client to prevent race conditions")
+    is_agent: bool = Field(default=False, description="Whether this request is made by a verified external AI Agent")
+    a2a_context: Optional[dict[str, object]] = Field(default=None, description="A2A Agent-to-Agent parsed context map")
+
+
 
     @field_validator("message", mode="before")
     @classmethod

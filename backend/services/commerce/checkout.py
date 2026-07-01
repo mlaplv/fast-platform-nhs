@@ -76,6 +76,13 @@ class CheckoutService:
         ctv_code: Optional[str] = None,
         attribution_source: Optional[str] = None,
     ) -> CheckoutResult:
+        # [SECURITY] Military Blacklist Guard
+        from backend.services.xohi_memory import xohi_memory
+        if xohi_memory.client:
+            blacklist_key = f"support:blacklist:{customer_ip}"
+            if await xohi_memory.client.get(blacklist_key):
+                logger.error(f"[SECURITY-BLOCKED] Order creation attempt from blacklisted IP: {customer_ip}")
+                raise ValidationException("Yêu cầu bị từ chối do vi phạm quy tắc an toàn.")
 
         # [SECURITY] Idempotency Guard — AI Agent retry-safe (TTL 1h)
         if payload.idempotency_key:
@@ -427,10 +434,15 @@ class CheckoutService:
 
         # 🚀 [ELITE V2.2] ACCOUNTING: Atomic increment & protect against abuse for ALL applied vouchers
         # [M-02] Truyền voucher object đã fetch — không SELECT lại lần 3
-        for v_id in applied_voucher_ids:
-            await PromotionService.validate_and_use_voucher(
-                db_session, v_id, payload.customer_phone, voucher=vouchers_map.get(v_id)
-            )
+        is_sandbox = getattr(payload, "sandbox", False)
+        if not is_sandbox:
+            for v_id in applied_voucher_ids:
+                await PromotionService.validate_and_use_voucher(
+                    db_session, v_id, payload.customer_phone, voucher=vouchers_map.get(v_id)
+                )
+        else:
+            logger.info(f"[Sandbox] Bỏ qua trừ voucher thực tế cho sandbox order phone={payload.customer_phone}")
+
         
         if payload.note:
             order_metadata["customer_note"] = payload.note
@@ -504,7 +516,7 @@ class CheckoutService:
             id=new_id(),
             user_id=user.id,
             total_amount=payload.total_amount,
-            status="PENDING",
+            status="SANDBOX" if is_sandbox else "PENDING",
             items=items_list,
             customer_name=final_name,
             customer_phone=payload.customer_phone,
@@ -516,7 +528,8 @@ class CheckoutService:
             spam_score=score,
             spam_reason=reason,
             order_metadata=order_metadata,
-            points_redeemed=payload.points_redeemed,
+            points_earned=pricing.points_to_earn,
+            points_redeemed=points_actually_used,
             point_discount_amount=point_discount,
             ctv_code=resolved_ctv_code,
             ctv_affiliate_id=resolved_ctv_affiliate_id,
@@ -525,18 +538,18 @@ class CheckoutService:
 
         db_session.add(new_order)
         
-        # 🚀 [ELITE V2.2] LOYALTY: Track pending points for immediate client feedback
-        if pricing.points_to_earn > 0:
+        # 🚀 [ELITE V2.2] LOYALTY: Track pending points for immediate client feedback (Bypass if sandbox)
+        if not is_sandbox and pricing.points_to_earn > 0:
             await LoyaltyService.register_pending_points(db_session, user.id, pricing.points_to_earn)
         
-        # 5.1 Ghi log trừ điểm nếu có — dùng points_actually_used đã validated bởi engine
-        if points_actually_used > 0:
+        # 5.1 Ghi log trừ điểm nếu có — dùng points_actually_used đã validated bởi engine (Bypass if sandbox)
+        if not is_sandbox and points_actually_used > 0:
             pt = PointTransaction(
                 user_id=user.id,
                 order_id=new_order.id,
                 amount=-points_actually_used,
                 transaction_type="REDEEM_ORDER",
-                notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ)"
+                notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ) [Sandbox]" if is_sandbox else f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ)"
             )
             pt.integrity_token = LoyaltyService._create_transaction_token(pt)
             db_session.add(pt)
@@ -545,6 +558,7 @@ class CheckoutService:
             loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
 
         await db_session.commit()
+
 
         # 🚀 [ELITE V2.2] AUTO-SAVE ADDRESS PROTOCOL
         if user and payload.customer_address:

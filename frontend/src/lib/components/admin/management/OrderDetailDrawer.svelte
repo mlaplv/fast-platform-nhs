@@ -55,6 +55,12 @@
   let isSavingPlanning = $state(false);
   let staffList = $state<UserType[]>([]);
 
+  let orderSubtotal = $derived(
+    Array.isArray(orderData?.items) 
+      ? orderData.items.reduce((sum, item: any) => sum + ((item.unit_price || item.price || 0) * (item.qty || item.quantity || 1)), 0)
+      : (orderData?.total || 0)
+  );
+
   // Planning form state
   let planningForm = $state({
     assigned_to: "",
@@ -575,10 +581,10 @@
                     <div class="flex items-center justify-between border-b border-white/5 last:border-0 pb-3 last:pb-0">
                       <div class="flex-1">
                         <div class="text-xs text-white font-medium mb-1">{item.name || 'Unknown Item'}</div>
-                        <div class="text-[9px] font-mono text-gray-500">QTY: <span class="text-neon-cyan">{item.quantity || 1}</span></div>
+                        <div class="text-[9px] font-mono text-gray-500">QTY: <span class="text-neon-cyan">{item.qty || item.quantity || 1}</span></div>
                       </div>
                       <div class="text-xs font-mono text-white">
-                        {formatCurrency(item.price || 0)}
+                        {formatCurrency(item.unit_price || item.price || 0)}
                       </div>
                     </div>
                   {/each}
@@ -661,8 +667,30 @@
             <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4">
               <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
                 <span class="text-xs text-gray-400">Subtotal</span>
-                <span class="text-xs font-mono text-white">{formatCurrency(orderData.total)}</span>
+                <span class="text-xs font-mono text-white">{formatCurrency(orderSubtotal)}</span>
               </div>
+
+              {#if (orderData.order_metadata?.combo_discount || orderData.orderMetadata?.combo_discount || 0) > 0}
+              <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                <span class="text-xs text-fuchsia-400">Combo Discount</span>
+                <span class="text-xs font-mono text-fuchsia-400">-{formatCurrency(orderData.order_metadata?.combo_discount || orderData.orderMetadata?.combo_discount)}</span>
+              </div>
+              {/if}
+
+              {#if (orderData.order_metadata?.voucher_discount || orderData.orderMetadata?.voucher_discount || 0) > 0}
+              <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                <span class="text-xs text-neon-cyan">Voucher Discount</span>
+                <span class="text-xs font-mono text-neon-cyan">-{formatCurrency(orderData.order_metadata?.voucher_discount || orderData.orderMetadata?.voucher_discount)}</span>
+              </div>
+              {/if}
+
+              {#if (orderData.order_metadata?.shipping_fee || orderData.orderMetadata?.shipping_fee || 0) > 0}
+              <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                <span class="text-xs text-gray-400">Shipping Fee</span>
+                <span class="text-xs font-mono text-white">{formatCurrency(orderData.order_metadata?.shipping_fee || orderData.orderMetadata?.shipping_fee)}</span>
+              </div>
+              {/if}
+
               <div class="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
                 <span class="text-xs text-gray-400">Tax & Fees</span>
                 <span class="text-xs font-mono text-white">đ0</span>

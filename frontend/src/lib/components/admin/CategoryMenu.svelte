@@ -1,7 +1,6 @@
 <script lang="ts">
   import { useNanobot, type WidgetType } from "$lib/state/nanobot.svelte";
   import { onMount, type Component } from "svelte";
-  import { goto } from "$app/navigation";
   
   const nanobot = useNanobot();
   import Package from "@lucide/svelte/icons/package";
@@ -33,7 +32,6 @@
   interface SubItem {
     label: string;
     widget?: WidgetType;
-    href?: string;
   }
 
   interface CategoryItem {
@@ -43,7 +41,6 @@
     sublabel?: string;
     color: string;
     widget?: WidgetType;
-    href?: string;
     children?: SubItem[];
   }
 
@@ -151,6 +148,7 @@
         { label: "Tri thức (RAG)", widget: "SUPPORT_KNOWLEDGE" },
         { label: "Hộp thư AI", widget: "SUPPORT_INBOX" },
         { label: "Brain Manager", widget: "BRAIN_MANAGEMENT" },
+        { label: "Giám sát Agent", widget: "AGENT_TELEMETRY" },
       ]
     },
     {
@@ -197,9 +195,6 @@
   function handleSelect(item: CategoryItem, index: number) {
     if (item.children && item.children.length > 0) {
       expandedIndex = expandedIndex === index ? -1 : index;
-    } else if (item.href) {
-      open = false;
-      goto(item.href);
     } else if (item.widget) {
       open = false;
       nanobot.openWidget(item.widget);
@@ -208,9 +203,7 @@
 
   function handleSubSelect(sub: SubItem) {
     open = false;
-    if (sub.href) {
-      goto(sub.href);
-    } else if (sub.widget) {
+    if (sub.widget) {
       nanobot.openWidget(sub.widget);
     }
   }

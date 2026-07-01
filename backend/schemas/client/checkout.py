@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 import re
+from typing import List
 from typing import Optional
 
 from datetime import datetime
@@ -62,6 +63,11 @@ class StealthCheckoutSchema(BaseModel):
         None, max_length=64, pattern=r"^[A-Za-z0-9\-_]{8,64}$",
         description="[SECURITY] Khoá idempotency — AI Agent dùng để chống tạo đơn trùng khi retry"
     )
+    sandbox: Optional[bool] = Field(
+        False,
+        description="[AI Gateway] Chạy thử (Sandbox). Nếu true, hệ thống sẽ lưu đơn dạng SANDBOX và bỏ qua các thay đổi tài nguyên thực"
+    )
+
 
     @field_validator("customer_phone", mode="before")
     @classmethod
@@ -109,6 +115,33 @@ class CustomerLookupResponseSchema(BaseModel):
     address_masked: Optional[str] = Field(None, description="Địa chỉ đã che (***)")
     name: Optional[str] = Field(None, description="Tên đầy đủ (nếu đã xác thực)")
     address: Optional[str] = Field(None, description="Địa chỉ đầy đủ (nếu đã xác thực)")
+
+
+class CheckoutPreviewItem(BaseModel):
+    """[Phase 1 — AI Gateway] Item cho price preview."""
+    product_id: str = Field(..., description="ID sản phẩm")
+    variant_id: Optional[str] = Field(None, description="ID variant (nếu có)")
+    quantity: int = Field(default=1, ge=1, le=100)
+    price: float = Field(..., ge=0, description="Giá niêm yết frontend gửi lên")
+
+
+class CheckoutPreviewRequest(BaseModel):
+    """
+    [Phase 1 — AI Gateway] Request tính giá preview trước khi tạo đơn.
+    AI Agent dùng endpoint này để lập kế hoạch thanh toán mà không cần tạo đơn thật.
+    """
+    model_config = ConfigDict(strict=True)
+
+    items: List[CheckoutPreviewItem] = Field(
+        ..., min_length=1, max_length=20,
+        description="Danh sách sản phẩm cần tính giá"
+    )
+    voucher_ids: List[str] = Field(
+        default_factory=list, max_length=5,
+        description="Danh sách mã giảm giá muốn áp dụng"
+    )
+    points_to_redeem: int = Field(default=0, ge=0, description="Điểm tích lũy muốn trừ")
+    available_points: int = Field(default=0, ge=0, description="Số điểm hiện có của khách")
 
 class CustomerVerifySchema(BaseModel):
     phone: str = Field(..., description="Số điện thoại")

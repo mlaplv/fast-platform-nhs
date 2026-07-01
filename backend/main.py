@@ -112,6 +112,8 @@ from backend.controllers.client.support import SupportController
 from backend.controllers.client.tts import PublicTTSController
 from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.viral import ViralController
+from backend.controllers.client.agent_gateway import AgentGatewayController
+
 
 # ==============================================================================
 # MIDDLEWARES
@@ -206,7 +208,9 @@ client_routes = [
     ViralController,
     BarcodeController,
     ClientCtvController,
+    AgentGatewayController,
 ]
+
 
 public_routes = [
     IntentController,

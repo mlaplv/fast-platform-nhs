@@ -388,13 +388,28 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             from backend.services.commerce.operatives.handlers.consultant_helpers import build_marketing_benefits_block
             marketing_block = await build_marketing_benefits_block(ctx.db, ctx.p_info, ctx.dna)
 
+        a2a_ctx = getattr(ctx.request, "a2a_context", None)
+        a2a_instr = ""
+        if a2a_ctx:
+            a2a_instr = (
+                "\n[🤝 GIAO THỨC A2A (AGENT-TO-AGENT) CONTEXT]:\n"
+                "Yêu cầu này được ủy quyền từ một AI Agent đối tác khác (Google/OpenAI).\n"
+                f"- Tên Agent giới thiệu: {a2a_ctx.get('referring_agent', 'Google/OpenAI Agent')}\n"
+                f"- Ý định mua sắm của khách: {a2a_ctx.get('user_intent', 'N/A')}\n"
+                f"- Hạn mức ngân sách khách mong muốn: {a2a_ctx.get('budget_range', 'N/A')}\n"
+                f"- Vị trí địa lý/Khu vực: {a2a_ctx.get('geo_location', 'N/A')}\n"
+                "- HÃY TẬP TRUNG tư vấn trực diện vào nhu cầu của khách theo thông tin trên. Tránh hỏi lại những câu hỏi trùng lặp mà Agent đối tác đã giải quyết.\n"
+            )
+
         full_prompt = (
             f"{base_prompt}\n"
             f"{integration_ctx}\n"
             f"{fomo_ctx}\n"
             f"{loyalty_ctx}\n"
             f"{lead_alert}\n"
+            f"{a2a_instr}\n"
         )
+
         if marketing_block:
             full_prompt += f"\n[CHƯƠNG TRÌNH MARKETING ĐANG ÁP DỤNG CHO SẢN PHẨM]\n{marketing_block}\n"
 
@@ -435,7 +450,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     role=trinity_bridge.ROLE_BRAIN,
                     safety_none=True,
                     timeout=15.0,
-                    per_model_timeout=8.0
+                    per_model_timeout=8.0,
+                    is_agent=getattr(ctx.request, "is_agent", False)
                 ),
                 timeout=15.0
             )

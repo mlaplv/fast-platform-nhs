@@ -237,7 +237,21 @@ class SeoService:
                     "returnFees": "https://schema.org/FreeReturn"
                 }
             },
+            "potentialAction": {
+                "@type": "BuyAction",
+                "name": f"Mua {product.name}",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": f"{_SITE_URL}/checkout?product_id={product.id}" + ("" if not product.variants else f"&variant_id={product.variants[0].id}") + "&quantity=1",
+                    "inLanguage": "vi-VN",
+                    "actionPlatform": [
+                        "http://schema.org/DesktopWebPlatform",
+                        "http://schema.org/MobileWebPlatform"
+                    ]
+                }
+            },
         }
+
 
         # GEO V4.0: Freshness signal for AI search engines (Gemini AI Overviews)
         updated_at = getattr(product, "updatedAt", None) or getattr(product, "updated_at", None)

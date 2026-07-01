@@ -91,9 +91,80 @@ class AuthMiddleware:
                 current_tenant_id.set(tenant_id)
                 logger.info(f"🌐 [Tenant] Overridden by query: {tenant_id}")
 
+            # Check for AI Agent API Key
+            agent_api_key = headers.get("x-agent-api-key")
+            auth_header = headers.get("authorization")
+            if auth_header and auth_header.startswith("ApiKey "):
+                agent_api_key = auth_header.split(" ")[1]
+
+            if agent_api_key:
+                import hashlib
+                valid_keys = [k.strip() for k in os.getenv("AGENT_API_KEYS", "").split(",") if k.strip()]
+                valid_hashes = [h.strip().lower() for h in os.getenv("AGENT_API_KEY_HASHES", "").split(",") if h.strip()]
+                
+                # Compute SHA-256 hex hash of the received key
+                hashed_key = hashlib.sha256(agent_api_key.encode("utf-8")).hexdigest().lower()
+                
+                # Verify key directly or by hash
+                if (agent_api_key in valid_keys) or (hashed_key in valid_hashes):
+                    if "state" not in scope:
+                        scope["state"] = {}
+                    scope["state"]["is_agent"] = True
+                    scope["state"]["agent_key"] = agent_api_key
+                    logger.info(f"🔑 [Auth-Agent] Verified AI Agent cryptographically (Key Prefix: {agent_api_key[:4]}...).")
+
+            # Military-Grade Replay Attack Protection
+            agent_timestamp = headers.get("x-agent-timestamp")
+            if agent_timestamp and scope.get("state", {}).get("is_agent"):
+                try:
+                    import time
+                    request_time = float(agent_timestamp)
+                    current_time = time.time()
+                    if abs(current_time - request_time) > 300: # 5 minutes window
+                        ip = headers.get("x-real-ip") or scope.get("client", [None])[0] or "unknown"
+                        
+                        # Trigger infraction async
+                        import asyncio
+                        from backend.services.commerce.security.input_guard import input_guard
+                        asyncio.create_task(input_guard.record_security_infraction(ip))
+                        
+                        from litestar.exceptions import PermissionDeniedException
+                        raise PermissionDeniedException("Phiên yêu cầu đã hết hạn. Suspected replay attack.")
+                except PermissionDeniedException:
+                    raise
+                except Exception as e:
+                    logger.warning(f"Failed to validate agent timestamp in middleware: {e}")
+
+            # Parse Google/OpenAI A2A (Agent-to-Agent) Context Header
+            a2a_header = headers.get("x-a2a-context")
+            if a2a_header:
+                import base64
+                import json
+                try:
+                    decoded = None
+                    try:
+                        decoded = base64.b64decode(a2a_header).decode("utf-8")
+                    except Exception:
+                        decoded = a2a_header  # Fallback to raw JSON string
+
+                    a2a_data = json.loads(decoded)
+                    if "state" not in scope:
+                        scope["state"] = {}
+                    scope["state"]["a2a_context"] = a2a_data
+                    logger.info(f"🤝 [A2A-Context] Injected A2A Context: {a2a_data.get('referring_agent', 'unknown')}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse X-A2A-Context header: {e}")
+
+
             # R00: Elite Resilient Auth — Collect all token candidates
             candidates: List[Optional[str]] = []
+
             
+            # 0. User Delegation Header (X-User-Delegation-Token)
+            user_delegation_token = headers.get("x-user-delegation-token")
+            if user_delegation_token:
+                candidates.append(user_delegation_token)
+
             # 1. Authorization Header
             auth_header = headers.get("authorization")
             if auth_header and auth_header.startswith("Bearer "):

@@ -22,6 +22,7 @@ import CtvManagement from "./management/CtvManagement.svelte";
 import NotificationManagement from "./management/NotificationManagement.svelte";
 import SeoGraphManagement from "./management/SeoGraphManagement.svelte";
 import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview.svelte";
+import AgentMonitorWidget from "./widgets/AgentMonitorWidget.svelte";
 
   const WIDGET_REGISTRY: Record<string, Component<BaseWidgetProps>> = {
     RevenueChart: RevenueChart as Component<BaseWidgetProps>,
@@ -47,6 +48,7 @@ import SeoContextualLinkReview from "$lib/components/seo/SeoContextualLinkReview
     NOTIFICATION_MANAGEMENT: NotificationManagement as Component<BaseWidgetProps>,
     SEO_GRAPH: SeoGraphManagement as Component<BaseWidgetProps>,
     SEO_LINK_REVIEW: SeoContextualLinkReview as Component<BaseWidgetProps>,
+    AGENT_TELEMETRY: AgentMonitorWidget as Component<BaseWidgetProps>,
   };
 
   let ActiveWidget = $derived(

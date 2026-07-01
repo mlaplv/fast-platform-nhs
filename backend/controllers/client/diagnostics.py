@@ -38,19 +38,24 @@ class DiagnosticController(Controller):
         )
 
         # 1. Giới hạn, cấm dùng công cụ hay tool (cấm bot / API clients)
+        is_agent = request.state.get("is_agent", False) if hasattr(request, "state") else False
         user_agent = request.headers.get("user-agent", "").strip().lower()
-        if not user_agent:
-            await input_guard.record_security_infraction(ip)
-            raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do thiếu định dạng User-Agent hợp lệ.")
-        
-        bot_keywords = [
-            "headless", "selenium", "puppeteer", "playwright", "python-requests", 
-            "curl", "wget", "httpclient", "postman", "scrapy", "urllib", 
-            "axios", "got", "node-fetch", "pycurl", "perl", "java", "go-http"
-        ]
-        if any(bot in user_agent for bot in bot_keywords):
-            await input_guard.record_security_infraction(ip)
-            raise HTTPException(status_code=403, detail="Truy cập tự động thông qua công cụ API bị nghiêm cấm.")
+        if not is_agent:
+            if not user_agent:
+                await input_guard.record_security_infraction(ip)
+                raise HTTPException(status_code=403, detail="Yêu cầu bị từ chối do thiếu định dạng User-Agent hợp lệ.")
+            
+            bot_keywords = [
+                "headless", "selenium", "puppeteer", "playwright", "python-requests", 
+                "curl", "wget", "httpclient", "postman", "scrapy", "urllib", 
+                "axios", "got", "node-fetch", "pycurl", "perl", "java", "go-http"
+            ]
+            if any(bot in user_agent for bot in bot_keywords):
+                await input_guard.record_security_infraction(ip)
+                raise HTTPException(status_code=403, detail="Truy cập tự động thông qua công cụ API bị nghiêm cấm.")
+        else:
+            logger.info(f"[Auth-Agent] Bypassing user-agent anti-bot filters in diagnostics for verified agent.")
+
 
         # Rate limiting: Tấn công tài nguyên token (diagnostics)
         try:

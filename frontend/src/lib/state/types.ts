@@ -58,7 +58,8 @@ export type WidgetType =
   | "SEO_GRAPH"
   | "SEO_LINK_REVIEW"
   | "VOUCHER_MANAGEMENT"
-  | "VIDEO_SCRIPT_MANAGEMENT";
+  | "VIDEO_SCRIPT_MANAGEMENT"
+  | "AGENT_TELEMETRY";
 
 export type NanoBotState =
   | "IDLE"

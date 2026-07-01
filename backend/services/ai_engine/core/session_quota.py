@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Final, Optional
+import redis.asyncio as redis
 
 logger = logging.getLogger("api-gateway")
 
@@ -36,7 +37,7 @@ class SessionQuotaGuard:
             cls._instance._ready = False
         return cls._instance
 
-    def _redis(self):  # type: ignore[return]
+    def _redis(self) -> Optional[redis.Redis]:
         """Lazy-load Redis client từ xohi_memory singleton."""
         try:
             from backend.services.xohi_memory import xohi_memory
@@ -47,7 +48,7 @@ class SessionQuotaGuard:
     def _key(self, session_id: str) -> str:
         return f"{_QUOTA_KEY_PREFIX}{session_id}"
 
-    async def check(self, session_id: str, estimated_input: int = 500) -> bool:
+    async def check(self, session_id: str, estimated_input: int = 500, is_agent: bool = False) -> bool:
         """
         Kiểm tra session còn trong quota không.
         Returns True nếu ĐƯỢC PHÉP, False nếu HẾT QUOTA.
@@ -57,19 +58,64 @@ class SessionQuotaGuard:
         if not r:
             return True  # Fail-open: không chặn nếu Redis mất kết nối
 
+        limit = _HOURLY_INPUT_LIMIT
+        if is_agent:
+            # 10x higher quota limit for verified partner agents
+            limit = _HOURLY_INPUT_LIMIT * 10
+
         try:
             raw: Optional[str] = await r.hget(self._key(session_id), _FIELD_INPUT)
             current_input: int = int(raw) if raw else 0
-            if current_input + estimated_input > _HOURLY_INPUT_LIMIT:
+            if current_input + estimated_input > limit:
                 logger.warning(
-                    "[SessionQuota] Input limit reached: session=%s used=%d limit=%d",
-                    session_id[:16], current_input, _HOURLY_INPUT_LIMIT,
+                    "[SessionQuota] Input limit reached: session=%s used=%d limit=%d (agent=%s)",
+                    session_id[:16], current_input, limit, is_agent
                 )
+                # Chống spam cảnh báo trong vòng 5 phút cho mỗi session
+                alert_lock_key = f"ai:session:quota_alert_sent:{session_id}"
+                try:
+                    if not await r.get(alert_lock_key):
+                        await r.set(alert_lock_key, "1", ex=300)
+                        
+                        import asyncio
+                        from backend.services.telegram_service import telegram_service
+                        from backend.services.signal_center import signal_center
+                        from backend.schemas.signal import SignalSchema, SignalSeverity
+
+                        msg = (
+                            f"⚠️ <b>[A2A LIMIT EXCEEDED]</b>\n"
+                            f"<b>Session ID:</b> <code>{session_id[:16]}...</code>\n"
+                            f"<b>Is Agent:</b> <code>{is_agent}</code>\n"
+                            f"<b>Used Input Tokens:</b> <code>{current_input}</code>\n"
+                            f"<b>Limit:</b> <code>{limit}</code>\n"
+                            f"<b>Status:</b> Quota exceeded. Request rejected."
+                        )
+                        asyncio.create_task(telegram_service.send_alert(msg))
+
+                        asyncio.create_task(signal_center.dispatch(
+                            user_id="user_admin",
+                            signal=SignalSchema(
+                                message=f"Hạn mức token của Session {session_id[:16]}... đã vượt quá giới hạn ({current_input}/{limit} tokens).",
+                                severity=SignalSeverity.CRITICAL,
+                                signal_type="SYSTEM_SECURITY",
+                                payload={
+                                    "session_id": session_id,
+                                    "is_agent": is_agent,
+                                    "used_tokens": current_input,
+                                    "limit": limit
+                                },
+                                persist=True
+                            )
+                        ))
+                except Exception as alert_err:
+                    logger.warning("[SessionQuota] Failed to dispatch quota alert: %s", alert_err)
+
                 return False
         except Exception as e:
             logger.debug("[SessionQuota] check failed (fail-open): %s", e)
 
         return True
+
 
     async def track(
         self,
