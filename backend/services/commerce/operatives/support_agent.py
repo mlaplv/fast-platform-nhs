@@ -75,6 +75,21 @@ class SupportAgentOperative(BaseAgentOperative):
         self._arq_pool: Optional[object] = None
         self._background_tasks: set[asyncio.Task[object]] = set()
 
+    def _create_logged_background_task(self, coro) -> asyncio.Task[object]:
+        """Create a background task with robust logging of exceptions on completion."""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        
+        def _done_cb(t: asyncio.Task[object]) -> None:
+            self._background_tasks.discard(t)
+            try:
+                t.result()
+            except Exception as e:
+                logger.error("[SupportAgent] Background task execution failed: %s", e, exc_info=True)
+                
+        task.add_done_callback(_done_cb)
+        return task
+
     async def _get_arq_pool(self) -> object:
         if self._arq_pool is None:
             from arq import create_pool
@@ -507,13 +522,11 @@ class SupportAgentOperative(BaseAgentOperative):
 
         if "[zalo_oa]" in msg_clean or any(k in msg_clean for k in ["kết nối trực tiếp với chuyên viên", "yêu cầu kết nối chuyên viên", "gặp tư vấn viên"]):
             from backend.services.core.zalo_service import zalo_service
-            task = asyncio.create_task(
+            self._create_logged_background_task(
                 zalo_service.push_support_notification(
                     customer_name=c_name, message=request.message, session_id=session_id
                 )
             )
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
 
             await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
             await self._emit_inbox_update(session_id, request.message)
@@ -530,13 +543,11 @@ class SupportAgentOperative(BaseAgentOperative):
         helen_on = await xohi_memory.client.get("system:helen_enabled")
         if helen_on == "0":
             from backend.services.core.zalo_service import zalo_service
-            task = asyncio.create_task(
+            self._create_logged_background_task(
                 zalo_service.push_support_notification(
                     customer_name=c_name, message=request.message, session_id=session_id
                 )
             )
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
 
             offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
             reply_text = offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi Quý khách qua Zalo OA. Vui lòng để lại lời nhắn ạ. 🌸"

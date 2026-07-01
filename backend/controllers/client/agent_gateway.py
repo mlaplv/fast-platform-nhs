@@ -17,8 +17,12 @@ import os
 import json
 import asyncio
 import re
+import ipaddress
+import socket
+import urllib.parse
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+import time as _time
 
 
 from litestar import Controller, get, post, Response, Request, MediaType
@@ -37,7 +41,7 @@ logger = logging.getLogger("agent-gateway")
 class WebhookRegisterRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     order_id: str = Field(..., description="ID of the order to track")
-    callback_url: str = Field(..., pattern=r"^https?://.*", description="Webhook callback URL starting with http/https")
+    callback_url: str = Field(..., pattern=r"^https://.*", description="Webhook callback URL (HTTPS only)")
 
 class ToolCallRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -131,9 +135,7 @@ class AgentGatewayController(Controller):
 
         name = data.name
         args = data.arguments
-        ip = request.client.host if request.client else "unknown"
-        if forwarded_for := request.headers.get("x-forwarded-for"):
-            ip = forwarded_for.split(",")[0].strip()
+        ip = self._get_client_ip(request)
         
         # Security check: Limit to public-safe tools only
         allowed_tools = {
@@ -161,6 +163,7 @@ class AgentGatewayController(Controller):
         if injection_err:
             return injection_err
 
+        _t0: float = _time.monotonic()
         try:
             if name == "search_products":
                 from backend.services.commerce.product_vector import ProductVectorService
@@ -287,7 +290,7 @@ class AgentGatewayController(Controller):
                 
                 # Expose order checkout endpoint logic to MCP
                 checkout_payload = StealthCheckoutSchema(**args)
-                ip = request.client.host if request.client else "unknown"
+                ip = self._get_client_ip(request)
                 ua = request.headers.get("user-agent", "unknown")
                 
                 user_payload = request.scope.get("state", {}).get("user")
@@ -459,18 +462,28 @@ class AgentGatewayController(Controller):
 
         except Exception as e:
             logger.error(f"[Agent MCP] Public tool execution error ({name}): {e}", exc_info=True)
-            return {"status": "error", "message": str(e)}
+            result: Dict[str, str] = {"status": "error", "message": "Đã xảy ra lỗi nội bộ khi xử lý yêu cầu. Vui lòng thử lại."}
+            _elapsed: float = (_time.monotonic() - _t0) * 1000
+            logger.info("[A2A-Audit] tool=%s ip=%s duration_ms=%.1f status=error", name, ip, _elapsed)
+            return result
 
-        return {"status": "error", "message": "Unhandled public tool call"}
+        result = {"status": "error", "message": "Unhandled public tool call"}
+        _elapsed = (_time.monotonic() - _t0) * 1000
+        logger.info("[A2A-Audit] tool=%s ip=%s duration_ms=%.1f status=unhandled", name, ip, _elapsed)
+        return result
 
     # ── 4. Order Webhook callback registration ───────────────────────────────
     @post("/api/v1/client/checkout/webhook/register", media_type=MediaType.JSON, guards=[])
-    async def register_order_webhook(self, data: WebhookRegisterRequest) -> Dict[str, Any]:
+    async def register_order_webhook(self, request: Request, data: WebhookRegisterRequest) -> Dict[str, Any]:
         """Register a callback URL to receive real-time updates for an order."""
+        # [SECURITY] SSRF Protection — block internal/private network targets
+        if not self._validate_webhook_url(data.callback_url):
+            from backend.services.commerce.security.input_guard import input_guard
+            ip = self._get_client_ip(request)
+            await input_guard.record_security_infraction(ip)
+            return {"status": "error", "message": "Webhook URL không hợp lệ hoặc trỏ đến mạng nội bộ."}
+
         await self._register_webhook_url(data.order_id, data.callback_url)
-        
-        # Fire background task to simulate a ping verification test
-        import asyncio
         asyncio.create_task(self._simulate_webhook_ping(data.order_id, data.callback_url))
         
         return {
@@ -585,10 +598,19 @@ class AgentGatewayController(Controller):
 
         return None
 
+    # [SECURITY] Lua script — atomic INCR + EXPIRE to prevent race conditions
+    _RATE_LIMIT_LUA: str = """
+    local count = redis.call('INCR', KEYS[1])
+    if count == 1 then
+        redis.call('EXPIRE', KEYS[1], ARGV[1])
+    end
+    return count
+    """
+
     @staticmethod
     async def _check_tool_rate_limit(ip: str, tool_name: str) -> Optional[Dict[str, Any]]:
         """
-        [SECURITY] Per-tool rate limiting via Redis sliding window.
+        [SECURITY] Per-tool rate limiting via Redis atomic Lua script.
         Prevents brute-force enumeration and DDoS on individual tools.
         """
         try:
@@ -597,7 +619,7 @@ class AgentGatewayController(Controller):
                 return None
 
             # Tool-specific rate limits (requests per 60s window)
-            limits = {
+            limits: Dict[str, int] = {
                 "stealth_checkout": 5,
                 "chat_with_helen": 20,
                 "preview_pricing": 30,
@@ -608,12 +630,10 @@ class AgentGatewayController(Controller):
                 "get_promotions": 30,
                 "get_loyalty_policy": 30,
             }
-            max_calls = limits.get(tool_name, 60)
-            rate_key = f"agent:rate:{ip}:{tool_name}"
+            max_calls: int = limits.get(tool_name, 60)
+            rate_key: str = f"agent:rate:{ip}:{tool_name}"
 
-            count = await r.incr(rate_key)
-            if count == 1:
-                await r.expire(rate_key, 60)
+            count: int = await r.eval(AgentGatewayController._RATE_LIMIT_LUA, 1, rate_key, 60)
 
             if count > max_calls:
                 logger.warning("[A2A-RateLimit] IP=%s exceeded %d calls/min for tool=%s", ip, max_calls, tool_name)
@@ -770,21 +790,65 @@ class AgentGatewayController(Controller):
             await xohi_memory.client.set(redis_key, callback_url, ex=7 * 86400) # 7 ngày TTL
             logger.info(f"[Webhook] Registered callback for order {order_id} -> {callback_url}")
 
+    # [SECURITY] Blocked private/internal networks — SSRF protection
+    _BLOCKED_NETWORKS: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = [
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("169.254.0.0/16"),   # Link-local / AWS metadata
+        ipaddress.ip_network("127.0.0.0/8"),       # Loopback
+        ipaddress.ip_network("::1/128"),            # IPv6 loopback
+        ipaddress.ip_network("fc00::/7"),           # IPv6 ULA
+        ipaddress.ip_network("fe80::/10"),          # IPv6 link-local
+    ]
+
+    @staticmethod
+    def _validate_webhook_url(url: str) -> bool:
+        """[SECURITY] Validate webhook URL — block SSRF to internal networks."""
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "https":
+            return False
+        hostname: str | None = parsed.hostname
+        if not hostname:
+            return False
+        try:
+            resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            for _, _, _, _, addr in resolved:
+                ip_addr = ipaddress.ip_address(addr[0])
+                for blocked_net in AgentGatewayController._BLOCKED_NETWORKS:
+                    if ip_addr in blocked_net:
+                        logger.warning("[Webhook-SSRF] Blocked internal network target: %s -> %s", url, addr[0])
+                        return False
+        except (socket.gaierror, ValueError):
+            return False
+        return True
+
+    @staticmethod
+    def _get_client_ip(request: Request) -> str:
+        """[SECURITY] Extract client IP — trust only X-Real-IP set by reverse proxy."""
+        if real_ip := request.headers.get("x-real-ip"):
+            return real_ip
+        return request.client.host if request.client else "unknown"
+
     async def _simulate_webhook_ping(self, order_id: str, callback_url: str) -> None:
-        """Simulate sending a validation ping to the client's webhook."""
+        """Send a validation ping to the client's webhook with SSRF protection."""
         await asyncio.sleep(2)
+        # [SECURITY] Re-validate URL before outbound request (defense-in-depth)
+        if not self._validate_webhook_url(callback_url):
+            logger.warning("[Webhook-SSRF] Ping blocked — URL failed re-validation: %s", callback_url)
+            return
         import httpx
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                payload = {
+                payload: Dict[str, str] = {
                     "event": "webhook_verified",
                     "order_id": order_id,
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 resp = await client.post(callback_url, json=payload)
-                logger.info(f"[Webhook] Verification ping to {callback_url} returned status {resp.status_code}")
+                logger.info("[Webhook] Verification ping to %s returned status %d", callback_url, resp.status_code)
         except Exception as e:
-            logger.warning(f"[Webhook] Verification ping failed to {callback_url}: {e}")
+            logger.warning("[Webhook] Verification ping failed to %s: %s", callback_url, e)
 
     @get("/api/v1/client/mcp/metrics", media_type=MediaType.JSON, guards=[])
     async def get_agent_metrics(self, request: Request) -> Dict[str, Any]:

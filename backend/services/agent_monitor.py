@@ -161,8 +161,7 @@ class AgentMonitor:
             return
         try:
             await r.delete("agent:gateway:shutdown")
-            keys = await r.keys("agent:metrics:alert_sent:*")
-            for k in keys:
+            async for k in r.scan_iter(match="agent:metrics:alert_sent:*", count=50):
                 await r.delete(k)
             await r.delete("agent:metrics:tokens")
             logger.info("[A2A-Security] A2A Gateway manually reopened and metrics reset.")
@@ -199,13 +198,12 @@ class AgentMonitor:
             def decode_dict(d: dict[bytes | str, bytes | str | int | float]) -> dict[str, int]:
                 return {k.decode() if isinstance(k, bytes) else str(k): int(v) for k, v in d.items()}
                 
-            # Scan for blacklist and infractions
+            # Scan for blacklist and infractions (SCAN — non-blocking, O(1) per batch)
             blacklisted_ips: list[dict[str, str | int]] = []
             infraction_ips: list[dict[str, str | int]] = []
             
             # 1. Blacklist
-            blacklist_keys = await r.keys("support:blacklist:*")
-            for k in blacklist_keys:
+            async for k in r.scan_iter(match="support:blacklist:*", count=50):
                 k_str = k.decode() if isinstance(k, bytes) else str(k)
                 ip = k_str.replace("support:blacklist:", "")
                 ttl = await r.ttl(k_str)
@@ -215,8 +213,7 @@ class AgentMonitor:
                 })
                 
             # 2. Infractions
-            infraction_keys = await r.keys("support:security_infractions:*")
-            for k in infraction_keys:
+            async for k in r.scan_iter(match="support:security_infractions:*", count=50):
                 k_str = k.decode() if isinstance(k, bytes) else str(k)
                 ip = k_str.replace("support:security_infractions:", "")
                 val = await r.get(k_str)
