@@ -11,7 +11,7 @@
   import { authStore } from "$lib/state/authStore.svelte";
 
   // Utils
-  import { processProductVouchers } from "$lib/utils/commerce/voucher";
+  import { processProductVouchers, getVoucherDisplayValue } from "$lib/utils/commerce/voucher";
   import { logger } from "$lib/utils/logger";
 
   // Components
@@ -276,7 +276,7 @@
 
   function addToCart() {
     if (!validateSelection()) return;
-    cartStore.addItem(product, currentVariant, quantity);
+    cartStore.addItem(product, currentVariant, quantity, selectedVouchers);
     clientUi.showToast("Đã thêm sản phẩm vào giỏ hàng", "success");
   }
 
@@ -332,6 +332,23 @@
 
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
+
+  // [ELITE V2.2] Auto-Stick default or best discount voucher on load
+  $effect(() => {
+    if (productVouchers.length > 0 && selectedVouchers.length === 0) {
+      const discounts = productVouchers.filter(v => v.type === 'discount');
+      if (discounts.length > 0) {
+        const defaultV = discounts.find(v => {
+          const fullV = cartStore.vouchers.find(x => x.id === v.id);
+          return fullV?.is_default;
+        });
+        const targetV = defaultV || discounts[0];
+        if (targetV) {
+          selectedVouchers = [targetV.id];
+        }
+      }
+    }
+  });
 
   // Use DB vouchers if available
   const productVouchers = $derived.by(() => {
@@ -438,14 +455,32 @@
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0,
   });
 
-  const activePrices = $derived({
-    sale: displayPrice.discountPrice || displayPrice.price,
-    original: displayPrice.price,
+  const activePrices = $derived.by(() => {
+    const baseOriginal = displayPrice.price;
+    const baseSale = displayPrice.discountPrice || displayPrice.price;
+
+    const selectedDiscountId = selectedVouchers.find(id => {
+      const v = productVouchers.find(x => x.id === id);
+      return v && v.type === 'discount';
+    });
+
+    if (!selectedDiscountId) {
+      return { sale: baseSale, original: baseOriginal };
+    }
+
+    const voucher = productVouchers.find(x => x.id === selectedDiscountId);
+    if (!voucher) return { sale: baseSale, original: baseOriginal };
+
+    const savings = getVoucherDisplayValue(voucher, baseSale, cartStore.vouchers);
+    return {
+      sale: Math.max(0, baseSale - savings),
+      original: baseOriginal
+    };
   });
 
   function buyNow() {
     if (!validateSelection()) return;
-    cartStore.buyNow(product, currentVariant, quantity);
+    cartStore.buyNow(product, currentVariant, quantity, selectedVouchers);
     goto("/checkout");
   }
 

@@ -25,7 +25,7 @@
   import { formatCurrency, formatNumber } from '$lib/utils/format';
   import { getProductLikeCount } from '$lib/utils/commerce/viral';
   import { authStore } from '$lib/state/authStore.svelte';
-  import { processProductVouchers } from '$lib/utils/commerce/voucher';
+  import { processProductVouchers, getVoucherDisplayValue } from '$lib/utils/commerce/voucher';
   import { logger } from '$lib/utils/logger';
   
   // Components
@@ -55,6 +55,7 @@
     hideRatio?: number;
     onTriggerScan?: () => void;
     resolvedLcpUrl?: string;
+    selectedVouchers?: string[];
   }
 
   let { 
@@ -63,7 +64,8 @@
     isScrolled = false, isHidden = false, 
     scrollRatio = 0, hideRatio = 0,
     onTriggerScan,
-    resolvedLcpUrl
+    resolvedLcpUrl,
+    selectedVouchers = $bindable([])
   }: Props = $props();
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -207,8 +209,6 @@
   let vouchersListRef = $state<HTMLElement | null>(null);
   let isAtStart = $state(true);
   let isAtEnd = $state(false);
-  let selectedVouchers = $state<string[]>([]);
-  
   let mounted = $state(false);
   onMount(() => { mounted = true; });
 
@@ -297,7 +297,38 @@
     return v.discountPrice || v.discount_price || v.price;
   });
 
-  const displaySalePrice = $derived(effectiveUnitPrice);
+  // [ELITE V2.2] Auto-Stick default or best discount voucher on load
+  $effect(() => {
+    if (vouchers.length > 0 && selectedVouchers.length === 0) {
+      const discounts = vouchers.filter(v => v.type === 'discount');
+      if (discounts.length > 0) {
+        const defaultV = discounts.find(v => {
+          const fullV = cartStore.vouchers.find(x => x.id === v.id);
+          return fullV?.is_default;
+        });
+        const targetV = defaultV || discounts[0];
+        if (targetV) {
+          selectedVouchers = [targetV.id];
+        }
+      }
+    }
+  });
+
+  // [ELITE V2.2] Dynamic sale price including the selected voucher discount
+  const displaySalePrice = $derived.by(() => {
+    const baseSale = effectiveUnitPrice;
+    const selectedDiscountId = selectedVouchers.find(id => {
+      const v = vouchers.find(x => x.id === id);
+      return v && v.type === 'discount';
+    });
+    if (!selectedDiscountId) return baseSale;
+    
+    const voucher = vouchers.find(x => x.id === selectedDiscountId);
+    if (!voucher) return baseSale;
+    
+    const savings = getVoucherDisplayValue(voucher, baseSale, cartStore.vouchers);
+    return Math.max(0, baseSale - savings);
+  });
   const displayOriginalPrice = $derived(activeVariant?.price || product.price || 0);
   const displayDiscountPercent = $derived(
     displayOriginalPrice > displaySalePrice 

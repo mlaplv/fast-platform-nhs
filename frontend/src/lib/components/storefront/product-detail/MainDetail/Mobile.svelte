@@ -100,6 +100,7 @@
   let showVariantSelector = $state(false);
   let selectedVariant = $state<ProductVariant | null>(null);
   let selectedQty = $state(1);
+  let selectedVouchers = $state<string[]>([]);
 
   const variations = $derived(
     product.tier_variations || product.tierVariations || [],
@@ -116,7 +117,7 @@
       showVariantSelector = true;
       return;
     }
-    cartStore.addItem(product, selectedVariant || undefined, selectedQty);
+    cartStore.addItem(product, selectedVariant || undefined, selectedQty, selectedVouchers);
   }
 
   function buyNow() {
@@ -124,7 +125,7 @@
       showVariantSelector = true;
       return;
     }
-    cartStore.addItem(product, selectedVariant || undefined, selectedQty);
+    cartStore.addItem(product, selectedVariant || undefined, selectedQty, selectedVouchers);
     goto("/checkout");
   }
 
@@ -289,6 +290,7 @@
         {selectedVariant}
         {selectedQty}
         bind:isViralUnlocked
+        bind:selectedVouchers
         {isScrolled}
         isHidden={showTabs}
         {hideRatio}
