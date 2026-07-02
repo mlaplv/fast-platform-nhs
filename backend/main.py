@@ -143,9 +143,9 @@ def _build_allowed_origins() -> list[str]:
     - Basic validation ensures each origin starts with http:// or https://.
     """
     defaults = [
-        os.getenv("ADMIN_URL", "https://admin.osmo.vn"),
-        os.getenv("API_URL", "https://api.osmo.vn"),
-        os.getenv("APP_URL", "https://osmo.vn"),
+        os.getenv("ADMIN_URL", "https://admin.nhathuochongson.com"),
+        os.getenv("API_URL", "https://api.nhathuochongson.com"),
+        os.getenv("APP_URL", "https://nhathuochongson.com"),
     ]
     cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS")
     if cors_origins_str:

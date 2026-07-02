@@ -73,7 +73,7 @@ services:
       - caddy_config:/config
     environment:
       - ACME_AGREE=true
-      - EMAIL=admin@osmo.vn
+      - EMAIL=admin@nhathuochongson.com
     logging:
       driver: "json-file"
       options:
