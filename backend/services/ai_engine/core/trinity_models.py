@@ -20,7 +20,7 @@ HARD_BLACKLIST = [
     "exp", "-001", "-002", 
     "flash-latest", "lite-latest", "gemini-1.5",
     "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash",
-    "gemini-2.0-flash-lite", "gemini-3.1-flash-lite"
+    "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-3.1-flash-lite"
 ]
 
 DEFAULT_AI_CONFIG = {
@@ -28,7 +28,7 @@ DEFAULT_AI_CONFIG = {
         "fast": ["flash", "8b", "lite"],
         "brain": ["pro", "ultra", "brain"]
     },
-    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002", "gemini-3.1-flash-lite"],
+    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002", "gemini-3.1-flash-lite", "gemini-2.0-flash"],
     "whitelist": [],  # Elite V2.2: Dynamic Fusion whitelist overrides for HARD_BLACKLIST
     "lockdown": ["early-access", "alpha", "customtools"],
     "penalties": {
