@@ -35,6 +35,25 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 	# tls internal  # removed to allow ACME automatic certificates
 	import security_headers
 
+	# Block malicious scan probes and admin entrypoints at proxy level (Military-Grade Blocklist)
+	@blocked_scanners path_regexp blocked `(?i)(\.(php|asp|aspx|jsp|jspx|do|action|cgi)|/(wp-admin|wp-content|wp-includes|wp-json|administrator|webdav|xmlrpc\.php|phpmyadmin|phpMyAdmin|pma|actuator|solr|autodiscover|\.git|\.env|\.aws|\.config))(\b|/|\?|$)`
+	handle @blocked_scanners {
+		respond "Not Found" 404 {
+			close
+		}
+	}
+
+	# Restrict Admin Dashboard and Admin APIs to whitelisted IPs only (Elite V2.2)
+	@admin_restricted {
+		expression `host("{$ADMIN_DOMAIN}") || (host("{$API_DOMAIN}") && (path("/api/v1/admin/*", "/api/v1/seo/*", "/api/v1/users/*", "/api/v1/settings/*", "/api/v1/notifications/*", "/api/v1/auditor/*", "/api/v1/ai/*", "/api/v1/mcp/*", "/api/v1/scheduler/*", "/api/v1/banner/*", "/api/v1/chat/*", "/api/v1/pulse/*", "/api/v1/intent/*", "/api/v1/voice/*", "/api/v1/content/*", "/api/v1/orders/*", "/api/v1/video/*", "/ws/stt") || (path("/api/v1/media/*") && !path("/api/v1/media/*/thumb"))))`
+		not client_ip 127.0.0.1 ::1 103.1.236.14 {$ADMIN_WHITELIST_IPS}
+	}
+	handle @admin_restricted {
+		respond "Forbidden" 403 {
+			close
+		}
+	}
+
 
 	# Serve dynamic thumbnail cache with fallback handler (Elite V3.1)
 	@cached_thumbnail path_regexp thumb ^/v65_assets/cache/t_(\d+)_75_([a-fA-F0-9\-]{36})(?:\.webp)?$
@@ -128,10 +147,12 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		reverse_proxy ui:3000
 	}
 
-	# Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)
+	# Fallback for API_DOMAIN (block all other requests to prevent probing)
 	@api_host host {$API_DOMAIN}
 	handle @api_host {
-		import service_proxy
+		respond "Not Found" 404 {
+			close
+		}
 	}
 
 	# Logs with Rotation (Elite V2.2: Hardened logging)

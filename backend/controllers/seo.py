@@ -679,6 +679,75 @@ class SeoController(Controller):
         return SuccessResponse(message="Cập nhật contextual link thành công.")
 
     @post(
+        "/contextual-links/apply",
+        guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)],
+        status_code=200,
+    )
+    async def apply_all_contextual_links(
+        self,
+        db_session: AsyncSession,
+        request: Request,
+    ) -> SuccessResponse:
+        """Apply tất cả approved contextual links của toàn bộ bài viết trên hệ thống."""
+        from backend.database.models.seo import SeoContextualLink, SeoContextualLinkStatus
+        from backend.services.seo_contextual_linker import seo_contextual_linker
+        from sqlalchemy import select
+        from backend.database import current_tenant_id
+
+        tenant_id = current_tenant_id.get() or "default"
+        user = request.scope.get("state", {}).get("user")
+        reviewer_id = user.get("id") if user else None
+
+        # 1. Tìm các unique source articles có approved links
+        res = await db_session.execute(
+            select(SeoContextualLink.source_article_id).where(
+                SeoContextualLink.status == SeoContextualLinkStatus.APPROVED,
+                SeoContextualLink.tenant_id == tenant_id,
+            )
+        )
+        unique_src_ids = list(set(res.scalars().all()))
+
+        if not unique_src_ids:
+            return SuccessResponse(
+                message="Không có đề xuất liên kết đã duyệt (Approved) nào cần chèn.",
+                data={"applied_count": 0, "skipped_stale": 0, "processed_articles": 0}
+            )
+
+        total_applied = 0
+        total_skipped = 0
+        total_inject_fail = 0
+
+        # 2. Áp dụng cho từng bài viết
+        for src_id in unique_src_ids:
+            res_apply = await seo_contextual_linker.apply_approved_links(
+                db_session, src_id, reviewer_id=reviewer_id
+            )
+            total_applied += res_apply["applied_count"]
+            total_skipped += res_apply["skipped_stale"]
+            total_inject_fail += res_apply.get("skipped_inject_fail", 0)
+
+        await db_session.commit()
+
+        # Xóa cache cho các bài viết đã được cập nhật
+        from backend.services.xohi_memory import xohi_memory
+        try:
+            if xohi_memory._use_redis and xohi_memory.client:
+                for src_id in unique_src_ids:
+                    await xohi_memory.client.delete(f"news:content:{src_id}")
+        except Exception as ce:
+            logger.warning(f"Failed to clear news cache: {ce}")
+
+        return SuccessResponse(
+            message=f"Đã chèn thành công {total_applied} liên kết vào {len(unique_src_ids)} bài viết.",
+            data={
+                "applied_count": total_applied,
+                "skipped_stale": total_skipped,
+                "skipped_inject_fail": total_inject_fail,
+                "processed_articles": len(unique_src_ids),
+            }
+        )
+
+    @post(
         "/contextual-links/{article_id:str}/apply",
         guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)],
         status_code=200,

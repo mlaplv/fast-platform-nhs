@@ -497,7 +497,64 @@
 		successMessage = null;
 
 		if (reviewMode === "article") {
-			if (!activeArticleId) return;
+			if (!activeArticleId) {
+				// Global mode: apply all approved links across all articles!
+				const confirmed = await nanobot.showConfirm({
+					title: "XÁC NHẬN CHÈN LIÊN KẾT TOÀN SÀN",
+					message: "Bạn có chắc muốn chèn tất cả liên kết đã duyệt (Approved) vào các bài viết tương ứng?",
+					confirmLabel: "XÁC NHẬN",
+					cancelLabel: "Hủy bỏ"
+				});
+				if (!confirmed) return;
+				isActioning = true;
+				try {
+					const result = await apiClient.post<any>(
+						`/seo/contextual-links/apply`,
+						{},
+					);
+					const applied = Number(result.data?.applied_count || 0);
+					const skipped = Number(result.data?.skipped_stale || 0);
+					const injectFail = Number(
+						result.data?.skipped_inject_fail || 0,
+					);
+					const processed = Number(result.data?.processed_articles || 0);
+
+					if (applied > 0) {
+						successMessage = `Đã chèn thành công ${applied} liên kết vào ${processed} bài viết.`;
+						nanobot.showToast(successMessage, "success");
+						if (skipped > 0) {
+							errorMessage = `Bỏ qua ${skipped} liên kết vì nội dung bài viết gốc đã bị thay đổi bên ngoài.`;
+							nanobot.showToast(errorMessage, "warning");
+						}
+						if (injectFail > 0) {
+							nanobot.showToast(
+								`${injectFail} link không khớp cấu trúc HTML, cần Phân tích lại.`,
+								"warning",
+							);
+						}
+						await fetchContextualLinks();
+					} else if (skipped > 0) {
+						errorMessage = `Không thể chèn liên kết. Toàn bộ ${skipped} liên kết đã bị hết hạn (do nội dung bài viết gốc đã thay đổi).`;
+						nanobot.showToast(errorMessage, "error");
+					} else if (injectFail > 0) {
+						errorMessage = `Không thể chèn ${injectFail} link do cấu trúc HTML không tương thích. Hãy chạy Phân tích lại.`;
+						nanobot.showToast(errorMessage, "warning");
+					} else {
+						successMessage = "Không có liên kết nào được chèn.";
+						nanobot.showToast(successMessage, "info");
+					}
+				} catch (e) {
+					errorMessage =
+						e instanceof Error
+							? e.message
+							: "Không thể thực thi chèn liên kết toàn sàn.";
+					nanobot.showToast(errorMessage, "error");
+				} finally {
+					isActioning = false;
+				}
+				return;
+			}
+
 			const confirmed = await nanobot.showConfirm({
 				title: "XÁC NHẬN CHÈN LIÊN KẾT",
 				message: "Bạn có chắc muốn chèn các liên kết đã duyệt (Approved) vào nội dung bài viết gốc?",
