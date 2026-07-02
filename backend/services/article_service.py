@@ -1200,8 +1200,8 @@ class ArticleService:
 
         base_prompt = (
             "Bạn là nhà báo/chuyên gia nội dung EEAT tiêu chuẩn 2026.\n"
-            "Nếu có thông tin sản phẩm liên kết dưới đây, bạn BẮT BUỘC phải lồng ghép sản phẩm liên quan này vào bài viết một cách tự nhiên, chuyên nghiệp và có sức thuyết phục cao. Giải thích rõ tại sao sản phẩm này là giải pháp tốt cho vấn đề được thảo luận trong bài viết.\n"
-            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%.\n"
+            "Nếu có thông tin sản phẩm liên kết dưới đây, bạn BẤT BUỘC phải lồng ghép sản phẩm liên quan này vào bài viết một cách tự nhiên, chuyên nghiệp và có sức thuyết phục cao. Giải thích rõ tại sao sản phẩm này là giải pháp tốt cho vấn đề được thảo luận trong bài viết.\n"
+            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẤT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%.\n"
             "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục, tóm tắt và sản phẩm liên kết được cung cấp.\n"
             "Yêu cầu cấu trúc:\n"
             "Quy tắc 1: Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"
@@ -1211,48 +1211,56 @@ class ArticleService:
             "Quy tắc 5: Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết.\n"
             "Quy tắc 6: TUYỆT ĐỐI không tự ý sinh hoặc chèn các thẻ liên kết <a>, đường dẫn (URL), hoặc bất kỳ liên kết ngoài/nội bộ nào trong nội dung bài viết. Tất cả nội dung văn bản phải ở dạng thuần túy không chứa thẻ liên kết.\n"
             "Quy tắc 7: TUYỆT ĐỐI không bắt đầu các dòng, các đoạn văn hoặc các thẻ tiêu đề (<h2>, <h3>) bằng dấu gạch ngang (-), dấu sao (*), hoặc ký tự liệt kê của Markdown. Tất cả mã HTML phải ở dạng độc lập, không được lồng trong danh sách trừ khi đó là danh sách thực sự.\n"
-            "Quy tắc 8: BẢNG BIỂU (TABLE): Nếu tạo bảng so sánh/định lượng, bạn BẮT BUỘC phải bọc bảng trong thẻ <figure class=\"xohi-clinical-table\"> và tuân thủ đúng cấu trúc chuẩn HTML gồm: <caption>, <thead> (cho tiêu đề cột <th>) và <tbody> (cho các ô <td>). TUYỆT ĐỐI CẤM dùng các thuộc tính style, width, hoặc thẻ <colgroup>/<col> cố định kích thước, và KHÔNG bọc thẻ <p> bên trong các ô <th> hay <td>."
+            "Quy tắc 8: BẢNG BIỂU (TABLE): Nếu tạo bảng so sánh/định lượng, bạn BẤT BUỘC phải bọc bảng trong thẻ <figure class=\"xohi-clinical-table\"> và tuân thủ đúng cấu trúc chuẩn HTML gồm: <caption>, <thead> (cho tiêu đề cột <th>) và <tbody> (cho các ô <td>). TUYỆT ĐỐI CẤM dùng các thuộc tính style, width, hoặc thẻ <colgroup>/<col> cố định kích thước, và KHÔNG bọc thẻ <p> bên trong các ô <th> hay <td>.\n"
+            "Quy tắc 9: TUYỆT ĐỐI KHÔNG lặp lại tiêu đề chính của bài viết dưới dạng thẻ tiêu đề <h2>, <h3> hoặc đoạn văn ở ngay dòng đầu tiên của bài viết. Để tránh bài viết bị rập khuôn (100 bài như 1), hãy lựa chọn linh hoạt và tự nhiên một trong các phong cách mở đầu sau đây dựa trên cấu trúc viết [CONTENT STRUCTURE] được chỉ định bên dưới:\n"
+            "   - Cách A (Mở bài trực diện/Định nghĩa): Bắt đầu trực tiếp bằng khối định nghĩa bọc trong <blockquote> hoặc <strong> ở ngay đầu bài viết (không dùng thẻ heading ở trên).\n"
+            "   - Cách B (Mở bài nỗi đau/Vấn đề): Dùng đoạn văn <p> mô tả một thực trạng thực tế, câu hỏi tu từ hoặc triệu chứng nhức nhối để gợi đồng cảm.\n"
+            "   - Cách C (Mở bài kể chuyện/Dẫn dắt): Dẫn dắt ngắn gọn bằng một trải nghiệm lâm sàng hoặc câu chuyện thực tế của nhân vật trước khi bắt đầu nội dung chi tiết.\n"
+            "   - Cách D (Tiêu đề phụ sáng tạo): Dùng một thẻ <h2> mới mẻ, mang góc nhìn bổ trợ hoặc kích thích tò mò (TUYỆT ĐỐI KHÔNG trùng lặp hoặc quá giống tiêu đề chính), sau đó mới vào nội dung."
         )
 
         templates_prompts = {
             "sge_definition": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 1: Khối Định nghĩa SGE):\n"
-                "Quy tắc A: Mở đầu bài viết bằng một định nghĩa cực kỳ súc tích, trực diện về thuật ngữ/khái niệm chủ chốt.\n"
-                "Quy tắc B: Ngay sau tiêu đề H2 đầu tiên, bạn BẮT BUỘC phải chèn một khối trích dẫn <blockquote> chứa định nghĩa in đậm (sử dụng <strong>) dài 1-2 câu làm khối định nghĩa chính để AI Overviews có thể trích xuất.\n"
-                "Quy tắc C: Các phần tiếp theo đi vào phân tích chi tiết cơ chế tác dụng ở cấp độ tế bào và ứng dụng thực tế."
+                "Quy tắc A: Lồng ghép một khối trích dẫn <blockquote> chứa định nghĩa in đậm (sử dụng <strong>) dài 1-2 câu trả lời trực tiếp cho tiêu đề chính ở phần đầu bài viết (có thể đặt ngay dòng đầu hoặc ngay sau đoạn dẫn dắt đầu tiên của bạn để tạo sự tự nhiên, tuyệt đối không dùng tiêu đề trùng lặp ở trên blockquote).\n"
+                "Quy tắc B: Các phần tiếp theo đi vào phân tích chi tiết cơ chế tác dụng ở cấp độ tế bào và ứng dụng thực tế."
             ),
             "step_by_step": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 2: Quy trình RAG từng bước):\n"
-                "Quy tắc A: Trình bày nội dung dưới dạng một hướng dẫn/quy trình từng bước (Step-by-step tutorial/workflow) có hệ thống.\n"
-                "Quy tắc B: Mỗi bước hành động phải được đánh số thứ tự rõ ràng (ví dụ: Bước 1, Bước 2...) kết hợp với tiêu đề phụ H3 và phần giải thích ngắn gọn, đi thẳng vào cách thực hiện."
+                "Quy tắc A: Bắt đầu bài viết bằng một đoạn văn ngắn dẫn dắt hoặc tóm tắt tổng quan lợi ích của quy trình (không chèn tiêu đề H2 lặp lại ở dòng đầu tiên).\n"
+                "Quy tắc B: Trình bày nội dung dưới dạng quy trình hướng dẫn từng bước có hệ thống. Mỗi bước hành động phải được đánh số thứ tự rõ ràng (ví dụ: Bước 1, Bước 2...) kết hợp với tiêu đề phụ H3 và phần giải thích ngắn gọn, đi thẳng vào cách thực hiện."
             ),
             "consensus_list": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 3: Danh sách Đồng thuận):\n"
-                "Quy tắc A: Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
-                "Quy tắc B: Sử dụng bảng so sánh HTML chuẩn được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
-                "Quy tắc C: Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
+                "Quy tắc A: Mở đầu bài viết một cách tự nhiên bằng một đoạn văn ngắn giới thiệu bối cảnh thị trường hoặc tiêu chí đánh giá chung (không đặt tiêu đề H2 ở đầu).\n"
+                "Quy tắc B: Trình bày bài viết theo dạng danh sách tổng hợp, đánh giá hoặc tuyển chọn các sản phẩm/thành phần hàng đầu.\n"
+                "Quy tắc C: Sử dụng bảng so sánh HTML chuẩn được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) để so sánh các thuộc tính một cách rõ ràng giữa các sự lựa chọn.\n"
+                "Quy tắc D: Nêu bật ưu điểm và nhược điểm thực tế của từng giải pháp."
             ),
             "info_case_study": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 4: Case Study Tăng trưởng Thông tin):\n"
                 "Quy tắc A: Cấu trúc bài viết xoay quanh một câu chuyện trải nghiệm thực tế (storytelling) của khách hàng hoặc nghiên cứu tình huống cụ thể.\n"
-                "Quy tắc B: Mô tả chi tiết vấn đề ban đầu, quá trình áp dụng giải pháp và kết quả định lượng cụ thể bằng các con số thực tế.\n"
-                "Quy tắc C: Đưa vào các thông tin độc nhất mang tính thực tiễn cao (Information Gain) nhằm tăng độ tin cậy."
+                "Quy tắc B: Hãy bắt đầu câu chuyện ngay tại đoạn văn đầu tiên (ví dụ giới thiệu nhân vật và bối cảnh, tuyệt đối không chèn tiêu đề H2 ở đầu).\n"
+                "Quy tắc C: Mô tả chi tiết vấn đề ban đầu, quá trình áp dụng giải pháp và kết quả định lượng cụ thể bằng các con số thực tế.\n"
+                "Quy tắc D: Đưa vào các thông tin độc nhất mang tính thực tiễn cao (Information Gain) nhằm tăng độ tin cậy."
             ),
             "versus_paradigm": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 5: Đối chiếu Song song):\n"
                 "Quy tắc A: Viết bài dưới dạng so sánh đối chiếu trực tiếp giữa hai sản phẩm, hai hoạt chất hoặc hai phương pháp phổ biến (A vs B).\n"
-                "Quy tắc B: Xây dựng bảng so sánh HTML chi tiết được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) về công dụng, tính an toàn và giá cả.\n"
-                "Quy tắc C: Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
+                "Quy tắc B: Mở đầu bài viết bằng đoạn văn đặt vấn đề so sánh một cách sinh động (không dùng tiêu đề trùng lặp ở dòng đầu tiên).\n"
+                "Quy tắc C: Xây dựng bảng so sánh HTML chi tiết được bọc trong `<figure class=\"xohi-clinical-table\">` (Quy tắc 8) về công dụng, tính an toàn và giá cả.\n"
+                "Quy tắc D: Đưa ra kết luận cụ thể đối tượng người dùng nào nên ưu tiên chọn phương án nào."
             ),
             "expert_consensus": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 6: Ý kiến Chuyên gia Đồng thuận):\n"
-                "Quy tắc A: Phân tích xu hướng thị trường và tổng hợp nhận định, đánh giá của các chuyên gia hoặc bác sĩ uy tín trong ngành.\n"
-                "Quy tắc B: Sử dụng các trích dẫn ngắn (nằm trong thẻ <blockquote> hoặc định dạng nổi bật) để minh họa cho ý kiến đồng thuận.\n"
-                "Quy tắc C: Đưa ra dự báo hoặc khuyến nghị đáng tin cậy về tương lai."
+                "Quy tắc A: Mở đầu bài viết bằng một đoạn văn tổng quan về sự đồng thuận hoặc quan điểm chung của giới chuyên môn/bác sĩ đối với chủ đề này (không dùng tiêu đề H2 ở dòng đầu).\n"
+                "Quy tắc B: Phân tích xu hướng thị trường và tổng hợp nhận định, đánh giá của các chuyên gia hoặc bác sĩ uy tín trong ngành.\n"
+                "Quy tắc C: Sử dụng các trích dẫn ngắn (nằm trong thẻ <blockquote> hoặc định dạng nổi bật) để minh họa cho ý kiến đồng thuận.\n"
+                "Quy tắc D: Đưa ra dự báo hoặc khuyến nghị đáng tin cậy về tương lai."
             ),
             "faq_hub": (
                 "Yêu cầu cấu trúc bổ sung (Bản mẫu 7: Trung tâm FAQ Chuyên sâu):\n"
-                "Quy tắc A: Cấu trúc bài viết hoàn toàn dưới dạng các câu hỏi thường gặp và câu trả lời chi tiết.\n"
+                "Quy tắc A: Cấu trúc bài viết dưới dạng các câu hỏi thường gặp và câu trả lời chi tiết. Không dùng thẻ H2 tiêu đề bài ở đầu, hãy mở đầu trực tiếp bằng 1-2 câu dẫn dắt ngắn tự nhiên và bắt đầu ngay bằng thẻ H3 cho câu hỏi đầu tiên.\n"
                 "Quy tắc B: Mỗi tiêu đề phụ H3 bắt buộc phải viết ở dạng câu hỏi tự nhiên thường được người dùng tìm kiếm.\n"
                 "Quy tắc C: Câu trả lời tương ứng phải súc tích, đầy đủ và đi thẳng vào trọng tâm câu hỏi."
             )

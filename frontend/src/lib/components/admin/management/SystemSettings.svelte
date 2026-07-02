@@ -381,8 +381,19 @@
       e.preventDefault();
       const target = e.target as HTMLInputElement;
       const val = target.value.trim().toLowerCase();
-      if (val && !settings.seo_contextual_links.brand_keywords.includes(val)) {
-        settings.seo_contextual_links.brand_keywords = [...settings.seo_contextual_links.brand_keywords, val];
+      if (val) {
+        const keywords = val.split(',').map(k => k.trim()).filter(k => k !== '');
+        let updatedKeywords = [...settings.seo_contextual_links.brand_keywords];
+        let addedCount = 0;
+        for (const kw of keywords) {
+          if (!updatedKeywords.includes(kw)) {
+            updatedKeywords.push(kw);
+            addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          settings.seo_contextual_links.brand_keywords = updatedKeywords;
+        }
         target.value = "";
       }
     }
@@ -397,8 +408,19 @@
       e.preventDefault();
       const target = e.target as HTMLInputElement;
       const val = target.value.trim().toLowerCase();
-      if (val && !settings.seo_contextual_links.generic_exclusions.includes(val)) {
-        settings.seo_contextual_links.generic_exclusions = [...settings.seo_contextual_links.generic_exclusions, val];
+      if (val) {
+        const keywords = val.split(',').map(k => k.trim()).filter(k => k !== '');
+        let updatedKeywords = [...settings.seo_contextual_links.generic_exclusions];
+        let addedCount = 0;
+        for (const kw of keywords) {
+          if (!updatedKeywords.includes(kw)) {
+            updatedKeywords.push(kw);
+            addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          settings.seo_contextual_links.generic_exclusions = updatedKeywords;
+        }
         target.value = "";
       }
     }
@@ -413,8 +435,19 @@
       e.preventDefault();
       const target = e.target as HTMLInputElement;
       const val = target.value.trim().toLowerCase();
-      if (val && !settings.seo_contextual_links.intent_keywords.includes(val)) {
-        settings.seo_contextual_links.intent_keywords = [...settings.seo_contextual_links.intent_keywords, val];
+      if (val) {
+        const keywords = val.split(',').map(k => k.trim()).filter(k => k !== '');
+        let updatedKeywords = [...settings.seo_contextual_links.intent_keywords];
+        let addedCount = 0;
+        for (const kw of keywords) {
+          if (!updatedKeywords.includes(kw)) {
+            updatedKeywords.push(kw);
+            addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          settings.seo_contextual_links.intent_keywords = updatedKeywords;
+        }
         target.value = "";
       }
     }
@@ -450,8 +483,17 @@
       const target = e.target as HTMLInputElement;
       const val = target.value.trim().toLowerCase();
       if (val && settings.news_tags?.tags_map[tagName]) {
-        if (!settings.news_tags.tags_map[tagName].includes(val)) {
-          settings.news_tags.tags_map[tagName] = [...settings.news_tags.tags_map[tagName], val];
+        const keywords = val.split(',').map(k => k.trim()).filter(k => k !== '');
+        let updatedKeywords = [...settings.news_tags.tags_map[tagName]];
+        let addedCount = 0;
+        for (const kw of keywords) {
+          if (!updatedKeywords.includes(kw)) {
+            updatedKeywords.push(kw);
+            addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          settings.news_tags.tags_map[tagName] = updatedKeywords;
         }
         target.value = "";
       }
