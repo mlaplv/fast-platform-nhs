@@ -366,14 +366,31 @@ export function createNanobotState() {
     get toasts() { return ui.toasts; },
     showToast: (message: string, type: ToastType = "info", duration = 4000) => {
       ui.showToast(message, type, duration);
-      if (type !== "success" && message !== state.lastMessageHash) {
+
+      const isError = type === "error";
+      const isTaskCompletion = type === "success" && (
+        message.includes("hoàn tất") || 
+        message.includes("hoàn thành") || 
+        message.includes("thành công") || 
+        message.includes("hoàn tất thành công")
+      );
+
+      const shouldSpeak = isError || isTaskCompletion;
+
+      if (shouldSpeak && message !== state.lastMessageHash) {
         state.lastMessageHash = message;
         setTimeout(() => { if (state.lastMessageHash === message) state.lastMessageHash = ""; }, SIGNAL_THROTTLE_MS);
+        
+        let speakText = message;
+        if (isError && !message.startsWith("Dạ")) {
+          speakText = `Dạ sếp, đã xảy ra lỗi: ${message}`;
+        }
+
         if (state.audioUnlocked && (Date.now() - audioThrottle.lastSpeakTime > SIGNAL_THROTTLE_MS) && state.signalQueue.length === 0) {
           audioThrottle.setLastSpeakTime(Date.now());
-          import("$lib/vui").then(({ vuiController }) => vuiController.speak(`Dạ, em đang báo cáo ${type} cho ${permissionState.userName} đây ạ.`));
+          import("$lib/vui").then(({ vuiController }) => vuiController.speak(speakText));
         } else {
-          state.signalQueue = [...state.signalQueue, message];
+          state.signalQueue = [...state.signalQueue, speakText];
           audioThrottle.scheduleFlush();
         }
       }

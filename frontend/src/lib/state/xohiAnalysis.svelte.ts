@@ -289,6 +289,7 @@ export function createAnalysisController(config: {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
             targetSetter(res.data as T);
             bulkFixLogs = [...bulkFixLogs, "✅ Phân tích hoàn tất. Đã nạp dữ liệu Intelligence."];
+            nanobot.showToast("Phân tích hoàn tất. Đã nạp dữ liệu Intelligence.", "success");
 
             // [CNS V90.0] Batch Save: gom cả save-report lẫn evidence vào 1 call (thay 2 POST cũ)
             if (cid && cid !== 'adhoc' && category) {
@@ -718,6 +719,7 @@ export function createAnalysisController(config: {
                 }
                 addTerminalLog("✅ Tinh chỉnh hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật.");
                 bulkFixStatus = "Hoàn tất ✅";
+                nanobot.showToast("Tinh chỉnh nội dung hoàn tất thành công!", "success");
             } else {
                 const msg = (res as { message?: string })?.message || "Không thể thực hiện tinh chỉnh hàng loạt";
                 logger.error("[Neural Engine] Bulk Fix Error:", res);
