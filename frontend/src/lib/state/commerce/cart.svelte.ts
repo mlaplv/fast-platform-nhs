@@ -408,7 +408,7 @@ export class CartStore {
         this.giftInfo = info;
     }
 
-    addItem(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
+    addItem(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[], replaceQuantity: boolean = false): void {
         // ELITE V3.0: ID based on tier_index classification, NOT variant.id.
         // This guarantees same-classification items (combo or single) always merge into one row.
         const uniqueId = this.getUniqueId(product, variant);
@@ -417,7 +417,11 @@ export class CartStore {
         const tierIndex = this.getClassificationIndex(product, variant);
 
         if (existingItem) {
-            existingItem.quantity += quantity;
+            if (replaceQuantity) {
+                existingItem.quantity = quantity;
+            } else {
+                existingItem.quantity += quantity;
+            }
             existingItem.selected = true;
             // Update variant reference to latest selection (for gift/attributes metadata lookup)
             if (variant) existingItem.variant = variant;
@@ -571,13 +575,9 @@ export class CartStore {
 
     buyNow(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
         // ELITE V3.0: "Mua Ngay" semantics.
-        // Clear the cart only if the existing items in the cart are for a DIFFERENT product.
-        // If it's the same product, we keep the items to allow automatic quantity merging.
-        const hasDifferentProduct = this.items.some(item => item.product.id !== product.id);
-        if (hasDifferentProduct) {
-            this.items = [];
-        }
-        this.addItem(product, variant, quantity, voucherIds);
+        // We do NOT clear the cart when ordering a different product (avoid replacing other products in the cart).
+        // Instead, we pass replaceQuantity = true to prevent accumulation when updating the same product's quantity.
+        this.addItem(product, variant, quantity, voucherIds, true);
     }
 
     loadUnlockedViralVouchers(): Voucher[] {
