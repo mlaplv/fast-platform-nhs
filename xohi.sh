@@ -358,10 +358,11 @@ function init_deploy() {
         echo -e "Sếp muốn làm gì với Database?"
         echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
         echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
-        echo "3) Bỏ qua (Giữ DB trắng)"
+        echo "3) Chỉ tạo Super User (Dọn sạch DB + Tạo Admin)"
+        echo "4) Bỏ qua (Giữ nguyên không thay đổi)"
         db_choice=""
         for i in {10..1}; do
-            echo -ne "\rLựa chọn của Sếp (mặc định 1 sau ${i}s): "
+            echo -ne "\rLựa chọn của Sếp (mặc định 3 sau ${i}s): "
             if read -t 1 input; then
                 db_choice=$input
                 break
@@ -369,8 +370,8 @@ function init_deploy() {
         done
 
         if [[ -z "$db_choice" ]]; then
-            db_choice=1
-            echo -e "\n${YELLOW}-> Tự động chọn mục 1 (Seed DB)...${NC}"
+            db_choice=3
+            echo -e "\n${YELLOW}-> Tự động chọn mục 3 (Chỉ tạo Super User)...${NC}"
         else
             echo -e "" 
         fi
@@ -385,17 +386,12 @@ function init_deploy() {
             echo -e "${YELLOW}-> Đang chuyển sang quy trình Khôi phục (Restore)...${NC}"
             restore_data
             ;;
+        3)
+            echo -e "${YELLOW}-> Đang dọn sạch DB và chỉ khởi tạo Super User (Admin)...${NC}"
+            docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.seed --admin-only
+            ;;
         *)
-            echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu.${NC}"
-            if [ "$NO_SEED" = false ]; then
-                echo -e "Sếp có muốn khởi tạo Super User (Admin) để đăng nhập không? (y/n)"
-                read -p "Lựa chọn (mặc định y): " create_admin
-                if [[ -z "$create_admin" || "$create_admin" =~ ^[Yy]$ ]]; then
-                    create_superuser
-                fi
-            else
-                echo -e "${YELLOW}[INFO] Bỏ qua bước xác nhận tạo Super User (Dành cho bản 3.1).${NC}"
-            fi
+            echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu và không thay đổi DB.${NC}"
             ;;
     esac
     
@@ -1196,6 +1192,151 @@ function restart_backend_services() {
     fi
 }
 
+function init_deploy_dev() {
+    local NO_SEED=false
+    if [[ "$1" == "--no-seed" ]]; then
+        NO_SEED=true
+    fi
+
+    # [ELITE V2.2] Bảo trì hệ thống trước khi khởi tạo dự án
+    update_docker --no-wait || return 1
+    
+    echo -e "${YELLOW}=== [INIT DEV] KHỞI TẠO CHẾ ĐỘ DEV HOT-RELOAD (DOCKER) ===${NC}"
+    check_deps
+    
+    echo -e "${CYAN}[1/6] Dọn dẹp môi trường (Deep Clean)...${NC}"
+    deep_clean
+    
+    # Rotate keys during fresh deploy to prevent "Ghost Identity" issues
+    rotate_encryption_key
+    
+    echo -e "${CYAN}[2/6] Kiểm tra file cấu hình môi trường (.env)...${NC}"
+    if [ ! -f .env ]; then
+        if [ -f .env.example ]; then
+            cp .env.example .env
+            echo -e "${GREEN}Đã tạo file .env từ .env.example.${NC}"
+        else
+            echo -e "${YELLOW}Cảnh báo: Không tìm thấy file .env.${NC}"
+        fi
+    fi
+
+    echo -e "${CYAN}[3/6] Cài đặt dependencies (UV & PNPM)...${NC}"
+    mkdir -p certs/caddy/pki
+    if [ "$IS_INTEL_MAC" = true ]; then
+        echo -e "${YELLOW}[INTEL MAC] Skip uv sync local...${NC}"
+        uv venv --python 3.14 && source .venv/bin/activate
+        uv pip install -e . || true
+    else
+        echo -e "${CYAN}-> Đang tạo môi trường ảo (Python 3.14)...${NC}"
+        uv venv --seed --python 3.14
+        source .venv/bin/activate
+        echo -e "${CYAN}-> Đang cài đặt Core Dependencies (Mirror Mode)...${NC}"
+        ./.venv/bin/pip install --upgrade pip
+        ./.venv/bin/pip install "litellm>=1.83.0"
+        uv pip install litestar[standard] advanced-alchemy asyncpg pydantic-ai
+        uv pip install -e .
+    fi
+    echo -e "${CYAN}-> [CTO ELITE] Đang tạo uv.lock cho Docker...${NC}"
+    uv lock || true
+    (cd frontend && pnpm install)
+    
+    echo -e "${CYAN}[4/6] Xây dựng và khởi động Cơ sở hạ tầng (Database & Cache)...${NC}"
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml build db redis caddy
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db redis caddy
+    
+    echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
+    echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
+    sleep 5
+    echo -e "${YELLOW}Đang chạy Migration (Một lần)...${NC}"
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api /opt/venv/bin/alembic -c backend/alembic.ini upgrade head
+    
+    echo -e "${CYAN}[6/6] Khởi tạo dữ liệu (Data Injection)...${NC}"
+    
+    if [ "$NO_SEED" = true ]; then
+        db_choice=3
+        echo -e "${YELLOW}-> [BLANK DB] Tự động bỏ qua Seeding theo yêu cầu.${NC}"
+    else
+        echo -e "Sếp muốn làm gì với Database?"
+        echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
+        echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
+        echo "3) Chỉ tạo Super User (Dọn sạch DB + Tạo Admin)"
+        echo "4) Bỏ qua (Giữ nguyên không thay đổi)"
+        db_choice=""
+        for i in {10..1}; do
+            echo -ne "\rLựa chọn của Sếp (mặc định 3 sau ${i}s): "
+            if read -t 1 input; then
+                db_choice=$input
+                break
+            fi
+        done
+
+        if [[ -z "$db_choice" ]]; then
+            db_choice=3
+            echo -e "\n${YELLOW}-> Tự động chọn mục 3 (Chỉ tạo Super User)...${NC}"
+        else
+            echo -e "" 
+        fi
+    fi
+
+    case $db_choice in
+        1)
+            echo -e "${YELLOW}-> Đang chạy Seeding (Dữ liệu mẫu Test)...${NC}"
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api /opt/venv/bin/python3 -m backend.scripts.seed
+            ;;
+        2)
+            echo -e "${YELLOW}-> Đang chuyển sang quy trình Khôi phục (Restore)...${NC}"
+            restore_data
+            ;;
+        3)
+            echo -e "${YELLOW}-> Đang dọn sạch DB và chỉ khởi tạo Super User (Admin)...${NC}"
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api /opt/venv/bin/python3 -m backend.scripts.seed --admin-only
+            ;;
+        *)
+            echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu và không thay đổi DB.${NC}"
+            ;;
+    esac
+    
+    echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ ở chế độ DEV HOT-RELOAD (API, Worker & UI)...${NC}"
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml build api worker_high worker_default ui
+    export SKIP_MIGRATE=true
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans api worker_high worker_default ui
+    if [ "$NO_SEED" = true ]; then
+        echo -e "${GREEN}[SSL] Đã có cấu hình SSL thật trên VPS. Bỏ qua thiết lập SSL Local CA.${NC}"
+    else
+        chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
+    fi
+    
+    echo -e "${GREEN}=== HỆ THỐNG DEV HOT-RELOAD ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
+    echo -e "${CYAN}Truy cập: https://admin.nhathuochongson.com${NC}"
+    view_logs
+}
+
+function restart_backend_services_dev() {
+    local NO_WAIT=false
+    if [[ "$1" == "--no-wait" ]]; then
+        NO_WAIT=true
+    fi
+
+    echo -e "${CYAN}[RESTART DEV] Đang làm sạch Log và khởi động lại Backend, UI & Gateway ở chế độ HOT-RELOAD (api + worker_high + ui + caddy)...${NC}"
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml stop api worker_high ui caddy
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml rm -f api worker_high ui caddy
+    
+    # [Elite V2.2] Purge pycache cũ trực tiếp trên host trước khi up (tránh Double Restart làm treo lock DB)
+    echo -e "${YELLOW}[PYCACHE] Đang xóa sạch pycache cũ trên Host...${NC}"
+    find backend -name "*.pyc" -delete 2>/dev/null || true
+    find backend -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+    
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d api worker_high ui caddy
+    echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống chế độ DEV HOT-RELOAD (API, Worker High, UI, Caddy) sạch sẽ!${NC}"
+    echo -e "${CYAN}--- Trạng thái hoạt động mới nhất ---${NC}"
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail 15 api worker_high ui
+    echo -e "${GREEN}✔ Khởi chạy hoàn tất! Hệ thống đã trực tuyến ổn định ở chế độ DEV HOT-RELOAD.${NC}"
+    
+    if [ "$NO_WAIT" = false ]; then
+        read -p "Nhấn Enter để quay lại menu..."
+    fi
+}
+
 # Handle direct command-line arguments (e.g. ./xohi.sh clean)
 if [[ -n "$1" ]]; then
     case "$1" in
@@ -1205,6 +1346,14 @@ if [[ -n "$1" ]]; then
             ;;
         reset|restart|8)
             restart_backend_services --no-wait
+            exit 0
+            ;;
+        dev-init|3.2)
+            init_deploy_dev
+            exit 0
+            ;;
+        dev-reset|dev-restart|8a|8A)
+            restart_backend_services_dev --no-wait
             exit 0
             ;;
         logs-tmux|log-tmux|tmux-log|tmux-logs|4a|4A)
@@ -1248,6 +1397,7 @@ while true; do
     echo "2a) DỌN DẸP DOCKER RÁC (Chỉ giữ container & image đang chạy)"
     echo "3) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
     echo "3.1) INITIALIZE (Bản 3.1: Dọn + Build + Migration + SSL - Trống DB)"
+    echo "3.2) DEV INITIALIZE (HOT-RELOAD Mode phát triển local)"
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
     echo "4) XEM LOG BACKEND"
@@ -1256,6 +1406,7 @@ while true; do
     echo "6) KHÔI PHỤC DỮ LIỆU"
     echo "7) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
     echo "8) RESTART API (Kèm theo dõi Log lỗi)"
+    echo "8a) RESTART DEV (HOT-RELOAD Mode phát triển local)"
     echo "9) CẬP NHẬT MODEL AI (~250MB)"
     echo "10) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
     echo "11) CÀI ĐẶT VPS (LOCKDOWN - Dành cho máy mới)"
@@ -1294,6 +1445,9 @@ while true; do
         3.1)
             init_deploy --no-seed
             ;;
+        3.2)
+            init_deploy_dev
+            ;;
         4)
             view_logs
             ;;
@@ -1311,6 +1465,9 @@ while true; do
             ;;
         8)
             restart_backend_services
+            ;;
+        8a|8A)
+            restart_backend_services_dev
             ;;
         9)
             update_ai_model

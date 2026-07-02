@@ -21,7 +21,7 @@ from backend.database import async_session_maker
 from backend.database.models import User, Role, Permission, VoiceProfile
 from backend.utils.security import GeminiSecurity
 
-TENANT_ID = "smartshop"
+TENANT_ID = os.getenv("APP_DOMAIN", "osmo")
 
 def get_env_gemini_keys() -> list[str]:
     raw = os.getenv("SUPPORT_GEMINI_KEYS", "[]")

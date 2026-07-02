@@ -18,7 +18,7 @@ async def seed_banners():
                 "title": "Bạn mới tặng 80k",
                 "image_url": "/uploads/2026/04/713b7e0d-a566-48b0-8271-a5959b452090.webp",
                 "mobile_image_url": None,
-                "link_url": "miccosmo-white-label-platinum-placenta-whitening-cream-20g-kem-duong-da-nam",
+                "link_url": "miccosmo-white-label-platinum-placenta-whitening-cream-20g",
                 "position": "home_main",
                 "order_index": 1
             },
@@ -27,7 +27,7 @@ async def seed_banners():
                 "title": "osmo Live",
                 "image_url": "/uploads/2026/04/0a761945-d9ca-4cf1-8cc5-c57bfa9727db.webp",
                 "mobile_image_url": None,
-                "link_url": "miccosmo-white-label-premium-placenta-pack-130g-mat-na-rua-troi-ho-tro-duong-sang",
+                "link_url": "miccosmo-white-label-premium-placenta-pack-130g",
                 "position": "home_main",
                 "order_index": 2
             },
@@ -36,7 +36,7 @@ async def seed_banners():
                 "title": "Dyson Slide",
                 "image_url": "/uploads/2026/04/713b7e0d-a566-48b0-8271-a5959b452090.webp",
                 "mobile_image_url": None,
-                "link_url": "miccosmo-white-label-premium-placenta-rich-gold-eye-cream-25g-kem-mat-ho-tro-mo-tham-duong-sang",
+                "link_url": "miccosmo-white-label-premium-placenta-rich-gold-eye-cream-25g",
                 "position": "home_main",
                 "order_index": 3
             },
@@ -45,7 +45,7 @@ async def seed_banners():
                 "title": "osmo Xử Lý",
                 "image_url": "/uploads/2026/04/c6ba1a76-527b-4f06-9f16-a2883d526131.webp",
                 "mobile_image_url": None,
-                "link_url": "miccosmo-white-label-premium-placenta-essence-180ml-tinh-chat-cap-am-lam-diu-da",
+                "link_url": "miccosmo-white-label-premium-placenta-essence-180ml",
                 "position": "home_side",
                 "order_index": 4
             },
@@ -54,7 +54,7 @@ async def seed_banners():
                 "title": "Voucher 50%",
                 "image_url": "/uploads/2026/04/bee054dc-7531-40cd-a56c-51e0f732cd4f.webp",
                 "mobile_image_url": None,
-                "link_url": "miccosmo-white-label-placenta-rich-gold-cream-60g-kem-ho-tro-duong-sang-ngua-lao-hoa",
+                "link_url": "miccosmo-white-label-placenta-rich-gold-cream-60g",
                 "position": "home_side",
                 "order_index": 5
             }

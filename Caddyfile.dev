@@ -32,7 +32,7 @@ http://{$APP_DOMAIN}, http://{$ADMIN_DOMAIN}, http://{$API_DOMAIN} {
 }
 
 https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
-	# tls internal  # removed to allow ACME automatic certificates
+	tls internal
 	import security_headers
 
 	# Block malicious scan probes and admin entrypoints at proxy level (Military-Grade Blocklist)
@@ -43,16 +43,16 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		}
 	}
 
-	# Restrict Admin Dashboard and Admin APIs to whitelisted IPs only (Elite V2.2)
-	@admin_restricted {
-		expression `host("{$ADMIN_DOMAIN}") || (host("{$API_DOMAIN}") && (path("/api/v1/admin/*", "/api/v1/seo/*", "/api/v1/users/*", "/api/v1/settings/*", "/api/v1/notifications/*", "/api/v1/auditor/*", "/api/v1/ai/*", "/api/v1/mcp/*", "/api/v1/scheduler/*", "/api/v1/banner/*", "/api/v1/chat/*", "/api/v1/pulse/*", "/api/v1/intent/*", "/api/v1/voice/*", "/api/v1/content/*", "/api/v1/orders/*", "/api/v1/video/*", "/ws/stt") || (path("/api/v1/media/*") && !path("/api/v1/media/*/thumb"))))`
-		not client_ip 127.0.0.1 ::1 103.1.236.14 {$ADMIN_WHITELIST_IPS}
-	}
-	handle @admin_restricted {
-		respond "Forbidden" 403 {
-			close
-		}
-	}
+	# Restrict Admin Dashboard and Admin APIs to whitelisted IPs only (Elite V2.2) - Disabled in Dev Mode
+	# @admin_restricted {
+	# 	expression `host("{$ADMIN_DOMAIN}") || (host("{$API_DOMAIN}") && (path("/api/v1/admin/*", "/api/v1/seo/*", "/api/v1/users/*", "/api/v1/settings/*", "/api/v1/notifications/*", "/api/v1/auditor/*", "/api/v1/ai/*", "/api/v1/mcp/*", "/api/v1/scheduler/*", "/api/v1/banner/*", "/api/v1/chat/*", "/api/v1/pulse/*", "/api/v1/intent/*", "/api/v1/voice/*", "/api/v1/content/*", "/api/v1/orders/*", "/api/v1/video/*", "/ws/stt") || (path("/api/v1/media/*") && !path("/api/v1/media/*/thumb"))))`
+	# 	not client_ip 127.0.0.1 ::1 103.1.236.14 {$ADMIN_WHITELIST_IPS}
+	# }
+	# handle @admin_restricted {
+	# 	respond "Forbidden" 403 {
+	# 		close
+	# 	}
+	# }
 
 
 	# Serve dynamic thumbnail cache with fallback handler (Elite V3.1)
@@ -83,18 +83,18 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
 		file_server
 	}
 
-	# Serve storefront static files directly with long-lived Cache-Control headers (Elite V3.0)
-	@static_files {
-		path *.webp *.png *.jpg *.jpeg *.svg *.gif *.ico *.js *.css *.woff2 *.ttf
-		not {
-			path /_app/* /wasm/* /vad/* /models/* /v65_assets/cache/*
-		}
-	}
-	handle @static_files {
-		root * /app/frontend/static
-		header Cache-Control "public, max-age=31536000, immutable"
-		file_server
-	}
+	# Serve storefront static files directly - Disabled in Dev Mode (Vite handles JS/CSS)
+	# @static_files {
+	# 	path *.webp *.png *.jpg *.jpeg *.svg *.gif *.ico *.js *.css *.woff2 *.ttf
+	# 	not {
+	# 		path /_app/* /wasm/* /vad/* /models/* /v65_assets/cache/*
+	# 	}
+	# }
+	# handle @static_files {
+	# 	root * /app/frontend/static
+	# 	header Cache-Control "public, max-age=31536000, immutable"
+	# 	file_server
+	# }
 
 
 	# Compression logic (Exclude SSE, WS, and streaming endpoints)

@@ -127,7 +127,7 @@ async def seed_products(session):
         pb = ProductBase(
             id=d["id"],
             name=d["name"],
-            slug=slugify(d["name"]),
+            slug=d.get("slug", slugify(d["name"])),
             sku=d["sku"],
             price=d["price"],
             discount_price=d.get("discount_price"),
@@ -291,9 +291,14 @@ async def seed_vouchers(session):
 
 async def main():
     print("🚀 Starting Refactored Seed Process...")
+    admin_only = "--admin-only" in sys.argv
     async with async_session_maker() as session:
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
+            if admin_only:
+                await session.commit()
+                print("✨ Successful! (Cleared DB & Only created Admin Superuser)")
+                return
             await seed_categories(session); p = await seed_products(session)
             await seed_articles(session, u.id)
             await seed_reviews(session)

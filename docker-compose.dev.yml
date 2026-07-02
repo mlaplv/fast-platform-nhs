@@ -1,0 +1,25 @@
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile
+
+  api:
+    environment:
+      - DEVELOPMENT_RELOAD=true
+
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    command: pnpm run dev --port 3000
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    environment:
+      - NODE_ENV=development
+    mem_limit: 1536M
+    deploy:
+      resources:
+        limits:
+          memory: 1536M

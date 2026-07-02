@@ -25,8 +25,9 @@ def upgrade() -> None:
     op.execute("ALTER TABLE system_reviews SET (autovacuum_vacuum_scale_factor = 0.05, autovacuum_analyze_scale_factor = 0.05)")
     op.execute("ALTER TABLE media_registry SET (autovacuum_vacuum_scale_factor = 0.05, autovacuum_analyze_scale_factor = 0.05)")
 
-    # 2. Đồng bộ cột embedding của seo_pillar_embeddings sang kiểu vector(384)
+    # 2. Đồng bộ cột embedding của seo_pillar_embeddings và support_knowledge_embeddings sang kiểu vector(384)
     op.execute("ALTER TABLE seo_pillar_embeddings ALTER COLUMN embedding TYPE vector(384) USING embedding::vector(384)")
+    op.execute("ALTER TABLE support_knowledge_embeddings ALTER COLUMN embedding TYPE vector(384) USING embedding::vector(384)")
 
     # 3. Tạo chỉ mục HNSW cho tìm kiếm vector ngữ nghĩa
     op.execute("CREATE INDEX IF NOT EXISTS ix_article_embeddings_hnsw ON article_embeddings USING hnsw (embedding vector_cosine_ops)")
@@ -40,8 +41,9 @@ def downgrade() -> None:
     op.execute("ALTER TABLE system_reviews RESET (autovacuum_vacuum_scale_factor, autovacuum_analyze_scale_factor)")
     op.execute("ALTER TABLE media_registry RESET (autovacuum_vacuum_scale_factor, autovacuum_analyze_scale_factor)")
 
-    # 2. Khôi phục cột embedding của seo_pillar_embeddings về kiểu text
+    # 2. Khôi phục cột embedding của seo_pillar_embeddings và support_knowledge_embeddings về kiểu text
     op.execute("ALTER TABLE seo_pillar_embeddings ALTER COLUMN embedding TYPE text USING embedding::text")
+    op.execute("ALTER TABLE support_knowledge_embeddings ALTER COLUMN embedding TYPE text USING embedding::text")
 
     # 3. Drop các chỉ mục HNSW
     op.execute("DROP INDEX IF EXISTS ix_article_embeddings_hnsw")
